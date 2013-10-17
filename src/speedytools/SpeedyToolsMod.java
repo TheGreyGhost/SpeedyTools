@@ -1,7 +1,9 @@
 package speedytools;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.settings.GameSettings;
+import speedytools.client.KeyBindingInterceptor;
 import speedytools.items.*;
-import cpw.mods.fml.client.registry.RenderingRegistry;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.SidedProxy;
@@ -9,14 +11,8 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
-import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.common.registry.LanguageRegistry;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.client.MinecraftForgeClient;
 
 /**
  * Created with IntelliJ IDEA.
@@ -37,10 +33,12 @@ public class SpeedyToolsMod {
 
   // custom items
   private final static int STARTITEM = 5000;
-  public final static Item itemSmileyFace = new ItemSmileyFace(STARTITEM);
+  public final static Item itemSpeedyStrip = new ItemSpeedyStrip(STARTITEM);
 
   // custom blocks
   private final static int STARTBLOCK = 500;
+
+  public static KeyBindingInterceptor attackButtonInterceptor;
 
   // custom itemrenderers
 
@@ -61,7 +59,9 @@ public class SpeedyToolsMod {
 
   @EventHandler
   public void postInit(FMLPostInitializationEvent event) {
-    // Stub Method
+    attackButtonInterceptor = new KeyBindingInterceptor(Minecraft.getMinecraft().gameSettings.keyBindAttack);
+    Minecraft.getMinecraft().gameSettings.keyBindAttack = attackButtonInterceptor;
+    attackButtonInterceptor.setInterceptionMode(KeyBindingInterceptor.InterceptionMode.OFF);
   }
 
   private void addItemsToRegistries() {
@@ -69,7 +69,7 @@ public class SpeedyToolsMod {
     // LanguageRegistry for registering the name of the item
     // MinecraftForgeClient.registerItemRenderer for custom item renderers
 
-    LanguageRegistry.addName(itemSmileyFace, "Smiley Face");
+    LanguageRegistry.addName(itemSpeedyStrip, "Speedy Strip");
 
   }
 
