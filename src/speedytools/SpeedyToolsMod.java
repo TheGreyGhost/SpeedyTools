@@ -1,7 +1,6 @@
 package speedytools;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.GameSettings;
 import speedytools.client.KeyBindingInterceptor;
 import speedytools.items.*;
 import cpw.mods.fml.common.Mod;
@@ -61,7 +60,7 @@ public class SpeedyToolsMod {
   public void postInit(FMLPostInitializationEvent event) {
     attackButtonInterceptor = new KeyBindingInterceptor(Minecraft.getMinecraft().gameSettings.keyBindAttack);
     Minecraft.getMinecraft().gameSettings.keyBindAttack = attackButtonInterceptor;
-    attackButtonInterceptor.setInterceptionMode(KeyBindingInterceptor.InterceptionMode.OFF);
+    attackButtonInterceptor.setInterceptionActive(false);
   }
 
   private void addItemsToRegistries() {

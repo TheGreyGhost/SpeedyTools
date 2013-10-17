@@ -122,9 +122,9 @@ public class ItemSpeedyStrip extends Item {
     if (world.isRemote && entity instanceof EntityPlayerSP) {
         ItemStack heldItem = ((EntityPlayerSP) entity).getHeldItem();
         if (heldItem != null && heldItem.itemID == SpeedyToolsMod.itemSpeedyStrip.itemID) {
-         SpeedyToolsMod.attackButtonInterceptor.setInterceptionMode(KeyBindingInterceptor.InterceptionMode.ON);
+         SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(true);
         } else {
-          SpeedyToolsMod.attackButtonInterceptor.setInterceptionMode(KeyBindingInterceptor.InterceptionMode.OFF);
+          SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(false);
         }
     }
   }

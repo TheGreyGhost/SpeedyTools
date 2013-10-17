@@ -8,14 +8,14 @@ package speedytools.client;
  *      .pressed is always false.
  *      The true .isPressed() and .pressed are available using .retrieveClick() and .isKeyDown()
  *   Usage:
- *    (1) replace KeyBinding with a newly generated intercept
+ *    (1) replace KeyBinding with a newly generated interceptor
  *        eg
  *        KeyBindingInterceptor attackButtonInterceptor(GameSettings.keyBindAttack);
  *        GameSettings.keyBindAttack = attackButtonInterceptor;
- *        This creates an interceptor linked to the existing keyBindAttack.  The existing keyBindAttack remains in the
+ *        This creates an interceptor linked to the existing keyBindAttack.  The original keyBindAttack remains in the
  *          KeyBinding hashmap and keyBindArray.
- *    (2) Set the interception mode (eg OFF, ON, IN_WORLD = only when no GUI present)
- *        eg  setInterceptionMode(InterceptionMode.OFF);
+ *    (2) Set the interception mode (eg true = on)
+ *        eg  setInterceptionActive(false);
  *    (3) read the underlying clicks using .retrieveClick() or .isKeyDown();
  *    (4) when Interceptor is no longer required, call .getOriginalKeyBinding();
  *        eg GameSettings.keyBindAttack = attackButtonInterceptor.getOriginalKeyBinding();
@@ -23,18 +23,14 @@ package speedytools.client;
  *  NOTES -
  *    (a) the interceptor does not update the .pressed field until .isPressed() is called.  The vanilla Minecraft.runTick
  *        currently always accesses .isPressed() before attempting to read .pressed.
- *    (b) In the current vanilla code, if the bindings are changed it will affect the interceptor.  The new binding will
- *        be copied to the original interceptedKeyBinding at the first call to .retrieveClick(), .isKeyDown(), or .isPressed().
- *   The clicks are only intercepted when the user is not viewing a GUI, i.e.
- *     Minecraft.getMinecraft().currentScreen == NULL
-  * QN for later - what about this.currentScreen.allowUserInput?
+ *    (b) In the current vanilla code, if the bindings are changed it will affect the original keybinding.  The new binding will
+ *        be copied to the interceptor at the first call to .retrieveClick(), .isKeyDown(), or .isPressed().
+ *    (c) Will not work in GUI
  */
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
-
-import java.util.Iterator;
 
 @SideOnly(Side.CLIENT)
 public class KeyBindingInterceptor extends KeyBinding
@@ -51,7 +47,7 @@ public class KeyBindingInterceptor extends KeyBinding
     // the base constructor automatically adds the class to the keybindArray and hash, which we don't want, so undo it
     keybindArray.remove(this);
 
-    this.interceptionMode = InterceptionMode.OFF;
+    this.interceptionActive = false;
     this.pressed = false;
     this.pressTime = 0;
 
@@ -64,18 +60,10 @@ public class KeyBindingInterceptor extends KeyBinding
     KeyBinding.resetKeyBindingArrayAndHash();
   }
 
-  public enum InterceptionMode
+  public void setInterceptionActive(boolean newMode)
   {
-    OFF,          // don't intercept
-    ON,           // always intercept
-    IN_WORLD      // only intercept if Minecraft.getMinecraft().currentScreen is null
+    interceptionActive = newMode;
   }
-
-  public void setInterceptionMode(InterceptionMode newMode)
-  {
-    interceptionMode = newMode;
-  }
-
 
   public boolean isKeyDown()
   {
@@ -90,9 +78,7 @@ public class KeyBindingInterceptor extends KeyBinding
   public boolean retrieveClick()
   {
     copyKeyCodeToOriginal();
-    if (    interceptionMode == InterceptionMode.ON
-        || (interceptionMode == InterceptionMode.IN_WORLD && Minecraft.getMinecraft().currentScreen == null )
-       ) {
+    if (interceptionActive) {
       copyClickInfoFromOriginal();
 
       if (this.pressTime == 0) {
@@ -116,14 +102,12 @@ public class KeyBindingInterceptor extends KeyBinding
   {
     copyKeyCodeToOriginal();
     copyClickInfoFromOriginal();
-    if (    interceptionMode == InterceptionMode.ON
-            || (interceptionMode == InterceptionMode.IN_WORLD && Minecraft.getMinecraft().currentScreen == null )
-            ) {
+
+    if (interceptionActive) {
       this.pressTime = 0;
       this.pressed = false;
       return false;
     } else {
-
       if (this.pressTime == 0) {
         return false;
       } else {
@@ -138,7 +122,7 @@ public class KeyBindingInterceptor extends KeyBinding
   }
 
   protected KeyBinding interceptedKeyBinding;
-  private InterceptionMode interceptionMode;
+  private boolean interceptionActive;
 
   protected void copyClickInfoFromOriginal()
   {
@@ -150,8 +134,8 @@ public class KeyBindingInterceptor extends KeyBinding
   protected void copyKeyCodeToOriginal()
   {
     // only copy if necessary
-    if (interceptedKeyBinding.keyCode != this.keyCode) {
-      interceptedKeyBinding.keyCode = this.keyCode;
+    if (this.keyCode != interceptedKeyBinding.keyCode) {
+      this.keyCode = interceptedKeyBinding.keyCode;
       resetKeyBindingArrayAndHash();
     }
   }
