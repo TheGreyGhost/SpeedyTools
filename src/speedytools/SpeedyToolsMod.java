@@ -1,6 +1,7 @@
 package speedytools;
 
 import net.minecraft.client.Minecraft;
+import net.minecraftforge.common.MinecraftForge;
 import speedytools.client.KeyBindingInterceptor;
 import speedytools.items.*;
 import cpw.mods.fml.common.Mod;
@@ -54,6 +55,7 @@ public class SpeedyToolsMod {
   public void load(FMLInitializationEvent event) {
     addItemsToRegistries();
     addBlocksToRegistries();
+    MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
   }
 
   @EventHandler

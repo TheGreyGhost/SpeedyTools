@@ -1,5 +1,6 @@
 package speedytools.items;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.creativetab.CreativeTabs;
@@ -8,7 +9,10 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumMovingObjectType;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
+import org.lwjgl.opengl.GL11;
 import speedytools.SpeedyToolsMod;
 import speedytools.client.KeyBindingInterceptor;
 
@@ -129,6 +133,35 @@ public class ItemSpeedyStrip extends Item {
     }
   }
 
+  public void drawSelectionBox(EntityPlayer par1EntityPlayer, MovingObjectPosition par2MovingObjectPosition, int par3, float par4)
+  {
+    /*
+    if (par3 == 0 && par2MovingObjectPosition.typeOfHit == EnumMovingObjectType.TILE)
+    {
+      GL11.glEnable(GL11.GL_BLEND);
+      GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+      GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
+      GL11.glLineWidth(2.0F);
+      GL11.glDisable(GL11.GL_TEXTURE_2D);
+      GL11.glDepthMask(false);
+      float f1 = 0.002F;
+      int j = this.theWorld.getBlockId(par2MovingObjectPosition.blockX, par2MovingObjectPosition.blockY, par2MovingObjectPosition.blockZ);
+
+      if (j > 0)
+      {
+        Block.blocksList[j].setBlockBoundsBasedOnState(this.theWorld, par2MovingObjectPosition.blockX, par2MovingObjectPosition.blockY, par2MovingObjectPosition.blockZ);
+        double d0 = par1EntityPlayer.lastTickPosX + (par1EntityPlayer.posX - par1EntityPlayer.lastTickPosX) * (double)par4;
+        double d1 = par1EntityPlayer.lastTickPosY + (par1EntityPlayer.posY - par1EntityPlayer.lastTickPosY) * (double)par4;
+        double d2 = par1EntityPlayer.lastTickPosZ + (par1EntityPlayer.posZ - par1EntityPlayer.lastTickPosZ) * (double)par4;
+        this.drawOutlinedBoundingBox(Block.blocksList[j].getSelectedBoundingBoxFromPool(this.theWorld, par2MovingObjectPosition.blockX, par2MovingObjectPosition.blockY, par2MovingObjectPosition.blockZ).expand((double)f1, (double)f1, (double)f1).getOffsetBoundingBox(-d0, -d1, -d2));
+      }
+
+      GL11.glDepthMask(true);
+      GL11.glEnable(GL11.GL_TEXTURE_2D);
+      GL11.glDisable(GL11.GL_BLEND);
+    }
+    */
+  }
 
 
 }
