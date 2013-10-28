@@ -4,6 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.EnumMovingObjectType;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
@@ -35,17 +36,18 @@ public class ItemEventHandler {
     GL11.glLineWidth(2.0F);
     GL11.glDisable(GL11.GL_TEXTURE_2D);
     GL11.glDepthMask(false);
-    float f1 = 0.002F;
+    double expandDistance = 0.002F;
     int j = context.theWorld.getBlockId(target.blockX, target.blockY, target.blockZ);
 
     if (j > 0)
     {
       Block.blocksList[j].setBlockBoundsBasedOnState(context.theWorld, target.blockX, target.blockY, target.blockZ);
-      double d0 = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
-      double d1 = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
-      double d2 = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
-      context.drawOutlinedBoundingBox(Block.blocksList[j].getSelectedBoundingBoxFromPool(this.theWorld,
-                                                                                      target.blockX, target.blockY, target.blockZ).expand((double)f1, (double)f1, (double)f1).getOffsetBoundingBox(-d0, -d1, -d2));
+      double playerOriginX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
+      double playerOriginY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
+      double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
+      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(target.blockX, target.blockY, target.blockZ, target.blockX+1.0, target.blockY+1.0, target.blockZ+1.0);
+      boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
+      SelectionBoxRenderer.drawFilledCube(boundingBox);
     }
 
     GL11.glDepthMask(true);
@@ -54,4 +56,8 @@ public class ItemEventHandler {
 
     event.setCanceled(true);
   }
+
+
+
+
 }
