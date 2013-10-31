@@ -11,6 +11,8 @@ import net.minecraftforge.event.ForgeSubscribe;
 import org.lwjgl.opengl.GL11;
 import speedytools.SpeedyToolsMod;
 
+import java.util.List;
+
 /**
  Contains the custom Forge Event Handlers
  */
@@ -55,6 +57,10 @@ public class ItemEventHandler {
     Vec3 playerLook = player.getLook(partialTick);
 
     ChunkCoordinates startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
+    if (startBlock == null) return;
+
+    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlock, player, partialTick, 4, false, false);
+    if (selection.isEmpty()) return;
 
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -63,15 +69,13 @@ public class ItemEventHandler {
     GL11.glDisable(GL11.GL_TEXTURE_2D);
     GL11.glDepthMask(false);
     double expandDistance = 0.002F;
-//    int j = context.theWorld.getBlockId(target.blockX, target.blockY, target.blockZ);
 
-
-//      Block.blocksList[j].setBlockBoundsBasedOnState(context.theWorld, target.blockX, target.blockY, target.blockZ);
-      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(startBlock.posX, startBlock.posY, startBlock.posZ,
-                                                                      startBlock.posX+1, startBlock.posY+1, startBlock.posZ+1);
+    for (ChunkCoordinates block : selection) {
+      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(block.posX, block.posY, block.posZ,
+                                                                      block.posX+1, block.posY+1, block.posZ+1);
       boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
       SelectionBoxRenderer.drawFilledCube(boundingBox);
-
+    }
 
     GL11.glDepthMask(true);
     GL11.glEnable(GL11.GL_TEXTURE_2D);
