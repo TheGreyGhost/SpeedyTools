@@ -54,23 +54,7 @@ public class ItemEventHandler {
 
     Vec3 playerLook = player.getLook(partialTick);
 
-    int blockx, blocky, blockz;
-
-    if (target == null) {   // no hit
-      blockx = MathHelper.floor_double(playerOriginX);
-      blocky = MathHelper.floor_double(playerOriginY);
-      blockz = MathHelper.floor_double(playerOriginZ);
-
-      Block.collisionRayTrace
-
-    } else if (target.typeOfHit == EnumMovingObjectType.TILE) {
-      EnumFacing blockInFront = EnumFacing.getFront(target.sideHit);
-      blockx = target.blockX + blockInFront.getFrontOffsetX();
-      blocky = target.blockY + blockInFront.getFrontOffsetY();
-      blockz = target.blockZ + blockInFront.getFrontOffsetZ();
-    } else {  // currently only ENTITY
-      return;
-    }
+    ChunkCoordinates startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
 
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -83,7 +67,8 @@ public class ItemEventHandler {
 
 
 //      Block.blocksList[j].setBlockBoundsBasedOnState(context.theWorld, target.blockX, target.blockY, target.blockZ);
-      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(blockx, blocky, blockz, blockx + 1, blocky + 1, blockz+1);
+      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(startBlock.posX, startBlock.posY, startBlock.posZ,
+                                                                      startBlock.posX+1, startBlock.posY+1, startBlock.posZ+1);
       boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
       SelectionBoxRenderer.drawFilledCube(boundingBox);
 

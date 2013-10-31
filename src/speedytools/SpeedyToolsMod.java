@@ -1,7 +1,9 @@
 package speedytools;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
+import speedytools.blocks.BlockCollisionCheck;
 import speedytools.client.KeyBindingInterceptor;
 import speedytools.items.*;
 import cpw.mods.fml.common.Mod;
@@ -36,6 +38,7 @@ public class SpeedyToolsMod {
 
   // custom blocks
   private final static int STARTBLOCK = 500;
+  public final static Block blockCollisionCheck = new BlockCollisionCheck(STARTBLOCK);
 
   public static KeyBindingInterceptor attackButtonInterceptor;
 
