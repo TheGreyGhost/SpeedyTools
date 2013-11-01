@@ -230,11 +230,33 @@ public class BlockMultiSelector
    * @param world
    * @param startingBlock - the starting block, should be non-solid (isBlockSolid == false)
    * @param direction - the direction vector to be deflected.
+   * @param deltaPosition - the current [deltax, deltay, deltaz] where each delta is -1, 0, or 1
    * @return a [deltax,deltay,deltaz] where each delta is -1, 0, or 1
    */
   public static ChunkCoordinates deflectDirectionVector(World world, ChunkCoordinates startingBlock, Vec3 direction, ChunkCoordinates deltaPosition)
   {
-    // algorithm is to relax   asfasf
+    // algorithm is:
+    // if deltaPosition has one non-zero component (is parallel to one of the six coordinate axes):
+    //     normalise the direction vector to unit length, eliminate the deltaPosition's non-zero axis from the direction vector, verify that at least one of the other two
+    //     components is at least 0.1, and snap the vector to the cardinal axes again.
+    // if deltaPosition has two or three non-zero components:
+    //     re-snap the vector to the six cardinal axes only.  If it still fails, perform further deflection as for deltaPosition with one non-zero component
+
+    int nonZeroCount = Math.abs(deltaPosition.posX) + Math.abs(deltaPosition.posY) + Math.abs(deltaPosition.posZ);
+    Vec3 deflectedDirection;
+
+    if (nonZeroCount >= 2) {
+      deflectedDirection = snapToCardinalDirection(direction, false);
+      if (deflectedDirection == null) return new ChunkCoordinates(deltaPosition);
+
+      ChunkCoordinates deflectedDeltaPosition = convertToDelta(deflectedDirection);
+      ChunkCoordinates nextCoordinate = new ChunkCoordinates(startingBlock);
+      nextCoordinate.set(nextCoordinate.posX + deflectedDeltaPosition.posX, nextCoordinate.posY + deflectedDeltaPosition.posY, nextCoordinate.posZ + deflectedDeltaPosition.posZ);
+      if (!isBlockSolid(world, nextCoordinate)) return deflectedDeltaPosition;
+
+    }
+
+
 
   }
 
@@ -256,7 +278,6 @@ public class BlockMultiSelector
     return deltaPosition;
   }
 
-
   /**
    *  returns true if the block is "solid".
    *  Non-solid appears to correlate with "doesn't interact with a piston" i.e. getMobilityFlag == 1
@@ -265,6 +286,7 @@ public class BlockMultiSelector
    */
   public static boolean isBlockSolid(World world, ChunkCoordinates blockLocation)
   {
+    if (blockLocation.posY < 0 || blockLocation.posY >= 256) return false;
     int blockId = world.getBlockId(blockLocation.posX, blockLocation.posY, blockLocation.posZ);
     if (blockId == 0) {
       return false;
