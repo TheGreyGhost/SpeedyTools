@@ -50,16 +50,11 @@ public class ItemEventHandler {
 
     if (currentItem == null || currentItem.getItem().itemID != SpeedyToolsMod.itemSpeedyStrip.itemID) return;
 
-    double playerOriginX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
-    double playerOriginY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
-    double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
-
-    Vec3 playerLook = player.getLook(partialTick);
-
-    ChunkCoordinates startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
+    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
     if (startBlock == null) return;
 
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlock, player, partialTick, 4, false, false);
+    ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
+    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec, 4, false, false);
     if (selection.isEmpty()) return;
 
     GL11.glEnable(GL11.GL_BLEND);
@@ -69,6 +64,10 @@ public class ItemEventHandler {
     GL11.glDisable(GL11.GL_TEXTURE_2D);
     GL11.glDepthMask(false);
     double expandDistance = 0.002F;
+
+    double playerOriginX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
+    double playerOriginY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
+    double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
 
     for (ChunkCoordinates block : selection) {
       AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(block.posX, block.posY, block.posZ,
