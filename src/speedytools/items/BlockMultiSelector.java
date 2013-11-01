@@ -236,28 +236,42 @@ public class BlockMultiSelector
   public static ChunkCoordinates deflectDirectionVector(World world, ChunkCoordinates startingBlock, Vec3 direction, ChunkCoordinates deltaPosition)
   {
     // algorithm is:
+    // if deltaPosition has two or three non-zero components:
+    //     re-snap the vector to the six cardinal axes only.  If it still fails, perform further deflection as for deltaPosition with one non-zero component below
     // if deltaPosition has one non-zero component (is parallel to one of the six coordinate axes):
     //     normalise the direction vector to unit length, eliminate the deltaPosition's non-zero axis from the direction vector, verify that at least one of the other two
-    //     components is at least 0.1, and snap the vector to the cardinal axes again.
-    // if deltaPosition has two or three non-zero components:
-    //     re-snap the vector to the six cardinal axes only.  If it still fails, perform further deflection as for deltaPosition with one non-zero component
+    //     components is at least 0.1, renormalise and snap the vector to the cardinal axes again.
 
     int nonZeroCount = Math.abs(deltaPosition.posX) + Math.abs(deltaPosition.posY) + Math.abs(deltaPosition.posZ);
     Vec3 deflectedDirection;
+    ChunkCoordinates deflectedDeltaPosition;
 
     if (nonZeroCount >= 2) {
       deflectedDirection = snapToCardinalDirection(direction, false);
       if (deflectedDirection == null) return new ChunkCoordinates(deltaPosition);
 
-      ChunkCoordinates deflectedDeltaPosition = convertToDelta(deflectedDirection);
+      deflectedDeltaPosition = convertToDelta(deflectedDirection);
       ChunkCoordinates nextCoordinate = new ChunkCoordinates(startingBlock);
       nextCoordinate.set(nextCoordinate.posX + deflectedDeltaPosition.posX, nextCoordinate.posY + deflectedDeltaPosition.posY, nextCoordinate.posZ + deflectedDeltaPosition.posZ);
       if (!isBlockSolid(world, nextCoordinate)) return deflectedDeltaPosition;
-
+    } else {
+      deflectedDeltaPosition = new ChunkCoordinates(deltaPosition);
     }
 
+    deflectedDirection = direction.normalize();
+    if (deflectedDeltaPosition.posX != 0) {
+      deflectedDirection.xCoord = 0.0;
+    } else if (deflectedDeltaPosition.posY != 0) {
+      deflectedDirection.yCoord = 0.0;
+    } else {
+      deflectedDirection.zCoord = 0.0;
+    }
+    deflectedDirection = direction.normalize();
+    deflectedDirection = snapToCardinalDirection(direction, false);
+    if (deflectedDirection == null) return new ChunkCoordinates(deltaPosition);
 
-
+    deflectedDeltaPosition = convertToDelta(deflectedDirection);
+    return deflectedDeltaPosition;
   }
 
   /**
