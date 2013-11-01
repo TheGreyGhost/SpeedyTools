@@ -43,7 +43,6 @@ public class SelectionBoxRenderer {
     drawBoxWithCross(xa, xa, xb, xb, yb, yb, yb, yb, za, zb, zb, za);
     drawBoxWithCross(xa, xa, xb, xb, ya, yb, yb, ya, za, za, za, za);
     drawBoxWithCross(xa, xa, xb, xb, ya, yb, yb, ya, zb, zb, zb, zb);
-
 /*
     Tessellator tessellator = Tessellator.instance;
     tessellator.startDrawing(GL11.GL_LINE_STRIP);
