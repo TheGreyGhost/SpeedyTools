@@ -146,7 +146,6 @@ public class BlockMultiSelector
     Vec3 snappedCardinalDirection = snapToCardinalDirection(direction, diagonalOK);
     if (snappedCardinalDirection == null) return selection;
 
-    final float EPSILON = 0.1F;
     ChunkCoordinates deltaPosition = convertToDelta(snappedCardinalDirection);
 
     ChunkCoordinates nextCoordinate = new ChunkCoordinates(startingBlock);
@@ -160,7 +159,7 @@ public class BlockMultiSelector
       if (nextCoordinate.posY < 0 || nextCoordinate.posY >= 256) break;
       if (stopWhenCollide && isBlockSolid(world, nextCoordinate)) {
         if (blocksCount > 1) break;
-        deltaPosition = deflectDirectionVector(world, startingBlock, direction);
+        deltaPosition = deflectDirectionVector(world, startingBlock, direction, deltaPosition);
         nextCoordinate.set(startingBlock.posX + deltaPosition.posX, startingBlock.posY + deltaPosition.posY, startingBlock.posZ + deltaPosition.posZ);
         if (isBlockSolid(world, nextCoordinate)) break;
       }
@@ -172,9 +171,9 @@ public class BlockMultiSelector
   }
 
   /**
-   * Snaps the given vector to the closest of the six cardinal directions, or alternatively to one of the twenty 45 degree directions (if diagonalOK == true)
+   * Snaps the given vector to the closest of the six cardinal directions, or alternatively to one of the twenty "45 degree" directions (if diagonalOK == true)
    * @param vectorToSnap the vector to be snapped to a cardinal direction
-   * @param diagonalOK if true, diagonal 45 degree directions are allowed
+   * @param diagonalOK if true, diagonal "45 degree" directions are allowed
    * @return the cardinal direction snapped to (unit length vector), or null if input vector is null or zero.
    */
   public static Vec3 snapToCardinalDirection(Vec3 vectorToSnap, boolean diagonalOK)
@@ -224,18 +223,26 @@ public class BlockMultiSelector
   }
 
   /**
-   * "deflects the
+   * "deflects" the direction vector so that it doesn't try to penetrate a solid block.
+   * for example: if the vector is [0.707, -0.707, 0] and the starting block is sitting on a flat plane:
+   *    the direction vector will be "deflected" up to [0.707, 0, 0], converted to [+1, 0, 0] return value, so
+   *    that the direction runs along the surface of the plane
    * @param world
-   * @param startingBlock
-   * @param direction
-   * @return
+   * @param startingBlock - the starting block, should be non-solid (isBlockSolid == false)
+   * @param direction - the direction vector to be deflected.
+   * @return a [deltax,deltay,deltaz] where each delta is -1, 0, or 1
    */
-  public static ChunkCoordinates deflectDirectionVector(World world, ChunkCoordinates startingBlock, Vec3 direction)
+  public static ChunkCoordinates deflectDirectionVector(World world, ChunkCoordinates startingBlock, Vec3 direction, ChunkCoordinates deltaPosition)
   {
-
+    // algorithm is to relax
 
   }
 
+  /**
+   * Converts the unit vector to a [deltax,deltay,deltaz] where each delta is -1, 0, or 1
+   * @param vector - valid inputs are unit length vectors parallel to [dx, dy, dz] where d{} is -1, 0, or +1
+   * @return a [deltax,deltay,deltaz] where each delta is -1, 0, or 1
+   */
   public static ChunkCoordinates convertToDelta(Vec3 vector)
   {
     final float EPSILON = 0.1F;
