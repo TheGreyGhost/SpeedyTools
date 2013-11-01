@@ -234,7 +234,7 @@ public class BlockMultiSelector
    */
   public static ChunkCoordinates deflectDirectionVector(World world, ChunkCoordinates startingBlock, Vec3 direction, ChunkCoordinates deltaPosition)
   {
-    // algorithm is to relax
+    // algorithm is to relax   asfasf
 
   }
 
