@@ -4,7 +4,6 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import speedytools.SpeedyToolsMod;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -126,7 +125,8 @@ public class BlockMultiSelector
   /**
    * selectLine is used to select a straight line of blocks, and return a list of their coordinates.
    * Starting from the startingBlock, the selection will continue in a line parallel to the direction vector, snapped to the six cardinal directions or
-   *   alternatively to one of the twenty 45 degree directions (if diagonalOK == true)
+   *   alternatively to one of the twenty 45 degree directions (if diagonalOK == true).
+   *   If stopWhenCollide == true and the snapped direction points directly into a solid block, the direction will be deflected up to lie flat along the surface
    *   Keeps going until it reaches maxLineLength, y goes outside the valid range, or hits a solid block (and stopWhenCollide is true)
    * @param startingBlock the first block in the straight line
    * @param world       the world
@@ -147,28 +147,25 @@ public class BlockMultiSelector
     if (snappedCardinalDirection == null) return selection;
 
     final float EPSILON = 0.1F;
-    ChunkCoordinates deltaPosition = new ChunkCoordinates(0, 0, 0);
-    if (snappedCardinalDirection.xCoord > EPSILON) deltaPosition.posX = 1;
-    if (snappedCardinalDirection.xCoord < -EPSILON) deltaPosition.posX = -1;
-    if (snappedCardinalDirection.yCoord > EPSILON) deltaPosition.posY = 1;
-    if (snappedCardinalDirection.yCoord < -EPSILON) deltaPosition.posY = -1;
-    if (snappedCardinalDirection.zCoord > EPSILON) deltaPosition.posZ = 1;
-    if (snappedCardinalDirection.zCoord < -EPSILON) deltaPosition.posZ = -1;
+    ChunkCoordinates deltaPosition = convertToDelta(snappedCardinalDirection);
 
     ChunkCoordinates nextCoordinate = new ChunkCoordinates(startingBlock);
     selection.add(startingBlock);
-    int blocksLeft = maxLineLength - 1;
-    while (blocksLeft > 0) {
+    int blocksCount = 1;
+    while (blocksCount < maxLineLength) {
       nextCoordinate.set(nextCoordinate.posX + deltaPosition.posX,
                          nextCoordinate.posY + deltaPosition.posY,
                          nextCoordinate.posZ + deltaPosition.posZ
                         );
       if (nextCoordinate.posY < 0 || nextCoordinate.posY >= 256) break;
-      if (stopWhenCollide) {
+      if (stopWhenCollide && isBlockSolid(world, nextCoordinate)) {
+        if (blocksCount > 1) break;
+        deltaPosition = deflectDirectionVector(world, startingBlock, direction);
+        nextCoordinate.set(startingBlock.posX + deltaPosition.posX, startingBlock.posY + deltaPosition.posY, startingBlock.posZ + deltaPosition.posZ);
         if (isBlockSolid(world, nextCoordinate)) break;
       }
       selection.add(new ChunkCoordinates(nextCoordinate));
-      --blocksLeft;
+      ++blocksCount;
     }
 
     return selection;
@@ -185,7 +182,7 @@ public class BlockMultiSelector
     final float R2 = 0.707107F;  // 1 / sqrt(2)
     final float R3 = 0.577350F;  // 1 / sqrt(3)
     final float cardinal[][] =   {   {1, 0, 0},      {0, 1, 0},      {0,0,1} };
-    final float cardinal45[][] = { {R2, R2, 0},   {-R2, R2, 0},   {R2, 0, R2},  {R2, 0 -R2}, {0, R2, R2}, {0, R2, -R2},
+    final float cardinal45[][] = { {R2, R2, 0},   {-R2, R2, 0},   {R2, 0, R2},  {R2, 0, -R2}, {0, R2, R2}, {0, R2, -R2},
                                    {R3, R3, R3}, {R3, -R3, R3}, {R3, R3, -R3}, {R3, -R3, -R3}
                                  };
     Vec3 cardinalVector;
@@ -227,14 +224,44 @@ public class BlockMultiSelector
   }
 
   /**
+   * "deflects the
+   * @param world
+   * @param startingBlock
+   * @param direction
+   * @return
+   */
+  public static ChunkCoordinates deflectDirectionVector(World world, ChunkCoordinates startingBlock, Vec3 direction)
+  {
+
+
+  }
+
+  public static ChunkCoordinates convertToDelta(Vec3 vector)
+  {
+    final float EPSILON = 0.1F;
+    ChunkCoordinates deltaPosition = new ChunkCoordinates(0, 0, 0);
+    if (vector.xCoord > EPSILON) deltaPosition.posX = 1;
+    if (vector.xCoord < -EPSILON) deltaPosition.posX = -1;
+    if (vector.yCoord > EPSILON) deltaPosition.posY = 1;
+    if (vector.yCoord < -EPSILON) deltaPosition.posY = -1;
+    if (vector.zCoord > EPSILON) deltaPosition.posZ = 1;
+    if (vector.zCoord < -EPSILON) deltaPosition.posZ = -1;
+    return deltaPosition;
+  }
+
+
+  /**
    *  returns true if the block is "solid".
    *  Non-solid appears to correlate with "doesn't interact with a piston" i.e. getMobilityFlag == 1
     * @param world  the world
-   * @param blockLocation  the [x]y,z] of the block to be checked
+   * @param blockLocation  the [x,y,z] of the block to be checked
    */
   public static boolean isBlockSolid(World world, ChunkCoordinates blockLocation)
   {
     int blockId = world.getBlockId(blockLocation.posX, blockLocation.posY, blockLocation.posZ);
+    if (blockId == 0) {
+      return false;
+    }
     return (Block.blocksList[blockId].getMobilityFlag() != 1);
   }
 

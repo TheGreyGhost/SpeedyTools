@@ -38,7 +38,7 @@ public class SpeedyToolsMod {
 
   // custom blocks
   private final static int STARTBLOCK = 500;
-  public final static Block blockCollisionCheck = new BlockCollisionCheck(STARTBLOCK);
+//  public final static Block blockCollisionCheck = new BlockCollisionCheck(STARTBLOCK);
 
   public static KeyBindingInterceptor attackButtonInterceptor;
 

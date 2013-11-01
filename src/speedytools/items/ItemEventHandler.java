@@ -54,7 +54,7 @@ public class ItemEventHandler {
     if (startBlock == null) return;
 
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec, 4, false, false);
+    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec, 4, true, true);
     if (selection.isEmpty()) return;
 
     GL11.glEnable(GL11.GL_BLEND);
