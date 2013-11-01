@@ -4,7 +4,6 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import speedytools.SpeedyToolsMod;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +75,8 @@ public class BlockMultiSelector
       blocky = MathHelper.floor_double(traceResult.hitVec.yCoord + playerLook.yCoord * 0.001);
       blockz = MathHelper.floor_double(traceResult.hitVec.zCoord + playerLook.zCoord * 0.001);
       traceResult = new MovingObjectPosition(blockx, blocky, blockz, Facing.oppositeSide[traceResult.sideHit], traceResult.hitVec);
-      traceResult.hitVec = snapLookToBlockFace(traceResult, playerEyesPos);
+      traceResult.hitVec = playerLook;
+//      traceResult.hitVec = snapLookToBlockFace(traceResult, playerEyesPos);
 
       return traceResult;
 
@@ -126,7 +126,8 @@ public class BlockMultiSelector
   /**
    * selectLine is used to select a straight line of blocks, and return a list of their coordinates.
    * Starting from the startingBlock, the selection will continue in a line parallel to the direction vector, snapped to the six cardinal directions or
-   *   alternatively to one of the twenty 45 degree directions (if diagonalOK == true)
+   *   alternatively to one of the twenty 45 degree directions (if diagonalOK == true).
+   *   If stopWhenCollide == true and the snapped direction points directly into a solid block, the direction will be deflected up to lie flat along the surface
    *   Keeps going until it reaches maxLineLength, y goes outside the valid range, or hits a solid block (and stopWhenCollide is true)
    * @param startingBlock the first block in the straight line
    * @param world       the world
@@ -146,38 +147,34 @@ public class BlockMultiSelector
     Vec3 snappedCardinalDirection = snapToCardinalDirection(direction, diagonalOK);
     if (snappedCardinalDirection == null) return selection;
 
-    final float EPSILON = 0.1F;
-    ChunkCoordinates deltaPosition = new ChunkCoordinates(0, 0, 0);
-    if (snappedCardinalDirection.xCoord > EPSILON) deltaPosition.posX = 1;
-    if (snappedCardinalDirection.xCoord < -EPSILON) deltaPosition.posX = -1;
-    if (snappedCardinalDirection.yCoord > EPSILON) deltaPosition.posY = 1;
-    if (snappedCardinalDirection.yCoord < -EPSILON) deltaPosition.posY = -1;
-    if (snappedCardinalDirection.zCoord > EPSILON) deltaPosition.posZ = 1;
-    if (snappedCardinalDirection.zCoord < -EPSILON) deltaPosition.posZ = -1;
+    ChunkCoordinates deltaPosition = convertToDelta(snappedCardinalDirection);
 
     ChunkCoordinates nextCoordinate = new ChunkCoordinates(startingBlock);
     selection.add(startingBlock);
-    int blocksLeft = maxLineLength - 1;
-    while (blocksLeft > 0) {
+    int blocksCount = 1;
+    while (blocksCount < maxLineLength) {
       nextCoordinate.set(nextCoordinate.posX + deltaPosition.posX,
                          nextCoordinate.posY + deltaPosition.posY,
                          nextCoordinate.posZ + deltaPosition.posZ
                         );
       if (nextCoordinate.posY < 0 || nextCoordinate.posY >= 256) break;
-      if (stopWhenCollide) {
+      if (stopWhenCollide && isBlockSolid(world, nextCoordinate)) {
+        if (blocksCount > 1) break;
+        deltaPosition = deflectDirectionVector(world, startingBlock, direction, deltaPosition);
+        nextCoordinate.set(startingBlock.posX + deltaPosition.posX, startingBlock.posY + deltaPosition.posY, startingBlock.posZ + deltaPosition.posZ);
         if (isBlockSolid(world, nextCoordinate)) break;
       }
       selection.add(new ChunkCoordinates(nextCoordinate));
-      --blocksLeft;
+      ++blocksCount;
     }
 
     return selection;
   }
 
   /**
-   * Snaps the given vector to the closest of the six cardinal directions, or alternatively to one of the twenty 45 degree directions (if diagonalOK == true)
+   * Snaps the given vector to the closest of the six cardinal directions, or alternatively to one of the twenty "45 degree" directions (if diagonalOK == true)
    * @param vectorToSnap the vector to be snapped to a cardinal direction
-   * @param diagonalOK if true, diagonal 45 degree directions are allowed
+   * @param diagonalOK if true, diagonal "45 degree" directions are allowed
    * @return the cardinal direction snapped to (unit length vector), or null if input vector is null or zero.
    */
   public static Vec3 snapToCardinalDirection(Vec3 vectorToSnap, boolean diagonalOK)
@@ -185,7 +182,7 @@ public class BlockMultiSelector
     final float R2 = 0.707107F;  // 1 / sqrt(2)
     final float R3 = 0.577350F;  // 1 / sqrt(3)
     final float cardinal[][] =   {   {1, 0, 0},      {0, 1, 0},      {0,0,1} };
-    final float cardinal45[][] = { {R2, R2, 0},   {-R2, R2, 0},   {R2, 0, R2},  {R2, 0 -R2}, {0, R2, R2}, {0, R2, -R2},
+    final float cardinal45[][] = { {R2, R2, 0},   {-R2, R2, 0},   {R2, 0, R2},  {R2, 0, -R2}, {0, R2, R2}, {0, R2, -R2},
                                    {R3, R3, R3}, {R3, -R3, R3}, {R3, R3, -R3}, {R3, -R3, -R3}
                                  };
     Vec3 cardinalVector;
@@ -227,14 +224,88 @@ public class BlockMultiSelector
   }
 
   /**
+   * "deflects" the direction vector so that it doesn't try to penetrate a solid block.
+   * for example: if the vector is [0.707, -0.707, 0] and the starting block is sitting on a flat plane:
+   *    the direction vector will be "deflected" up to [0.707, 0, 0], converted to [+1, 0, 0] return value, so
+   *    that the direction runs along the surface of the plane
+   * @param world
+   * @param startingBlock - the starting block, should be non-solid (isBlockSolid == false)
+   * @param direction - the direction vector to be deflected.
+   * @param deltaPosition - the current [deltax, deltay, deltaz] where each delta is -1, 0, or 1
+   * @return a [deltax,deltay,deltaz] where each delta is -1, 0, or 1
+   */
+  public static ChunkCoordinates deflectDirectionVector(World world, ChunkCoordinates startingBlock, Vec3 direction, ChunkCoordinates deltaPosition)
+  {
+    // algorithm is:
+    // if deltaPosition has two or three non-zero components:
+    //     re-snap the vector to the six cardinal axes only.  If it still fails, perform further deflection as for deltaPosition with one non-zero component below
+    // if deltaPosition has one non-zero component (is parallel to one of the six coordinate axes):
+    //     normalise the direction vector to unit length, eliminate the deltaPosition's non-zero axis from the direction vector, verify that at least one of the other two
+    //     components is at least 0.1, renormalise and snap the vector to the cardinal axes again.
+
+    int nonZeroCount = Math.abs(deltaPosition.posX) + Math.abs(deltaPosition.posY) + Math.abs(deltaPosition.posZ);
+    Vec3 deflectedDirection;
+    ChunkCoordinates deflectedDeltaPosition;
+
+    if (nonZeroCount >= 2) {
+      deflectedDirection = snapToCardinalDirection(direction, false);
+      if (deflectedDirection == null) return new ChunkCoordinates(deltaPosition);
+
+      deflectedDeltaPosition = convertToDelta(deflectedDirection);
+      ChunkCoordinates nextCoordinate = new ChunkCoordinates(startingBlock);
+      nextCoordinate.set(nextCoordinate.posX + deflectedDeltaPosition.posX, nextCoordinate.posY + deflectedDeltaPosition.posY, nextCoordinate.posZ + deflectedDeltaPosition.posZ);
+      if (!isBlockSolid(world, nextCoordinate)) return deflectedDeltaPosition;
+    } else {
+      deflectedDeltaPosition = new ChunkCoordinates(deltaPosition);
+    }
+
+    deflectedDirection = direction.normalize();
+    if (deflectedDeltaPosition.posX != 0) {
+      deflectedDirection.xCoord = 0.0;
+    } else if (deflectedDeltaPosition.posY != 0) {
+      deflectedDirection.yCoord = 0.0;
+    } else {
+      deflectedDirection.zCoord = 0.0;
+    }
+    deflectedDirection = direction.normalize();
+    deflectedDirection = snapToCardinalDirection(direction, false);
+    if (deflectedDirection == null) return new ChunkCoordinates(deltaPosition);
+
+    deflectedDeltaPosition = convertToDelta(deflectedDirection);
+    return deflectedDeltaPosition;
+  }
+
+  /**
+   * Converts the unit vector to a [deltax,deltay,deltaz] where each delta is -1, 0, or 1
+   * @param vector - valid inputs are unit length vectors parallel to [dx, dy, dz] where d{} is -1, 0, or +1
+   * @return a [deltax,deltay,deltaz] where each delta is -1, 0, or 1
+   */
+  public static ChunkCoordinates convertToDelta(Vec3 vector)
+  {
+    final float EPSILON = 0.1F;
+    ChunkCoordinates deltaPosition = new ChunkCoordinates(0, 0, 0);
+    if (vector.xCoord > EPSILON) deltaPosition.posX = 1;
+    if (vector.xCoord < -EPSILON) deltaPosition.posX = -1;
+    if (vector.yCoord > EPSILON) deltaPosition.posY = 1;
+    if (vector.yCoord < -EPSILON) deltaPosition.posY = -1;
+    if (vector.zCoord > EPSILON) deltaPosition.posZ = 1;
+    if (vector.zCoord < -EPSILON) deltaPosition.posZ = -1;
+    return deltaPosition;
+  }
+
+  /**
    *  returns true if the block is "solid".
    *  Non-solid appears to correlate with "doesn't interact with a piston" i.e. getMobilityFlag == 1
     * @param world  the world
-   * @param blockLocation  the [x]y,z] of the block to be checked
+   * @param blockLocation  the [x,y,z] of the block to be checked
    */
   public static boolean isBlockSolid(World world, ChunkCoordinates blockLocation)
   {
+    if (blockLocation.posY < 0 || blockLocation.posY >= 256) return false;
     int blockId = world.getBlockId(blockLocation.posX, blockLocation.posY, blockLocation.posZ);
+    if (blockId == 0) {
+      return false;
+    }
     return (Block.blocksList[blockId].getMobilityFlag() != 1);
   }
 
