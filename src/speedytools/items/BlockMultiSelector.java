@@ -75,7 +75,8 @@ public class BlockMultiSelector
       blocky = MathHelper.floor_double(traceResult.hitVec.yCoord + playerLook.yCoord * 0.001);
       blockz = MathHelper.floor_double(traceResult.hitVec.zCoord + playerLook.zCoord * 0.001);
       traceResult = new MovingObjectPosition(blockx, blocky, blockz, Facing.oppositeSide[traceResult.sideHit], traceResult.hitVec);
-      traceResult.hitVec = snapLookToBlockFace(traceResult, playerEyesPos);
+      traceResult.hitVec = playerLook;
+//      traceResult.hitVec = snapLookToBlockFace(traceResult, playerEyesPos);
 
       return traceResult;
 
