@@ -18,11 +18,8 @@ public class ItemSpeedyStripWeak extends Item {
   public ItemSpeedyStripWeak(int id) {
     super(id);
     setMaxStackSize(64);
-    setCreativeTab(CreativeTabs.tabTools);
     setUnlocalizedName("SpeedyStripWeak");
     setFull3D();                              // setting this flag causes the wand to render vertically in 3rd person view, like a pickaxe
-    setMaxDamage(-1);                         // not damageable
-
   }
 
   @Override
@@ -37,8 +34,8 @@ public class ItemSpeedyStripWeak extends Item {
   @Override
   public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List textList, boolean useAdvancedItemTooltips)
   {
-    textList.add("Right click:place blocks");
-    textList.add("Left click:undo last place");
+    textList.add("Right click: place blocks");
+    textList.add("Left click: undo last place");
     textList.add("Control: hold down to allow diagonal");
   }
 

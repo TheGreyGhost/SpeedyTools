@@ -30,7 +30,7 @@ public class ItemEventHandler {
     EntityPlayer player = event.player;
     ItemStack currentItem = player.inventory.getCurrentItem();
 
-    if (currentItem == null || currentItem.getItem().itemID != SpeedyToolsMod.itemSpeedyStrip.itemID) {
+    if (currentItem == null || !ItemSpeedyTool.isAspeedyTool(currentItem.getItem().itemID)) {
       return;
     }
 
@@ -56,7 +56,7 @@ public class ItemEventHandler {
     ItemStack currentItem = player.inventory.getCurrentItem();
     float partialTick = event.partialTicks;
 
-    if (currentItem == null || currentItem.getItem().itemID != SpeedyToolsMod.itemSpeedyStrip.itemID) return;
+    if (currentItem == null || !ItemSpeedyTool.isAspeedyTool(currentItem.getItem().itemID)) return;
 
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
     if (startBlock == null) return;
@@ -64,8 +64,9 @@ public class ItemEventHandler {
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
     boolean diagonalOK =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
     int maxSelectionSize = currentItem.stackSize;
+    boolean stopWhenCollide = ItemSpeedyTool.leavesSolidBlocksIntact(currentItem.itemID);
     List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec,
-                                                                     maxSelectionSize, diagonalOK, true);
+                                                                     maxSelectionSize, diagonalOK, stopWhenCollide);
     SpeedyToolsMod.currentlySelectedBlocks = selection;
     if (selection.isEmpty()) return;
 

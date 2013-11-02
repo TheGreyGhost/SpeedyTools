@@ -3,11 +3,13 @@ package speedytools.client;
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.TickType;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import speedytools.SpeedyToolsMod;
+import speedytools.items.ItemSpeedyTool;
 
 import java.util.EnumSet;
 
@@ -26,24 +28,17 @@ public class ClientTickHandler implements ITickHandler {
   {
     if (!type.contains(TickType.CLIENT)) return;
 
-    /*
-    @Override
-    public void onUpdate(ItemStack itemStack, World world, Entity entity, int par4, boolean par5)
-    {
-      if (world.isRemote && entity instanceof EntityPlayerSP) {
-        ItemStack heldItem = ((EntityPlayerSP) entity).getHeldItem();
-        if (heldItem != null && heldItem.itemID == SpeedyToolsMod.itemSpeedyStripStrong.itemID) {
-          SpeedyToolsMod.useItemButtonInterceptor.setInterceptionActive(true);
-          SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(true);
-        } else {
-          SpeedyToolsMod.useItemButtonInterceptor.setInterceptionActive(false);
-          SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(false);
-        }
+    EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
+    if (player != null) {
+      ItemStack heldItem = player.getHeldItem();
+      if (heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID)) {
+        SpeedyToolsMod.useItemButtonInterceptor.setInterceptionActive(true);
+        SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(true);
+      } else {
+        SpeedyToolsMod.useItemButtonInterceptor.setInterceptionActive(false);
+        SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(false);
       }
     }
-    */
-
-
   }
 
   public void tickEnd(EnumSet<TickType> type, Object... tickData)
