@@ -8,6 +8,7 @@ import net.minecraft.util.*;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 import speedytools.SpeedyToolsMod;
 
@@ -37,7 +38,14 @@ public class ItemEventHandler {
     return;
   }
 
-
+  /**
+   * If a speedy tool is equipped, selects the appropriate blocks and stores the selection into SpeedyToolsMod.currentlySelectedBlocks
+   * renders the selection over the top of the existing world
+   * If player is holding down Left Control or Right Control, allow "diagonal" selections, otherwise restrict to selections parallel to the
+   *    coordinate axes only.
+   *  The speedy tool can be stacked; the number of tools in the stack determines the number of blocks in the selection.
+   * @param event
+   */
   @ForgeSubscribe
   public void drawSelectionBox(RenderWorldLastEvent event)
   {
@@ -54,7 +62,11 @@ public class ItemEventHandler {
     if (startBlock == null) return;
 
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec, 4, true, true);
+    boolean diagonalOK =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+    int maxSelectionSize = currentItem.stackSize;
+    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec,
+                                                                     maxSelectionSize, diagonalOK, true);
+    SpeedyToolsMod.currentlySelectedBlocks = selection;
     if (selection.isEmpty()) return;
 
     GL11.glEnable(GL11.GL_BLEND);

@@ -1,9 +1,11 @@
 package speedytools;
 
-import net.minecraft.block.Block;
+import cpw.mods.fml.common.registry.TickRegistry;
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraftforge.common.MinecraftForge;
-import speedytools.blocks.BlockCollisionCheck;
+import speedytools.client.ClientTickHandler;
 import speedytools.client.KeyBindingInterceptor;
 import speedytools.items.*;
 import cpw.mods.fml.common.Mod;
@@ -15,6 +17,8 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.LanguageRegistry;
 import net.minecraft.item.Item;
+
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -34,13 +38,16 @@ public class SpeedyToolsMod {
 
   // custom items
   private final static int STARTITEM = 5000;
-  public final static Item itemSpeedyStrip = new ItemSpeedyStrip(STARTITEM);
+  public final static Item itemSpeedyStripStrong = new ItemSpeedyStripStrong(STARTITEM);
+  public final static Item itemSpeedyStripWeak = new ItemSpeedyStripWeak(STARTITEM+1);
 
   // custom blocks
   private final static int STARTBLOCK = 500;
-//  public final static Block blockCollisionCheck = new BlockCollisionCheck(STARTBLOCK);
 
   public static KeyBindingInterceptor attackButtonInterceptor;
+  public static KeyBindingInterceptor useItemButtonInterceptor;
+
+  public static List<ChunkCoordinates> currentlySelectedBlocks = null;
 
   // custom itemrenderers
 
@@ -65,6 +72,12 @@ public class SpeedyToolsMod {
     attackButtonInterceptor = new KeyBindingInterceptor(Minecraft.getMinecraft().gameSettings.keyBindAttack);
     Minecraft.getMinecraft().gameSettings.keyBindAttack = attackButtonInterceptor;
     attackButtonInterceptor.setInterceptionActive(false);
+
+    useItemButtonInterceptor = new KeyBindingInterceptor(Minecraft.getMinecraft().gameSettings.keyBindUseItem);
+    Minecraft.getMinecraft().gameSettings.keyBindUseItem = useItemButtonInterceptor;
+    useItemButtonInterceptor.setInterceptionActive(false);
+
+    TickRegistry.registerTickHandler(new ClientTickHandler(), Side.CLIENT);
   }
 
   private void addItemsToRegistries() {
@@ -72,8 +85,8 @@ public class SpeedyToolsMod {
     // LanguageRegistry for registering the name of the item
     // MinecraftForgeClient.registerItemRenderer for custom item renderers
 
-    LanguageRegistry.addName(itemSpeedyStrip, "Speedy Strip");
-
+    LanguageRegistry.addName(itemSpeedyStripWeak, "Wand of Benign Conjuration");
+    LanguageRegistry.addName(itemSpeedyStripStrong, "Wand of Destructive Conjuration");
   }
 
   private void addBlocksToRegistries() {
@@ -81,7 +94,6 @@ public class SpeedyToolsMod {
     // GameRegistry for associating an item with a block
     // LanguageRegistry for registering the name of the block
     // RenderingRegistry for custom block renderers
-
   }
 
 }
