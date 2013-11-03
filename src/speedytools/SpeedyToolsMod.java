@@ -47,8 +47,6 @@ public class SpeedyToolsMod {
   public static KeyBindingInterceptor attackButtonInterceptor;
   public static KeyBindingInterceptor useItemButtonInterceptor;
 
-  public static List<ChunkCoordinates> currentlySelectedBlocks = null;
-
   // custom itemrenderers
 
   // Says where the client and server 'proxy' code is loaded.

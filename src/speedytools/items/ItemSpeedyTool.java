@@ -2,7 +2,10 @@ package speedytools.items;
 
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
+import net.minecraft.util.ChunkCoordinates;
 import speedytools.SpeedyToolsMod;
+
+import java.util.List;
 
 /**
  * User: The Grey Ghost
@@ -31,4 +34,15 @@ public abstract class ItemSpeedyTool extends Item
   {
     return (itemID == SpeedyToolsMod.itemSpeedyStripWeak.itemID);
   }
+
+  public static void setCurrentToolSelection(Item currentTool, List<ChunkCoordinates> currentSelection)
+  {
+    currentlySelectedTool = currentTool;
+    currentlySelectedBlocks = currentSelection;
+  }
+
+    // these keep track of the currently selected blocks, for when the tool is used
+  protected static List<ChunkCoordinates> currentlySelectedBlocks = null;
+  protected static Item currentlySelectedTool = null;
+
 }

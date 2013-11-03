@@ -1,6 +1,5 @@
 package speedytools.items;
 
-import net.minecraft.block.Block;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -10,7 +9,6 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
-import speedytools.SpeedyToolsMod;
 
 import java.util.List;
 
@@ -19,6 +17,33 @@ import java.util.List;
  */
 public class ItemEventHandler {
 
+/*
+  @ForgeSubscribe
+  public void addMyCreature(WorldEvent.PotentialSpawns event) {
+    World world = event.world;
+    int xposition = event.x;
+    int yposition = event.y;
+    int zposition = event.z;
+    EnumCreatureType creatureType = event.type;
+    List<SpawnListEntry> listOfSpawnableCreatures = event.list;
+
+    final int SPAWNWEIGHT = 5;  // the higher the number, the more likely this creature will spawn
+    final int MINIMUMNUMBERTOSPAWN = 1;
+    final int MAXIMUMNUMBERTOSPAWN = 4;
+
+    switch (creatureType) {
+      case monster: {
+        SpawnListEntry myNewCreatureSpawn = new SpawnListEntry(MyCreature.class, SPAWNWEIGHT, MINIMUMNUMBERTOSPAWN, MAXIMUMNUMBERTOSPAWN);
+        listOfSpawnableCreatures.add(myNewCreatureSpawn);
+        break;
+      }
+      case creature:
+      case waterCreature:
+      case ambient:
+      default:
+    }
+  }
+ */
   /**
    * If a SpeedyTools item is selected, draw nothing (drawing of selection box is performed in RenderWorldLastEvent).
    * Otherwise, cancel the event so that the normal selection box is drawn.
@@ -67,7 +92,7 @@ public class ItemEventHandler {
     boolean stopWhenCollide = ItemSpeedyTool.leavesSolidBlocksIntact(currentItem.itemID);
     List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec,
                                                                      maxSelectionSize, diagonalOK, stopWhenCollide);
-    SpeedyToolsMod.currentlySelectedBlocks = selection;
+    ItemSpeedyTool.setCurrentToolSelection(currentItem.getItem(), selection);
     if (selection.isEmpty()) return;
 
     GL11.glEnable(GL11.GL_BLEND);
