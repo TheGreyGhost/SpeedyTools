@@ -1,0 +1,61 @@
+package speedytools.clientserversynch;
+
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.network.IPacketHandler;
+import cpw.mods.fml.common.network.Player;
+import cpw.mods.fml.relauncher.Side;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.network.INetworkManager;
+import net.minecraft.network.packet.Packet250CustomPayload;
+import net.minecraft.server.MinecraftServer;
+import speedytools.items.ItemSpeedyTool;
+
+public class PacketHandler implements IPacketHandler
+{
+  public static final byte PACKET250_SPEEDY_TOOL_USE_ID = 0;
+
+  @Override
+  public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity)
+  {
+    if (packet.channel.equals("SpeedyTools")) {
+      Side side = FMLCommonHandler.instance().getEffectiveSide();
+
+      switch (packet.data[0]) {
+        case PACKET250_SPEEDY_TOOL_USE_ID: {
+          Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.convertPacket(packet);
+          if (toolUsePacket == null) {
+            malformedPacketError(playerEntity, "Malformed Packet250SpeedyTools:could not convert");
+            return;
+          }
+          ItemSpeedyTool.performServerAction(toolUsePacket.getToolItemID(), toolUsePacket.getButton(), toolUsePacket.getCurrentlySelectedBlocks());
+
+          break;
+        }
+
+        default: {
+          malformedPacketError(playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID");
+          return;
+        }
+
+      }
+    }
+  }
+
+  private void malformedPacketError(Player player, String message) {
+    Side side = FMLCommonHandler.instance().getEffectiveSide();
+    switch (side) {
+      case CLIENT: {
+        Minecraft.getMinecraft().getLogAgent().logWarning(message);
+        break;
+      }
+      case SERVER: {
+        MinecraftServer.getServer().getLogAgent().logWarning(message);
+        break;
+      }
+      default:
+        assert false: "invalid Side";
+    }
+  }
+}
+

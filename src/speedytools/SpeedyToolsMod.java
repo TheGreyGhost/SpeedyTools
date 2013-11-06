@@ -7,6 +7,7 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.client.ClientTickHandler;
 import speedytools.client.KeyBindingInterceptor;
+import speedytools.clientserversynch.PacketHandler;
 import speedytools.items.*;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
@@ -20,16 +21,9 @@ import net.minecraft.item.Item;
 
 import java.util.List;
 
-/**
- * Created with IntelliJ IDEA.
- * Date: 26/08/13
- * Time: 10:00 PM
- * To change this template use File | Settings | File Templates.
- */
 
 @Mod(modid="SpeedyToolsMod", name="Speedy Tools Mod", version="0.0.1")
-@NetworkMod(clientSideRequired=true, serverSideRequired=false)
-
+@NetworkMod(clientSideRequired=true, serverSideRequired=true, channels={"SpeedyTools"}, packetHandler = PacketHandler.class)
 public class SpeedyToolsMod {
 
   // The instance of your mod that Forge uses.
@@ -51,6 +45,7 @@ public class SpeedyToolsMod {
 
   // Says where the client and server 'proxy' code is loaded.
   @SidedProxy(clientSide="speedytools.client.ClientProxy", serverSide="speedytools.CommonProxy")
+
   public static CommonProxy proxy;
 
   @EventHandler

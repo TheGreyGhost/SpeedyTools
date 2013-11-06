@@ -43,7 +43,16 @@ public class ClientTickHandler implements ITickHandler {
 
   public void tickEnd(EnumSet<TickType> type, Object... tickData)
   {
-    // don't need it yet
+    if (SpeedyToolsMod.attackButtonInterceptor.retrieveClick()) {
+      System.out.println("SpeedyToolsMod.attackButtonInterceptor.retrieveClick()");
+      ItemSpeedyTool.attackButtonClicked();
+    }
+
+    if (SpeedyToolsMod.useItemButtonInterceptor.retrieveClick()) {
+      System.out.println("SpeedyToolsMod.useItemButtonInterceptor.retrieveClick()");
+      ItemSpeedyTool.useButtonClicked();
+    }
+
   }
 
   public String getLabel()

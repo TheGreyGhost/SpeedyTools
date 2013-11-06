@@ -14,7 +14,7 @@ import speedytools.SpeedyToolsMod;
 
 import java.util.List;
 
-public class ItemSpeedyStripWeak extends Item {
+public class ItemSpeedyStripWeak extends ItemSpeedyTool {
   public ItemSpeedyStripWeak(int id) {
     super(id);
     setMaxStackSize(64);
