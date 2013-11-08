@@ -1,13 +1,18 @@
 package speedytools.items;
 
+import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.client.Minecraft;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
+import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.util.ChunkCoordinates;
 import speedytools.SpeedyToolsMod;
+import speedytools.clientserversynch.Packet250SpeedyToolUse;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -57,7 +62,7 @@ public abstract class ItemSpeedyTool extends Item
   @SideOnly(Side.CLIENT)
   public static void attackButtonClicked()
   {
-
+    buttonClicked(0);
   }
 
   /**
@@ -66,18 +71,28 @@ public abstract class ItemSpeedyTool extends Item
   @SideOnly(Side.CLIENT)
   public static void useButtonClicked()
   {
-
-
+     buttonClicked(1);
   }
 
-  @SideOnly(Side.SERVER)
+//  @SideOnly(Side.SERVER)
   public static void performServerAction(int toolItemID, int buttonClicked, List<ChunkCoordinates> blockSelection)
   {
-
-
-
+//    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
   }
 
+  @SideOnly(Side.CLIENT)
+  public static void buttonClicked(int buttonClicked)
+  {
+    if (currentlySelectedTool == null) return;
+    Packet250SpeedyToolUse packet = null;
+    try {
+      packet = new Packet250SpeedyToolUse(currentlySelectedTool.itemID, buttonClicked, currentlySelectedBlocks);
+    } catch (IOException e) {
+      Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyToolUse for itemID " + currentlySelectedTool.itemID);
+      return;
+    }
+    PacketDispatcher.sendPacketToServer(packet);
+  }
 
     // these keep track of the currently selected blocks, for when the tool is used
   @SideOnly(Side.CLIENT)

@@ -50,6 +50,7 @@ public class KeyBindingInterceptor extends KeyBinding
     this.interceptionActive = false;
     this.pressed = false;
     this.pressTime = 0;
+    this.interceptedPressTime = 0;
 
     if (existingKeyBinding instanceof KeyBindingInterceptor) {
       interceptedKeyBinding = ((KeyBindingInterceptor)existingKeyBinding).getOriginalKeyBinding();
@@ -62,6 +63,9 @@ public class KeyBindingInterceptor extends KeyBinding
 
   public void setInterceptionActive(boolean newMode)
   {
+    if (newMode && !interceptionActive) {
+      this.interceptedPressTime = 0;
+    }
     interceptionActive = newMode;
   }
 
@@ -81,10 +85,10 @@ public class KeyBindingInterceptor extends KeyBinding
     if (interceptionActive) {
       copyClickInfoFromOriginal();
 
-      if (this.pressTime == 0) {
+      if (this.interceptedPressTime == 0) {
         return false;
       } else {
-        --this.pressTime;
+        --this.interceptedPressTime;
         return true;
       }
     } else {
@@ -124,9 +128,12 @@ public class KeyBindingInterceptor extends KeyBinding
   protected KeyBinding interceptedKeyBinding;
   private boolean interceptionActive;
 
+  private int interceptedPressTime;
+
   protected void copyClickInfoFromOriginal()
   {
     this.pressTime += interceptedKeyBinding.pressTime;
+    this.interceptedPressTime += interceptedKeyBinding.pressTime;
     interceptedKeyBinding.pressTime = 0;
     this.pressed = interceptedKeyBinding.pressed;
   }

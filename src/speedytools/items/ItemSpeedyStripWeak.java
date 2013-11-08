@@ -39,21 +39,4 @@ public class ItemSpeedyStripWeak extends ItemSpeedyTool {
     textList.add("Control: hold down to allow diagonal");
   }
 
-
-  @Override
-  public void onUpdate(ItemStack itemStack, World world, Entity entity, int par4, boolean par5)
-  {
-    if (world.isRemote && entity instanceof EntityPlayerSP) {
-        ItemStack heldItem = ((EntityPlayerSP) entity).getHeldItem();
-        if (heldItem != null && heldItem.itemID == SpeedyToolsMod.itemSpeedyStripWeak.itemID) {
-          SpeedyToolsMod.useItemButtonInterceptor.setInterceptionActive(true);
-          SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(true);
-        } else {
-          SpeedyToolsMod.useItemButtonInterceptor.setInterceptionActive(false);
-          SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(false);
-        }
-    }
-  }
-
-
 }

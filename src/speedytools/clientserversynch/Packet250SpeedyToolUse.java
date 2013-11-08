@@ -5,6 +5,7 @@ import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.util.ChunkCoordinates;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -80,6 +81,7 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
         newCC.posX = inputStream.readInt();
         newCC.posY = inputStream.readInt();
         newCC.posZ = inputStream.readInt();
+        newPacket.currentlySelectedBlocks.add(newCC);
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -96,6 +98,6 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
 
   private int toolItemID;
   private int button;
-  private List<ChunkCoordinates> currentlySelectedBlocks;
+  private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
 
 }
