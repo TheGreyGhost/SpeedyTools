@@ -21,6 +21,10 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
     return button;
   }
 
+  public int getBlockToPlaceID() {
+    return blockToPlaceID;
+  }
+
   public List<ChunkCoordinates> getCurrentlySelectedBlocks() {
     return currentlySelectedBlocks;
   }
@@ -31,19 +35,21 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
    * @param newButton       - left mouse button (attack) = 0; right mouse button (use) = 1
    * @param newCurrentlySelectedBlocks - a list of the blocks selected by the tool when the button was clicked
    */
-  public Packet250SpeedyToolUse(int newToolItemID, int newButton, List<ChunkCoordinates> newCurrentlySelectedBlocks) throws IOException
+  public Packet250SpeedyToolUse(int newToolItemID, int newButton, int newBlockToPlaceID, List<ChunkCoordinates> newCurrentlySelectedBlocks) throws IOException
   {
     super();
 
     toolItemID = newToolItemID;
     button = newButton;
+    blockToPlaceID = newBlockToPlaceID;
     currentlySelectedBlocks = newCurrentlySelectedBlocks;
 
-    ByteArrayOutputStream bos = new ByteArrayOutputStream(13 + 12 * currentlySelectedBlocks.size());
+    ByteArrayOutputStream bos = new ByteArrayOutputStream(17 + 12 * currentlySelectedBlocks.size());
     DataOutputStream outputStream = new DataOutputStream(bos);
     outputStream.writeByte(PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID);
     outputStream.writeInt(toolItemID);
     outputStream.writeInt(button);
+    outputStream.writeInt(blockToPlaceID);
     outputStream.writeInt(currentlySelectedBlocks.size());
 
     for (ChunkCoordinates cc : currentlySelectedBlocks) {
@@ -74,6 +80,7 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
 
       newPacket.toolItemID = inputStream.readInt();
       newPacket.button = inputStream.readInt();
+      newPacket.blockToPlaceID = inputStream.readInt();
 
       int blockCount = inputStream.readInt();
       for (int i = 0; i < blockCount; ++i) {
@@ -98,6 +105,7 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
 
   private int toolItemID;
   private int button;
+  private int blockToPlaceID;
   private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
 
 }
