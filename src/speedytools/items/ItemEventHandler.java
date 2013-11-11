@@ -1,14 +1,17 @@
 package speedytools.items;
 
 import net.minecraft.client.renderer.RenderGlobal;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
+import speedytools.blocks.BlockWithMetadata;
 
 import java.util.List;
 
@@ -16,7 +19,32 @@ import java.util.List;
  Contains the custom Forge Event Handlers
  */
 public class ItemEventHandler {
+/*
+  @ForgeSubscribe
+  public void myLivingHurt(LivingHurtEvent event)
+  {
+    DamageSource damageSource = event.source;
+    float amount = event.ammount;
+    EntityLivingBase entityLivingBase = event.entityLiving;
+    float damage = amount;
+    // par2 = ForgeHooks.onLivingHurt(this, par1DamageSource, par2);
+    // if (par2 <= 0) return;
+    // par2 = this.applyArmorCalculations(par1DamageSource, par2);
+    // par2 = this.applyPotionDamageCalculations(par1DamageSource, par2);
+    float f1 = damage;
+    damage = Math.max(damage - this.getAbsorbtion(), 0.0F);
+    this.func_110149_m(this.getAbsorbtion() - (f1 - damage));
 
+    if (damage != 0.0F)
+    {
+      float f2 = this.getHealth();
+      this.setEntityHealth(f2 - damage);
+      this.func_110142_aN().func_94547_a(par1DamageSource, f2, damage);
+      this.func_110149_m(this.getAbsorbtion() - damage);
+    }
+
+  }
+*/
 /*
   @ForgeSubscribe
   public void addMyCreature(WorldEvent.PotentialSpawns event) {
@@ -65,10 +93,12 @@ public class ItemEventHandler {
 
   /**
    * If a speedy tool is equipped, selects the appropriate blocks and stores the selection into SpeedyToolsMod.currentlySelectedBlocks
-   * renders the selection over the top of the existing world
+   *    along with the substrate used by the tool (the block to be placed) which is the block in the hotbar immediately to the left of the tool
+   * Also renders the selection over the top of the existing world
    * If player is holding down Left Control or Right Control, allow "diagonal" selections, otherwise restrict to selections parallel to the
    *    coordinate axes only.
    *  The speedy tool can be stacked; the number of tools in the stack determines the number of blocks in the selection.
+   *
    * @param event
    */
   @ForgeSubscribe
@@ -92,7 +122,13 @@ public class ItemEventHandler {
     boolean stopWhenCollide = ItemSpeedyTool.leavesSolidBlocksIntact(currentItem.itemID);
     List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec,
                                                                      maxSelectionSize, diagonalOK, stopWhenCollide);
-    ItemSpeedyTool.setCurrentToolSelection(currentItem.getItem(), selection);
+
+    // the block to be placed in the selection is the one to the left of the tool in the hotbar
+    int currentlySelectedHotbarSlot = player.inventory.currentItem;
+    ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == 0) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot);
+    BlockWithMetadata blockToPlace = ItemSpeedyTool.getPlacedBlockFromItemStack(itemStackToPlace);
+
+    ItemSpeedyTool.setCurrentToolSelection(currentItem.getItem(), blockToPlace, selection);
     if (selection.isEmpty()) return;
 
     GL11.glEnable(GL11.GL_BLEND);

@@ -7,11 +7,13 @@ import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.util.ChunkCoordinates;
 import speedytools.SpeedyToolsMod;
+import speedytools.blocks.BlockWithMetadata;
 import speedytools.clientserversynch.Packet250SpeedyToolUse;
 
 import java.io.IOException;
@@ -48,12 +50,35 @@ public abstract class ItemSpeedyTool extends Item
   /**
    * For the given ItemStack, returns the corresponding Block that will be placed by the tool
    *   eg ItemCloth will give the Block cloth
+   *   ItemBlocks are converted to the appropriate block
+   *   Others:
    * @param itemToBePlaced - the Item to be placed, or null for none.
-   * @return the Block corresponding to the item, or null for none.
+   * @return the Block (and metadata) corresponding to the item, or null for none.
    */
-  public static Block getPlacedBlockFromItemStack(ItemStack itemToBePlaced)
+  public static BlockWithMetadata getPlacedBlockFromItemStack(ItemStack itemToBePlaced)
   {
+    if (itemToBePlaced == null) return null;
+    BlockWithMetadata retval = new BlockWithMetadata();
 
+    Item item = itemToBePlaced.getItem();
+    if (item instanceof ItemBlock) {
+      ItemBlock itemBlock = (ItemBlock)item;
+      retval.block = Block.blocksList[itemBlock.getBlockID()];
+      retval.metaData = itemBlock.getMetadata(itemToBePlaced.getItemDamage());
+      return retval;
+    }
+/*
+    if (item.itemID == Item.bucketWater.itemID) {
+
+    } else if (item.itemID == Item.bucketLava.itemID) {
+
+      ItemSeeds
+
+              coal
+              diamond
+                      ItemReed
+*/
+    return null;
   }
 
 
@@ -65,12 +90,11 @@ public abstract class ItemSpeedyTool extends Item
    */
 
   @SideOnly(Side.CLIENT)
-  public static void setCurrentToolSelection(Item currentTool, Block setCurrentBlockToPlace, int setCurrentMetadataToPlace, List<ChunkCoordinates> currentSelection)
+  public static void setCurrentToolSelection(Item currentTool, BlockWithMetadata setCurrentBlockToPlace, List<ChunkCoordinates> currentSelection)
   {
     currentlySelectedTool = currentTool;
     currentlySelectedBlocks = currentSelection;
     currentBlockToPlace = setCurrentBlockToPlace;
-    currentMetadataToPlace = setCurrentMetadataToPlace;
   }
 
   /**
@@ -101,11 +125,10 @@ public abstract class ItemSpeedyTool extends Item
   public static void buttonClicked(int buttonClicked)
   {
     if (currentlySelectedTool == null) return;
-    int blockToPlaceID = (currentBlockToPlace == null) ? 0 : currentBlockToPlace.blockID;
 
     Packet250SpeedyToolUse packet = null;
     try {
-      packet = new Packet250SpeedyToolUse(currentlySelectedTool.itemID, buttonClicked, blockToPlaceID, currentlySelectedBlocks);
+      packet = new Packet250SpeedyToolUse(currentlySelectedTool.itemID, buttonClicked, currentBlockToPlace, currentlySelectedBlocks);
     } catch (IOException e) {
       Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyToolUse for itemID " + currentlySelectedTool.itemID);
       return;
@@ -118,9 +141,7 @@ public abstract class ItemSpeedyTool extends Item
   protected static List<ChunkCoordinates> currentlySelectedBlocks = null;
   @SideOnly(Side.CLIENT)
   protected static Item currentlySelectedTool = null;
-  protected static Block currentBlockToPlace = null;
-  protected static int   currentMetadataToPlace = 0;
+  protected static BlockWithMetadata currentBlockToPlace = null;
 
-  @SideOnly(Side.SERVER)
   int i;  // dummy
 }

@@ -1,8 +1,10 @@
 package speedytools.clientserversynch;
 
 
+import net.minecraft.block.Block;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.util.ChunkCoordinates;
+import speedytools.blocks.BlockWithMetadata;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -21,8 +23,8 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
     return button;
   }
 
-  public int getBlockToPlaceID() {
-    return blockToPlaceID;
+  public BlockWithMetadata getBlockToPlace() {
+    return blockToPlace;
   }
 
   public List<ChunkCoordinates> getCurrentlySelectedBlocks() {
@@ -35,21 +37,25 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
    * @param newButton       - left mouse button (attack) = 0; right mouse button (use) = 1
    * @param newCurrentlySelectedBlocks - a list of the blocks selected by the tool when the button was clicked
    */
-  public Packet250SpeedyToolUse(int newToolItemID, int newButton, int newBlockToPlaceID, List<ChunkCoordinates> newCurrentlySelectedBlocks) throws IOException
+  public Packet250SpeedyToolUse(int newToolItemID, int newButton, BlockWithMetadata newBlockToPlace, List<ChunkCoordinates> newCurrentlySelectedBlocks) throws IOException
   {
     super();
 
     toolItemID = newToolItemID;
     button = newButton;
-    blockToPlaceID = newBlockToPlaceID;
+    blockToPlace = newBlockToPlace;
     currentlySelectedBlocks = newCurrentlySelectedBlocks;
 
-    ByteArrayOutputStream bos = new ByteArrayOutputStream(17 + 12 * currentlySelectedBlocks.size());
+    int blockID = (blockToPlace == null) ? 0 : blockToPlace.block.blockID;
+    int metaData = (blockToPlace == null) ? 0 : blockToPlace.metaData;
+
+    ByteArrayOutputStream bos = new ByteArrayOutputStream(1+ 4*5 + 12 * currentlySelectedBlocks.size());
     DataOutputStream outputStream = new DataOutputStream(bos);
     outputStream.writeByte(PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID);
     outputStream.writeInt(toolItemID);
     outputStream.writeInt(button);
-    outputStream.writeInt(blockToPlaceID);
+    outputStream.writeInt(blockID);
+    outputStream.writeInt(metaData);
     outputStream.writeInt(currentlySelectedBlocks.size());
 
     for (ChunkCoordinates cc : currentlySelectedBlocks) {
@@ -80,7 +86,10 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
 
       newPacket.toolItemID = inputStream.readInt();
       newPacket.button = inputStream.readInt();
-      newPacket.blockToPlaceID = inputStream.readInt();
+      int blockID = inputStream.readInt();
+
+      newPacket.blockToPlace.block = (blockID == 0) ? null : Block.blocksList[blockID];
+      newPacket.blockToPlace.metaData = inputStream.readInt();
 
       int blockCount = inputStream.readInt();
       for (int i = 0; i < blockCount; ++i) {
@@ -105,7 +114,7 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
 
   private int toolItemID;
   private int button;
-  private int blockToPlaceID;
+  private BlockWithMetadata blockToPlace;
   private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
 
 }

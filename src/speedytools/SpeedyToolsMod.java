@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.client.ClientTickHandler;
+import speedytools.client.ConfusedMovementInput;
 import speedytools.client.KeyBindingInterceptor;
 import speedytools.clientserversynch.PacketHandler;
 import speedytools.items.*;
@@ -40,6 +41,8 @@ public class SpeedyToolsMod {
 
   public static KeyBindingInterceptor attackButtonInterceptor;
   public static KeyBindingInterceptor useItemButtonInterceptor;
+
+  public static ConfusedMovementInput confusedMovementInput;
 
   // custom itemrenderers
 
