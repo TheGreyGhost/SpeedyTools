@@ -30,22 +30,23 @@ public class ClientTickHandler implements ITickHandler {
 
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player != null) {
+ /*
       if (player.movementInput instanceof ConfusedMovementInput) {
 
       } else {
         SpeedyToolsMod.confusedMovementInput = new ConfusedMovementInput(player.movementInput);
         player.movementInput = SpeedyToolsMod.confusedMovementInput;
       }
-
+ */
       ItemStack heldItem = player.getHeldItem();
       if (heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID)) {
         SpeedyToolsMod.useItemButtonInterceptor.setInterceptionActive(true);
         SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(true);
-        SpeedyToolsMod.confusedMovementInput.setConfusion(true);
+ //       SpeedyToolsMod.confusedMovementInput.setConfusion(true);
       } else {
         SpeedyToolsMod.useItemButtonInterceptor.setInterceptionActive(false);
         SpeedyToolsMod.attackButtonInterceptor.setInterceptionActive(false);
-        SpeedyToolsMod.confusedMovementInput.setConfusion(false);
+ //       SpeedyToolsMod.confusedMovementInput.setConfusion(false);
       }
     }
 

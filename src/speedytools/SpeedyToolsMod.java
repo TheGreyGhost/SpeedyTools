@@ -42,7 +42,7 @@ public class SpeedyToolsMod {
   public static KeyBindingInterceptor attackButtonInterceptor;
   public static KeyBindingInterceptor useItemButtonInterceptor;
 
-  public static ConfusedMovementInput confusedMovementInput;
+//  public static ConfusedMovementInput confusedMovementInput;
 
   // custom itemrenderers
 

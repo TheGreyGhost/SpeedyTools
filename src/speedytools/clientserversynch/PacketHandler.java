@@ -28,7 +28,8 @@ public class PacketHandler implements IPacketHandler
             malformedPacketError(playerEntity, "Malformed Packet250SpeedyTools:could not convert");
             return;
           }
-          ItemSpeedyTool.performServerAction(toolUsePacket.getToolItemID(), toolUsePacket.getButton(), toolUsePacket.getCurrentlySelectedBlocks());
+          ItemSpeedyTool.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
+                                             toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
 
           break;
         }

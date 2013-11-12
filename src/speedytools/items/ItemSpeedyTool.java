@@ -1,17 +1,19 @@
 package speedytools.items;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.network.PacketDispatcher;
+import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemStack;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.*;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.world.World;
 import speedytools.SpeedyToolsMod;
 import speedytools.blocks.BlockWithMetadata;
 import speedytools.clientserversynch.Packet250SpeedyToolUse;
@@ -55,8 +57,11 @@ public abstract class ItemSpeedyTool extends Item
    * @param itemToBePlaced - the Item to be placed, or null for none.
    * @return the Block (and metadata) corresponding to the item, or null for none.
    */
+  @SideOnly(Side.CLIENT)
   public static BlockWithMetadata getPlacedBlockFromItemStack(ItemStack itemToBePlaced)
   {
+    assert FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT;
+
     if (itemToBePlaced == null) return null;
     BlockWithMetadata retval = new BlockWithMetadata();
 
@@ -65,20 +70,22 @@ public abstract class ItemSpeedyTool extends Item
       ItemBlock itemBlock = (ItemBlock)item;
       retval.block = Block.blocksList[itemBlock.getBlockID()];
       retval.metaData = itemBlock.getMetadata(itemToBePlaced.getItemDamage());
-      return retval;
-    }
-/*
-    if (item.itemID == Item.bucketWater.itemID) {
-
+    } else if (item.itemID == Item.bucketWater.itemID) {
+      retval.block = Block.waterStill;
+      retval.metaData = 0;
     } else if (item.itemID == Item.bucketLava.itemID) {
+      retval.block = Block.lavaStill;
+      retval.metaData = 0;
+    } else if (item instanceof ItemSeeds) {
+      ItemSeeds itemSeeds = (ItemSeeds)item;
+      World world = Minecraft.getMinecraft().theWorld;
+      retval.block = Block.blocksList[itemSeeds.getPlantID(world, 0, 0, 0)];      // method doesn't actually use x,y,z
+      retval.metaData = itemSeeds.getPlantMetadata(world, 0, 0, 0);
+    } else  {
+      retval = null;
+    }
+    return retval;
 
-      ItemSeeds
-
-              coal
-              diamond
-                      ItemReed
-*/
-    return null;
   }
 
 
@@ -116,9 +123,19 @@ public abstract class ItemSpeedyTool extends Item
   }
 
 //  @SideOnly(Side.SERVER)
-  public static void performServerAction(int toolItemID, int buttonClicked, List<ChunkCoordinates> blockSelection)
+  public static void performServerAction(Player player, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
 //    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
+    assert player instanceof EntityPlayerMP;
+    EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+    if (blockSelection.isEmpty()) return;
+    ChunkCoordinates cc = blockSelection.get(0);
+    if (blockToPlace.block == null) {
+      blockToPlace.block.removeBlockByPlayer(entityPlayerMP.theItemInWorldManager.theWorld, entityPlayerMP, cc.posX, cc.posY, cc.posZ);
+    } else {
+      entityPlayerMP.theItemInWorldManager.theWorld.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
+    }
+
   }
 
   @SideOnly(Side.CLIENT)
