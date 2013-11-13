@@ -88,6 +88,7 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
       newPacket.button = inputStream.readInt();
       int blockID = inputStream.readInt();
 
+      newPacket.blockToPlace = new BlockWithMetadata();
       newPacket.blockToPlace.block = (blockID == 0) ? null : Block.blocksList[blockID];
       newPacket.blockToPlace.metaData = inputStream.readInt();
 

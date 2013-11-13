@@ -125,7 +125,7 @@ public class ItemEventHandler {
 
     // the block to be placed in the selection is the one to the left of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;
-    ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == 0) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot);
+    ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == 0) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot-1);
     BlockWithMetadata blockToPlace = ItemSpeedyTool.getPlacedBlockFromItemStack(itemStackToPlace);
 
     ItemSpeedyTool.setCurrentToolSelection(currentItem.getItem(), blockToPlace, selection);

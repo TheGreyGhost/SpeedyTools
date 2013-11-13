@@ -128,10 +128,10 @@ public abstract class ItemSpeedyTool extends Item
 //    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
     assert player instanceof EntityPlayerMP;
     EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-    if (blockSelection.isEmpty()) return;
+    if (blockSelection == null || blockSelection.isEmpty()) return;
     ChunkCoordinates cc = blockSelection.get(0);
     if (blockToPlace.block == null) {
-      blockToPlace.block.removeBlockByPlayer(entityPlayerMP.theItemInWorldManager.theWorld, entityPlayerMP, cc.posX, cc.posY, cc.posZ);
+      entityPlayerMP.theItemInWorldManager.theWorld.setBlockToAir(cc.posX, cc.posY, cc.posZ);
     } else {
       entityPlayerMP.theItemInWorldManager.theWorld.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
     }
