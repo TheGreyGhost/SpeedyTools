@@ -112,18 +112,11 @@ public class ItemEventHandler {
     float partialTick = event.partialTicks;
 
     if (currentItem == null || !ItemSpeedyTool.isAspeedyTool(currentItem.getItem().itemID)) return;
+    ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)currentItem.getItem();
 
-    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
-    if (startBlock == null) return;
+    List<ChunkCoordinates> selection = itemSpeedyTool.selectBlocks(target, player, currentItem, partialTick);
 
-    ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
-    boolean diagonalOK =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-    int maxSelectionSize = currentItem.stackSize;
-    boolean stopWhenCollide = ItemSpeedyTool.leavesSolidBlocksIntact(currentItem.itemID);
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec,
-                                                                     maxSelectionSize, diagonalOK, stopWhenCollide);
-
-    // the block to be placed in the selection is the one to the left of the tool in the hotbar
+    // the block to be placed is the one to the left of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;
     ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == 0) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot-1);
     BlockWithMetadata blockToPlace = ItemSpeedyTool.getPlacedBlockFromItemStack(itemStackToPlace);

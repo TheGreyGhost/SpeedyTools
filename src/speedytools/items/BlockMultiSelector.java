@@ -135,7 +135,7 @@ public class BlockMultiSelector
    * @param maxLineLength the maximum number of blocks to select
    * @param diagonalOK    if true, diagonal 45 degree lines are allowed
    * @param stopWhenCollide if true, stops when a solid block is encountered (canCollide == true).  Otherwise, continues for maxLineLength
-   * @return a list of the coordinates of all blocks in the selection, including the startingBlock.
+   * @return a list of the coordinates of all blocks in the selection, including the startingBlock.  May be zero length if the startingBlock is null
    */
   public static List<ChunkCoordinates> selectLine(ChunkCoordinates startingBlock, World world, Vec3 direction,
                                                   int maxLineLength, boolean diagonalOK, boolean stopWhenCollide)

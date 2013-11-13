@@ -8,6 +8,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import speedytools.SpeedyToolsMod;
@@ -26,6 +27,27 @@ public class ItemSpeedyStripWeak extends ItemSpeedyTool {
   public void registerIcons(IconRegister iconRegister)
   {
     itemIcon = iconRegister.registerIcon("speedytools:WandWeakIcon");
+  }
+
+  /*
+  @Override
+  public boolean leavesSolidBlocksIntact()
+  {
+    return true;
+  }
+*/
+  /**
+   * Selects the Blocks that will be affected by the tool when the player presses right-click
+   * @param target the position of the cursor
+   * @param player the player
+   * @param currentItem the current item that the player is holding.  MUST be derived from ItemSpeedyTool.
+   * @param partialTick partial tick time.
+   * @return returns the list of blocks in the selection (may be zero length)
+   */
+  @Override
+  public List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  {
+    return selectLineOfBlocks(target, player, currentItem, true, partialTick);
   }
 
   /**
