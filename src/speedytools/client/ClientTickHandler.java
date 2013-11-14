@@ -49,9 +49,6 @@ public class ClientTickHandler implements ITickHandler {
  //       SpeedyToolsMod.confusedMovementInput.setConfusion(false);
       }
     }
-
-
-
   }
 
   public void tickEnd(EnumSet<TickType> type, Object... tickData)

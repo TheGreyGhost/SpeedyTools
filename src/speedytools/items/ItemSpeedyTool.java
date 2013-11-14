@@ -26,6 +26,7 @@ import speedytools.clientserversynch.Packet250SpeedyToolUse;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -125,6 +126,9 @@ public abstract class ItemSpeedyTool extends Item
       World world = Minecraft.getMinecraft().theWorld;
       retval.block = Block.blocksList[itemSeeds.getPlantID(world, 0, 0, 0)];      // method doesn't actually use x,y,z
       retval.metaData = itemSeeds.getPlantMetadata(world, 0, 0, 0);
+    } else if (item instanceof ItemRedstone) {
+      retval.block = Block.redstoneWire;
+      retval.metaData = 0;
     } else  {
       retval = null;
     }
@@ -166,14 +170,47 @@ public abstract class ItemSpeedyTool extends Item
      buttonClicked(1);
   }
 
-//  @SideOnly(Side.SERVER)
   public static void performServerAction(Player player, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
 //    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
     assert player instanceof EntityPlayerMP;
     EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-    if (blockSelection == null || blockSelection.isEmpty()) return;
-    undoInformation = createUndoInformation(entityPlayerMP.theItemInWorldManager.theWorld, blockSelection);
+    if (!isAspeedyTool(toolItemID)) return;
+    ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)(Item.itemsList[toolItemID]);
+
+    switch (buttonClicked) {
+      case 0: {
+        if (undoInformation != null) {
+          itemSpeedyTool.undoLastFill(entityPlayerMP, undoInformation);
+        }
+        undoInformation = null;
+        return;
+      }
+      case 1: {
+        UndoEntry undoEntry = itemSpeedyTool.fillBlockSelection(entityPlayerMP, blockToPlace, blockSelection);
+        if (undoEntry != null) {
+          undoInformation = undoEntry;
+        }
+        return;
+      }
+      default: {
+        return;
+      }
+
+    }
+  }
+
+  /**
+   * Fills the blocks in the selection with the given block & metadata information.  Creates undo information.
+   * @param entityPlayerMP the player
+   * @param blockToPlace the block and metadata to fill the blockSelection with. must not be null.  (air is blockToPlace.block == null)
+   * @param blockSelection the blocks to be filled
+   * @return the undo information necessary to undo the placement; null if no blocks placed
+   */
+  protected UndoEntry fillBlockSelection(EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  {
+    if (blockSelection == null || blockSelection.isEmpty()) return null;
+    UndoEntry retval = createUndoInformation(entityPlayerMP.theItemInWorldManager.theWorld, blockSelection);
     for (ChunkCoordinates cc : blockSelection) {
       if (blockToPlace.block == null) {
         entityPlayerMP.theItemInWorldManager.theWorld.setBlockToAir(cc.posX, cc.posY, cc.posZ);
@@ -181,7 +218,32 @@ public abstract class ItemSpeedyTool extends Item
         entityPlayerMP.theItemInWorldManager.theWorld.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
       }
     }
+    return retval;
+  }
 
+  /**
+   * undoes the last fill, including TileEntities
+   * @param undoEntry the undo information from the last fill
+   */
+  protected void undoLastFill(EntityPlayerMP entityPlayerMP, UndoEntry undoEntry)
+  {
+    World world = entityPlayerMP.theItemInWorldManager.theWorld;
+
+    if (undoEntry == null) return;
+
+    for (UndoBlock ub : undoEntry.undoBlocks) {
+      world.setBlock(ub.blockCoordinate.posX, ub.blockCoordinate.posY, ub.blockCoordinate.posZ,
+                     ub.block == null ? 0 : ub.block.blockID,
+                     ub.metaData,
+                     1+2);
+      if (ub.tileEntityNBTdata != null) {
+        TileEntity tileentity = TileEntity.createAndLoadEntity(ub.tileEntityNBTdata);
+        if (tileentity != null)
+        {
+          world.setBlockTileEntity(ub.blockCoordinate.posX, ub.blockCoordinate.posY, ub.blockCoordinate.posZ, tileentity);
+        }
+      }
+    }
   }
 
   @SideOnly(Side.CLIENT)
@@ -206,42 +268,39 @@ public abstract class ItemSpeedyTool extends Item
   protected static Item currentlySelectedTool = null;
   protected static BlockWithMetadata currentBlockToPlace = null;
 
-  protected static class UndoEntry
+  protected static class UndoBlock
   {
-    public List<ChunkCoordinates> chunkCoordinates;
-    public List<Block> blocks;
-    public List<Integer> metaData;
-    public List<NBTTagCompound> tileEntityNBTdata;
-
-    UndoEntry(List<ChunkCoordinates> chunkCoordinatesInSelection)
-    {
-      chunkCoordinates = chunkCoordinatesInSelection;
-      if (chunkCoordinatesInSelection == null) return;
-      blocks = new ArrayList<Block>(chunkCoordinatesInSelection.size());
-      metaData = new ArrayList<Integer>(chunkCoordinatesInSelection.size());
-      tileEntityNBTdata = new ArrayList<NBTTagCompound>(chunkCoordinatesInSelection.size());
-      return;
-    }
+    public ChunkCoordinates blockCoordinate;
+    public Block block;
+    public int metaData;
+    public NBTTagCompound tileEntityNBTdata;
   }
 
-  protected static UndoEntry undoInformation;
+  protected static class UndoEntry
+  {
+    public List<UndoBlock> undoBlocks = new ArrayList<UndoBlock>();
+  }
+
+  // holds the information about the blocks that were replaced by the last placement.  null = none
+  protected static UndoEntry undoInformation = null;
 
   protected static UndoEntry createUndoInformation(World world, List<ChunkCoordinates> blockSelection)
   {
-    UndoEntry retval = new UndoEntry(blockSelection);
+    UndoEntry retval = new UndoEntry();
     for (ChunkCoordinates cc : blockSelection) {
+      UndoBlock nextBlock = new UndoBlock();
+      nextBlock.blockCoordinate = cc;
       int blockID = world.getBlockId(cc.posX, cc.posY, cc.posZ);
-      retval.blocks.add(blockID == 0 ? null : Block.blocksList[blockID]);
-      retval.metaData.add(world.getBlockMetadata(cc.posX, cc.posY, cc.posZ));
+      nextBlock.block = (blockID == 0 ? null : Block.blocksList[blockID]);
+      nextBlock.metaData = world.getBlockMetadata(cc.posX, cc.posY, cc.posZ);
 
       TileEntity tileEntity = world.getBlockTileEntity(cc.posX, cc.posY, cc.posZ);
-      if (tileEntity == null) {
-        retval.tileEntityNBTdata.add(null);
-      } else {
+      if (tileEntity != null) {
         NBTTagCompound nbtTagCompound = new NBTTagCompound();
         tileEntity.writeToNBT(nbtTagCompound);
-        retval.tileEntityNBTdata.add(nbtTagCompound);
+        nextBlock.tileEntityNBTdata = nbtTagCompound;
       }
+      retval.undoBlocks.add(nextBlock);
     }
     return retval;
   }

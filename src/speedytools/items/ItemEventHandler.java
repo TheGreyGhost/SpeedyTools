@@ -19,6 +19,8 @@ import java.util.List;
  Contains the custom Forge Event Handlers
  */
 public class ItemEventHandler {
+
+  public final int SELECTIONBOXTYPE = 0; //0 = cube, 1 = cube with cross on each side
 /*
   @ForgeSubscribe
   public void myLivingHurt(LivingHurtEvent event)
@@ -140,7 +142,16 @@ public class ItemEventHandler {
       AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(block.posX, block.posY, block.posZ,
                                                                       block.posX+1, block.posY+1, block.posZ+1);
       boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
-      SelectionBoxRenderer.drawFilledCube(boundingBox);
+      switch (SELECTIONBOXTYPE) {
+        case 0: {
+          SelectionBoxRenderer.drawCube(boundingBox);
+          break;
+        }
+        case 1: {
+          SelectionBoxRenderer.drawFilledCube(boundingBox);
+          break;
+        }
+      }
     }
 
     GL11.glDepthMask(true);

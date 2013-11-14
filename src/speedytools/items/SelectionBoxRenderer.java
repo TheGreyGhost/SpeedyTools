@@ -7,6 +7,44 @@ import org.lwjgl.opengl.GL11;
 
 public class SelectionBoxRenderer {
 
+  public static void drawCube(AxisAlignedBB cube) {
+    double xa = cube.minX;
+    double xb = cube.maxX;
+    double ya = cube.minY;
+    double yb = cube.maxY;
+    double za = cube.minZ;
+    double zb = cube.maxZ;
+
+    Tessellator tessellator = Tessellator.instance;
+    tessellator.startDrawing(GL11.GL_LINE_STRIP);
+    tessellator.addVertex(xa, ya, za);
+    tessellator.addVertex(xa, yb, za);
+    tessellator.addVertex(xb, yb, za);
+    tessellator.addVertex(xb, ya, za);
+    tessellator.addVertex(xa, ya, za);
+
+    tessellator.addVertex(xa, ya, zb);
+    tessellator.addVertex(xa, yb, zb);
+    tessellator.addVertex(xb, yb, zb);
+    tessellator.addVertex(xb, ya, zb);
+    tessellator.addVertex(xa, ya, zb);
+    tessellator.draw();
+
+    tessellator.startDrawing(GL11.GL_LINES);
+    tessellator.addVertex(xa, ya, za);
+    tessellator.addVertex(xa, ya, zb);
+
+    tessellator.addVertex(xa, yb, za);
+    tessellator.addVertex(xa, yb, zb);
+
+    tessellator.addVertex(xb, ya, za);
+    tessellator.addVertex(xb, ya, zb);
+
+    tessellator.addVertex(xb, yb, za);
+    tessellator.addVertex(xb, yb, zb);
+    tessellator.draw();
+  }
+
   public static void drawBoxWithCross(double x1, double x2, double x3, double x4,
                                       double y1, double y2, double y3, double y4,
                                       double z1, double z2, double z3, double z4)
