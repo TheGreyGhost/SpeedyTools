@@ -25,9 +25,7 @@ import speedytools.blocks.BlockWithMetadata;
 import speedytools.clientserversynch.Packet250SpeedyToolUse;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * User: The Grey Ghost
@@ -35,6 +33,8 @@ import java.util.List;
  */
 public abstract class ItemSpeedyTool extends Item
 {
+  private static final int MAXIMUM_UNDO_COUNT =5;
+
   public ItemSpeedyTool(int id) {
     super(id);
     setCreativeTab(CreativeTabs.tabTools);
@@ -180,16 +180,18 @@ public abstract class ItemSpeedyTool extends Item
 
     switch (buttonClicked) {
       case 0: {
-        if (undoInformation != null) {
-          itemSpeedyTool.undoLastFill(entityPlayerMP, undoInformation);
+        if (!undoInformation.isEmpty()) {
+          itemSpeedyTool.undoLastFill(entityPlayerMP, undoInformation.removeLast());
         }
-        undoInformation = null;
         return;
       }
       case 1: {
         UndoEntry undoEntry = itemSpeedyTool.fillBlockSelection(entityPlayerMP, blockToPlace, blockSelection);
         if (undoEntry != null) {
-          undoInformation = undoEntry;
+          undoInformation.addLast(undoEntry);
+          if (undoInformation.size() > MAXIMUM_UNDO_COUNT) {
+            undoInformation.removeFirst();
+          }
         }
         return;
       }
@@ -282,7 +284,7 @@ public abstract class ItemSpeedyTool extends Item
   }
 
   // holds the information about the blocks that were replaced by the last placement.  null = none
-  protected static UndoEntry undoInformation = null;
+  protected static Deque<UndoEntry> undoInformation = new LinkedList<UndoEntry>();
 
   protected static UndoEntry createUndoInformation(World world, List<ChunkCoordinates> blockSelection)
   {
