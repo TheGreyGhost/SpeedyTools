@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class is used to inform the server when the user has used a SpeedyTool.
+ * This class is used to inform the server when the user has used a SpeedyTool, and pass it information about the affected blocks.
  */
 public class Packet250SpeedyToolUse extends Packet250CustomPayload
 {

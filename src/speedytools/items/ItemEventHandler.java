@@ -1,15 +1,12 @@
 package speedytools.items;
 
 import net.minecraft.client.renderer.RenderGlobal;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 import speedytools.blocks.BlockWithMetadata;
 
@@ -20,7 +17,7 @@ import java.util.List;
  */
 public class ItemEventHandler {
 
-  public final int SELECTIONBOXTYPE = 0; //0 = cube, 1 = cube with cross on each side
+  public final int SELECTION_BOX_STYLE = 0; //0 = cube, 1 = cube with cross on each side
 /*
   @ForgeSubscribe
   public void myLivingHurt(LivingHurtEvent event)
@@ -97,9 +94,6 @@ public class ItemEventHandler {
    * If a speedy tool is equipped, selects the appropriate blocks and stores the selection into SpeedyToolsMod.currentlySelectedBlocks
    *    along with the substrate used by the tool (the block to be placed) which is the block in the hotbar immediately to the left of the tool
    * Also renders the selection over the top of the existing world
-   * If player is holding down Left Control or Right Control, allow "diagonal" selections, otherwise restrict to selections parallel to the
-   *    coordinate axes only.
-   *  The speedy tool can be stacked; the number of tools in the stack determines the number of blocks in the selection.
    *
    * @param event
    */
@@ -142,7 +136,7 @@ public class ItemEventHandler {
       AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(block.posX, block.posY, block.posZ,
                                                                       block.posX+1, block.posY+1, block.posZ+1);
       boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
-      switch (SELECTIONBOXTYPE) {
+      switch (SELECTION_BOX_STYLE) {
         case 0: {
           SelectionBoxRenderer.drawCube(boundingBox);
           break;
