@@ -1,10 +1,10 @@
-package speedytools.clientserversynch;
+package speedytools.common.clientserversynch;
 
 
 import net.minecraft.block.Block;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.util.ChunkCoordinates;
-import speedytools.blocks.BlockWithMetadata;
+import speedytools.common.blocks.BlockWithMetadata;
 
 import java.io.*;
 import java.util.ArrayList;

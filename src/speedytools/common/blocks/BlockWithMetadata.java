@@ -1,4 +1,4 @@
-package speedytools.blocks;
+package speedytools.common.blocks;
 
 import net.minecraft.block.Block;
 

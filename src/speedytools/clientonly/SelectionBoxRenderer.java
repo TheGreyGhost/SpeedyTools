@@ -1,4 +1,4 @@
-package speedytools.items;
+package speedytools.clientonly;
 
 
 import net.minecraft.client.renderer.Tessellator;

@@ -1,4 +1,4 @@
-package speedytools.items;
+package speedytools.clientonly.eventhandlers;
 
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
@@ -8,7 +8,9 @@ import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
 import org.lwjgl.opengl.GL11;
-import speedytools.blocks.BlockWithMetadata;
+import speedytools.clientonly.SelectionBoxRenderer;
+import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.items.ItemSpeedyTool;
 
 import java.util.List;
 
@@ -18,59 +20,6 @@ import java.util.List;
 public class ItemEventHandler {
 
   public final int SELECTION_BOX_STYLE = 0; //0 = cube, 1 = cube with cross on each side
-/*
-  @ForgeSubscribe
-  public void myLivingHurt(LivingHurtEvent event)
-  {
-    DamageSource damageSource = event.source;
-    float amount = event.ammount;
-    EntityLivingBase entityLivingBase = event.entityLiving;
-    float damage = amount;
-    // par2 = ForgeHooks.onLivingHurt(this, par1DamageSource, par2);
-    // if (par2 <= 0) return;
-    // par2 = this.applyArmorCalculations(par1DamageSource, par2);
-    // par2 = this.applyPotionDamageCalculations(par1DamageSource, par2);
-    float f1 = damage;
-    damage = Math.max(damage - this.getAbsorbtion(), 0.0F);
-    this.func_110149_m(this.getAbsorbtion() - (f1 - damage));
-
-    if (damage != 0.0F)
-    {
-      float f2 = this.getHealth();
-      this.setEntityHealth(f2 - damage);
-      this.func_110142_aN().func_94547_a(par1DamageSource, f2, damage);
-      this.func_110149_m(this.getAbsorbtion() - damage);
-    }
-
-  }
-*/
-/*
-  @ForgeSubscribe
-  public void addMyCreature(WorldEvent.PotentialSpawns event) {
-    World world = event.world;
-    int xposition = event.x;
-    int yposition = event.y;
-    int zposition = event.z;
-    EnumCreatureType creatureType = event.type;
-    List<SpawnListEntry> listOfSpawnableCreatures = event.list;
-
-    final int SPAWNWEIGHT = 5;  // the higher the number, the more likely this creature will spawn
-    final int MINIMUMNUMBERTOSPAWN = 1;
-    final int MAXIMUMNUMBERTOSPAWN = 4;
-
-    switch (creatureType) {
-      case monster: {
-        SpawnListEntry myNewCreatureSpawn = new SpawnListEntry(MyCreature.class, SPAWNWEIGHT, MINIMUMNUMBERTOSPAWN, MAXIMUMNUMBERTOSPAWN);
-        listOfSpawnableCreatures.add(myNewCreatureSpawn);
-        break;
-      }
-      case creature:
-      case waterCreature:
-      case ambient:
-      default:
-    }
-  }
- */
   /**
    * If a SpeedyTools item is selected, draw nothing (drawing of selection box is performed in RenderWorldLastEvent).
    * Otherwise, cancel the event so that the normal selection box is drawn.

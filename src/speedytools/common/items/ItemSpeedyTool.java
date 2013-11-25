@@ -1,4 +1,4 @@
-package speedytools.items;
+package speedytools.common.items;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.network.PacketDispatcher;
@@ -7,22 +7,20 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.*;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 import speedytools.SpeedyToolsMod;
-import speedytools.blocks.BlockWithMetadata;
-import speedytools.clientserversynch.Packet250SpeedyToolUse;
+import speedytools.common.blocks.BlockMultiSelector;
+import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.clientserversynch.Packet250SpeedyToolUse;
 
 import java.io.IOException;
 import java.util.*;
@@ -43,12 +41,13 @@ public abstract class ItemSpeedyTool extends Item
 
   public static boolean isAspeedyTool(int itemID)
   {
-    return (   itemID == SpeedyToolsMod.itemSpeedyStripStrong.itemID
-            || itemID == SpeedyToolsMod.itemSpeedyStripWeak.itemID    );
+    return (   itemID == RegistryForItems.itemSpeedyStripStrong.itemID
+            || itemID == RegistryForItems.itemSpeedyStripWeak.itemID    );
   }
 
   /**
    * Selects the Blocks that will be affected by the tool when the player presses right-click
+   *   default method just selects the first block.
    * @param target the position of the cursor
    * @param player the player
    * @param currentItem the current item that the player is holding.  MUST be derived from ItemSpeedyTool.
@@ -88,12 +87,6 @@ public abstract class ItemSpeedyTool extends Item
     return selection;
   }
 
-  /**
-   * if true, this tool does not destroy "solid" blocks such as stone, only "non-solid" blocks such as air, grass, etc
-   */
-/*
-  public abstract boolean leavesSolidBlocksIntact();
-*/
   /**
    * For the given ItemStack, returns the corresponding Block that will be placed by the tool
    *   eg ItemCloth will give the Block cloth
@@ -307,79 +300,4 @@ public abstract class ItemSpeedyTool extends Item
     return retval;
   }
 
-
-  /*
-  undo action code
-          NBTTagList nbttaglist2 = new NBTTagList();
-        iterator = par1Chunk.chunkTileEntityMap.values().iterator();
-
-        while (iterator.hasNext())
-        {
-            TileEntity tileentity = (TileEntity)iterator.next();
-            nbttagcompound1 = new NBTTagCompound();
-            try
-            {
-                tileentity.writeToNBT(nbttagcompound1);
-                nbttaglist2.appendTag(nbttagcompound1);
-            }
-            catch (Exception e)
-            {
-                FMLLog.log(Level.SEVERE, e,
-                        "A TileEntity type %s has throw an exception trying to write state. It will not persist. Report this to the mod author",
-                        tileentity.getClass().getName());
-            }
-        }
-
-        par3NBTTagCompound.setTag("TileEntities", nbttaglist2);
-
-addTileEntity
-getChunkBlockTileEntity
-
-        NBTTagList nbttaglist2 = par2NBTTagCompound.getTagList("TileEntities");
-
-        if (nbttaglist2 != null)
-        {
-            for (int i1 = 0; i1 < nbttaglist2.tagCount(); ++i1)
-            {
-                NBTTagCompound nbttagcompound4 = (NBTTagCompound)nbttaglist2.tagAt(i1);
-                TileEntity tileentity = TileEntity.createAndLoadEntity(nbttagcompound4);
-
-                if (tileentity != null)
-                {
-                    chunk.addTileEntity(tileentity);
-                }
-            }
-        }
-
-    /**
-     * Adds a TileEntity to a chunk
-
-  public void addTileEntity(TileEntity par1TileEntity)
-  {
-    int i = par1TileEntity.xCoord - this.xPosition * 16;
-    int j = par1TileEntity.yCoord;
-    int k = par1TileEntity.zCoord - this.zPosition * 16;
-    this.setChunkBlockTileEntity(i, j, k, par1TileEntity);
-
-    if (this.isChunkLoaded)
-    {
-      this.worldObj.addTileEntity(par1TileEntity);
-    }
-  }
-
-         /**
-     * Returns the TileEntity associated with a given block in X,Y,Z coordinates, or null if no TileEntity exists
-
-  public TileEntity getBlockTileEntity(int par1, int par2, int par3)
-  {
-
-
-
-
-
-
-    */
-
-
-  int i;  // dummy
 }

@@ -1,4 +1,4 @@
-package speedytools.client;
+package speedytools.clientonly;
 
 /**
  * The purpose of this class is to intercept key presses (especially left and right mouse button clicks) and allow
@@ -29,7 +29,6 @@ package speedytools.client;
  */
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 
 @SideOnly(Side.CLIENT)
