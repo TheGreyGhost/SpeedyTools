@@ -2,22 +2,17 @@ package speedytools.common.items;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.network.PacketDispatcher;
-import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.*;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
-import speedytools.SpeedyToolsMod;
 import speedytools.common.blocks.BlockMultiSelector;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.clientserversynch.Packet250SpeedyToolUse;
@@ -31,8 +26,6 @@ import java.util.*;
  */
 public abstract class ItemSpeedyTool extends Item
 {
-  private static final int MAXIMUM_UNDO_COUNT =5;
-
   public ItemSpeedyTool(int id) {
     super(id);
     setCreativeTab(CreativeTabs.tabTools);
@@ -163,84 +156,6 @@ public abstract class ItemSpeedyTool extends Item
      buttonClicked(1);
   }
 
-  public static void performServerAction(Player player, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
-  {
-//    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
-    assert player instanceof EntityPlayerMP;
-    EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-    if (!isAspeedyTool(toolItemID)) return;
-    ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)(Item.itemsList[toolItemID]);
-
-    switch (buttonClicked) {
-      case 0: {
-        if (!undoInformation.isEmpty()) {
-          itemSpeedyTool.undoLastFill(entityPlayerMP, undoInformation.removeLast());
-        }
-        return;
-      }
-      case 1: {
-        UndoEntry undoEntry = itemSpeedyTool.fillBlockSelection(entityPlayerMP, blockToPlace, blockSelection);
-        if (undoEntry != null) {
-          undoInformation.addLast(undoEntry);
-          if (undoInformation.size() > MAXIMUM_UNDO_COUNT) {
-            undoInformation.removeFirst();
-          }
-        }
-        return;
-      }
-      default: {
-        return;
-      }
-
-    }
-  }
-
-  /**
-   * Fills the blocks in the selection with the given block & metadata information.  Creates undo information.
-   * @param entityPlayerMP the player
-   * @param blockToPlace the block and metadata to fill the blockSelection with. must not be null.  (air is blockToPlace.block == null)
-   * @param blockSelection the blocks to be filled
-   * @return the undo information necessary to undo the placement; null if no blocks placed
-   */
-  protected UndoEntry fillBlockSelection(EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
-  {
-    if (blockSelection == null || blockSelection.isEmpty()) return null;
-    UndoEntry retval = createUndoInformation(entityPlayerMP.theItemInWorldManager.theWorld, blockSelection);
-    for (ChunkCoordinates cc : blockSelection) {
-      if (blockToPlace.block == null) {
-        entityPlayerMP.theItemInWorldManager.theWorld.setBlockToAir(cc.posX, cc.posY, cc.posZ);
-      } else {
-        entityPlayerMP.theItemInWorldManager.theWorld.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
-      }
-    }
-    return retval;
-  }
-
-  /**
-   * undoes the last fill, including TileEntities
-   * @param undoEntry the undo information from the last fill
-   */
-  protected void undoLastFill(EntityPlayerMP entityPlayerMP, UndoEntry undoEntry)
-  {
-    World world = entityPlayerMP.theItemInWorldManager.theWorld;
-
-    if (undoEntry == null) return;
-
-    for (UndoBlock ub : undoEntry.undoBlocks) {
-      world.setBlock(ub.blockCoordinate.posX, ub.blockCoordinate.posY, ub.blockCoordinate.posZ,
-                     ub.block == null ? 0 : ub.block.blockID,
-                     ub.metaData,
-                     1+2);
-      if (ub.tileEntityNBTdata != null) {
-        TileEntity tileentity = TileEntity.createAndLoadEntity(ub.tileEntityNBTdata);
-        if (tileentity != null)
-        {
-          world.setBlockTileEntity(ub.blockCoordinate.posX, ub.blockCoordinate.posY, ub.blockCoordinate.posZ, tileentity);
-        }
-      }
-    }
-  }
-
   @SideOnly(Side.CLIENT)
   public static void buttonClicked(int buttonClicked)
   {
@@ -263,41 +178,5 @@ public abstract class ItemSpeedyTool extends Item
   protected static Item currentlySelectedTool = null;
   protected static BlockWithMetadata currentBlockToPlace = null;
 
-  protected static class UndoBlock
-  {
-    public ChunkCoordinates blockCoordinate;
-    public Block block;
-    public int metaData;
-    public NBTTagCompound tileEntityNBTdata;
-  }
-
-  protected static class UndoEntry
-  {
-    public List<UndoBlock> undoBlocks = new ArrayList<UndoBlock>();
-  }
-
-  // holds the information about the blocks that were replaced by the last placement.  null = none
-  protected static Deque<UndoEntry> undoInformation = new LinkedList<UndoEntry>();
-
-  protected static UndoEntry createUndoInformation(World world, List<ChunkCoordinates> blockSelection)
-  {
-    UndoEntry retval = new UndoEntry();
-    for (ChunkCoordinates cc : blockSelection) {
-      UndoBlock nextBlock = new UndoBlock();
-      nextBlock.blockCoordinate = cc;
-      int blockID = world.getBlockId(cc.posX, cc.posY, cc.posZ);
-      nextBlock.block = (blockID == 0 ? null : Block.blocksList[blockID]);
-      nextBlock.metaData = world.getBlockMetadata(cc.posX, cc.posY, cc.posZ);
-
-      TileEntity tileEntity = world.getBlockTileEntity(cc.posX, cc.posY, cc.posZ);
-      if (tileEntity != null) {
-        NBTTagCompound nbtTagCompound = new NBTTagCompound();
-        tileEntity.writeToNBT(nbtTagCompound);
-        nextBlock.tileEntityNBTdata = nbtTagCompound;
-      }
-      retval.undoBlocks.add(nextBlock);
-    }
-    return retval;
-  }
 
 }

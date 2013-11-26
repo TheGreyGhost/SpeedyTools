@@ -9,6 +9,7 @@ import net.minecraft.network.INetworkManager;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.server.MinecraftServer;
 import speedytools.common.items.ItemSpeedyTool;
+import speedytools.serveronly.SpeedyToolWorldManipulator;
 
 public class PacketHandler implements IPacketHandler
 {
@@ -27,8 +28,8 @@ public class PacketHandler implements IPacketHandler
             malformedPacketError(playerEntity, "Malformed Packet250SpeedyTools:could not convert");
             return;
           }
-          ItemSpeedyTool.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
-                                             toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
+          SpeedyToolWorldManipulator.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
+                                                         toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
 
           break;
         }
