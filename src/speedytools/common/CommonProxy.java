@@ -1,5 +1,6 @@
 package speedytools.common;
 
+import net.minecraft.network.packet.Packet;
 import speedytools.common.items.RegistryForItems;
 
 /**
@@ -14,6 +15,8 @@ public class CommonProxy {
   public void preInit()
   {
     RegistryForItems.initialise();
+    Packet.addIdClassMapping();
+
   }
 
   /**

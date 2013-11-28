@@ -64,10 +64,21 @@ public class SpeedyToolWorldManipulator
     }
   }
 
+  /**
+   * Should be called periodically (every few minutes?) to free up any undo data being stored for players who are no longer logged in to the server
+   * @param currentPlayers list of all players currently on the server
+   */
   public void freeUnusedPlayerHistories(List<EntityPlayerMP> currentPlayers)
   {
-    // do nothing for now                  TODO: free up
+      // copy the undo histories of all players in currentPlayers to a new map, then overwrite the old history with the new one.
+    Map<String, UndoHistory> newUndoHistory = new HashMap<String, UndoHistory>();
 
+    for (EntityPlayerMP entityPlayerMP : currentPlayers) {
+      if (undoHistories.containsKey(entityPlayerMP.username)) {
+        newUndoHistory.put(entityPlayerMP.username, undoHistories.get(entityPlayerMP.username));
+      }
+    }
+    undoHistories = newUndoHistory;
   }
 
   /**
