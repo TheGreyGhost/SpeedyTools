@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * This class is used to inform the server when the user has used a SpeedyTool, and pass it information about the affected blocks.
  */
-public class Packet250SpeedyToolUse extends Packet250CustomPayload
+public class Packet250SpeedyToolUse
 {
   public int getToolItemID() {
     return toolItemID;
@@ -63,34 +63,34 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
       outputStream.writeInt(cc.posY);
       outputStream.writeInt(cc.posZ);
     }
+    packet250 = new Packet250CustomPayload("SpeedyTools",bos.toByteArray());
+  }
 
-    this.channel = "SpeedyTools";
-    this.data = bos.toByteArray();
-    this.length = bos.size();
-    assert(this.length < 32768);  //"Payload may not be larger than 32k"
+  public Packet250CustomPayload getPacket250CustomPayload() {
+    return packet250;
   }
 
   /**
-   * Converts the Packet250CustomPayload to Packet250SpeedyToolUse
+   * Creates a Packet250SpeedyToolUse from Packet250CustomPayload
    * @param sourcePacket250
    * @return the converted packet, or null if failure
    */
-  static public Packet250SpeedyToolUse convertPacket(Packet250CustomPayload sourcePacket250)
+  public Packet250SpeedyToolUse(Packet250CustomPayload sourcePacket250)
   {
-    Packet250SpeedyToolUse newPacket = new Packet250SpeedyToolUse(sourcePacket250);
-    DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(newPacket.data));
+    packet250 = sourcePacket250;
+    DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet250.data));
 
     try {
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID) return null;
+      if (packetID != PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID) return;
 
-      newPacket.toolItemID = inputStream.readInt();
-      newPacket.button = inputStream.readInt();
+      toolItemID = inputStream.readInt();
+      button = inputStream.readInt();
       int blockID = inputStream.readInt();
 
-      newPacket.blockToPlace = new BlockWithMetadata();
-      newPacket.blockToPlace.block = (blockID == 0) ? null : Block.blocksList[blockID];
-      newPacket.blockToPlace.metaData = inputStream.readInt();
+      blockToPlace = new BlockWithMetadata();
+      blockToPlace.block = (blockID == 0) ? null : Block.blocksList[blockID];
+      blockToPlace.metaData = inputStream.readInt();
 
       int blockCount = inputStream.readInt();
       for (int i = 0; i < blockCount; ++i) {
@@ -98,24 +98,16 @@ public class Packet250SpeedyToolUse extends Packet250CustomPayload
         newCC.posX = inputStream.readInt();
         newCC.posY = inputStream.readInt();
         newCC.posZ = inputStream.readInt();
-        newPacket.currentlySelectedBlocks.add(newCC);
+        currentlySelectedBlocks.add(newCC);
       }
     } catch (IOException e) {
       e.printStackTrace();
-      return null;
     }
-
-    return newPacket;
-  }
-
-  protected Packet250SpeedyToolUse(Packet250CustomPayload sourcePacket250)
-  {
-    super(sourcePacket250.channel, sourcePacket250.data);
   }
 
   private int toolItemID;
   private int button;
   private BlockWithMetadata blockToPlace;
   private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
-
+  private Packet250CustomPayload packet250 = null;
 }
