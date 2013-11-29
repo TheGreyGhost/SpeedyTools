@@ -34,11 +34,12 @@ public class ItemSpeedyStripWeak extends ItemSpeedyTool {
    * @param target the position of the cursor
    * @param player the player
    * @param currentItem the current item that the player is holding.  MUST be derived from ItemSpeedyTool.
+   * @param itemStackToPlace the item that would be placed in the selection
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  public List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  public List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, ItemStack itemStackToPlace, float partialTick)
   {
     return selectLineOfBlocks(target, player, currentItem, true, partialTick);
   }

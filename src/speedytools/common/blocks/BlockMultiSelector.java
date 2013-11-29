@@ -5,8 +5,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.lang.Math;
 
 /**
@@ -103,27 +102,6 @@ public class BlockMultiSelector
   }
 
   /**
-   * Used to create vector from the starting point to the midpoint of the specified side of the block.
-   * @param blockPos the [x,y,z] of the target block, and the side.  hitVec is ignored.
-   * @param startPos the origin of the vector to be created
-   * @return the direction vector, or null for failure
-   */
-  public static Vec3 snapLookToBlockFace(MovingObjectPosition blockPos, Vec3 startPos)
-  {
-    // midpoint of each face based on side
-    final double[] XfaceOffset = {0.5, 0.5, 0.5, 0.5, 0.0, 1.0};
-    final double[] YfaceOffset = {0.0, 1.0, 0.5, 0.5, 0.5, 0.5};
-    final double[] ZfaceOffset = {0.5, 0.5, 0.0, 1.0, 0.5, 0.5};
-
-    Vec3 endPos = Vec3.createVectorHelper(blockPos.blockX + XfaceOffset[blockPos.sideHit],
-                                          blockPos.blockY + YfaceOffset[blockPos.sideHit],
-                                          blockPos.blockZ + ZfaceOffset[blockPos.sideHit]);
-
-    return startPos.subtract(endPos);
-  }
-
-
-  /**
    * selectLine is used to select a straight line of blocks, and return a list of their coordinates.
    * Starting from the startingBlock, the selection will continue in a line parallel to the direction vector, snapped to the six cardinal directions or
    *   alternatively to one of the twenty 45 degree directions (if diagonalOK == true).
@@ -169,6 +147,158 @@ public class BlockMultiSelector
     }
 
     return selection;
+  }
+
+  /**
+   * selectContour is used to select a contoured line of blocks, and return a list of their coordinates.
+   * Starting from the block identified by mouseTarget, the selection will attempt to follow any contours in the same plane as the side hit.
+   * (for example: if there is a zigzagging wall, it will select the layer of blocks that follows the top of the wall.)
+   * Depending on selectAdditiveContour, it will either select the non-solid blocks on top of the contour (to make the wall "taller"), or
+   *   select the solid blocks that form the top layer of the contour (to remove the top layer of the wall).
+   * depending on diagonalOK it will follow diagonals or only the cardinal directions.
+   * Keeps going until it reaches maxBlockCount, y goes outside the valid range, or hits a solid block.  The search algorithm is to look for closest blocks first
+   *   ("closest" meaning the shortest distance travelled along the contour being created)
+   * @param mouseTarget the block under the player's cursor.  Uses [x,y,z] and sidehit
+   * @param world       the world
+   * @param maxBlockCount the maximum number of blocks to select
+   * @param diagonalOK    if true, diagonal 45 degree lines are allowed
+   * @param selectAdditiveContour if true, selects the layer of non-solid blocks adjacent to the contour.  if false, selects the solid blocks in the contour itself
+   * @return a list of the coordinates of all blocks in the selection, including the mouseTarget block.   Will be empty if the mouseTarget is not a tile.
+   */
+
+  public static List<ChunkCoordinates> selectContour(MovingObjectPosition mouseTarget, World world,
+                                                     int maxBlockCount, boolean diagonalOK, boolean selectAdditiveContour)
+  {
+    // lookup table to give the possible search directions for any given search plane
+    //  row index 0 = xz plane, 1 = xy plane, 2 = yz plane
+    //  column index = the eight directions within the plane (even = cardinal, odd = diagonal)
+    final int PLANE_XZ = 0;
+    final int PLANE_XY = 1;
+    final int PLANE_YZ = 2;
+    final int searchDirectionsX[][] = {  {+0, -1, -1, -1, +0, +1, +1, +1},
+            {+0, -1, -1, -1, +0, +1, +1, +1},
+            {+0, +0, +0, +0, +0, +0, +0, +0}
+    };
+    final int searchDirectionsY[][] = {  {+0, +0, +0, +0, +0, +0, +0, +0},
+            {+1, +1, +0, -1, -1, -1, +0, +1},
+            {+1, +1, +0, -1, -1, -1, +0, +1}
+    };
+    final int searchDirectionsZ[][] = {  {+1, +1, +0, -1, -1, -1, +0, +1},
+            {+0, +0, +0, +0, +0, +0, +0, +0},
+            {+0, -1, -1, -1, +0, +1, +1, +1}
+    };
+
+    List<ChunkCoordinates> selection = new ArrayList<ChunkCoordinates>();
+
+    if (mouseTarget == null || mouseTarget.typeOfHit != EnumMovingObjectType.TILE) return selection;
+
+    ChunkCoordinates startingBlock = new ChunkCoordinates();
+    int searchPlane;
+    switch (mouseTarget.sideHit) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
+      case 0:
+      case 1:
+        searchPlane = PLANE_XZ;
+        break;
+      case 2:
+      case 3:
+        searchPlane = PLANE_YZ;
+        break;
+      case 4:
+      case 5:
+        searchPlane = PLANE_XY;
+        break;
+      default: return selection;  // illegal value so return nothing
+    }
+
+    // first step is to identify the starting block depending on whether this is an additive contour or subtractive contour,
+
+    EnumFacing blockInFront = EnumFacing.getFront(mouseTarget.sideHit);
+    startingBlock.posX = mouseTarget.blockX;
+    startingBlock.posY = mouseTarget.blockY;
+    startingBlock.posZ = mouseTarget.blockZ;
+    if (selectAdditiveContour && isBlockSolid(world, startingBlock)) {
+      startingBlock.posX += blockInFront.getFrontOffsetX();
+      startingBlock.posY += blockInFront.getFrontOffsetY();
+      startingBlock.posZ += blockInFront.getFrontOffsetZ();
+    }
+    selection.add(startingBlock);
+
+    final int INITIAL_CAPACITY = 128;
+    Set<ChunkCoordinates> locationsFilled = new HashSet<ChunkCoordinates>(INITIAL_CAPACITY);                                   // locations which have been selected during the fill
+    Deque<SearchPosition> currentSearchPositions = new LinkedList<SearchPosition>();
+    Deque<SearchPosition> nextDepthSearchPositions = new LinkedList<SearchPosition>();
+    ChunkCoordinates checkPosition = new ChunkCoordinates(0,0,0);
+    ChunkCoordinates checkPositionSupport = new ChunkCoordinates(0,0,0);
+
+    locationsFilled.add(startingBlock);
+    currentSearchPositions.add(new SearchPosition(startingBlock));
+
+    // algorithm is:
+    //   for each block in the list of search positions, iterate through each adjacent block to see whether it meets the criteria for expansion:
+    //     a) is not solid (for additive contours) or is solid (for subtractive contours)
+    //     b) hasn't been filled already during this contour search
+    //     c) for additive contours: if it is "supported" by a solid block (eg in the case of sideHit = top face, then test whether the block at [x,y-1,z] is solid
+    //   if the criteria are met, select the block and add it to the list of blocks to be search next round.
+    //   if the criteria aren't met, keep trying other directions from the same position until all positions are searched.  Then delete the search position and move onto the next.
+    //   This will ensure that the fill spreads evenly out from the starting point.
+
+    while (!currentSearchPositions.isEmpty() && selection.size() < maxBlockCount) {
+      SearchPosition currentSearchPosition = currentSearchPositions.getFirst();
+      checkPosition.set(currentSearchPosition.chunkCoordinates.posX + searchDirectionsX[searchPlane][currentSearchPosition.nextSearchDirection],
+                        currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[searchPlane][currentSearchPosition.nextSearchDirection],
+                        currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[searchPlane][currentSearchPosition.nextSearchDirection]
+                       );
+      if (!locationsFilled.contains(checkPosition)) {
+        boolean blockIsSuitable = false;
+        if (selectAdditiveContour) {
+          if (!isBlockSolid(world, checkPosition)) {
+            checkPositionSupport.set(checkPosition.posX - blockInFront.getFrontOffsetX(),      // block behind
+                                     checkPosition.posY - blockInFront.getFrontOffsetY(),
+                                     checkPosition.posZ - blockInFront.getFrontOffsetZ()
+                                    );
+            blockIsSuitable = isBlockSolid(world, checkPositionSupport);
+          }
+        } else { // subtractive contour
+          blockIsSuitable = isBlockSolid(world, checkPosition);
+        }
+        if (blockIsSuitable) {
+          SearchPosition nextSearchPosition = new SearchPosition(checkPosition);
+          nextDepthSearchPositions.addLast(nextSearchPosition);
+          locationsFilled.add(checkPosition);
+          selection.add(checkPosition);
+        }
+      }
+      currentSearchPosition.nextSearchDirection += diagonalOK ? 1 : 2;  // no diagonals -> even numbers only
+      if (currentSearchPosition.nextSearchDirection >= 8) {
+        currentSearchPositions.removeFirst();
+        if (currentSearchPositions.isEmpty()) {
+          currentSearchPositions = nextDepthSearchPositions;
+          nextDepthSearchPositions.clear();
+        }
+      }
+    }
+
+    return selection;
+  }
+
+  /**
+   * Used to create vector from the starting point to the midpoint of the specified side of the block.
+   * @param blockPos the [x,y,z] of the target block, and the side.  hitVec is ignored.
+   * @param startPos the origin of the vector to be created
+   * @return the direction vector, or null for failure
+   */
+  public static Vec3 snapLookToBlockFace(MovingObjectPosition blockPos, Vec3 startPos)
+  {
+    // midpoint of each face based on side
+    final double[] XfaceOffset = {0.5, 0.5, 0.5, 0.5, 0.0, 1.0};
+    final double[] YfaceOffset = {0.0, 1.0, 0.5, 0.5, 0.5, 0.5};
+    final double[] ZfaceOffset = {0.5, 0.5, 0.0, 1.0, 0.5, 0.5};
+
+    Vec3 endPos = Vec3.createVectorHelper(blockPos.blockX + XfaceOffset[blockPos.sideHit],
+            blockPos.blockY + YfaceOffset[blockPos.sideHit],
+            blockPos.blockZ + ZfaceOffset[blockPos.sideHit]);
+
+    return startPos.subtract(endPos);
   }
 
   /**
@@ -307,6 +437,20 @@ public class BlockMultiSelector
       return false;
     }
     return (Block.blocksList[blockId].getMobilityFlag() != 1);
+  }
+
+  /**
+   * SearchPosition contains the coordinates of a block and the current direction in which to search.
+   * valid values for nextSearchDirection are 0..7.  even are cardinal directions, odd are diagonal.
+   */
+  public static class SearchPosition
+  {
+    public SearchPosition(ChunkCoordinates initChunkCoordinates) {
+      chunkCoordinates = initChunkCoordinates;
+      nextSearchDirection = 0;
+    }
+    public ChunkCoordinates chunkCoordinates;
+    public int nextSearchDirection;
   }
 
 }

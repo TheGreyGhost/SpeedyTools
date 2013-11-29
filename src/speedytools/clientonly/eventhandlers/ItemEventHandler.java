@@ -59,11 +59,12 @@ public class ItemEventHandler {
     if (currentItem == null || !ItemSpeedyTool.isAspeedyTool(currentItem.getItem().itemID)) return;
     ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)currentItem.getItem();
 
-    List<ChunkCoordinates> selection = itemSpeedyTool.selectBlocks(target, player, currentItem, partialTick);
-
     // the block to be placed is the one to the left of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;
     ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == 0) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot-1);
+
+    List<ChunkCoordinates> selection = itemSpeedyTool.selectBlocks(target, player, currentItem, itemStackToPlace, partialTick);
+
     BlockWithMetadata blockToPlace = ItemSpeedyTool.getPlacedBlockFromItemStack(itemStackToPlace);
 
     ItemSpeedyTool.setCurrentToolSelection(currentItem.getItem(), blockToPlace, selection);

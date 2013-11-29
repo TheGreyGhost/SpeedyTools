@@ -11,16 +11,19 @@ import net.minecraft.item.Item;
 public class RegistryForItems
 {
   // custom items
-  public static Item itemSpeedyStripStrong;
-  public static Item itemSpeedyStripWeak;
+  public static ItemSpeedyTool itemSpeedyStripStrong;
+  public static ItemSpeedyTool itemSpeedyStripWeak;
+  public static ItemSpeedyTool itemSpeedyTrowel;
 
   public static void initialise()
   {
     final int START_ITEM = 7235;
     itemSpeedyStripStrong = new ItemSpeedyStripStrong(START_ITEM);
     itemSpeedyStripWeak = new ItemSpeedyStripWeak(START_ITEM+1);
+    itemSpeedyTrowel = new ItemSpeedyTrowel(START_ITEM+2);
 
     LanguageRegistry.addName(itemSpeedyStripWeak, "Wand of Benign Conjuration");
     LanguageRegistry.addName(itemSpeedyStripStrong, "Wand of Destructive Conjuration");
+    LanguageRegistry.addName(itemSpeedyTrowel, "Enchanted Trowel of Contour Extrusion");
   }
 }

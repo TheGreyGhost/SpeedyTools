@@ -35,7 +35,8 @@ public abstract class ItemSpeedyTool extends Item
   public static boolean isAspeedyTool(int itemID)
   {
     return (   itemID == RegistryForItems.itemSpeedyStripStrong.itemID
-            || itemID == RegistryForItems.itemSpeedyStripWeak.itemID    );
+            || itemID == RegistryForItems.itemSpeedyStripWeak.itemID
+            || itemID == RegistryForItems.itemSpeedyTrowel.itemID);
   }
 
   /**
@@ -44,10 +45,11 @@ public abstract class ItemSpeedyTool extends Item
    * @param target the position of the cursor
    * @param player the player
    * @param currentItem the current item that the player is holding.  MUST be derived from ItemSpeedyTool.
+   * @param itemStackToPlace the item that would be placed in the selection
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  public List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  public List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, ItemStack itemStackToPlace, float partialTick)
   {
     ArrayList<ChunkCoordinates> retval = new ArrayList<ChunkCoordinates>();
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
@@ -79,6 +81,31 @@ public abstract class ItemSpeedyTool extends Item
                                                                      maxSelectionSize, diagonalOK, stopWhenCollide);
     return selection;
   }
+
+  /**
+   * Selects the contour of Blocks that will be affected by the tool when the player presses right-click
+   * Starting from the block identified by mouseTarget, the selection will attempt to follow any contours in the same plane as the side hit.
+   * (for example: if there is a zigzagging wall, it will select the layer of blocks that follows the top of the wall.)
+   * Depending on additiveContour, it will either select the non-solid blocks on top of the contour (to make the wall "taller"), or
+   *   select the solid blocks that form the top layer of the contour (to remove the top layer of the wall).
+   * @param target the position of the cursor
+   * @param player the player
+   * @param currentItem the current item that the player is holding.  MUST be derived from ItemSpeedyTool.
+   * @param additiveContour if true, selects the layer of non-solid blocks adjacent to the contour.  if false, selects the solid blocks in the contour itself
+   * @param partialTick partial tick time.
+   * @return returns the list of blocks in the selection (may be zero length)
+   */
+  protected List<ChunkCoordinates> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, boolean additiveContour, float partialTick)
+  {
+    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
+    if (startBlock == null) return new ArrayList<ChunkCoordinates>();
+
+    boolean diagonalOK =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+    int maxSelectionSize = currentItem.stackSize;
+    List<ChunkCoordinates> selection = BlockMultiSelector.selectContour(target, player.worldObj, maxSelectionSize, diagonalOK, additiveContour);
+    return selection;
+  }
+
 
   /**
    * For the given ItemStack, returns the corresponding Block that will be placed by the tool
