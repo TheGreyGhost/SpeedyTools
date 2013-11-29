@@ -195,7 +195,7 @@ public abstract class ItemSpeedyTool extends Item
       Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyToolUse for itemID " + currentlySelectedTool.itemID);
       return;
     }
-    PacketDispatcher.sendPacketToServer(packet);
+    PacketDispatcher.sendPacketToServer(packet.getPacket250CustomPayload());
   }
 
     // these keep track of the currently selected blocks, for when the tool is used
@@ -204,6 +204,4 @@ public abstract class ItemSpeedyTool extends Item
   @SideOnly(Side.CLIENT)
   protected static Item currentlySelectedTool = null;
   protected static BlockWithMetadata currentBlockToPlace = null;
-
-
 }

@@ -23,11 +23,7 @@ public class PacketHandler implements IPacketHandler
 
       switch (packet.data[0]) {
         case PACKET250_SPEEDY_TOOL_USE_ID: {
-          Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.convertPacket(packet);
-          if (toolUsePacket == null) {
-            malformedPacketError(playerEntity, "Malformed Packet250SpeedyTools:could not convert");
-            return;
-          }
+          Packet250SpeedyToolUse toolUsePacket = new Packet250SpeedyToolUse(packet);
           SpeedyToolWorldManipulator.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
                                                          toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
 
