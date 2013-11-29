@@ -149,7 +149,6 @@ public abstract class ItemSpeedyTool extends Item
 
   }
 
-
   /**
    * Sets the current multiple-block selection for the currently-held speedy tool
    * @param currentTool the currently-held speedy tool
@@ -188,7 +187,7 @@ public abstract class ItemSpeedyTool extends Item
   {
     if (currentlySelectedTool == null) return;
 
-    Packet250SpeedyToolUse packet = null;
+    Packet250SpeedyToolUse packet;
     try {
       packet = new Packet250SpeedyToolUse(currentlySelectedTool.itemID, buttonClicked, currentBlockToPlace, currentlySelectedBlocks);
     } catch (IOException e) {

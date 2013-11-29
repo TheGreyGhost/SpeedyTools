@@ -201,11 +201,11 @@ public class BlockMultiSelector
         break;
       case 2:
       case 3:
-        searchPlane = PLANE_YZ;
+        searchPlane = PLANE_XY;
         break;
       case 4:
       case 5:
-        searchPlane = PLANE_XY;
+        searchPlane = PLANE_YZ;
         break;
       default: return selection;  // illegal value so return nothing
     }
@@ -262,18 +262,20 @@ public class BlockMultiSelector
           blockIsSuitable = isBlockSolid(world, checkPosition);
         }
         if (blockIsSuitable) {
-          SearchPosition nextSearchPosition = new SearchPosition(checkPosition);
+          ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
+          SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
           nextDepthSearchPositions.addLast(nextSearchPosition);
-          locationsFilled.add(checkPosition);
-          selection.add(checkPosition);
+          locationsFilled.add(newChunkCoordinate);
+          selection.add(newChunkCoordinate);
         }
       }
       currentSearchPosition.nextSearchDirection += diagonalOK ? 1 : 2;  // no diagonals -> even numbers only
       if (currentSearchPosition.nextSearchDirection >= 8) {
         currentSearchPositions.removeFirst();
         if (currentSearchPositions.isEmpty()) {
+          Deque<SearchPosition> temp = currentSearchPositions;
           currentSearchPositions = nextDepthSearchPositions;
-          nextDepthSearchPositions.clear();
+          nextDepthSearchPositions = temp;
         }
       }
     }
@@ -358,7 +360,7 @@ public class BlockMultiSelector
    * for example: if the vector is [0.707, -0.707, 0] and the starting block is sitting on a flat plane:
    *    the direction vector will be "deflected" up to [0.707, 0, 0], converted to [+1, 0, 0] return value, so
    *    that the direction runs along the surface of the plane
-   * @param world
+   * @param world the world
    * @param startingBlock - the starting block, should be non-solid (isBlockSolid == false)
    * @param direction - the direction vector to be deflected.
    * @param deltaPosition - the current [deltax, deltay, deltaz] where each delta is -1, 0, or 1
@@ -397,8 +399,8 @@ public class BlockMultiSelector
     } else {
       deflectedDirection.zCoord = 0.0;
     }
-    deflectedDirection = direction.normalize();
-    deflectedDirection = snapToCardinalDirection(direction, false);
+    deflectedDirection = deflectedDirection.normalize();
+    deflectedDirection = snapToCardinalDirection(deflectedDirection, false);
     if (deflectedDirection == null) return new ChunkCoordinates(deltaPosition);
 
     deflectedDeltaPosition = convertToDelta(deflectedDirection);
