@@ -1,4 +1,4 @@
-package speedytools.clientonly;
+package speedytools.clientonly.eventhandlers;
 
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.TickType;
@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
 import speedytools.SpeedyToolsMod;
+import speedytools.clientonly.SpeedyToolControls;
 import speedytools.common.items.ItemSpeedyTool;
 
 import java.util.EnumSet;

@@ -6,7 +6,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
 import net.minecraft.util.ChunkCoordinates;
@@ -171,6 +173,7 @@ public abstract class ItemSpeedyTool extends Item
   public static void attackButtonClicked()
   {
     buttonClicked(0);
+    if (!undoSounds.isEmpty()) undoSounds.removeLast();
   }
 
   /**
@@ -179,17 +182,33 @@ public abstract class ItemSpeedyTool extends Item
   @SideOnly(Side.CLIENT)
   public static void useButtonClicked()
   {
-     buttonClicked(1);
+    if (currentlySelectedTool == null) return;
+    if (!isAspeedyTool(currentlySelectedTool.itemID)) return;
+    ItemSpeedyTool currentTool = (ItemSpeedyTool)currentlySelectedTool;
+    undoSounds.addLast(currentTool);
+    if (undoSounds.size() > MAXIMUM_UNDO_COUNT) undoSounds.removeFirst();
+
+    buttonClicked(1);
   }
 
   @SideOnly(Side.CLIENT)
-  public static void buttonClicked(int buttonClicked)
+  public static void buttonClicked(int whichButton)
   {
     if (currentlySelectedTool == null) return;
 
+    if (!undoSounds.isEmpty()) {
+      String soundEffectName = (whichButton == 0) ? undoSounds.getLast().getUnPlaceSound() : undoSounds.getLast().getPlaceSound();
+      EntityClientPlayerMP thePlayer = Minecraft.getMinecraft().thePlayer;
+      Minecraft.getMinecraft().sndManager.playSound(soundEffectName,
+                                                    (float)(thePlayer.posX),
+                                                    (float)(thePlayer.posY),
+                                                    (float)(thePlayer.posZ),
+                                                    1.0F, 1.0F);
+    }
+
     Packet250SpeedyToolUse packet;
     try {
-      packet = new Packet250SpeedyToolUse(currentlySelectedTool.itemID, buttonClicked, currentBlockToPlace, currentlySelectedBlocks);
+      packet = new Packet250SpeedyToolUse(currentlySelectedTool.itemID, whichButton, currentBlockToPlace, currentlySelectedBlocks);
     } catch (IOException e) {
       Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyToolUse for itemID " + currentlySelectedTool.itemID);
       return;
@@ -197,10 +216,17 @@ public abstract class ItemSpeedyTool extends Item
     PacketDispatcher.sendPacketToServer(packet.getPacket250CustomPayload());
   }
 
+  protected String getPlaceSound() {return "";}
+
+  protected String getUnPlaceSound() {return "";}
+
+  private static final int MAXIMUM_UNDO_COUNT = 5;  // used for sound effects only
+
     // these keep track of the currently selected blocks, for when the tool is used
   @SideOnly(Side.CLIENT)
   protected static List<ChunkCoordinates> currentlySelectedBlocks = null;
   @SideOnly(Side.CLIENT)
   protected static Item currentlySelectedTool = null;
   protected static BlockWithMetadata currentBlockToPlace = null;
+  protected static Deque<ItemSpeedyTool> undoSounds = new LinkedList<ItemSpeedyTool>();
 }

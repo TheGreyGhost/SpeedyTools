@@ -55,4 +55,12 @@ public class ItemSpeedyStripWeak extends ItemSpeedyTool {
     textList.add("Control: hold down to allow diagonal");
   }
 
+  @Override
+  protected String getPlaceSound() {return "speedytools:MultiBlockPlace";}
+
+  @Override
+  protected String getUnPlaceSound() {return "speedytools:MultiBlockUnPlace";}
+
+
+
 }

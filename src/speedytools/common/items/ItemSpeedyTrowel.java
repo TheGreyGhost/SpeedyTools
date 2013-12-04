@@ -50,4 +50,10 @@ public class ItemSpeedyTrowel extends ItemSpeedyTool {
     textList.add("Control: hold down to allow diagonal");
   }
 
+  @Override
+  protected String getPlaceSound() {return "speedytools:TrowelPlace";}
+
+  @Override
+  protected String getUnPlaceSound() {return "speedytools:TrowelUnPlace";}
+
 }

@@ -55,4 +55,11 @@ public class ItemSpeedyStripStrong extends ItemSpeedyTool {
     textList.add("Left click: undo last place");
     textList.add("Control: hold down to allow diagonal");
   }
+
+  @Override
+  protected String getPlaceSound() {return "speedytools:MultiBlockPlace";}
+
+  @Override
+  protected String getUnPlaceSound() {return "speedytools:MultiBlockUnPlace";}
+
 }
