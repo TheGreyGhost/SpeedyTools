@@ -8,7 +8,6 @@ import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
 import net.minecraft.util.ChunkCoordinates;
@@ -172,8 +171,16 @@ public abstract class ItemSpeedyTool extends Item
   @SideOnly(Side.CLIENT)
   public static void attackButtonClicked()
   {
-    buttonClicked(0);
-    if (!undoSounds.isEmpty()) undoSounds.removeLast();
+    boolean success = buttonClicked(0);
+    if (success && !undoSoundsHistory.isEmpty()) {
+      EntityClientPlayerMP thePlayer = Minecraft.getMinecraft().thePlayer;
+      Minecraft.getMinecraft().sndManager.playSound(undoSoundsHistory.getLast().getUnPlaceSound(),
+              (float)(thePlayer.posX),
+              (float)(thePlayer.posY),
+              (float)(thePlayer.posZ),
+              1.0F, 1.0F);
+      undoSoundsHistory.removeLast();
+    }
   }
 
   /**
@@ -182,38 +189,40 @@ public abstract class ItemSpeedyTool extends Item
   @SideOnly(Side.CLIENT)
   public static void useButtonClicked()
   {
-    if (currentlySelectedTool == null) return;
-    if (!isAspeedyTool(currentlySelectedTool.itemID)) return;
-    ItemSpeedyTool currentTool = (ItemSpeedyTool)currentlySelectedTool;
-    undoSounds.addLast(currentTool);
-    if (undoSounds.size() > MAXIMUM_UNDO_COUNT) undoSounds.removeFirst();
+    boolean success = buttonClicked(1);
 
-    buttonClicked(1);
+    if (success) {
+      ItemSpeedyTool currentTool = (ItemSpeedyTool)currentlySelectedTool;
+      undoSoundsHistory.addLast(currentTool);
+      if (undoSoundsHistory.size() > MAXIMUM_UNDO_COUNT) undoSoundsHistory.removeFirst();
+      EntityClientPlayerMP thePlayer = Minecraft.getMinecraft().thePlayer;
+      Minecraft.getMinecraft().sndManager.playSound(undoSoundsHistory.getLast().getPlaceSound(),
+              (float) (thePlayer.posX),
+              (float) (thePlayer.posY),
+              (float) (thePlayer.posZ),
+              1.0F, 1.0F);
+    }
   }
 
+  /**
+   * Inform the server of the player's action with the SpeedyTool.  Checks to make sure that currentlySelectedTool is valid, and if right click then currentlySelectedBlocks has at least one entry.
+   * @param whichButton 0 = left (undo), 1 = right (use)
+   * @return true if a packet was sent (the action is valid)
+   */
   @SideOnly(Side.CLIENT)
-  public static void buttonClicked(int whichButton)
+  public static boolean buttonClicked(int whichButton)
   {
-    if (currentlySelectedTool == null) return;
-
-    if (!undoSounds.isEmpty()) {
-      String soundEffectName = (whichButton == 0) ? undoSounds.getLast().getUnPlaceSound() : undoSounds.getLast().getPlaceSound();
-      EntityClientPlayerMP thePlayer = Minecraft.getMinecraft().thePlayer;
-      Minecraft.getMinecraft().sndManager.playSound(soundEffectName,
-                                                    (float)(thePlayer.posX),
-                                                    (float)(thePlayer.posY),
-                                                    (float)(thePlayer.posZ),
-                                                    1.0F, 1.0F);
-    }
+    if (currentlySelectedTool == null || (whichButton == 1 && currentlySelectedBlocks.isEmpty())) return false;
 
     Packet250SpeedyToolUse packet;
     try {
       packet = new Packet250SpeedyToolUse(currentlySelectedTool.itemID, whichButton, currentBlockToPlace, currentlySelectedBlocks);
     } catch (IOException e) {
       Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyToolUse for itemID " + currentlySelectedTool.itemID);
-      return;
+      return false;
     }
     PacketDispatcher.sendPacketToServer(packet.getPacket250CustomPayload());
+    return true;
   }
 
   protected String getPlaceSound() {return "";}
@@ -228,5 +237,5 @@ public abstract class ItemSpeedyTool extends Item
   @SideOnly(Side.CLIENT)
   protected static Item currentlySelectedTool = null;
   protected static BlockWithMetadata currentBlockToPlace = null;
-  protected static Deque<ItemSpeedyTool> undoSounds = new LinkedList<ItemSpeedyTool>();
+  protected static Deque<ItemSpeedyTool> undoSoundsHistory = new LinkedList<ItemSpeedyTool>();
 }
