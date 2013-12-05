@@ -10,8 +10,8 @@ public class CustomSoundsHandler
   {
     event.manager.addSound("speedytools:MultiBlockPlace.ogg");
     event.manager.addSound("speedytools:MultiBlockUnPlace.ogg");
-    event.manager.addSound("speedytools:TrowelUnPlace.ogg");
-    event.manager.addSound("speedytools:TrowelPlace.ogg");
+    event.manager.addSound("speedytools:SceptreUnPlace.ogg");
+    event.manager.addSound("speedytools:SceptrePlace.ogg");
   }
 }
 

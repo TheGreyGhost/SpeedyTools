@@ -37,7 +37,19 @@ public abstract class ItemSpeedyTool extends Item
   {
     return (   itemID == RegistryForItems.itemSpeedyStripStrong.itemID
             || itemID == RegistryForItems.itemSpeedyStripWeak.itemID
-            || itemID == RegistryForItems.itemSpeedyTrowel.itemID);
+            || itemID == RegistryForItems.itemSpeedySceptre.itemID
+            || itemID == RegistryForItems.itemSpeedyOrb.itemID);
+  }
+
+  /**
+   * Finds the first block in the player's line of sight, including liquids
+   * @param world
+   * @param entityPlayer
+   * @return the corresponding MovingObjectPosition
+   */
+  public MovingObjectPosition rayTraceLineOfSight(World world, EntityPlayer entityPlayer)
+  {
+    return this.getMovingObjectPositionFromPlayer(world, entityPlayer, true);
   }
 
   /**
@@ -104,6 +116,26 @@ public abstract class ItemSpeedyTool extends Item
     boolean diagonalOK =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
     int maxSelectionSize = currentItem.stackSize;
     List<ChunkCoordinates> selection = BlockMultiSelector.selectContour(target, player.worldObj, maxSelectionSize, diagonalOK, additiveContour);
+    return selection;
+  }
+
+  /**
+   * Selects the "blob" of blocks that will be affected by the tool when the player presses right-click
+   * Starting from the block identified by mouseTarget, the selection will flood fill all matching blocks.
+   * @param target  the block to start the flood fill from
+   * @param player
+   * @param currentItem  the current item that the player is holding.  MUST be derived from ItemSpeedyTool.
+   * @param partialTick
+   * @return   returns the list of blocks in the selection (may be zero length)
+   */
+  protected List<ChunkCoordinates> selectFillBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  {
+    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
+    if (startBlock == null) return new ArrayList<ChunkCoordinates>();
+
+    boolean diagonalOK =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+    int maxSelectionSize = currentItem.stackSize;
+    List<ChunkCoordinates> selection = BlockMultiSelector.selectFill(target, player.worldObj, maxSelectionSize, diagonalOK);
     return selection;
   }
 

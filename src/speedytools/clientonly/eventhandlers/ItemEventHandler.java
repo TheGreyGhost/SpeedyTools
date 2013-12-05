@@ -52,12 +52,15 @@ public class ItemEventHandler {
     RenderGlobal context = event.context;
     assert(context.mc.renderViewEntity instanceof EntityPlayer);
     EntityPlayer player = (EntityPlayer)context.mc.renderViewEntity;
-    MovingObjectPosition target = context.mc.objectMouseOver;
+//    MovingObjectPosition target = context.mc.objectMouseOver;
+
     ItemStack currentItem = player.inventory.getCurrentItem();
     float partialTick = event.partialTicks;
 
     if (currentItem == null || !ItemSpeedyTool.isAspeedyTool(currentItem.getItem().itemID)) return;
     ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)currentItem.getItem();
+
+    MovingObjectPosition target = itemSpeedyTool.rayTraceLineOfSight(player.worldObj, player);
 
     // the block to be placed is the one to the left of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;

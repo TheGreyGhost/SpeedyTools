@@ -8,18 +8,18 @@ import net.minecraft.util.MovingObjectPosition;
 
 import java.util.List;
 
-public class ItemSpeedyTrowel extends ItemSpeedyTool {
-  public ItemSpeedyTrowel(int id) {
+public class ItemSpeedyOrb extends ItemSpeedyTool {
+  public ItemSpeedyOrb(int id) {
     super(id);
     setMaxStackSize(64);
-    setUnlocalizedName("SpeedyTrowel");
+    setUnlocalizedName("SpeedyOrb");
     setFull3D();                              // setting this flag causes the trowel to render vertically in 3rd person view, like a pickaxe
   }
 
   @Override
   public void registerIcons(IconRegister iconRegister)
   {
-    itemIcon = iconRegister.registerIcon("speedytools:TrowelIcon1");
+    itemIcon = iconRegister.registerIcon("speedytools:OrbIcon");
   }
 
   /**
@@ -34,9 +34,7 @@ public class ItemSpeedyTrowel extends ItemSpeedyTool {
   @Override
   public List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, ItemStack itemStackToPlace, float partialTick)
   {
-    boolean additiveContour = itemStackToPlace != null;
-
-    return selectContourBlocks(target, player, currentItem, additiveContour, partialTick);
+    return selectFillBlocks(target, player, currentItem, partialTick);
   }
 
   /**
@@ -51,9 +49,9 @@ public class ItemSpeedyTrowel extends ItemSpeedyTool {
   }
 
   @Override
-  protected String getPlaceSound() {return "speedytools:TrowelPlace";}
+  protected String getPlaceSound() {return "speedytools:OrbPlace";}
 
   @Override
-  protected String getUnPlaceSound() {return "speedytools:TrowelUnPlace";}
+  protected String getUnPlaceSound() {return "speedytools:OrbUnPlace";}
 
 }
