@@ -8,8 +8,10 @@ public class CustomSoundsHandler
   @ForgeSubscribe
   public void onSound(SoundLoadEvent event)
   {
-    event.manager.addSound("speedytools:MultiBlockPlace.ogg");
-    event.manager.addSound("speedytools:MultiBlockUnPlace.ogg");
+    event.manager.addSound("speedytools:WandPlace.ogg");
+    event.manager.addSound("speedytools:WandUnPlace.ogg");
+    event.manager.addSound("speedytools:OrbPlace.ogg");
+    event.manager.addSound("speedytools:OrbUnPlace.ogg");
     event.manager.addSound("speedytools:SceptreUnPlace.ogg");
     event.manager.addSound("speedytools:SceptrePlace.ogg");
   }

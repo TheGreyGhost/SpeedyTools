@@ -48,6 +48,8 @@ public class ItemSpeedySceptre extends ItemSpeedyTool {
     textList.add("Right click: place blocks");
     textList.add("Left click: undo last place");
     textList.add("Control: hold down to allow diagonal");
+    textList.add("Control + mouse wheel: change count");
+
   }
 
   @Override

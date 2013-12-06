@@ -8,25 +8,24 @@ import net.minecraft.util.MovingObjectPosition;
 
 import java.util.List;
 
-public class ItemSpeedyStripWeak extends ItemSpeedyTool {
-  public ItemSpeedyStripWeak(int id) {
+public class ItemSpeedyWandStrong extends ItemSpeedyTool {
+  public ItemSpeedyWandStrong(int id) {
     super(id);
     setMaxStackSize(64);
-    setUnlocalizedName("SpeedyStripWeak");
-    setFull3D();                              // setting this flag causes the wand to render vertically in 3rd person view, like a pickaxe
+    setUnlocalizedName("SpeedyWandStrong");
+    setFull3D();
   }
 
   @Override
   public void registerIcons(IconRegister iconRegister)
   {
-    itemIcon = iconRegister.registerIcon("speedytools:WandWeakIcon");
+    itemIcon = iconRegister.registerIcon("speedytools:WandStrongIcon");
   }
-
-  /*
+ /*
   @Override
   public boolean leavesSolidBlocksIntact()
   {
-    return true;
+    return false;
   }
 */
   /**
@@ -38,11 +37,13 @@ public class ItemSpeedyStripWeak extends ItemSpeedyTool {
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
+
   @Override
   public List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, ItemStack itemStackToPlace, float partialTick)
   {
-    return selectLineOfBlocks(target, player, currentItem, true, partialTick);
+    return selectLineOfBlocks(target, player, currentItem, false, partialTick);
   }
+
 
   /**
    * allows items to add custom lines of information to the mouseover description
@@ -53,14 +54,13 @@ public class ItemSpeedyStripWeak extends ItemSpeedyTool {
     textList.add("Right click: place blocks");
     textList.add("Left click: undo last place");
     textList.add("Control: hold down to allow diagonal");
+    textList.add("Control + mouse wheel: change count");
   }
 
   @Override
-  protected String getPlaceSound() {return "speedytools:MultiBlockPlace";}
+  protected String getPlaceSound() {return "speedytools:WandPlace";}
 
   @Override
-  protected String getUnPlaceSound() {return "speedytools:MultiBlockUnPlace";}
-
-
+  protected String getUnPlaceSound() {return "speedytools:WandUnPlace";}
 
 }

@@ -1,6 +1,8 @@
 package speedytools.clientonly;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.entity.player.InventoryPlayer;
 import speedytools.SpeedyToolsMod;
 
 /**
@@ -14,6 +16,7 @@ public class SpeedyToolControls
 {
   public static KeyBindingInterceptor attackButtonInterceptor;
   public static KeyBindingInterceptor useItemButtonInterceptor;
+  public static InventoryPlayerInterceptor mouseWheelInterceptor;
 
   public static void initialiseInterceptors()
   {
@@ -26,10 +29,24 @@ public class SpeedyToolControls
     useItemButtonInterceptor.setInterceptionActive(false);
   }
 
-  public static void enableInterception(boolean interception)
+  public static void enableClickInterception(boolean interception)
   {
     useItemButtonInterceptor.setInterceptionActive(interception);
     attackButtonInterceptor.setInterceptionActive(interception);
+  }
+
+  public static void enableMouseWheelInterception(boolean interception)
+  {
+    EntityClientPlayerMP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
+    if (entityClientPlayerMP != null) {
+      InventoryPlayer inventoryPlayer = entityClientPlayerMP.inventory;
+      if (!(inventoryPlayer instanceof InventoryPlayerInterceptor)) {
+        mouseWheelInterceptor = new InventoryPlayerInterceptor(inventoryPlayer);
+        Minecraft.getMinecraft().thePlayer.inventory = mouseWheelInterceptor;
+      }
+
+      mouseWheelInterceptor.setInterceptionActive(interception);
+    }
   }
 
 }

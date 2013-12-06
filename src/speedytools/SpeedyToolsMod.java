@@ -11,7 +11,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 
 
-@Mod(modid="SpeedyToolsMod", name="Speedy Tools Mod", version="0.0.1")
+@Mod(modid="SpeedyToolsMod", name="Build Faster Mod", version="1.0.0")
 @NetworkMod(clientSideRequired=true, serverSideRequired=true, channels={"SpeedyTools"}, packetHandler = PacketHandler.class)
 public class SpeedyToolsMod {
 

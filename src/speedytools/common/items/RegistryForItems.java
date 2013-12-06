@@ -10,21 +10,21 @@ import cpw.mods.fml.common.registry.LanguageRegistry;
 public class RegistryForItems
 {
   // custom items
-  public static ItemSpeedyTool itemSpeedyStripStrong;
-  public static ItemSpeedyTool itemSpeedyStripWeak;
+  public static ItemSpeedyTool itemSpeedyWandStrong;
+  public static ItemSpeedyTool itemSpeedyWandWeak;
   public static ItemSpeedyTool itemSpeedySceptre;
   public static ItemSpeedyTool itemSpeedyOrb;
 
   public static void initialise()
   {
     final int START_ITEM = 7235;
-    itemSpeedyStripStrong = new ItemSpeedyStripStrong(START_ITEM);
-    itemSpeedyStripWeak = new ItemSpeedyStripWeak(START_ITEM+1);
+    itemSpeedyWandStrong = new ItemSpeedyWandStrong(START_ITEM);
+    itemSpeedyWandWeak = new ItemSpeedyWandWeak(START_ITEM+1);
     itemSpeedySceptre = new ItemSpeedySceptre(START_ITEM+2);
     itemSpeedyOrb = new ItemSpeedyOrb(START_ITEM+3);
 
-    LanguageRegistry.addName(itemSpeedyStripWeak, "Wand of Benign Linear Conjuration");
-    LanguageRegistry.addName(itemSpeedyStripStrong, "Wand of Destructive Linear Conjuration");
+    LanguageRegistry.addName(itemSpeedyWandWeak, "Wand of Benign Linear Conjuration");
+    LanguageRegistry.addName(itemSpeedyWandStrong, "Wand of Destructive Linear Conjuration");
     LanguageRegistry.addName(itemSpeedySceptre, "Enchanted Sceptre of Contour Extrusion");
     LanguageRegistry.addName(itemSpeedyOrb, "Orb of Transmutation");
   }

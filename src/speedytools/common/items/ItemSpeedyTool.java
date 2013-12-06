@@ -35,8 +35,8 @@ public abstract class ItemSpeedyTool extends Item
 
   public static boolean isAspeedyTool(int itemID)
   {
-    return (   itemID == RegistryForItems.itemSpeedyStripStrong.itemID
-            || itemID == RegistryForItems.itemSpeedyStripWeak.itemID
+    return (   itemID == RegistryForItems.itemSpeedyWandStrong.itemID
+            || itemID == RegistryForItems.itemSpeedyWandWeak.itemID
             || itemID == RegistryForItems.itemSpeedySceptre.itemID
             || itemID == RegistryForItems.itemSpeedyOrb.itemID);
   }
@@ -233,6 +233,30 @@ public abstract class ItemSpeedyTool extends Item
               (float) (thePlayer.posY),
               (float) (thePlayer.posZ),
               1.0F, 1.0F);
+    }
+  }
+
+  /**
+   * called when the user scrolls the mouse wheel.  Changes the stacksize of the currently held item (i.e. the number of blocks it will place)
+   * @param delta the delta (see Mouse.getDWheel() )
+   */
+  @SideOnly(Side.CLIENT)
+  public static void mouseWheelMoved(int delta)
+  {
+    int MOUSE_DELTA_PER_SLOT = 120;
+
+    if (delta != 0) {
+      EntityClientPlayerMP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
+      ItemStack currentItem = entityClientPlayerMP.inventory.getCurrentItem();
+      int currentcount = currentItem.stackSize;
+      int maxStackSize = currentItem.getMaxStackSize();
+      if (currentcount >=1 && currentcount <= maxStackSize) {
+        currentcount += delta / MOUSE_DELTA_PER_SLOT;
+        currentcount = ((currentcount - 1) % maxStackSize);
+        currentcount = ((currentcount + maxStackSize) % maxStackSize) + 1;    // take care of negative
+
+        currentItem.stackSize = currentcount;
+      }
     }
   }
 

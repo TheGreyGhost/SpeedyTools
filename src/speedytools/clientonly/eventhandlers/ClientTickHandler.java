@@ -5,7 +5,7 @@ import cpw.mods.fml.common.TickType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
-import speedytools.SpeedyToolsMod;
+import org.lwjgl.input.Keyboard;
 import speedytools.clientonly.SpeedyToolControls;
 import speedytools.common.items.ItemSpeedyTool;
 
@@ -29,7 +29,11 @@ public class ClientTickHandler implements ITickHandler {
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player != null) {
       ItemStack heldItem = player.getHeldItem();
-      SpeedyToolControls.enableInterception(heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID));
+      boolean speedyToolHeld = heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID);
+      SpeedyToolControls.enableClickInterception(speedyToolHeld);
+
+      boolean controlKeyDown =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+      SpeedyToolControls.enableMouseWheelInterception(speedyToolHeld && controlKeyDown);
     }
   }
 
@@ -41,6 +45,10 @@ public class ClientTickHandler implements ITickHandler {
 
     if (SpeedyToolControls.useItemButtonInterceptor.retrieveClick()) {
       ItemSpeedyTool.useButtonClicked();
+    }
+
+    if (SpeedyToolControls.mouseWheelInterceptor != null) {
+      ItemSpeedyTool.mouseWheelMoved(SpeedyToolControls.mouseWheelInterceptor.retrieveLastMouseWheelDelta());
     }
 
   }
