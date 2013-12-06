@@ -13,7 +13,7 @@ public class ItemSpeedySceptre extends ItemSpeedyTool {
     super(id);
     setMaxStackSize(64);
     setUnlocalizedName("SpeedySceptre");
-    setFull3D();                              // setting this flag causes the trowel to render vertically in 3rd person view, like a pickaxe
+    setFull3D();                              // setting this flag causes the sceptre to render vertically in 3rd person view, like a pickaxe
   }
 
   @Override

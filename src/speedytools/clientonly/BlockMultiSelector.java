@@ -1,4 +1,4 @@
-package speedytools.common.blocks;
+package speedytools.clientonly;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -552,7 +552,6 @@ public class BlockMultiSelector
 
   /**
    * SearchPosition contains the coordinates of a block and the current direction in which to search.
-   * valid values for nextSearchDirection are 0..7.  even are cardinal directions, odd are diagonal.
    */
   public static class SearchPosition
   {

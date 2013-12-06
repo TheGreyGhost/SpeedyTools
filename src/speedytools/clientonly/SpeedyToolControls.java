@@ -6,14 +6,11 @@ import net.minecraft.entity.player.InventoryPlayer;
 import speedytools.SpeedyToolsMod;
 
 /**
- * Created with IntelliJ IDEA.
- * User: Rick
- * Date: 25/11/13
- * Time: 10:30 PM
- * To change this template use File | Settings | File Templates.
+ * registry for the various user input interceptors
  */
 public class SpeedyToolControls
 {
+  public static final boolean ENABLE_MOUSE_WHEEL = true;
   public static KeyBindingInterceptor attackButtonInterceptor;
   public static KeyBindingInterceptor useItemButtonInterceptor;
   public static InventoryPlayerInterceptor mouseWheelInterceptor;
@@ -37,6 +34,7 @@ public class SpeedyToolControls
 
   public static void enableMouseWheelInterception(boolean interception)
   {
+    if (!ENABLE_MOUSE_WHEEL) return;
     EntityClientPlayerMP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
     if (entityClientPlayerMP != null) {
       InventoryPlayer inventoryPlayer = entityClientPlayerMP.inventory;

@@ -14,7 +14,7 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
-import speedytools.common.blocks.BlockMultiSelector;
+import speedytools.clientonly.BlockMultiSelector;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.clientserversynch.Packet250SpeedyToolUse;
 
