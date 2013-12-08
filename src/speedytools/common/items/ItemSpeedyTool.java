@@ -47,6 +47,7 @@ public abstract class ItemSpeedyTool extends Item
    * @param entityPlayer
    * @return the corresponding MovingObjectPosition
    */
+  @SideOnly(Side.CLIENT)
   public MovingObjectPosition rayTraceLineOfSight(World world, EntityPlayer entityPlayer)
   {
     return this.getMovingObjectPositionFromPlayer(world, entityPlayer, true);
@@ -62,6 +63,7 @@ public abstract class ItemSpeedyTool extends Item
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
+  @SideOnly(Side.CLIENT)
   public List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, ItemStack itemStackToPlace, float partialTick)
   {
     ArrayList<ChunkCoordinates> retval = new ArrayList<ChunkCoordinates>();
@@ -82,6 +84,7 @@ public abstract class ItemSpeedyTool extends Item
   * @param partialTick partial tick time.
   * @return returns the list of blocks in the selection (may be zero length)
   */
+  @SideOnly(Side.CLIENT)
   protected List<ChunkCoordinates> selectLineOfBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, boolean stopWhenCollide, float partialTick)
   {
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
@@ -108,6 +111,7 @@ public abstract class ItemSpeedyTool extends Item
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
+  @SideOnly(Side.CLIENT)
   protected List<ChunkCoordinates> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, boolean additiveContour, float partialTick)
   {
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
@@ -128,6 +132,7 @@ public abstract class ItemSpeedyTool extends Item
    * @param partialTick
    * @return   returns the list of blocks in the selection (may be zero length)
    */
+  @SideOnly(Side.CLIENT)
   protected List<ChunkCoordinates> selectFillBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
@@ -188,7 +193,6 @@ public abstract class ItemSpeedyTool extends Item
    * @param setCurrentBlockToPlace the Block to be used for filling the selection
    * @param currentSelection list of coordinates of blocks in the current selection, or null if none
    */
-
   @SideOnly(Side.CLIENT)
   public static void setCurrentToolSelection(Item currentTool, BlockWithMetadata setCurrentBlockToPlace, List<ChunkCoordinates> currentSelection)
   {
@@ -288,9 +292,7 @@ public abstract class ItemSpeedyTool extends Item
   private static final int MAXIMUM_UNDO_COUNT = 5;  // used for sound effects only
 
     // these keep track of the currently selected blocks, for when the tool is used
-  @SideOnly(Side.CLIENT)
   protected static List<ChunkCoordinates> currentlySelectedBlocks = null;
-  @SideOnly(Side.CLIENT)
   protected static Item currentlySelectedTool = null;
   protected static BlockWithMetadata currentBlockToPlace = null;
   protected static Deque<ItemSpeedyTool> undoSoundsHistory = new LinkedList<ItemSpeedyTool>();

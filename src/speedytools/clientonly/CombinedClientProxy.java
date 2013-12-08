@@ -5,6 +5,7 @@ import cpw.mods.fml.relauncher.Side;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.clientonly.eventhandlers.ClientTickHandler;
 import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
+import speedytools.clientonly.eventhandlers.InputEventHandler;
 import speedytools.common.CommonProxy;
 import speedytools.clientonly.eventhandlers.ItemEventHandler;
 
@@ -44,6 +45,7 @@ public class CombinedClientProxy extends CommonProxy {
     SpeedyToolControls.initialiseInterceptors();
     MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
     MinecraftForge.EVENT_BUS.register(new CustomSoundsHandler());
+    MinecraftForge.EVENT_BUS.register(new InputEventHandler());
     TickRegistry.registerTickHandler(new ClientTickHandler(), Side.CLIENT);
   }
 }

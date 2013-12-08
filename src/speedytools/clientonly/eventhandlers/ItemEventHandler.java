@@ -15,7 +15,7 @@ import speedytools.common.items.ItemSpeedyTool;
 import java.util.List;
 
 /**
- Contains the custom Forge Event Handlers
+ Contains the custom Forge Event Handlers related to Items
  */
 public class ItemEventHandler {
 

@@ -31,9 +31,6 @@ public class ClientTickHandler implements ITickHandler {
       ItemStack heldItem = player.getHeldItem();
       boolean speedyToolHeld = heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID);
       SpeedyToolControls.enableClickInterception(speedyToolHeld);
-
-      boolean controlKeyDown =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-      SpeedyToolControls.enableMouseWheelInterception(speedyToolHeld && controlKeyDown);
     }
   }
 
@@ -45,10 +42,6 @@ public class ClientTickHandler implements ITickHandler {
 
     if (SpeedyToolControls.useItemButtonInterceptor.retrieveClick()) {
       ItemSpeedyTool.useButtonClicked();
-    }
-
-    if (SpeedyToolControls.mouseWheelInterceptor != null) {
-      ItemSpeedyTool.mouseWheelMoved(SpeedyToolControls.mouseWheelInterceptor.retrieveLastMouseWheelDelta());
     }
 
   }

@@ -20,7 +20,7 @@ public class SpeedyToolsMod {
   public static speedytools.SpeedyToolsMod instance;
 
   // Says where the client and server 'proxy' code is loaded.
-  @SidedProxy(clientSide="speedytools.clientonly.CombinedClientProxy", serverSide="speedytools.common.DedicatedServerProxy")
+  @SidedProxy(clientSide="speedytools.clientonly.CombinedClientProxy", serverSide="speedytools.serveronly.DedicatedServerProxy")
   public static CommonProxy proxy;
 
   @EventHandler
