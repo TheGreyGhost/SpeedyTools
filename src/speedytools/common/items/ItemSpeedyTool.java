@@ -13,6 +13,7 @@ import net.minecraft.item.*;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import org.lwjgl.input.Keyboard;
 import speedytools.clientonly.BlockMultiSelector;
 import speedytools.common.blocks.BlockWithMetadata;
