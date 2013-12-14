@@ -8,12 +8,12 @@ public class CustomSoundsHandler
   @ForgeSubscribe
   public void onSound(SoundLoadEvent event)
   {
-    event.manager.addSound("speedytools:WandPlace.ogg");
-    event.manager.addSound("speedytools:WandUnPlace.ogg");
-    event.manager.addSound("speedytools:OrbPlace.ogg");
-    event.manager.addSound("speedytools:OrbUnPlace.ogg");
-    event.manager.addSound("speedytools:SceptreUnPlace.ogg");
-    event.manager.addSound("speedytools:SceptrePlace.ogg");
+    event.manager.addSound("speedytools:wandplace.ogg");
+    event.manager.addSound("speedytools:wandunplace.ogg");
+    event.manager.addSound("speedytools:orbplace.ogg");
+    event.manager.addSound("speedytools:orbunplace.ogg");
+    event.manager.addSound("speedytools:sceptreunplace.ogg");
+    event.manager.addSound("speedytools:sceptreplace.ogg");
   }
 }
 

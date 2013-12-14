@@ -1,5 +1,6 @@
 package speedytools.common.items;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.common.registry.LanguageRegistry;
 
 /**
@@ -22,6 +23,11 @@ public class RegistryForItems
     itemSpeedyWandWeak = new ItemSpeedyWandWeak(START_ITEM+1);
     itemSpeedySceptre = new ItemSpeedySceptre(START_ITEM+2);
     itemSpeedyOrb = new ItemSpeedyOrb(START_ITEM+3);
+
+    GameRegistry.registerItem(itemSpeedyWandStrong, itemSpeedyWandStrong.getUnlocalizedName());
+    GameRegistry.registerItem(itemSpeedyWandWeak, itemSpeedyWandWeak.getUnlocalizedName());
+    GameRegistry.registerItem(itemSpeedySceptre, itemSpeedySceptre.getUnlocalizedName());
+    GameRegistry.registerItem(itemSpeedyOrb, itemSpeedyOrb.getUnlocalizedName());
 
     LanguageRegistry.addName(itemSpeedyWandWeak, "Wand of Benign Linear Conjuration");
     LanguageRegistry.addName(itemSpeedyWandStrong, "Wand of Destructive Linear Conjuration");

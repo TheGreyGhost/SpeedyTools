@@ -11,12 +11,12 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 
 
-@Mod(modid="SpeedyToolsMod", name="Build Faster Mod", version="1.0.0")
-@NetworkMod(clientSideRequired=true, serverSideRequired=true, channels={"SpeedyTools"}, packetHandler = PacketHandler.class)
+@Mod(modid="speedytoolsmod", name="Build Faster Mod", version="1.0.0")
+@NetworkMod(clientSideRequired=true, serverSideRequired=true, channels={"speedytools"}, packetHandler = PacketHandler.class)
 public class SpeedyToolsMod {
 
   // The instance of your mod that Forge uses.
-  @Mod.Instance("SpeedyToolsMod")
+  @Mod.Instance("speedytoolsmod")
   public static speedytools.SpeedyToolsMod instance;
 
   // Says where the client and server 'proxy' code is loaded.

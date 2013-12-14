@@ -18,7 +18,7 @@ public class PacketHandler implements IPacketHandler
   @Override
   public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity)
   {
-    if (packet.channel.equals("SpeedyTools")) {
+    if (packet.channel.equals("speedytools")) {
       Side side = FMLCommonHandler.instance().getEffectiveSide();
 
       switch (packet.data[0]) {

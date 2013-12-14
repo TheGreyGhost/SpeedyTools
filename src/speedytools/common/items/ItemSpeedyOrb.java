@@ -19,7 +19,7 @@ public class ItemSpeedyOrb extends ItemSpeedyTool {
   @Override
   public void registerIcons(IconRegister iconRegister)
   {
-    itemIcon = iconRegister.registerIcon("speedytools:OrbIcon");
+    itemIcon = iconRegister.registerIcon("speedytools:orbicon");
   }
 
   /**
@@ -50,9 +50,9 @@ public class ItemSpeedyOrb extends ItemSpeedyTool {
   }
 
   @Override
-  protected String getPlaceSound() {return "speedytools:OrbPlace";}
+  protected String getPlaceSound() {return "speedytools:orbplace";}
 
   @Override
-  protected String getUnPlaceSound() {return "speedytools:OrbUnPlace";}
+  protected String getUnPlaceSound() {return "speedytools:orbunplace";}
 
 }

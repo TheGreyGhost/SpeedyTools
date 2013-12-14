@@ -63,7 +63,7 @@ public class Packet250SpeedyToolUse
       outputStream.writeInt(cc.posY);
       outputStream.writeInt(cc.posZ);
     }
-    packet250 = new Packet250CustomPayload("SpeedyTools",bos.toByteArray());
+    packet250 = new Packet250CustomPayload("speedytools",bos.toByteArray());
   }
 
   public Packet250CustomPayload getPacket250CustomPayload() {

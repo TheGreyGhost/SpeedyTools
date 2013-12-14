@@ -19,7 +19,7 @@ public class ItemSpeedyWandStrong extends ItemSpeedyTool {
   @Override
   public void registerIcons(IconRegister iconRegister)
   {
-    itemIcon = iconRegister.registerIcon("speedytools:WandStrongIcon");
+    itemIcon = iconRegister.registerIcon("speedytools:wandstrongicon");
   }
  /*
   @Override
@@ -58,9 +58,9 @@ public class ItemSpeedyWandStrong extends ItemSpeedyTool {
   }
 
   @Override
-  protected String getPlaceSound() {return "speedytools:WandPlace";}
+  protected String getPlaceSound() {return "speedytools:wandplace";}
 
   @Override
-  protected String getUnPlaceSound() {return "speedytools:WandUnPlace";}
+  protected String getUnPlaceSound() {return "speedytools:wandunplace";}
 
 }

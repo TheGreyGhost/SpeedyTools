@@ -19,7 +19,7 @@ public class ItemSpeedySceptre extends ItemSpeedyTool {
   @Override
   public void registerIcons(IconRegister iconRegister)
   {
-    itemIcon = iconRegister.registerIcon("speedytools:SceptreIcon");
+    itemIcon = iconRegister.registerIcon("speedytools:sceptreicon");
   }
 
   /**
@@ -53,9 +53,9 @@ public class ItemSpeedySceptre extends ItemSpeedyTool {
   }
 
   @Override
-  protected String getPlaceSound() {return "speedytools:SceptrePlace";}
+  protected String getPlaceSound() {return "speedytools:sceptreplace";}
 
   @Override
-  protected String getUnPlaceSound() {return "speedytools:SceptreUnPlace";}
+  protected String getUnPlaceSound() {return "speedytools:sceptreunplace";}
 
 }
