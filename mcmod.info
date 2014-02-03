@@ -1,7 +1,5 @@
-{
-  "modinfoversion": 2,
-  "modlist": [{
-    "modid": "SpeedyToolsMod",
+[{
+    "modid": "speedytoolsmod",
     "name": "Build Faster Mod",
     "description": "Build Faster!  Use these tools to place multiple blocks at once.  Instant undo in case of blunders!",
     "version": "1.0.0",
@@ -9,13 +7,8 @@
     "url": "https://github.com/TheGreyGhost/SpeedyTools",
     "updateUrl": "",
     "authors": [ "TheGreyGhost" ],
-    "credits": "With many thanks to the MCP and Forge authors for making this possible.",
-    "logoFile": "",
-    "screenshots": [""],
-    "parent": "",
-    "requiredMods": [ "Forge" ],
-    "dependencies": [ "" ],
-    "dependants": [ "" ],
-    "useDependencyInformation": "true"
-  }]
-}
+    "credits": "With many thanks to the MCP and Forge authors.",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}]
