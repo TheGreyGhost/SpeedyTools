@@ -29,7 +29,7 @@ public class RegistryForItems
     GameRegistry.registerItem(itemSpeedySceptre, itemSpeedySceptre.getUnlocalizedName());
     GameRegistry.registerItem(itemSpeedyOrb, itemSpeedyOrb.getUnlocalizedName());
 
-    LanguageRegistry.addName(itemSpeedyWandWeak, "Wand of Benign Linear Conjuration");
+    LanguageRegistry.addName(itemSpeedyWandWeak, "Wand of Non-destructive Linear Conjuration");
     LanguageRegistry.addName(itemSpeedyWandStrong, "Wand of Destructive Linear Conjuration");
     LanguageRegistry.addName(itemSpeedySceptre, "Enchanted Sceptre of Contour Extrusion");
     LanguageRegistry.addName(itemSpeedyOrb, "Orb of Transmutation");
