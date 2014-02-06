@@ -50,7 +50,8 @@ public class ItemSpeedyWandWeak extends ItemSpeedyTool {
   @Override
   public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List textList, boolean useAdvancedItemTooltips)
   {
-    textList.add("Right click: place blocks (won't destroy blocks in the way)");
+    textList.add("Right click: place blocks (won't destroy");
+    textList.add("             any blocks in the way)");
     textList.add("Left click: undo last place");
     textList.add("Control: hold down to allow diagonal");
     textList.add("Control + mouse wheel: change count");
