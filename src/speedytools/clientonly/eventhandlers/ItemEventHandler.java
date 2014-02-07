@@ -40,7 +40,7 @@ public class ItemEventHandler {
   }
 
   /**
-   * If a speedy tool is equipped, selects the appropriate blocks and stores the selection into SpeedyToolsMod.currentlySelectedBlocks
+   * If a speedy tool is equipped, selects the appropriate blocks and stores the selection into SpeedyToolsMod.currentlySelectedBlock
    *    along with the substrate used by the tool (the block to be placed) which is the block in the hotbar immediately to the left of the tool
    * Also renders the selection over the top of the existing world
    *

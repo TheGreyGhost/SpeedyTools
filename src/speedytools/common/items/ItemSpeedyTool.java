@@ -266,7 +266,7 @@ public abstract class ItemSpeedyTool extends Item
   }
 
   /**
-   * Inform the server of the player's action with the SpeedyTool.  Checks to make sure that currentlySelectedTool is valid, and if right click then currentlySelectedBlocks has at least one entry.
+   * Inform the server of the player's action with the SpeedyTool.  Checks to make sure that currentlySelectedTool is valid, and if right click then currentlySelectedBlock has at least one entry.
    * @param whichButton 0 = left (undo), 1 = right (use)
    * @return true if a packet was sent (the action is valid)
    */
