@@ -2,12 +2,14 @@ package speedytools.common.items;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.EnumMovingObjectType;
 import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
 import speedytools.clientonly.BlockMultiSelector;
 
 import java.util.List;
@@ -29,28 +31,28 @@ public class ItemCloneBoundary extends ItemCloneTool {
   /**
    * Selects the Block that will be affected by the tool when the player presses right-click
    *
+   *
    * @param target the position of the cursor
    * @param player the player
    * @param currentItem the current item that the player is holding.  MUST be derived from ItemCloneTool.
-   * @param itemStackToPlace the item that would be placed in the selection
    * @param partialTick partial tick time.
    * @return returns the coordinates of the block selected, or null if none
    */
   @Override
-  public ChunkCoordinates selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, ItemStack itemStackToPlace, float partialTick)
+  public ChunkCoordinates selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
-    final double MAX_TILE_DISTANCE = 1;
+    MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
+
     // we want to make sure that we only select a block at very short range.  So if we have hit a block beyond this range, shorten the target to eliminate it
-    if (target.typeOfHit == EnumMovingObjectType.TILE) {
-      MovingObjectPosition ignoreBlock = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
-      if (ignoreBlock != null ) { // should always be true
-        if (target.hitVec.dotProduct(target.hitVec) > ignoreBlock.hitVec.dotProduct(ignoreBlock.hitVec)) {
-          target = ignoreBlock;
-        }
+
+    if (target == null) {
+      target = airSelectionIgnoringBlocks;
+    } else if (target.typeOfHit == EnumMovingObjectType.TILE) {
+      if (target.hitVec.dotProduct(target.hitVec) > airSelectionIgnoringBlocks.hitVec.dotProduct(airSelectionIgnoringBlocks.hitVec)) {
+        target = airSelectionIgnoringBlocks;
       }
     }
 
-    if (target == null) return null; // should never be true
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
     return startBlockCoordinates;
   }
@@ -68,13 +70,15 @@ public class ItemCloneBoundary extends ItemCloneTool {
   /**
    * Place or remove a boundary marker.
    * If one of the two boundary markers is unplaced, set that.
-   * If both are placed, move the nearest to the new position
+   * If both are placed, move the nearest corner to the new position
+   *
+   * @param thePlayer
    * @param whichButton 0 = left (undo), 1 = right (use)
    * @return true for success
    */
   @SideOnly(Side.CLIENT)
   @Override
-  public boolean actOnButtonClicked(int whichButton)
+  public boolean actOnButtonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
     if (currentlySelectedBlock == null) return false;
 
@@ -90,11 +94,25 @@ public class ItemCloneBoundary extends ItemCloneTool {
         } else if (boundaryCorner2 == null) {
           boundaryCorner2 = currentlySelectedBlock;
         } else {
-          if (  boundaryCorner1.getDistanceSquaredToChunkCoordinates(currentlySelectedBlock)
-              < boundaryCorner2.getDistanceSquaredToChunkCoordinates(currentlySelectedBlock)) {
-            boundaryCorner1 = currentlySelectedBlock;
+          ChunkCoordinates closestCorner = getClosestBoundaryCorner(currentlySelectedBlock.posX + 0.5F, currentlySelectedBlock.posY + 0.5F, currentlySelectedBlock.posZ + 0.5F);
+          if (closestCorner == null) return false; // should never happen
+
+          if (closestCorner.posX == boundaryCorner1.posX) {
+            boundaryCorner1.posX = currentlySelectedBlock.posX;
           } else {
-            boundaryCorner2 = currentlySelectedBlock;
+            boundaryCorner2.posX = currentlySelectedBlock.posX;
+          }
+
+          if (closestCorner.posY == boundaryCorner1.posY) {
+            boundaryCorner1.posY = currentlySelectedBlock.posY;
+          } else {
+            boundaryCorner2.posY = currentlySelectedBlock.posY;
+          }
+
+          if (closestCorner.posZ == boundaryCorner1.posZ) {
+            boundaryCorner1.posZ = currentlySelectedBlock.posZ;
+          } else {
+            boundaryCorner2.posZ = currentlySelectedBlock.posZ;
           }
         }
         break;

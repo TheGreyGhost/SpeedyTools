@@ -3,9 +3,19 @@ package speedytools.clientonly;
 
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 
 public class SelectionBoxRenderer {
+
+  public static void drawConnectingLine(double x1, double y1, double z1, double x2, double y2, double z2)
+  {
+    Tessellator tessellator = Tessellator.instance;
+    tessellator.startDrawing(GL11.GL_LINES);
+    tessellator.addVertex(x1, y1, z1);
+    tessellator.addVertex(x2, y2, z2);
+    tessellator.draw();
+  }
 
   public static void drawCube(AxisAlignedBB cube) {
     double xa = cube.minX;
