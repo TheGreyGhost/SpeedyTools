@@ -48,21 +48,25 @@ public class ClientTickHandler implements ITickHandler {
 
     if (SpeedyToolControls.attackButtonInterceptor.retrieveClick()) {
       if (speedyToolHeld) {
-        ItemSpeedyTool.attackButtonClicked(player);
+        ((ItemSpeedyTool)heldItem.getItem()).attackButtonClicked(player);
       } else if (cloneToolHeld) {
-        ItemCloneTool.attackButtonClicked(player);
+        ((ItemCloneTool)heldItem.getItem()).attackButtonClicked(player);
       }
     }
 
     if (SpeedyToolControls.useItemButtonInterceptor.retrieveClick()) {
       if (speedyToolHeld) {
-        ItemSpeedyTool.useButtonClicked(player);
+        ((ItemSpeedyTool)heldItem.getItem()).useButtonClicked(player);
       } else if (cloneToolHeld) {
-        ItemCloneTool.useButtonClicked(player);
+        ((ItemCloneTool)heldItem.getItem()).useButtonClicked(player);
       }
     }
 
+    if (cloneToolHeld) {
+      ((ItemCloneTool)heldItem.getItem()).tickKeyStates(SpeedyToolControls.useItemButtonInterceptor.isKeyDown());
+    }
   }
+
 
   public String getLabel()
   {

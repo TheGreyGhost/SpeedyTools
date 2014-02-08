@@ -1,19 +1,21 @@
 package speedytools.common.items;
 
+import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.*;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.SelectionBoxRenderer;
+import speedytools.clientonly.SpeedyToolControls;
+import speedytools.common.UsefulConstants;
 
 import java.util.*;
 
@@ -31,7 +33,7 @@ public abstract class ItemCloneTool extends Item
 
   public static boolean isAcloneTool(int itemID)
   {
-    return (   itemID == RegistryForItems.itemCloneBoundary.itemID);
+    return (itemID == RegistryForItems.itemCloneBoundary.itemID);
   }
 
   /**
@@ -82,7 +84,7 @@ public abstract class ItemCloneTool extends Item
    * @param thePlayer
    */
   @SideOnly(Side.CLIENT)
-  public static void attackButtonClicked(EntityClientPlayerMP thePlayer)
+  public void attackButtonClicked(EntityClientPlayerMP thePlayer)
   {
     boolean success = buttonClicked(thePlayer, 0);
     if (success) {
@@ -100,7 +102,7 @@ public abstract class ItemCloneTool extends Item
    * @param thePlayer
    */
   @SideOnly(Side.CLIENT)
-  public static void useButtonClicked(EntityClientPlayerMP thePlayer)
+  public void useButtonClicked(EntityClientPlayerMP thePlayer)
   {
     boolean success = buttonClicked(thePlayer, 1);
     if (success) {
@@ -133,41 +135,105 @@ public abstract class ItemCloneTool extends Item
    * @param whichButton 0 = left (undo), 1 = right (use)
    * @return true for success
    */
-  @SideOnly(Side.CLIENT)
-  public static boolean buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
-  {
-    if (currentlySelectedTool == null || !(currentlySelectedTool instanceof ItemCloneTool)) return false;
-    ItemCloneTool currentTool = (ItemCloneTool)currentlySelectedTool;
-
-    return currentTool.actOnButtonClicked(thePlayer, whichButton);
-    /*
-    Packet250SpeedyToolUse packet;
-    try {
-      packet = new Packet250SpeedyToolUse(currentlySelectedTool.itemID, whichButton, currentBlockToPlace, currentlySelectedBlock);
-    } catch (IOException e) {
-      Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyToolUse for itemID " + currentlySelectedTool.itemID);
-      return false;
-    }
-    PacketDispatcher.sendPacketToServer(packet.getPacket250CustomPayload());
-    return true;
-    */
-  }
 
   @SideOnly(Side.CLIENT)
-  public boolean actOnButtonClicked(EntityClientPlayerMP thePlayer, int whichButton)
+  public boolean buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
     return false;
+  }
+
+  /** called once per tick while the user is holding an ItemCloneTool
+   * @param useKeyHeldDown
+   */
+  public void tickKeyStates(boolean useKeyHeldDown)
+  {
+    // if the user was grabbing a boundary and has now released it, move the boundary blocks
+
+    if (boundaryGrabActivated & !useKeyHeldDown) {
+      Vec3 playerPosition = Minecraft.getMinecraft().renderViewEntity.getPosition(1.0F);
+      AxisAlignedBB newBoundaryField = getGrabDraggedBoundaryField(playerPosition);
+      boundaryCorner1.posX = (int)Math.round(newBoundaryField.minX);
+      boundaryCorner1.posY = (int)Math.round(newBoundaryField.minY);
+      boundaryCorner1.posZ = (int)Math.round(newBoundaryField.minZ);
+      boundaryCorner2.posX = (int)Math.round(newBoundaryField.maxX - 1);
+      boundaryCorner2.posY = (int)Math.round(newBoundaryField.maxY - 1);
+      boundaryCorner2.posZ = (int)Math.round(newBoundaryField.maxZ - 1);
+      boundaryGrabActivated = false;
+    }
+  }
+
+  /**
+   * Calculate the new boundary field after being dragged to the current player position
+   *   Drags one side depending on which one the player grabbed, and how far they have moved
+   *   Won't drag the boundary field smaller than one block
+   * @param playerPosition
+   * @return the new boundary field, null if a problem occurred
+   */
+  protected AxisAlignedBB getGrabDraggedBoundaryField(Vec3 playerPosition)
+  {
+    sortBoundaryFieldCorners();
+
+    if (boundaryCorner1 == null) return null;
+    ChunkCoordinates cnrMin = boundaryCorner1;
+    ChunkCoordinates cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
+    double wXmin = cnrMin.posX;
+    double wYmin = cnrMin.posY;
+    double wZmin = cnrMin.posZ;
+    double wXmax = cnrMax.posX + 1;
+    double wYmax = cnrMax.posY + 1;
+    double wZmax = cnrMax.posZ + 1;
+
+    if (boundaryGrabActivated) {
+      switch (boundaryGrabSide) {
+        case UsefulConstants.FACE_YNEG: {
+          wYmin += playerPosition.yCoord - boundaryGrabPoint.yCoord;
+          wYmin = Math.min(wYmin, wYmax - 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_YPOS: {
+          wYmax += playerPosition.yCoord - boundaryGrabPoint.yCoord;
+          wYmax = Math.max(wYmax, wYmin + 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_ZNEG: {
+          wZmin += playerPosition.zCoord - boundaryGrabPoint.zCoord;
+          wZmin = Math.min(wZmin, wZmax - 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_ZPOS: {
+          wZmax += playerPosition.zCoord - boundaryGrabPoint.zCoord;
+          wZmax = Math.max(wZmax, wZmin + 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_XNEG: {
+          wXmin += playerPosition.xCoord - boundaryGrabPoint.xCoord;
+          wXmin = Math.min(wXmin, wXmax - 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_XPOS: {
+          wXmax += playerPosition.xCoord - boundaryGrabPoint.xCoord;
+          wXmax = Math.max(wXmax, wXmin + 1.0);
+          break;
+        }
+        default: {
+          FMLLog.warning("Invalid boundaryGrabSide (%d) in %s", boundaryGrabSide, ItemCloneTool.class.getCanonicalName());
+        }
+      }
+    }
+    return AxisAlignedBB.getAABBPool().getAABB(wXmin, wYmin, wZmin, wXmax, wYmax, wZmax);
   }
 
   public final int SELECTION_BOX_STYLE = 0; //0 = cube, 1 = cube with cross on each side
 
   /**
-   * renders the selection box
+   * renders the selection box if both corners haven't been placed yet.
    * @param player
    * @param partialTick
    */
   public void renderSelection(EntityPlayer player, float partialTick)
   {
+    if (boundaryCorner1 != null && boundaryCorner2 != null) return;
+
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
@@ -194,39 +260,9 @@ public abstract class ItemCloneTool extends Item
       }
     }
 
-    ChunkCoordinates closestCorner = getClosestBoundaryCorner(currentlySelectedBlock.posX + 0.5F, currentlySelectedBlock.posY + 0.5F, currentlySelectedBlock.posZ + 0.5F);
-
-    SelectionBoxRenderer.drawConnectingLine(closestCorner.posX + 0.5F, closestCorner.posY + 0.5F, closestCorner.posZ + 0.5F,
-                                            currentlySelectedBlock.posX + 0.5F, currentlySelectedBlock.posY + 0.5F, currentlySelectedBlock.posZ + 0.5F
-                                           );
     GL11.glDepthMask(true);
     GL11.glEnable(GL11.GL_TEXTURE_2D);
     GL11.glDisable(GL11.GL_BLEND);
-  }
-
-  /**
-   * Find the corner of the selection box (defined by the boundary corners) that is closest to the designated point.
-   * @return the closest x, closest y, and closest z coordinates, or null if either of the two corners are null
-   */
-  protected ChunkCoordinates getClosestBoundaryCorner(float pointX, float pointY, float pointZ)
-  {
-    if (boundaryCorner1 == null || boundaryCorner2 == null) return null;
-
-    int wxNearest = boundaryCorner1.posX;
-    if (Math.abs(wxNearest + 0.5F - pointX) > Math.abs((float)boundaryCorner2.posX + 0.5F - pointX)) {
-      wxNearest = boundaryCorner2.posX;
-    }
-    int wyNearest = boundaryCorner1.posY;
-    if (Math.abs(wyNearest + 0.5F - pointY) > Math.abs((float)boundaryCorner2.posY + 0.5F - pointY)) {
-      wyNearest = boundaryCorner2.posY;
-    }
-    int wzNearest = boundaryCorner1.posZ;
-    if (Math.abs(wzNearest + 0.5F - pointZ) < Math.abs((float)boundaryCorner2.posZ + 0.5F - pointZ)) {
-      wzNearest = boundaryCorner2.posZ;
-    }
-
-    return new ChunkCoordinates(wxNearest, wyNearest, wzNearest);
-
   }
 
   /**
@@ -237,15 +273,13 @@ public abstract class ItemCloneTool extends Item
   public void renderBoundaryField(EntityPlayer player, float partialTick) {
     if (boundaryCorner1 == null && boundaryCorner2 == null) return;
 
-    ChunkCoordinates cnr1 = (boundaryCorner1 == null) ? boundaryCorner2 : boundaryCorner1;
-    ChunkCoordinates cnr2 = (boundaryCorner2 == null) ? boundaryCorner1 : boundaryCorner2;
+    Vec3 playerPosition = player.getPosition(partialTick);
+    if (boundaryGrabActivated) {
+      System.out.println("rBF: [" + playerPosition.xCoord + "," + playerPosition.yCoord + "," + playerPosition.zCoord + "] from ["
+                                  + boundaryGrabPoint.xCoord + "," + boundaryGrabPoint.yCoord + "," + boundaryGrabPoint.zCoord +"]");
+    }
 
-    int wxmin = Math.min(cnr1.posX, cnr2.posX);
-    int wymin = Math.min(cnr1.posY, cnr2.posY);
-    int wzmin = Math.min(cnr1.posZ, cnr2.posZ);
-    int wxmax = Math.max(cnr1.posX, cnr2.posX);
-    int wymax = Math.max(cnr1.posY, cnr2.posY);
-    int wzmax = Math.max(cnr1.posZ, cnr2.posZ);
+    AxisAlignedBB boundingBox = getGrabDraggedBoundaryField(playerPosition);
 
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -255,17 +289,60 @@ public abstract class ItemCloneTool extends Item
     GL11.glDepthMask(false);
     double expandDistance = 0.002F;
 
-    double playerOriginX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
-    double playerOriginY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
-    double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
-
-    AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(wxmin, wymin, wzmin, wxmax+1, wymax+1, wzmax+1);
-    boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
-    SelectionBoxRenderer.drawFilledCube(boundingBox);
+    boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance)
+                             .getOffsetBoundingBox(-playerPosition.xCoord, -playerPosition.yCoord, -playerPosition.zCoord);
+    int faceToHighlight = -1;
+    if (boundaryGrabActivated) {
+      faceToHighlight = boundaryGrabSide;
+    } else {
+      MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
+      faceToHighlight = (highlightedFace != null) ? highlightedFace.sideHit : -1;
+    }
+    SelectionBoxRenderer.drawFilledCubeWithSelectedSide(boundingBox, faceToHighlight);
 
     GL11.glDepthMask(true);
     GL11.glEnable(GL11.GL_TEXTURE_2D);
     GL11.glDisable(GL11.GL_BLEND);
+  }
+
+  protected static MovingObjectPosition boundaryFieldFaceSelection(EntityLivingBase player)
+  {
+    if (boundaryCorner1 == null || boundaryCorner2 == null) return null;
+
+    final float MAX_GRAB_DISTANCE = 32.0F;
+    Vec3 playerPosition = player.getPosition(1.0F);
+    Vec3 lookDirection = player.getLook(1.0F);
+    Vec3 maxGrabPosition = playerPosition.addVector(lookDirection.xCoord * MAX_GRAB_DISTANCE, lookDirection.yCoord * MAX_GRAB_DISTANCE, lookDirection.zCoord * MAX_GRAB_DISTANCE);
+    AxisAlignedBB boundaryField = AxisAlignedBB.getAABBPool().getAABB(boundaryCorner1.posX, boundaryCorner1.posY, boundaryCorner1.posZ,
+                                                                      boundaryCorner2.posX + 1, boundaryCorner2.posY + 1, boundaryCorner2.posZ + 1);
+    MovingObjectPosition fieldIntersection = boundaryField.calculateIntercept(playerPosition, maxGrabPosition);
+    return fieldIntersection;
+  }
+
+  /**
+   * Sort the corner coordinates so that boundaryCorner1 is [xmin, ymin, zmin] and boundaryCorner2 is [xmax, ymax, zmax]
+   */
+  protected void sortBoundaryFieldCorners()
+  {
+    if (boundaryCorner1 == null) {
+      boundaryCorner1 = boundaryCorner2;
+      boundaryCorner2 = null;
+    }
+    if (boundaryCorner2 == null) return;
+
+    int wxmin = Math.min(boundaryCorner1.posX, boundaryCorner2.posX);
+    int wymin = Math.min(boundaryCorner1.posY, boundaryCorner2.posY);
+    int wzmin = Math.min(boundaryCorner1.posZ, boundaryCorner2.posZ);
+    int wxmax = Math.max(boundaryCorner1.posX, boundaryCorner2.posX);
+    int wymax = Math.max(boundaryCorner1.posY, boundaryCorner2.posY);
+    int wzmax = Math.max(boundaryCorner1.posZ, boundaryCorner2.posZ);
+
+    boundaryCorner1.posX = wxmin;
+    boundaryCorner1.posY = wymin;
+    boundaryCorner1.posZ = wzmin;
+    boundaryCorner2.posX = wxmax;
+    boundaryCorner2.posY = wymax;
+    boundaryCorner2.posZ = wzmax;
   }
 
   protected String getPlaceSound() {return "";}
@@ -279,4 +356,9 @@ public abstract class ItemCloneTool extends Item
 
   protected static ChunkCoordinates boundaryCorner1 = null;
   protected static ChunkCoordinates boundaryCorner2 = null;
+
+  protected static boolean boundaryGrabActivated = false;
+  protected static int boundaryGrabSide = 0;
+  protected static Vec3 boundaryGrabPoint = null;
+
 }

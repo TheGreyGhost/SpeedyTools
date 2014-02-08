@@ -247,7 +247,7 @@ public abstract class ItemSpeedyTool extends Item
    * called when the user presses the attackButton (Left Mouse)
    */
   @SideOnly(Side.CLIENT)
-  public static void attackButtonClicked(EntityClientPlayerMP thePlayer)
+  public void attackButtonClicked(EntityClientPlayerMP thePlayer)
   {
     boolean success = buttonClicked(0);
     if (success && !undoSoundsHistory.isEmpty()) {
@@ -265,7 +265,7 @@ public abstract class ItemSpeedyTool extends Item
    * @param thePlayer
    */
   @SideOnly(Side.CLIENT)
-  public static void useButtonClicked(EntityClientPlayerMP thePlayer)
+  public void useButtonClicked(EntityClientPlayerMP thePlayer)
   {
     boolean success = buttonClicked(1);
 

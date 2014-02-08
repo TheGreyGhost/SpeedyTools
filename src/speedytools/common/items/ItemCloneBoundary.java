@@ -2,14 +2,12 @@ package speedytools.common.items;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.EnumMovingObjectType;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.*;
 import speedytools.clientonly.BlockMultiSelector;
 
 import java.util.List;
@@ -47,6 +45,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
 
     if (target == null) {
       target = airSelectionIgnoringBlocks;
+      if (target == null) return null;
     } else if (target.typeOfHit == EnumMovingObjectType.TILE) {
       if (target.hitVec.dotProduct(target.hitVec) > airSelectionIgnoringBlocks.hitVec.dotProduct(airSelectionIgnoringBlocks.hitVec)) {
         target = airSelectionIgnoringBlocks;
@@ -70,7 +69,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
   /**
    * Place or remove a boundary marker.
    * If one of the two boundary markers is unplaced, set that.
-   * If both are placed, move the nearest corner to the new position
+   * If both are placed, attempt to "grab" one of the boundary sides (cursor / line of sight intersects one of them)
    *
    * @param thePlayer
    * @param whichButton 0 = left (undo), 1 = right (use)
@@ -78,7 +77,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
    */
   @SideOnly(Side.CLIENT)
   @Override
-  public boolean actOnButtonClicked(EntityClientPlayerMP thePlayer, int whichButton)
+  public boolean buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
     if (currentlySelectedBlock == null) return false;
 
@@ -90,30 +89,18 @@ public class ItemCloneBoundary extends ItemCloneTool {
       }
       case 1: {
         if (boundaryCorner1 == null) {
-          boundaryCorner1 = currentlySelectedBlock;
+          boundaryCorner1 = new ChunkCoordinates(currentlySelectedBlock);
         } else if (boundaryCorner2 == null) {
-          boundaryCorner2 = currentlySelectedBlock;
+          boundaryCorner2 = new ChunkCoordinates(currentlySelectedBlock);
+          sortBoundaryFieldCorners();
         } else {
-          ChunkCoordinates closestCorner = getClosestBoundaryCorner(currentlySelectedBlock.posX + 0.5F, currentlySelectedBlock.posY + 0.5F, currentlySelectedBlock.posZ + 0.5F);
-          if (closestCorner == null) return false; // should never happen
+          MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
+          if (highlightedFace == null) return false;
 
-          if (closestCorner.posX == boundaryCorner1.posX) {
-            boundaryCorner1.posX = currentlySelectedBlock.posX;
-          } else {
-            boundaryCorner2.posX = currentlySelectedBlock.posX;
-          }
-
-          if (closestCorner.posY == boundaryCorner1.posY) {
-            boundaryCorner1.posY = currentlySelectedBlock.posY;
-          } else {
-            boundaryCorner2.posY = currentlySelectedBlock.posY;
-          }
-
-          if (closestCorner.posZ == boundaryCorner1.posZ) {
-            boundaryCorner1.posZ = currentlySelectedBlock.posZ;
-          } else {
-            boundaryCorner2.posZ = currentlySelectedBlock.posZ;
-          }
+          boundaryGrabActivated = true;
+          boundaryGrabSide = highlightedFace.sideHit;
+          Vec3 playerPosition = thePlayer.getPosition(1.0F);
+          boundaryGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
         }
         break;
       }
