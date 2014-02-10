@@ -1,7 +1,10 @@
 package speedytools.clientonly;
 
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
@@ -25,6 +28,8 @@ public class SelectionBoxRenderer {
     double yb = cube.maxY;
     double za = cube.minZ;
     double zb = cube.maxZ;
+
+    OpenGLdebugging.dumpAllIsEnabled();
 
     Tessellator tessellator = Tessellator.instance;
     tessellator.startDrawing(GL11.GL_LINE_STRIP);
@@ -77,6 +82,39 @@ public class SelectionBoxRenderer {
     tessellator.draw();
   }
 
+  public static void drawTranslucentBoxWithHighlightedSide(double x1, double x2, double x3, double x4,
+                                                           double y1, double y2, double y3, double y4,
+                                                           double z1, double z2, double z3, double z4,
+                                                           boolean highlight)
+  {
+/*    Tessellator tessellator = Tessellator.instance;
+
+    Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+
+//    GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, 10497.0F);
+//    GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, 10497.0F);
+    GL11.glDisable(GL11.GL_LIGHTING);
+    GL11.glDisable(GL11.GL_CULL_FACE);
+    GL11.glDisable(GL11.GL_BLEND);
+    GL11.glDepthMask(true);
+//    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+
+    GL11.glEnable(GL11.GL_BLEND);
+    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+//    GL11.glDepthMask(false);
+    GL11.glColorMask(false, false, false, false);
+    tessellator.startDrawingQuads();
+
+    tessellator.setBrightness(this.renderMinY > 0.0D ? l : par1Block.getMixedBrightnessForBlock(this.blockAccess, par2, par3 - 1, par4));
+    tessellator.setColorOpaque_F(f10, f13, f16);
+
+    tessellator.setColorOpaque_F(this.colorRedTopLeft, this.colorGreenTopLeft, this.colorBlueTopLeft);
+    tessellator.setBrightness(this.brightnessTopLeft);
+    tessellator.addVertexWithUV(d11, d13, d15, d8, d10);
+ */
+
+  }
+
   public static void drawBoxWithCrossHighlight(double x1, double x2, double x3, double x4,
                                                double y1, double y2, double y3, double y4,
                                                double z1, double z2, double z3, double z4,
@@ -106,6 +144,7 @@ public class SelectionBoxRenderer {
     tessellator.addVertex(x2, y2, z2);
     tessellator.addVertex(x4, y4, z4);
     tessellator.draw();
+
   }
 
   /**
