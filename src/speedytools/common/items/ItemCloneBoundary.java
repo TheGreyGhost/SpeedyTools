@@ -24,6 +24,36 @@ public class ItemCloneBoundary extends ItemCloneTool {
   public void registerIcons(IconRegister iconRegister)
   {
     itemIcon = iconRegister.registerIcon("speedytools:cloneboundaryicon");
+    iconOpen = iconRegister.registerIcon("speedytools:cloneboundaryicon");
+    iconGrabbing = iconRegister.registerIcon("speedytools:cloneboundaryicon1");
+    iconPass1NonePlaced = iconRegister.registerIcon("speedytools:cloneboundaryicon2");
+    iconPass1OnePlaced = iconRegister.registerIcon("speedytools:cloneboundaryicon3");
+    iconBlank = iconRegister.registerIcon("speedytools:blankicon");
+  }
+
+  public boolean requiresMultipleRenderPasses()
+  {
+    return true;
+  }
+
+  @Override
+  public Icon getIcon(ItemStack stack, int pass)
+  {
+    switch (pass) {
+      case 0: {
+        return boundaryGrabActivated ? iconGrabbing : iconOpen;
+      }
+      case 1: {
+        if (boundaryCorner1 == null && boundaryCorner2 == null) {
+          return iconPass1NonePlaced;
+        } else if (boundaryCorner1 != null && boundaryCorner2 != null) {
+          return iconBlank;
+        } else {
+          return iconPass1OnePlaced;
+        }
+      }
+    }
+    return iconBlank;
   }
 
   /**
@@ -61,8 +91,11 @@ public class ItemCloneBoundary extends ItemCloneTool {
   @Override
   public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List textList, boolean useAdvancedItemTooltips)
   {
-    textList.add("Right click: place/move boundary marker");
-    textList.add("Left click: remove all boundary markers");
+    textList.add("Right click: place boundary");
+    textList.add("             markers (x2), then");
+    textList.add(" Right button hold: move around");
+    textList.add("             to drag boundary");
+    textList.add("Left click: remove all markers");
   }
 
   /**
@@ -116,5 +149,11 @@ public class ItemCloneBoundary extends ItemCloneTool {
 
   @Override
   protected String getUnPlaceSound() {return "speedytools:boundary";}
+
+  private Icon iconOpen;
+  private Icon iconGrabbing;
+  private Icon iconPass1NonePlaced;
+  private Icon iconPass1OnePlaced;
+  private Icon iconBlank;
 
 }

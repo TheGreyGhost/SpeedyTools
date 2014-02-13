@@ -36,6 +36,6 @@ public class RegistryForItems
     LanguageRegistry.addName(itemSpeedyWandStrong, "Wand of Destructive Linear Conjuration");
     LanguageRegistry.addName(itemSpeedySceptre, "Enchanted Sceptre of Contour Extrusion");
     LanguageRegistry.addName(itemSpeedyOrb, "Orb of Transmutation");
-    LanguageRegistry.addName(itemCloneBoundary, "Staff of Boundary Creation");
+    LanguageRegistry.addName(itemCloneBoundary, "Sorcerous Claw of Boundary Creation");
   }
 }
