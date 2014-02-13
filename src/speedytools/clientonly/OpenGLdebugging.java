@@ -1,6 +1,13 @@
 package speedytools.clientonly;
 
+import org.lwjgl.BufferChecks;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.MemoryUtil;
+import org.lwjgl.opengl.ContextCapabilities;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GLContext;
+
+import java.nio.ByteBuffer;
 
 /**
  * User: The Grey Ghost
@@ -319,12 +326,18 @@ public class OpenGLdebugging
       return "" + GL11.glIsEnabled(gLconstant);
     }
 
-    if (instance.propertyList[propertyListIndex].fetchCommand == "glIsEnabled()") {
-      System.out.print(GL11.glGetBoolean(gLconstant));
-      return true;
+    if (instance.propertyList[propertyListIndex].fetchCommand == "glGetBooleanv()") {
+      ByteBuffer params = BufferUtils.createByteBuffer(16);
+
+      GL11.glGetBoolean(gLconstant, params);
+      String out = "";
+      for (int i = 0; i < params.capacity(); ++i) {
+        out += (i == 0 ? "" : ", ") + params.get(i);
+      }
+      return out;
     }
 
-
+    return "";
 //    switch(instance.propertyList[propertyListIndex].fetchCommand) {
 /*
       case "glGetBooleanv()":  { System.out.println(GL11.glGetBooleanv()); break;}

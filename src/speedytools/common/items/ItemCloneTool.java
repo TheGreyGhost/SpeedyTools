@@ -274,11 +274,6 @@ public abstract class ItemCloneTool extends Item
     if (boundaryCorner1 == null && boundaryCorner2 == null) return;
 
     Vec3 playerPosition = player.getPosition(partialTick);
-    if (boundaryGrabActivated) {
-      System.out.println("rBF: [" + playerPosition.xCoord + "," + playerPosition.yCoord + "," + playerPosition.zCoord + "] from ["
-                                  + boundaryGrabPoint.xCoord + "," + boundaryGrabPoint.yCoord + "," + boundaryGrabPoint.zCoord +"]");
-    }
-
     AxisAlignedBB boundingBox = getGrabDraggedBoundaryField(playerPosition);
 
     GL11.glEnable(GL11.GL_BLEND);
@@ -298,7 +293,7 @@ public abstract class ItemCloneTool extends Item
       MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
       faceToHighlight = (highlightedFace != null) ? highlightedFace.sideHit : -1;
     }
-    SelectionBoxRenderer.drawFilledCubeWithSelectedSide(boundingBox, faceToHighlight);
+    SelectionBoxRenderer.drawFilledCubeWithSelectedSide(boundingBox, faceToHighlight, boundaryGrabActivated);
 
     GL11.glDepthMask(true);
     GL11.glEnable(GL11.GL_TEXTURE_2D);

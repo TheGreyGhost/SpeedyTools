@@ -40,12 +40,11 @@ public class ItemCloneBoundary extends ItemCloneTool {
   public ChunkCoordinates selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
     MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
-
+    if (airSelectionIgnoringBlocks == null) return null;
     // we want to make sure that we only select a block at very short range.  So if we have hit a block beyond this range, shorten the target to eliminate it
 
     if (target == null) {
       target = airSelectionIgnoringBlocks;
-      if (target == null) return null;
     } else if (target.typeOfHit == EnumMovingObjectType.TILE) {
       if (target.hitVec.dotProduct(target.hitVec) > airSelectionIgnoringBlocks.hitVec.dotProduct(airSelectionIgnoringBlocks.hitVec)) {
         target = airSelectionIgnoringBlocks;

@@ -13,3 +13,4 @@ public class UsefulConstants
   static public final int FACE_ZNEG = 2;
   static public final int FACE_ZPOS = 3;
 }
+
