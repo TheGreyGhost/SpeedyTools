@@ -7,6 +7,7 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
 import org.lwjgl.input.Keyboard;
 import speedytools.clientonly.SpeedyToolControls;
+import speedytools.common.items.ItemCloneTool;
 import speedytools.common.items.ItemSpeedyTool;
 
 import java.util.EnumSet;
@@ -29,22 +30,43 @@ public class ClientTickHandler implements ITickHandler {
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player != null) {
       ItemStack heldItem = player.getHeldItem();
-      boolean speedyToolHeld = heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID);
-      SpeedyToolControls.enableClickInterception(speedyToolHeld);
+      boolean speedyOrCloneToolHeld = heldItem != null
+                               && (   ItemSpeedyTool.isAspeedyTool(heldItem.itemID)
+                                   || ItemCloneTool.isAcloneTool(heldItem.itemID)   );
+      SpeedyToolControls.enableClickInterception(speedyOrCloneToolHeld);
     }
   }
 
   public void tickEnd(EnumSet<TickType> type, Object... tickData)
   {
+    EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
+    if (player == null) return;
+
+    ItemStack heldItem = player.getHeldItem();
+    boolean speedyToolHeld = heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID);
+    boolean cloneToolHeld = heldItem != null && ItemCloneTool.isAcloneTool(heldItem.itemID);
+
     if (SpeedyToolControls.attackButtonInterceptor.retrieveClick()) {
-      ItemSpeedyTool.attackButtonClicked();
+      if (speedyToolHeld) {
+        ((ItemSpeedyTool)heldItem.getItem()).attackButtonClicked(player);
+      } else if (cloneToolHeld) {
+        ((ItemCloneTool)heldItem.getItem()).attackButtonClicked(player);
+      }
     }
 
     if (SpeedyToolControls.useItemButtonInterceptor.retrieveClick()) {
-      ItemSpeedyTool.useButtonClicked();
+      if (speedyToolHeld) {
+        ((ItemSpeedyTool)heldItem.getItem()).useButtonClicked(player);
+      } else if (cloneToolHeld) {
+        ((ItemCloneTool)heldItem.getItem()).useButtonClicked(player);
+      }
     }
 
+    if (cloneToolHeld) {
+      ((ItemCloneTool)heldItem.getItem()).tickKeyStates(SpeedyToolControls.useItemButtonInterceptor.isKeyDown());
+    }
   }
+
 
   public String getLabel()
   {

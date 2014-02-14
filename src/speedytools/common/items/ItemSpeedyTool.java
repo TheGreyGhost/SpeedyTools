@@ -10,12 +10,15 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.BlockMultiSelector;
+import speedytools.clientonly.SelectionBoxRenderer;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.clientserversynch.Packet250SpeedyToolUse;
 
@@ -75,6 +78,44 @@ public abstract class ItemSpeedyTool extends Item
     }
     return retval;
   }
+
+  public final int SELECTION_BOX_STYLE = 0; //0 = cube, 1 = cube with cross on each side
+
+  public void renderSelection(EntityPlayer player, float partialTick)
+  {
+    GL11.glEnable(GL11.GL_BLEND);
+    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
+    GL11.glLineWidth(2.0F);
+    GL11.glDisable(GL11.GL_TEXTURE_2D);
+    GL11.glDepthMask(false);
+    double expandDistance = 0.002F;
+
+    double playerOriginX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
+    double playerOriginY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
+    double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
+
+    for (ChunkCoordinates block : currentlySelectedBlocks) {
+      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(block.posX, block.posY, block.posZ,
+              block.posX+1, block.posY+1, block.posZ+1);
+      boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
+      switch (SELECTION_BOX_STYLE) {
+        case 0: {
+          SelectionBoxRenderer.drawCube(boundingBox);
+          break;
+        }
+        case 1: {
+          SelectionBoxRenderer.drawFilledCube(boundingBox);
+          break;
+        }
+      }
+    }
+
+    GL11.glDepthMask(true);
+    GL11.glEnable(GL11.GL_TEXTURE_2D);
+    GL11.glDisable(GL11.GL_BLEND);
+  }
+
 
   /**
   * Selects the a straight line of Blocks that will be affected by the tool when the player presses right-click
@@ -206,11 +247,10 @@ public abstract class ItemSpeedyTool extends Item
    * called when the user presses the attackButton (Left Mouse)
    */
   @SideOnly(Side.CLIENT)
-  public static void attackButtonClicked()
+  public void attackButtonClicked(EntityClientPlayerMP thePlayer)
   {
     boolean success = buttonClicked(0);
     if (success && !undoSoundsHistory.isEmpty()) {
-      EntityClientPlayerMP thePlayer = Minecraft.getMinecraft().thePlayer;
       Minecraft.getMinecraft().sndManager.playSound(undoSoundsHistory.getLast().getUnPlaceSound(),
               (float)(thePlayer.posX),
               (float)(thePlayer.posY),
@@ -222,9 +262,10 @@ public abstract class ItemSpeedyTool extends Item
 
   /**
    * called when the user presses the use button (right mouse)
+   * @param thePlayer
    */
   @SideOnly(Side.CLIENT)
-  public static void useButtonClicked()
+  public void useButtonClicked(EntityClientPlayerMP thePlayer)
   {
     boolean success = buttonClicked(1);
 
@@ -232,7 +273,6 @@ public abstract class ItemSpeedyTool extends Item
       ItemSpeedyTool currentTool = (ItemSpeedyTool)currentlySelectedTool;
       undoSoundsHistory.addLast(currentTool);
       if (undoSoundsHistory.size() > MAXIMUM_UNDO_COUNT) undoSoundsHistory.removeFirst();
-      EntityClientPlayerMP thePlayer = Minecraft.getMinecraft().thePlayer;
       Minecraft.getMinecraft().sndManager.playSound(undoSoundsHistory.getLast().getPlaceSound(),
               (float) (thePlayer.posX),
               (float) (thePlayer.posY),
@@ -266,7 +306,7 @@ public abstract class ItemSpeedyTool extends Item
   }
 
   /**
-   * Inform the server of the player's action with the SpeedyTool.  Checks to make sure that currentlySelectedTool is valid, and if right click then currentlySelectedBlocks has at least one entry.
+   * Inform the server of the player's action with the SpeedyTool.  Checks to make sure that currentlySelectedTool is valid, and if right click then currentlySelectedBlock has at least one entry.
    * @param whichButton 0 = left (undo), 1 = right (use)
    * @return true if a packet was sent (the action is valid)
    */

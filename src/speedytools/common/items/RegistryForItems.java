@@ -15,6 +15,7 @@ public class RegistryForItems
   public static ItemSpeedyTool itemSpeedyWandWeak;
   public static ItemSpeedyTool itemSpeedySceptre;
   public static ItemSpeedyTool itemSpeedyOrb;
+  public static ItemCloneTool itemCloneBoundary;
 
   public static void initialise()
   {
@@ -23,15 +24,18 @@ public class RegistryForItems
     itemSpeedyWandWeak = new ItemSpeedyWandWeak(START_ITEM+1);
     itemSpeedySceptre = new ItemSpeedySceptre(START_ITEM+2);
     itemSpeedyOrb = new ItemSpeedyOrb(START_ITEM+3);
+    itemCloneBoundary = new ItemCloneBoundary(START_ITEM+4);
 
     GameRegistry.registerItem(itemSpeedyWandStrong, itemSpeedyWandStrong.getUnlocalizedName());
     GameRegistry.registerItem(itemSpeedyWandWeak, itemSpeedyWandWeak.getUnlocalizedName());
     GameRegistry.registerItem(itemSpeedySceptre, itemSpeedySceptre.getUnlocalizedName());
     GameRegistry.registerItem(itemSpeedyOrb, itemSpeedyOrb.getUnlocalizedName());
+    GameRegistry.registerItem(itemCloneBoundary, itemCloneBoundary.getUnlocalizedName());
 
     LanguageRegistry.addName(itemSpeedyWandWeak, "Wand of Non-destructive Linear Conjuration");
     LanguageRegistry.addName(itemSpeedyWandStrong, "Wand of Destructive Linear Conjuration");
     LanguageRegistry.addName(itemSpeedySceptre, "Enchanted Sceptre of Contour Extrusion");
     LanguageRegistry.addName(itemSpeedyOrb, "Orb of Transmutation");
+    LanguageRegistry.addName(itemCloneBoundary, "Sorcerous Claw of Boundary Creation");
   }
 }
