@@ -15,6 +15,7 @@ import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.SelectionBoxRenderer;
 import speedytools.clientonly.SpeedyToolControls;
+import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
 import speedytools.common.UsefulConstants;
 
 import java.util.*;
@@ -87,14 +88,6 @@ public abstract class ItemCloneTool extends Item
   public void attackButtonClicked(EntityClientPlayerMP thePlayer)
   {
     boolean success = buttonClicked(thePlayer, 0);
-    if (success) {
-      ItemCloneTool currentTool = (ItemCloneTool)currentlySelectedTool;
-      Minecraft.getMinecraft().sndManager.playSound(currentTool.getPlaceSound(),
-              (float) (thePlayer.posX),
-              (float) (thePlayer.posY),
-              (float) (thePlayer.posZ),
-              1.0F, 1.0F);
-    }
   }
 
   /**
@@ -105,14 +98,6 @@ public abstract class ItemCloneTool extends Item
   public void useButtonClicked(EntityClientPlayerMP thePlayer)
   {
     boolean success = buttonClicked(thePlayer, 1);
-    if (success) {
-      ItemCloneTool currentTool = (ItemCloneTool)currentlySelectedTool;
-      Minecraft.getMinecraft().sndManager.playSound(currentTool.getUnPlaceSound(),
-              (float) (thePlayer.posX),
-              (float) (thePlayer.posY),
-              (float) (thePlayer.posZ),
-              1.0F, 1.0F);
-    }
   }
 
   /**
@@ -159,6 +144,8 @@ public abstract class ItemCloneTool extends Item
       boundaryCorner2.posY = (int)Math.round(newBoundaryField.maxY - 1);
       boundaryCorner2.posZ = (int)Math.round(newBoundaryField.maxZ - 1);
       boundaryGrabActivated = false;
+      playSound(CustomSoundsHandler.BOUNDARY_UNGRAB,
+                (float)playerPosition.xCoord, (float)playerPosition.yCoord, (float)playerPosition.zCoord);
     }
   }
 
@@ -340,9 +327,19 @@ public abstract class ItemCloneTool extends Item
     boundaryCorner2.posZ = wzmax;
   }
 
-  protected String getPlaceSound() {return "";}
+  protected void playSound(String soundname, EntityClientPlayerMP thePlayer)
+  {
+    Minecraft.getMinecraft().sndManager.playSound(soundname,
+            (float) (thePlayer.posX),
+            (float) (thePlayer.posY),
+            (float) (thePlayer.posZ),
+            1.0F, 1.0F);
+  }
 
-  protected String getUnPlaceSound() {return "";}
+  protected void playSound(String soundname, float x, float y, float z)
+  {
+    Minecraft.getMinecraft().sndManager.playSound(soundname, x, y, z, 1.0F, 1.0F);
+  }
 
     // these keep track of the currently selected block, for when the tool is used
   protected static ChunkCoordinates currentlySelectedBlock = null;
@@ -355,5 +352,6 @@ public abstract class ItemCloneTool extends Item
   protected static boolean boundaryGrabActivated = false;
   protected static int boundaryGrabSide = 0;
   protected static Vec3 boundaryGrabPoint = null;
+
 
 }

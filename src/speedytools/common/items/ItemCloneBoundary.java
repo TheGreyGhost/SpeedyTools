@@ -9,6 +9,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import speedytools.clientonly.BlockMultiSelector;
+import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
 
 import java.util.List;
 
@@ -23,37 +24,26 @@ public class ItemCloneBoundary extends ItemCloneTool {
   @Override
   public void registerIcons(IconRegister iconRegister)
   {
-    itemIcon = iconRegister.registerIcon("speedytools:cloneboundaryicon");
-    iconOpen = iconRegister.registerIcon("speedytools:cloneboundaryicon");
-    iconGrabbing = iconRegister.registerIcon("speedytools:cloneboundaryicon1");
-    iconPass1NonePlaced = iconRegister.registerIcon("speedytools:cloneboundaryicon2");
-    iconPass1OnePlaced = iconRegister.registerIcon("speedytools:cloneboundaryicon3");
+    itemIcon = iconRegister.registerIcon("speedytools:cloneboundarynone");
+    iconTwoPlaced = iconRegister.registerIcon("speedytools:cloneboundarytwo");
+    iconGrabbing = iconRegister.registerIcon("speedytools:cloneboundarygrab");
+    iconNonePlaced = iconRegister.registerIcon("speedytools:cloneboundarynone");
+    iconOnePlaced = iconRegister.registerIcon("speedytools:cloneboundaryone");
     iconBlank = iconRegister.registerIcon("speedytools:blankicon");
-  }
-
-  public boolean requiresMultipleRenderPasses()
-  {
-    return true;
   }
 
   @Override
   public Icon getIcon(ItemStack stack, int pass)
   {
-    switch (pass) {
-      case 0: {
-        return boundaryGrabActivated ? iconGrabbing : iconOpen;
-      }
-      case 1: {
-        if (boundaryCorner1 == null && boundaryCorner2 == null) {
-          return iconPass1NonePlaced;
-        } else if (boundaryCorner1 != null && boundaryCorner2 != null) {
-          return iconBlank;
-        } else {
-          return iconPass1OnePlaced;
-        }
-      }
+    if (boundaryGrabActivated) return iconGrabbing;
+
+    if (boundaryCorner1 == null && boundaryCorner2 == null) {
+      return iconNonePlaced;
+    } else if (boundaryCorner1 != null && boundaryCorner2 != null) {
+      return iconTwoPlaced;
+    } else {
+      return iconOnePlaced;
     }
-    return iconBlank;
   }
 
   /**
@@ -117,14 +107,17 @@ public class ItemCloneBoundary extends ItemCloneTool {
       case 0: {
         boundaryCorner1 = null;
         boundaryCorner2 = null;
+        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
         break;
       }
       case 1: {
         if (boundaryCorner1 == null) {
           boundaryCorner1 = new ChunkCoordinates(currentlySelectedBlock);
+          playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
         } else if (boundaryCorner2 == null) {
           boundaryCorner2 = new ChunkCoordinates(currentlySelectedBlock);
           sortBoundaryFieldCorners();
+          playSound(CustomSoundsHandler.BOUNDARY_PLACE_2ND, thePlayer);
         } else {
           MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
           if (highlightedFace == null) return false;
@@ -133,6 +126,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
           boundaryGrabSide = highlightedFace.sideHit;
           Vec3 playerPosition = thePlayer.getPosition(1.0F);
           boundaryGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
+          playSound(CustomSoundsHandler.BOUNDARY_GRAB, thePlayer);
         }
         break;
       }
@@ -144,16 +138,10 @@ public class ItemCloneBoundary extends ItemCloneTool {
     return true;
   }
 
-  @Override
-  protected String getPlaceSound() {return "speedytools:boundaryplace";}
-
-  @Override
-  protected String getUnPlaceSound() {return "speedytools:boundary";}
-
-  private Icon iconOpen;
+  private Icon iconTwoPlaced;
   private Icon iconGrabbing;
-  private Icon iconPass1NonePlaced;
-  private Icon iconPass1OnePlaced;
+  private Icon iconNonePlaced;
+  private Icon iconOnePlaced;
   private Icon iconBlank;
 
 }
