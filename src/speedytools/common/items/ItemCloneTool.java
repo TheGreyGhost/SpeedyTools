@@ -61,7 +61,7 @@ public abstract class ItemCloneTool extends Item
    * @return returns the coordinates of the block selected, or null if none
    */
   @SideOnly(Side.CLIENT)
-  public ChunkCoordinates selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  public ChunkCoordinates getHighlightedBlock(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
     if (target == null) return null;
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
@@ -217,10 +217,9 @@ public abstract class ItemCloneTool extends Item
    * @param player
    * @param partialTick
    */
-  public void renderSelection(EntityPlayer player, float partialTick)
+  public void renderBlockHighlight(EntityPlayer player, float partialTick)
   {
-    if (boundaryCorner1 != null && boundaryCorner2 != null) return;
-
+    if (currentlySelectedBlock == null) return;
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
@@ -287,6 +286,11 @@ public abstract class ItemCloneTool extends Item
     GL11.glDisable(GL11.GL_BLEND);
   }
 
+  /**
+   * Check to see if the player's cursor is on one of the faces of the boundary field.
+   * @param player
+   * @return null if cursor isn't on any face; .sidehit shows the face if it is
+   */
   protected static MovingObjectPosition boundaryFieldFaceSelection(EntityLivingBase player)
   {
     if (boundaryCorner1 == null || boundaryCorner2 == null) return null;

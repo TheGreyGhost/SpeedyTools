@@ -13,6 +13,22 @@ import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
 
 import java.util.List;
 
+/*
+three selection modes:
+1) no selection field - floodfill from block clicked up
+2) selection field: standing outside - all solid blocks in the field
+3) selection field: standing inside - floodfill to boundary
+
+1st rightclick = create selection
+2nd right click & hold = drag selection
+double right click = place
+left click = undo place / undo selection
+ctrl + Rclick = flip selection
+ctrl + mousewheel = rotate
+
+ */
+
+
 public class ItemCloneCopy extends ItemCloneTool {
   public ItemCloneCopy(int id) {
     super(id);
@@ -34,23 +50,50 @@ public class ItemCloneCopy extends ItemCloneTool {
   }
 
   /**
-   * Selects the Block that will be affected by the tool when the player presses right-click
-   *
+   * Selects the first Block that will be affected by the tool when the player presses right-click
+   * 1) no selection field - floodfill from block clicked up
+   * 2) selection field: standing outside - all solid blocks in the field
+   * 3) selection field: standing inside - floodfill to boundary field
+   * So the selection algorithm is:
+   * a) if the player is pointing at a block, return it; else
+   * b) check the player is pointing at a side of the boundary field (from outside)
    *
    * @param target the position of the cursor
    * @param player the player
    * @param currentItem the current item that the player is holding.  MUST be derived from ItemCloneTool.
    * @param partialTick partial tick time.
-   * @return returns the coordinates of the block selected, or null if none
+   * @return
    */
   @Override
-  public ChunkCoordinates selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  public ChunkCoordinates getHighlightedBlock(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
+    if (target != null && target.typeOfHit == EnumMovingObjectType.TILE) {
+        ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+        return startBlockCoordinates;
+    }
+
+    Vec3 playerPosition = player.getPosition(1.0F);
+    if (   playerPosition.xCoord >= boundaryCorner1.posX && playerPosition.xCoord <= boundaryCorner2.posX
+        && playerPosition.yCoord >= boundaryCorner1.posY && playerPosition.yCoord <= boundaryCorner2.posY
+            && playerPosition.zCoord >= boundaryCorner1.posZ && playerPosition.zCoord <= boundaryCorner2.posZ) {
+
+    }
     MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
-    if (highlightedFace == null) {
+    if (highlightedFace == null) return null;
+
+
 
       MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
       if (startBlock == null)
+
+        int faceToHighlight = -1;
+      if (boundaryGrabActivated) {
+        faceToHighlight = boundaryGrabSide;
+      } else {
+        MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
+        faceToHighlight = (highlightedFace != null) ? highlightedFace.sideHit : -1;
+      }
+
 
     }
 
@@ -69,6 +112,12 @@ public class ItemCloneCopy extends ItemCloneTool {
 
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
     return startBlockCoordinates;
+  }
+
+  @Override
+  public void renderBlockHighlight(EntityPlayer player, float partialTick)
+  {
+    super.renderBlockHighlight(player, partialTick);
   }
 
   /**

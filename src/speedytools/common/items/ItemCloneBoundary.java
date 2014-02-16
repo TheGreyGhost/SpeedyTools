@@ -57,7 +57,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
    * @return returns the coordinates of the block selected, or null if none
    */
   @Override
-  public ChunkCoordinates selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  public ChunkCoordinates getHighlightedBlock(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
     MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
     if (airSelectionIgnoringBlocks == null) return null;
@@ -74,6 +74,19 @@ public class ItemCloneBoundary extends ItemCloneTool {
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
     return startBlockCoordinates;
   }
+
+  /**
+   * renders the selection box if both corners haven't been placed yet.
+   * @param player
+   * @param partialTick
+   */
+  @Override
+  public void renderBlockHighlight(EntityPlayer player, float partialTick)
+  {
+    if (boundaryCorner1 != null && boundaryCorner2 != null) return;
+    super.renderBlockHighlight(player, partialTick);
+  }
+
 
   /**
    * allows items to add custom lines of information to the mouseover description
