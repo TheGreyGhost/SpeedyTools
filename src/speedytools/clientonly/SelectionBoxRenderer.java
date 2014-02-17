@@ -240,7 +240,7 @@ public class SelectionBoxRenderer {
     /**
      *  Draw the given cube, rendering the selectedSide differently.  Only draw the "cross" outline on those sides facing the viewer [0,0,0] - or if the viewer is inside the box.
      * @param cube
-     * @param selectedSide (as per UsefulConstants.FACE_XPOS etc) - if no match (eg -1) doesn't draw any side selected
+     * @param selectedSide as per UsefulConstants.FACE_XPOS, including NONE and ALL
      * @param dragging - true is the player has grabbed a side and is dragging it
      */
   public static void drawFilledCubeWithSelectedSide(AxisAlignedBB cube, int selectedSide, boolean dragging)
@@ -292,33 +292,35 @@ public class SelectionBoxRenderer {
     faceRenderOrder[UsefulConstants.FACE_ZNEG] = relativeZpos;
     faceRenderOrder[UsefulConstants.FACE_ZPOS] = -relativeZpos;
 
+
     for (int relpos = 1; relpos >= -1; --relpos) {
       boolean drawCross = (relpos == -1) || (relativeXpos == 0 && relativeYpos == 0 && relativeZpos == 0);
       for (int side = 0; side <= 5; ++side) {
         if (faceRenderOrder[side] == relpos) {
+          boolean highlightThisSide = selectedSide == side || selectedSide == UsefulConstants.FACE_ALL;
           switch(side) {
             case UsefulConstants.FACE_XNEG: {
-              drawTransparentRect(xa, xa, xa, xa, ya, ya, yb, yb, za, zb, zb, za, selectedSide == UsefulConstants.FACE_XNEG, dragging, drawCross);
+              drawTransparentRect(xa, xa, xa, xa, ya, ya, yb, yb, za, zb, zb, za, highlightThisSide, dragging, drawCross);
               break;
             }
             case UsefulConstants.FACE_XPOS: {
-              drawTransparentRect(xb, xb, xb, xb, ya, ya, yb, yb, za, zb, zb, za, selectedSide == UsefulConstants.FACE_XPOS, dragging, drawCross);
+              drawTransparentRect(xb, xb, xb, xb, ya, ya, yb, yb, za, zb, zb, za, highlightThisSide, dragging, drawCross);
               break;
             }
             case UsefulConstants.FACE_YNEG: {
-              drawTransparentRect(xa, xa, xb, xb, ya, ya, ya, ya, za, zb, zb, za, selectedSide == UsefulConstants.FACE_YNEG, dragging, drawCross);
+              drawTransparentRect(xa, xa, xb, xb, ya, ya, ya, ya, za, zb, zb, za, highlightThisSide, dragging, drawCross);
               break;
             }
             case UsefulConstants.FACE_YPOS: {
-              drawTransparentRect(xa, xa, xb, xb, yb, yb, yb, yb, za, zb, zb, za, selectedSide == UsefulConstants.FACE_YPOS, dragging, drawCross);
+              drawTransparentRect(xa, xa, xb, xb, yb, yb, yb, yb, za, zb, zb, za, highlightThisSide, dragging, drawCross);
               break;
             }
             case UsefulConstants.FACE_ZNEG: {
-              drawTransparentRect(xa, xa, xb, xb, ya, yb, yb, ya, za, za, za, za, selectedSide == UsefulConstants.FACE_ZNEG, dragging, drawCross);
+              drawTransparentRect(xa, xa, xb, xb, ya, yb, yb, ya, za, za, za, za, highlightThisSide, dragging, drawCross);
               break;
             }
             case UsefulConstants.FACE_ZPOS: {
-              drawTransparentRect(xa, xa, xb, xb, ya, yb, yb, ya, zb, zb, zb, zb, selectedSide == UsefulConstants.FACE_ZPOS, dragging, drawCross);
+              drawTransparentRect(xa, xa, xb, xb, ya, yb, yb, ya, zb, zb, zb, zb, highlightThisSide, dragging, drawCross);
               break;
             }
           }

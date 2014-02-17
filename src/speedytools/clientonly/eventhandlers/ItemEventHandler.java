@@ -79,13 +79,8 @@ public class ItemEventHandler {
       ItemCloneTool itemCloneTool = (ItemCloneTool)currentItem.getItem();
 
       MovingObjectPosition target = itemCloneTool.rayTraceLineOfSight(player.worldObj, player);
-      ChunkCoordinates selection = itemCloneTool.getHighlightedBlock(target, player, currentItem, partialTick);
-
-      ItemCloneTool.setCurrentToolSelection(itemCloneTool, selection);
-
-      if (selection != null) {
-        itemCloneTool.renderBlockHighlight(player, partialTick);
-      }
+      itemCloneTool.highlightBlocks(target, player, currentItem, partialTick);
+      itemCloneTool.renderBlockHighlight(player, partialTick);
       itemCloneTool.renderBoundaryField(player, partialTick);
     }
 

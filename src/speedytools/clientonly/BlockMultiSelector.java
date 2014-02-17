@@ -290,15 +290,17 @@ public class BlockMultiSelector
    * depending on diagonalOK it will follow diagonals or only the cardinal directions.
    * Keeps going until it reaches maxBlockCount, y goes outside the valid range.  The search algorithm is to look for closest blocks first
    *   ("closest" meaning the shortest distance travelled along the blob being created)
+   *
    * @param mouseTarget the block under the player's cursor.  Uses [x,y,z]
    * @param world       the world
    * @param maxBlockCount the maximum number of blocks to select
    * @param diagonalOK    if true, diagonal 45 degree lines are allowed
-   * @return a list of the coordinates of all blocks in the selection, including the mouseTarget block.   Will be empty if the mouseTarget is not a tile.
+   * @param matchAnyNonAir
+   * @param xMin  the fill will not extend below xMin.  Likewise it will not extend above xMax.  Similar for y, z.
    */
-
   public static List<ChunkCoordinates> selectFill(MovingObjectPosition mouseTarget, World world,
-                                                  int maxBlockCount, boolean diagonalOK)
+                                                  int maxBlockCount, boolean diagonalOK, boolean matchAnyNonAir,
+                                                  int xMin, int xMax, int yMin, int yMax, int zMin, int zMax)
   {
     // lookup table to give the possible search directions for non-diagonal and diagonal respectively
     final int NON_DIAGONAL_DIRECTIONS = 6;
@@ -342,23 +344,29 @@ public class BlockMultiSelector
 
     // algorithm is:
     //   for each block in the list of search positions, iterate through each adjacent block to see whether it meets the criteria for expansion:
-    //     a) matches the block-to-be-replaced (blockID and metaData match, unless this is lava or water in which case metadata doesn't need to match).
+    //     a) matches the block-to-be-replaced (if matchAnyNonAir: non-air, otherwise if blockID and metaData match.  For lava or water metadata doesn't need to match).
     //     b) hasn't been filled already during this contour search
     //   if the criteria are met, select the block and add it to the list of blocks to be search next round.
     //   if the criteria aren't met, keep trying other directions from the same position until all positions are searched.  Then delete the search position and move onto the next.
-    //   This will ensure that the fill spreads evenly out from the starting point.
+    //   This will ensure that the fill spreads evenly out from the starting point.   Check the boundary to stop fill spreading outside it.
 
     while (!currentSearchPositions.isEmpty() && selection.size() < maxBlockCount) {
       SearchPosition currentSearchPosition = currentSearchPositions.getFirst();
       checkPosition.set(currentSearchPosition.chunkCoordinates.posX + searchDirectionsX[currentSearchPosition.nextSearchDirection],
-              currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[currentSearchPosition.nextSearchDirection],
-              currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[currentSearchPosition.nextSearchDirection]
-      );
-      if (!locationsFilled.contains(checkPosition)) {
+                        currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[currentSearchPosition.nextSearchDirection],
+                        currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[currentSearchPosition.nextSearchDirection]
+                        );
+      if (    checkPosition.posX >= xMin && checkPosition.posX <= xMax
+          &&  checkPosition.posY >= yMin && checkPosition.posY <= yMax
+          &&  checkPosition.posZ >= zMin && checkPosition.posZ <= zMax
+          && !locationsFilled.contains(checkPosition)) {
         boolean blockIsSuitable = false;
 
         int blockToCheckID = world.getBlockId(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
-        if (blockToCheckID == blockToReplaceID) {
+
+        if (matchAnyNonAir && blockToCheckID != 0) {
+          blockIsSuitable = true;
+        } else if (blockToCheckID == blockToReplaceID) {
           if (world.getBlockMetadata(checkPosition.posX, checkPosition.posY, checkPosition.posZ) == blockToReplaceMetadata) {
             blockIsSuitable = true;
           } else {
@@ -391,6 +399,20 @@ public class BlockMultiSelector
     return selection;
   }
 
+  /**
+   * see selectFill above
+   * @param mouseTarget
+   * @param world
+   * @param maxBlockCount
+   * @param diagonalOK
+   * @return
+   */
+  public static List<ChunkCoordinates> selectFill(MovingObjectPosition mouseTarget, World world,
+                                                  int maxBlockCount, boolean diagonalOK)
+  {
+    return selectFill(mouseTarget, world, maxBlockCount, diagonalOK, false,
+                      Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 255, Integer.MIN_VALUE, Integer.MAX_VALUE);
+  }
 
   /**
    * Used to create vector from the starting point to the midpoint of the specified side of the block.
@@ -562,5 +584,8 @@ public class BlockMultiSelector
     public ChunkCoordinates chunkCoordinates;
     public int nextSearchDirection;
   }
+
+
+
 
 }

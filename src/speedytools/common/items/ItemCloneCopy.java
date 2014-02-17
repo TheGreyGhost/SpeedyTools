@@ -8,10 +8,16 @@ import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
+import net.minecraft.world.World;
+import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.BlockMultiSelector;
+import speedytools.clientonly.SelectionBoxRenderer;
 import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
+import speedytools.common.UsefulConstants;
 
 import java.util.List;
+
+import static speedytools.clientonly.BlockMultiSelector.selectFill;
 
 /*
 three selection modes:
@@ -51,7 +57,7 @@ public class ItemCloneCopy extends ItemCloneTool {
 
   /**
    * Selects the first Block that will be affected by the tool when the player presses right-click
-   * 1) no selection field - floodfill from block clicked up
+   * 1) no selection field - floodfill (all non-air blocks, including diagonal fill) from block clicked up
    * 2) selection field: standing outside - all solid blocks in the field
    * 3) selection field: standing inside - floodfill to boundary field
    * So the selection algorithm is:
@@ -65,59 +71,88 @@ public class ItemCloneCopy extends ItemCloneTool {
    * @return
    */
   @Override
-  public ChunkCoordinates getHighlightedBlock(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
+    final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
+    currentlySelectedBlock = null;
+    highlightedBlocks = null;
+    boundaryGrabActivated = false;
+    boundaryCursorSide = UsefulConstants.FACE_NONE;
+
+    if (selectionMade) return;
+
     if (target != null && target.typeOfHit == EnumMovingObjectType.TILE) {
-        ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
-        return startBlockCoordinates;
+      currentlySelectedBlock = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+      boolean playerIsInsideBoundaryField = false;
+
+      if (boundaryCorner1 != null && boundaryCorner2 != null) {
+        sortBoundaryFieldCorners();
+        if (   currentlySelectedBlock.posX >= boundaryCorner1.posX && currentlySelectedBlock.posX <= boundaryCorner2.posX
+            && currentlySelectedBlock.posY >= boundaryCorner1.posY && currentlySelectedBlock.posY <= boundaryCorner2.posY
+            && currentlySelectedBlock.posZ >= boundaryCorner1.posZ && currentlySelectedBlock.posZ <= boundaryCorner2.posZ ) {
+          playerIsInsideBoundaryField = true;
+        }
+      }
+
+      if (playerIsInsideBoundaryField) {
+        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
+                                       boundaryCorner1.posX, boundaryCorner2.posX,
+                                       boundaryCorner1.posY, boundaryCorner2.posY,
+                                       boundaryCorner1.posZ, boundaryCorner2.posZ);
+      } else {
+        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
+                                       Integer.MIN_VALUE, Integer.MAX_VALUE,
+                                       currentlySelectedBlock.posY, 255,
+                                       Integer.MIN_VALUE, Integer.MAX_VALUE);
+      }
+      return;
     }
 
+    if (boundaryCorner1 == null || boundaryCorner2 == null) return;
     Vec3 playerPosition = player.getPosition(1.0F);
-    if (   playerPosition.xCoord >= boundaryCorner1.posX && playerPosition.xCoord <= boundaryCorner2.posX
-        && playerPosition.yCoord >= boundaryCorner1.posY && playerPosition.yCoord <= boundaryCorner2.posY
-            && playerPosition.zCoord >= boundaryCorner1.posZ && playerPosition.zCoord <= boundaryCorner2.posZ) {
-
+    if (   playerPosition.xCoord >= boundaryCorner1.posX && playerPosition.xCoord <= boundaryCorner2.posX +1
+        && playerPosition.yCoord >= boundaryCorner1.posY && playerPosition.yCoord <= boundaryCorner2.posY +1
+        && playerPosition.zCoord >= boundaryCorner1.posZ && playerPosition.zCoord <= boundaryCorner2.posZ +1) {
+      return;
     }
     MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
-    if (highlightedFace == null) return null;
-
-
-
-      MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
-      if (startBlock == null)
-
-        int faceToHighlight = -1;
-      if (boundaryGrabActivated) {
-        faceToHighlight = boundaryGrabSide;
-      } else {
-        MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
-        faceToHighlight = (highlightedFace != null) ? highlightedFace.sideHit : -1;
-      }
-
-
-    }
-
-
-    MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
-    if (airSelectionIgnoringBlocks == null) return null;
-    // we want to make sure that we only select a block at very short range.  So if we have hit a block beyond this range, shorten the target to eliminate it
-
-    if (target == null) {
-      target = airSelectionIgnoringBlocks;
-    } else if (target.typeOfHit == EnumMovingObjectType.TILE) {
-      if (target.hitVec.dotProduct(target.hitVec) > airSelectionIgnoringBlocks.hitVec.dotProduct(airSelectionIgnoringBlocks.hitVec)) {
-        target = airSelectionIgnoringBlocks;
-      }
-    }
-
-    ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
-    return startBlockCoordinates;
-  }
+    boundaryCursorSide = (highlightedFace != null) ? UsefulConstants.FACE_ALL : UsefulConstants.FACE_NONE;
+ }
 
   @Override
+  public void renderBoundaryField(EntityPlayer player, float partialTick)
+  {
+    if (!selectionMade) {
+      super.renderBoundaryField(player, partialTick);
+    }
+  }
+
+    @Override
   public void renderBlockHighlight(EntityPlayer player, float partialTick)
   {
-    super.renderBlockHighlight(player, partialTick);
+    if (highlightedBlocks == null) return;
+    GL11.glEnable(GL11.GL_BLEND);
+    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
+    GL11.glLineWidth(2.0F);
+    GL11.glDisable(GL11.GL_TEXTURE_2D);
+    GL11.glDepthMask(false);
+    double expandDistance = 0.002F;
+
+    double playerOriginX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
+    double playerOriginY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
+    double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
+
+    AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
+    for (ChunkCoordinates block : highlightedBlocks) {
+      boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX+1, block.posY+1, block.posZ+1);
+      boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
+      SelectionBoxRenderer.drawCube(boundingBox);
+    }
+
+    GL11.glDepthMask(true);
+    GL11.glEnable(GL11.GL_TEXTURE_2D);
+    GL11.glDisable(GL11.GL_BLEND);
   }
 
   /**
@@ -182,5 +217,9 @@ public class ItemCloneCopy extends ItemCloneTool {
 
     return true;
   }
+
+
+  private boolean selectionMade;
+  private List<ChunkCoordinates> highlightedBlocks;
 
 }
