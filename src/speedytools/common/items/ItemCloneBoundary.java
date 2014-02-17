@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import speedytools.clientonly.BlockMultiSelector;
 import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
+import speedytools.common.UsefulConstants;
 
 import java.util.List;
 
@@ -47,20 +48,25 @@ public class ItemCloneBoundary extends ItemCloneTool {
   }
 
   /**
-   * Selects the Block that will be affected by the tool when the player presses right-click
-   *
-   *
+   * Updates the block highlight, block selection, and/or boundary fields based on where the cursor is pointing
    * @param target the position of the cursor
    * @param player the player
    * @param currentItem the current item that the player is holding.  MUST be derived from ItemCloneTool.
    * @param partialTick partial tick time.
-   * @return returns the coordinates of the block selected, or null if none
+
    */
   @Override
-  public ChunkCoordinates selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
+    if (boundaryCorner1 != null  && boundaryCorner2 != null) {
+      MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
+      boundaryCursorSide = (highlightedFace != null) ? highlightedFace.sideHit : UsefulConstants.FACE_NONE;
+      return;
+    }
+
+    currentlySelectedBlock = null;
     MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
-    if (airSelectionIgnoringBlocks == null) return null;
+    if (airSelectionIgnoringBlocks == null) return;
     // we want to make sure that we only select a block at very short range.  So if we have hit a block beyond this range, shorten the target to eliminate it
 
     if (target == null) {
@@ -71,9 +77,44 @@ public class ItemCloneBoundary extends ItemCloneTool {
       }
     }
 
-    ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
-    return startBlockCoordinates;
+    currentlySelectedBlock = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
   }
+
+  /** called once per tick while the user is holding an ItemCloneTool
+   * @param useKeyHeldDown
+   */
+  @Override
+  public void tickKeyStates(boolean useKeyHeldDown)
+  {
+    // if the user was grabbing a boundary and has now released it, move the boundary blocks
+
+    if (boundaryGrabActivated & !useKeyHeldDown) {
+      Vec3 playerPosition = Minecraft.getMinecraft().renderViewEntity.getPosition(1.0F);
+      AxisAlignedBB newBoundaryField = getGrabDraggedBoundaryField(playerPosition);
+      boundaryCorner1.posX = (int)Math.round(newBoundaryField.minX);
+      boundaryCorner1.posY = (int)Math.round(newBoundaryField.minY);
+      boundaryCorner1.posZ = (int)Math.round(newBoundaryField.minZ);
+      boundaryCorner2.posX = (int)Math.round(newBoundaryField.maxX - 1);
+      boundaryCorner2.posY = (int)Math.round(newBoundaryField.maxY - 1);
+      boundaryCorner2.posZ = (int)Math.round(newBoundaryField.maxZ - 1);
+      boundaryGrabActivated = false;
+      playSound(CustomSoundsHandler.BOUNDARY_UNGRAB,
+              (float)playerPosition.xCoord, (float)playerPosition.yCoord, (float)playerPosition.zCoord);
+    }
+  }
+
+  /**
+   * renders the selection box if both corners haven't been placed yet.
+   * @param player
+   * @param partialTick
+   */
+  @Override
+  public void renderBlockHighlight(EntityPlayer player, float partialTick)
+  {
+    if (boundaryCorner1 != null && boundaryCorner2 != null) return;
+    super.renderBlockHighlight(player, partialTick);
+  }
+
 
   /**
    * allows items to add custom lines of information to the mouseover description
@@ -101,7 +142,6 @@ public class ItemCloneBoundary extends ItemCloneTool {
   @Override
   public boolean buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
-    if (currentlySelectedBlock == null) return false;
 
     switch (whichButton) {
       case 0: {
@@ -112,9 +152,11 @@ public class ItemCloneBoundary extends ItemCloneTool {
       }
       case 1: {
         if (boundaryCorner1 == null) {
+          if (currentlySelectedBlock == null) return false;
           boundaryCorner1 = new ChunkCoordinates(currentlySelectedBlock);
           playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
         } else if (boundaryCorner2 == null) {
+          if (currentlySelectedBlock == null) return false;
           boundaryCorner2 = new ChunkCoordinates(currentlySelectedBlock);
           sortBoundaryFieldCorners();
           playSound(CustomSoundsHandler.BOUNDARY_PLACE_2ND, thePlayer);

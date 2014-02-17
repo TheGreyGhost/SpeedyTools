@@ -34,7 +34,8 @@ public abstract class ItemCloneTool extends Item
 
   public static boolean isAcloneTool(int itemID)
   {
-    return (itemID == RegistryForItems.itemCloneBoundary.itemID);
+    return (   itemID == RegistryForItems.itemCloneBoundary.itemID
+            || itemID == RegistryForItems.itemCloneCopy.itemID);
   }
 
   /**
@@ -61,23 +62,11 @@ public abstract class ItemCloneTool extends Item
    * @return returns the coordinates of the block selected, or null if none
    */
   @SideOnly(Side.CLIENT)
-  public ChunkCoordinates selectBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+  public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
-    if (target == null) return null;
-    ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
-    return startBlockCoordinates;
-  }
-
-  /**
-   * Sets the current selection for the currently-held clone tool
-   * @param currentTool the currently-held clone tool
-   * @param currentSelection the currently selected block, or null if none
-   */
-  @SideOnly(Side.CLIENT)
-  public static void setCurrentToolSelection(Item currentTool, ChunkCoordinates currentSelection)
-  {
-    currentlySelectedTool = currentTool;
-    currentlySelectedBlock = currentSelection;
+    currentlySelectedBlock = null;
+    if (target == null) return;
+    currentlySelectedBlock = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
   }
 
   /**
@@ -130,24 +119,7 @@ public abstract class ItemCloneTool extends Item
   /** called once per tick while the user is holding an ItemCloneTool
    * @param useKeyHeldDown
    */
-  public void tickKeyStates(boolean useKeyHeldDown)
-  {
-    // if the user was grabbing a boundary and has now released it, move the boundary blocks
-
-    if (boundaryGrabActivated & !useKeyHeldDown) {
-      Vec3 playerPosition = Minecraft.getMinecraft().renderViewEntity.getPosition(1.0F);
-      AxisAlignedBB newBoundaryField = getGrabDraggedBoundaryField(playerPosition);
-      boundaryCorner1.posX = (int)Math.round(newBoundaryField.minX);
-      boundaryCorner1.posY = (int)Math.round(newBoundaryField.minY);
-      boundaryCorner1.posZ = (int)Math.round(newBoundaryField.minZ);
-      boundaryCorner2.posX = (int)Math.round(newBoundaryField.maxX - 1);
-      boundaryCorner2.posY = (int)Math.round(newBoundaryField.maxY - 1);
-      boundaryCorner2.posZ = (int)Math.round(newBoundaryField.maxZ - 1);
-      boundaryGrabActivated = false;
-      playSound(CustomSoundsHandler.BOUNDARY_UNGRAB,
-                (float)playerPosition.xCoord, (float)playerPosition.yCoord, (float)playerPosition.zCoord);
-    }
-  }
+  public void tickKeyStates(boolean useKeyHeldDown) {}
 
   /**
    * Calculate the new boundary field after being dragged to the current player position
@@ -217,10 +189,9 @@ public abstract class ItemCloneTool extends Item
    * @param player
    * @param partialTick
    */
-  public void renderSelection(EntityPlayer player, float partialTick)
+  public void renderBlockHighlight(EntityPlayer player, float partialTick)
   {
-    if (boundaryCorner1 != null && boundaryCorner2 != null) return;
-
+    if (currentlySelectedBlock == null) return;
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
@@ -277,8 +248,7 @@ public abstract class ItemCloneTool extends Item
     if (boundaryGrabActivated) {
       faceToHighlight = boundaryGrabSide;
     } else {
-      MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
-      faceToHighlight = (highlightedFace != null) ? highlightedFace.sideHit : -1;
+      faceToHighlight = boundaryCursorSide;
     }
     SelectionBoxRenderer.drawFilledCubeWithSelectedSide(boundingBox, faceToHighlight, boundaryGrabActivated);
 
@@ -287,6 +257,11 @@ public abstract class ItemCloneTool extends Item
     GL11.glDisable(GL11.GL_BLEND);
   }
 
+  /**
+   * Check to see if the player's cursor is on one of the faces of the boundary field.
+   * @param player
+   * @return null if cursor isn't on any face; .sidehit shows the face if it is
+   */
   protected static MovingObjectPosition boundaryFieldFaceSelection(EntityLivingBase player)
   {
     if (boundaryCorner1 == null || boundaryCorner2 == null) return null;
@@ -343,15 +318,15 @@ public abstract class ItemCloneTool extends Item
 
     // these keep track of the currently selected block, for when the tool is used
   protected static ChunkCoordinates currentlySelectedBlock = null;
-  protected static Item currentlySelectedTool = null;
+//  protected static Item currentlySelectedTool = null;
   protected static Deque<ItemCloneTool> undoSoundsHistory = new LinkedList<ItemCloneTool>();
 
   protected static ChunkCoordinates boundaryCorner1 = null;
   protected static ChunkCoordinates boundaryCorner2 = null;
 
   protected static boolean boundaryGrabActivated = false;
-  protected static int boundaryGrabSide = 0;
+  protected static int boundaryGrabSide = -1;
   protected static Vec3 boundaryGrabPoint = null;
 
-
+  protected static int boundaryCursorSide = -1;
 }
