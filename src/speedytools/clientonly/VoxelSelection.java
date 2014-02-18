@@ -16,18 +16,12 @@ public class VoxelSelection
 
   public VoxelSelection(int x, int y, int z)
   {
-    if (   x <= 0 || x > MAX_X_SIZE
-        || y <= 0 || y > MAX_Y_SIZE
-        || z <= 0 || z > MAX_Z_SIZE ) {
-      FMLLog.severe("Out-of-range [x,y,z] in VoxelSelection constructor: [%d, %d, %d]", x, y, z);
-      x = 1;
-      y = 1;
-      z = 1;
-    }
-    xmax = x;
-    ymax = y;
-    zmax = z;
-    voxels = new BitSet(xmax * ymax * zmax);     // default to all false
+    resize(x, y, z);
+  }
+
+  public void clearAll(int x, int y, int z)
+  {
+    resize(x, y, z);
   }
 
   public void setVoxel(int x, int y, int z)
@@ -55,6 +49,26 @@ public class VoxelSelection
     z = Math.min(Math.max(0, z), MAX_Z_SIZE-1);
 
     return voxels.get(x + MAX_X_SIZE*(y + MAX_Y_SIZE * z) );
+  }
+
+  private void resize(int x, int y, int z)
+  {
+    if (   x <= 0 || x > MAX_X_SIZE
+            || y <= 0 || y > MAX_Y_SIZE
+            || z <= 0 || z > MAX_Z_SIZE ) {
+      FMLLog.severe("Out-of-range [x,y,z] in VoxelSelection constructor: [%d, %d, %d]", x, y, z);
+      x = 1;
+      y = 1;
+      z = 1;
+    }
+    xmax = x;
+    ymax = y;
+    zmax = z;
+    if (voxels == null) {
+      voxels = new BitSet(xmax * ymax * zmax);     // default to all false
+    } else {
+      voxels.clear();
+    }
   }
 
   private BitSet voxels;
