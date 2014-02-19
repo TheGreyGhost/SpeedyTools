@@ -24,29 +24,52 @@ public class VoxelSelection
     resize(x, y, z);
   }
 
+  /**
+   * set the value of this voxel (or does nothing if x,y,z out of range)
+   * @param x
+   * @param y
+   * @param z
+   */
   public void setVoxel(int x, int y, int z)
   {
-   x = Math.min(Math.max(0, x), MAX_X_SIZE-1);
-   y = Math.min(Math.max(0, y), MAX_Y_SIZE-1);
-   z = Math.min(Math.max(0, z), MAX_Z_SIZE-1);
-
+    if (   x < 0 || x >= MAX_X_SIZE
+        || y < 0 || y >= MAX_Y_SIZE
+        || z < 0 || z >= MAX_Z_SIZE ) {
+      return;
+    }
    voxels.set(x + MAX_X_SIZE*(y + MAX_Y_SIZE * z) );
   }
 
+  /**
+   * set the value of this voxel (or does nothing if x,y,z out of range)
+   * @param x
+   * @param y
+   * @param z
+   */
   public void clearVoxel(int x, int y, int z)
   {
-    x = Math.min(Math.max(0, x), MAX_X_SIZE-1);
-    y = Math.min(Math.max(0, y), MAX_Y_SIZE-1);
-    z = Math.min(Math.max(0, z), MAX_Z_SIZE-1);
-
+    if (   x < 0 || x >= MAX_X_SIZE
+        || y < 0 || y >= MAX_Y_SIZE
+        || z < 0 || z >= MAX_Z_SIZE ) {
+      return;
+    }
     voxels.clear(x + MAX_X_SIZE * (y + MAX_Y_SIZE * z));
   }
 
+  /**
+   * gets the value of this voxel
+   * @param x
+   * @param y
+   * @param z
+   * @return the voxel state, or false if x, y, or z is out of range
+   */
   public boolean getVoxel(int x, int y, int z)
   {
-    x = Math.min(Math.max(0, x), MAX_X_SIZE-1);
-    y = Math.min(Math.max(0, y), MAX_Y_SIZE-1);
-    z = Math.min(Math.max(0, z), MAX_Z_SIZE-1);
+    if (   x < 0 || x >= MAX_X_SIZE
+        || y < 0 || y >= MAX_Y_SIZE
+        || z < 0 || z >= MAX_Z_SIZE ) {
+      return false;
+    }
 
     return voxels.get(x + MAX_X_SIZE*(y + MAX_Y_SIZE * z) );
   }

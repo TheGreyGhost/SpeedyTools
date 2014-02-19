@@ -5,14 +5,15 @@ import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.texture.IconRegister;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
-import speedytools.clientonly.BlockMultiSelector;
+import speedytools.clientonly.BlockVoxelMultiSelector;
 import speedytools.clientonly.SelectionBoxRenderer;
-import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
 import speedytools.common.UsefulConstants;
 
 import java.util.List;
@@ -41,6 +42,8 @@ public class ItemCloneCopy extends ItemCloneTool {
     setMaxStackSize(1);
     setUnlocalizedName("CloneCopy");
     setFull3D();                              // setting this flag causes the staff to render vertically in 3rd person view, like a pickaxe
+    checkInvariants();
+    lastRightClickTime = System.nanoTime() - 10 * 1000 * 1000 * 1000;   // arbitrary valid value
   }
 
   @Override
@@ -73,11 +76,14 @@ public class ItemCloneCopy extends ItemCloneTool {
   @Override
   public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
+    checkInvariants();
+
     final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
     currentlySelectedBlock = null;
     highlightedBlocks = null;
     boundaryGrabActivated = false;
     boundaryCursorSide = UsefulConstants.FACE_NONE;
+    currentHighlighting = SelectionType.NONE;
 
     if (selectionMade) return;
 
@@ -95,11 +101,13 @@ public class ItemCloneCopy extends ItemCloneTool {
       }
 
       if (playerIsInsideBoundaryField) {
+        currentHighlighting = SelectionType.BOUND_FILL;
         highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
                                        boundaryCorner1.posX, boundaryCorner2.posX,
                                        boundaryCorner1.posY, boundaryCorner2.posY,
                                        boundaryCorner1.posZ, boundaryCorner2.posZ);
       } else {
+        currentHighlighting = SelectionType.UNBOUND_FILL;
         highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
                                        Integer.MIN_VALUE, Integer.MAX_VALUE,
                                        currentlySelectedBlock.posY, 255,
@@ -117,6 +125,7 @@ public class ItemCloneCopy extends ItemCloneTool {
     }
     MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
     boundaryCursorSide = (highlightedFace != null) ? UsefulConstants.FACE_ALL : UsefulConstants.FACE_NONE;
+    currentHighlighting = SelectionType.FULL_BOX;
  }
 
   @Override
@@ -130,7 +139,10 @@ public class ItemCloneCopy extends ItemCloneTool {
     @Override
   public void renderBlockHighlight(EntityPlayer player, float partialTick)
   {
+    checkInvariants();
+
     if (highlightedBlocks == null) return;
+    GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
@@ -151,8 +163,7 @@ public class ItemCloneCopy extends ItemCloneTool {
     }
 
     GL11.glDepthMask(true);
-    GL11.glEnable(GL11.GL_TEXTURE_2D);
-    GL11.glDisable(GL11.GL_BLEND);
+    GL11.glPopAttrib();
   }
 
   /**
@@ -175,51 +186,132 @@ public class ItemCloneCopy extends ItemCloneTool {
    *
    * @param thePlayer
    * @param whichButton 0 = left (undo), 1 = right (use)
-   * @return true for success
    */
   @SideOnly(Side.CLIENT)
   @Override
-  public boolean buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
+  public void buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
-    if (currentlySelectedBlock == null) return false;
+    final int DOUBLE_CLICK_SPEED_MS = 200;
+    checkInvariants();
 
     switch (whichButton) {
       case 0: {
-        boundaryCorner1 = null;
-        boundaryCorner2 = null;
-        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
+        undo(thePlayer);
         break;
       }
       case 1: {
-        if (boundaryCorner1 == null) {
-          boundaryCorner1 = new ChunkCoordinates(currentlySelectedBlock);
-          playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
-        } else if (boundaryCorner2 == null) {
-          boundaryCorner2 = new ChunkCoordinates(currentlySelectedBlock);
-          sortBoundaryFieldCorners();
-          playSound(CustomSoundsHandler.BOUNDARY_PLACE_2ND, thePlayer);
-        } else {
-          MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
-          if (highlightedFace == null) return false;
+        if (voxelSelectionManager != null) return;
+        long clickElapsedTime = System.nanoTime() - lastRightClickTime;
+        lastRightClickTime = System.nanoTime();
 
-          boundaryGrabActivated = true;
-          boundaryGrabSide = highlightedFace.sideHit;
-          Vec3 playerPosition = thePlayer.getPosition(1.0F);
-          boundaryGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
-          playSound(CustomSoundsHandler.BOUNDARY_GRAB, thePlayer);
+        if (clickElapsedTime < DOUBLE_CLICK_SPEED_MS * 1000 * 1000) {
+          placeSelection(thePlayer);
+        } else {
+          boolean controlKeyDown =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+          if (controlKeyDown) {
+            flipSelection();
+          } else {
+            initiateSelectionCreation(thePlayer);
+          }
         }
+        lastRightClickTime = System.nanoTime();
         break;
       }
       default: {     // should never happen
-        return false;
+        break;
       }
     }
 
-    return true;
+    return;
+  }
+
+  private void undo(EntityClientPlayerMP thePlayer)
+  {
+    if (voxelSelectionManager == null) return;
+    voxelSelectionManager = null;
+    actionInProgress = ActionInProgress.NONE;
+//        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
+  }
+
+  private void placeSelection(EntityClientPlayerMP thePlayer)
+  {
+  }
+
+  private void flipSelection()
+  {
+
+  }
+
+  private void initiateSelectionCreation(EntityClientPlayerMP thePlayer)
+  {
+    switch (currentHighlighting) {
+      case NONE: {
+        break;
+      }
+      case FULL_BOX: {
+        voxelSelectionManager = new BlockVoxelMultiSelector();
+        voxelSelectionManager.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
+        actionInProgress = ActionInProgress.VOXELCREATION;
+//            playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
+        break;
+      }
+      case UNBOUND_FILL: {
+        break;
+      }
+      case BOUND_FILL: {
+        break;
+      }
+    }
+
+
   }
 
 
+  /** called once per tick while the user is holding an ItemCloneTool
+   * @param useKeyHeldDown
+   */
+  @Override
+  public void tick(World world, boolean useKeyHeldDown)
+  {
+    checkInvariants();
+    final long MAX_TIME_IN_NS = 10 * 1000 * 1000;
+    switch (actionInProgress) {
+      case NONE: {
+        break;
+      }
+      case VOXELCREATION: {
+        if (voxelSelectionManager != null) {
+          boolean finished = voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
+          if (finished) {
+
+
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  private void checkInvariants()
+  {
+     assert (   (actionInProgress != ActionInProgress.VOXELCREATION)
+             || (actionInProgress == ActionInProgress.VOXELCREATION && voxelSelectionManager != null) );
+     assert (  (!selectionMade)
+             || (selectionMade && voxelSelectionManager != null) );
+  }
+
   private boolean selectionMade;
   private List<ChunkCoordinates> highlightedBlocks;
+  private SelectionType currentHighlighting = SelectionType.NONE;
+  private BlockVoxelMultiSelector voxelSelectionManager;
+  private ActionInProgress actionInProgress = ActionInProgress.NONE;
+  private long lastRightClickTime;
 
+  private enum SelectionType {
+    NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL
+  }
+
+  private enum ActionInProgress {
+    NONE, VOXELCREATION
+  }
 }

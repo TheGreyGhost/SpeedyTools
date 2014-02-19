@@ -10,6 +10,7 @@ import net.minecraft.util.EnumMovingObjectType;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
+import speedytools.common.Colour;
 
 import java.util.*;
 
@@ -35,6 +36,8 @@ public class BlockVoxelMultiSelector
     IDLE, ENTIREFIELD, COMPLETE
   }
   private OperationInProgress mode;
+
+  private int displayListNumber = 0;
 
   /**
    * initialise conversion of the selected box to a VoxelSelection
@@ -97,40 +100,80 @@ public class BlockVoxelMultiSelector
     }
   }
 
-  void createRenderList
+  /**
+   * create a render list for the current selection
+   * @param world
+   */
+  public void createRenderList(World world)
   {
-    flag2 = true;
-
-    this.starGLCallList = GLAllocation.generateDisplayLists(3);
-
-    GL11.glNewList(this.glRenderList + pass, GL11.GL_COMPILE);
-    GL11.glPushMatrix();
-    this.setupGLTranslation();
-
-    private void setupGLTranslation()
-    {
-      GL11.glTranslatef((float)this.posXClip, (float)this.posYClip, (float)this.posZClip);
+    if (displayListNumber != 0) {
+      displayListNumber = GLAllocation.generateDisplayLists(1);
+    }
+    if (displayListNumber == 0) {
+      FMLLog.warning("Unable to create a displayList in BlockVoxelMultiSelector::createRenderList");
+      return;
     }
 
+    if (selection == null) {
+      GL11.glNewList(displayListNumber, GL11.GL_COMPILE);
+      GL11.glEndList();
+      return;
+    }
 
-    float f = 1.000001F;
-    GL11.glTranslatef(-8.0F, -8.0F, -8.0F);
-    GL11.glScalef(f, f, f);
-    GL11.glTranslatef(8.0F, 8.0F, 8.0F);
-    //ForgeHooksClient.beforeRenderPass(l1); Noop fo now, TODO: Event if anyone needs
-    Tessellator.instance.startDrawingQuads();
-    Tessellator.instance.setTranslation((double)(-this.posX), (double)(-this.posY), (double)(-this.posZ));
+    Tessellator tessellator = Tessellator.instance;
+    GL11.glNewList(displayListNumber, GL11.GL_COMPILE);
+    GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+    GL11.glDisable(GL11.GL_CULL_FACE);
+    tessellator.startDrawingQuads();
+    tessellator.setColorOpaque_F(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B);
+    // goes outside the VoxelSelection size, which always returns zero when out of bounds
+    for (int y = 0; y <= ySize; ++y) {
+      for (int z = 0; z <= zSize; ++z) {
+        for (int x = 0; x <= xSize; ++x) {
+           if (selection.getVoxel(x, y, z) != selection.getVoxel(x-1, y, z)) {
+             tessellator.addVertex(x,   y,   z);
+             tessellator.addVertex(x, y+1,   z);
+             tessellator.addVertex(x, y+1, z+1);
+             tessellator.addVertex(x,   y, z+1);
+           }
+          if (selection.getVoxel(x, y, z) != selection.getVoxel(x, y-1, z)) {
+            tessellator.addVertex(  x, y,   z);
+            tessellator.addVertex(x+1, y,   z);
+            tessellator.addVertex(x+1, y, z+1);
+            tessellator.addVertex(  x, y, z+1);
+          }
+          if (selection.getVoxel(x, y, z) != selection.getVoxel(x, y, z-1)) {
+            tessellator.addVertex(  x,   y, z);
+            tessellator.addVertex(  x, y+1, z);
+            tessellator.addVertex(x+1, y+1, z);
+            tessellator.addVertex(x+1,   y, z);
+          }
+        }
+      }
+    }
 
-    this.bytesDrawn += Tessellator.instance.draw();
-    GL11.glPopMatrix();
+    GL11.glPopAttrib();
     GL11.glEndList();
-    Tessellator.instance.setTranslation(0.0D, 0.0D, 0.0D);
-
-
   }
 
+  /**
+   * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef appropriately to match world{X/Y/Z}atZero
+   * @param worldXatZero the world x coordinate corresponding to the current rendering origin.  i.e. if I draw a cube from [0,0,0] to [1,1,1], what
+   *                     world coordinates does this correspond to?
+   * @param worldYatZero
+   * @param worldZatZero
+   */
+  public void renderSelection(int worldXatZero, int worldYatZero, int worldZatZero)
+  {
+    if (displayListNumber == 0) {
+      return;
+    }
 
-
+    GL11.glPushMatrix();
+    GL11.glTranslatef(xOffset - worldXatZero, yOffset - worldYatZero, zOffset - worldZatZero);
+    GL11.glCallList(displayListNumber);
+    GL11.glPopMatrix();
+  }
 
   /**
    * selectFill is used to select a flood fill of blocks which match the starting block, and return a list of their coordinates.

@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
+import net.minecraft.world.World;
 import speedytools.clientonly.BlockMultiSelector;
 import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
 import speedytools.common.UsefulConstants;
@@ -84,7 +85,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
    * @param useKeyHeldDown
    */
   @Override
-  public void tickKeyStates(boolean useKeyHeldDown)
+  public void tick(World world, boolean useKeyHeldDown)
   {
     // if the user was grabbing a boundary and has now released it, move the boundary blocks
 

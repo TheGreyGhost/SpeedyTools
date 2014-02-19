@@ -5,7 +5,6 @@ import cpw.mods.fml.common.TickType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
-import org.lwjgl.input.Keyboard;
 import speedytools.clientonly.SpeedyToolControls;
 import speedytools.common.items.ItemCloneTool;
 import speedytools.common.items.ItemSpeedyTool;
@@ -63,7 +62,7 @@ public class ClientTickHandler implements ITickHandler {
     }
 
     if (cloneToolHeld) {
-      ((ItemCloneTool)heldItem.getItem()).tickKeyStates(SpeedyToolControls.useItemButtonInterceptor.isKeyDown());
+      ((ItemCloneTool)heldItem.getItem()).tick(player.worldObj, SpeedyToolControls.useItemButtonInterceptor.isKeyDown());
     }
   }
 

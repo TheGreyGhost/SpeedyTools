@@ -111,15 +111,15 @@ public abstract class ItemCloneTool extends Item
    */
 
   @SideOnly(Side.CLIENT)
-  public boolean buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
+  public void buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
-    return false;
+    return;
   }
 
   /** called once per tick while the user is holding an ItemCloneTool
    * @param useKeyHeldDown
    */
-  public void tickKeyStates(boolean useKeyHeldDown) {}
+  public void tick(World world, boolean useKeyHeldDown) {}
 
   /**
    * Calculate the new boundary field after being dragged to the current player position
