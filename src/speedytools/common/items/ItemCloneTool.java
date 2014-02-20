@@ -76,7 +76,7 @@ public abstract class ItemCloneTool extends Item
   @SideOnly(Side.CLIENT)
   public void attackButtonClicked(EntityClientPlayerMP thePlayer)
   {
-    boolean success = buttonClicked(thePlayer, 0);
+    buttonClicked(thePlayer, 0);
   }
 
   /**
@@ -86,7 +86,7 @@ public abstract class ItemCloneTool extends Item
   @SideOnly(Side.CLIENT)
   public void useButtonClicked(EntityClientPlayerMP thePlayer)
   {
-    boolean success = buttonClicked(thePlayer, 1);
+    buttonClicked(thePlayer, 1);
   }
 
   /**

@@ -69,17 +69,15 @@ public class BlockVoxelMultiSelector
 
     long startTime = System.nanoTime();
 
-    while (zpos < zSize) {
-      while (xpos < xSize) {
-        while (ypos < ySize) {
+    for ( ; zpos < zSize; ++zpos, xpos = 0) {
+      for ( ; xpos < xSize; ++xpos, ypos = 0) {
+        for ( ; ypos < ySize; ++ypos) {
+//          if (System.nanoTime() - startTime >= maxTimeInNS) return false;
           if (world.getBlockId(xpos + xOffset, ypos + yOffset, zpos + zOffset) != 0) {
             selection.setVoxel(xpos, ypos, zpos);
           }
         }
-        ypos = 0;
-        if (System.nanoTime() - startTime >= maxTimeInNS) return false;
       }
-      xpos = 0;
     }
     mode = OperationInProgress.COMPLETE;
     return true;
@@ -106,7 +104,7 @@ public class BlockVoxelMultiSelector
    */
   public void createRenderList(World world)
   {
-    if (displayListNumber != 0) {
+    if (displayListNumber == 0) {
       displayListNumber = GLAllocation.generateDisplayLists(1);
     }
     if (displayListNumber == 0) {
@@ -151,26 +149,24 @@ public class BlockVoxelMultiSelector
         }
       }
     }
-
+    tessellator.draw();
     GL11.glPopAttrib();
     GL11.glEndList();
   }
 
   /**
    * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef appropriately to match world{X/Y/Z}atZero
-   * @param worldXatZero the world x coordinate corresponding to the current rendering origin.  i.e. if I draw a cube from [0,0,0] to [1,1,1], what
-   *                     world coordinates does this correspond to?
-   * @param worldYatZero
-   * @param worldZatZero
+   * @param worldZeroPoint the world coordinate corresponding to the current rendering origin.  i.e. if I draw a cube from [0,0,0] to [1,1,1], what
+   *                       world coordinates does this correspond to?
    */
-  public void renderSelection(int worldXatZero, int worldYatZero, int worldZatZero)
+  public void renderSelection(ChunkCoordinates worldZeroPoint)
   {
     if (displayListNumber == 0) {
       return;
     }
 
     GL11.glPushMatrix();
-    GL11.glTranslatef(xOffset - worldXatZero, yOffset - worldYatZero, zOffset - worldZatZero);
+    GL11.glTranslatef(xOffset - worldZeroPoint.posX, yOffset - worldZeroPoint.posY, zOffset - worldZeroPoint.posZ);
     GL11.glCallList(displayListNumber);
     GL11.glPopMatrix();
   }

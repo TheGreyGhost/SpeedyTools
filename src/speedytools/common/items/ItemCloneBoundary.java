@@ -133,7 +133,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
   /**
    * Place or remove a boundary marker.
    * If one of the two boundary markers is unplaced, set that.
-   * If both are placed, attempt to "grab" one of the boundary sides (cursor / line of sight intersects one of them)
+   * If both are placed, attempt to "grab" one of the boundary sides (cursor / line of sight intersects a side)
    *
    * @param thePlayer
    * @param whichButton 0 = left (undo), 1 = right (use)
@@ -141,7 +141,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
    */
   @SideOnly(Side.CLIENT)
   @Override
-  public boolean buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
+  public void buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
 
     switch (whichButton) {
@@ -153,17 +153,17 @@ public class ItemCloneBoundary extends ItemCloneTool {
       }
       case 1: {
         if (boundaryCorner1 == null) {
-          if (currentlySelectedBlock == null) return false;
+          if (currentlySelectedBlock == null) return;
           boundaryCorner1 = new ChunkCoordinates(currentlySelectedBlock);
           playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
         } else if (boundaryCorner2 == null) {
-          if (currentlySelectedBlock == null) return false;
+          if (currentlySelectedBlock == null) return;
           boundaryCorner2 = new ChunkCoordinates(currentlySelectedBlock);
           sortBoundaryFieldCorners();
           playSound(CustomSoundsHandler.BOUNDARY_PLACE_2ND, thePlayer);
         } else {
           MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
-          if (highlightedFace == null) return false;
+          if (highlightedFace == null) return;
 
           boundaryGrabActivated = true;
           boundaryGrabSide = highlightedFace.sideHit;
@@ -174,11 +174,11 @@ public class ItemCloneBoundary extends ItemCloneTool {
         break;
       }
       default: {     // should never happen
-        return false;
+        break;
       }
     }
 
-    return true;
+    return;
   }
 
   private Icon iconTwoPlaced;

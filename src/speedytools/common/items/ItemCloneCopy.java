@@ -10,10 +10,12 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.BlockVoxelMultiSelector;
 import speedytools.clientonly.SelectionBoxRenderer;
+import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
 import speedytools.common.UsefulConstants;
 
 import java.util.List;
@@ -32,6 +34,10 @@ double right click = place
 left click = undo place / undo selection
 ctrl + Rclick = flip selection
 ctrl + mousewheel = rotate
+
+Selection creation and RenderList creation are both done in stages to avoid starving CPU:
+(1) start / initialise
+(2) each tick: continue for a max of xxx nanoseconds.
 
  */
 
@@ -64,19 +70,19 @@ public class ItemCloneCopy extends ItemCloneTool {
    * 2) selection field: standing outside - all solid blocks in the field
    * 3) selection field: standing inside - floodfill to boundary field
    * So the selection algorithm is:
-   * a) if the player is pointing at a block, return it; else
+   * a) if the player is pointing at a block, specify that; else
    * b) check the player is pointing at a side of the boundary field (from outside)
    *
    * @param target the position of the cursor
    * @param player the player
    * @param currentItem the current item that the player is holding.  MUST be derived from ItemCloneTool.
    * @param partialTick partial tick time.
-   * @return
    */
   @Override
   public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
     checkInvariants();
+    if (currentToolState != ToolState.NO_SELECTION) return;
 
     final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
     currentlySelectedBlock = null;
@@ -84,8 +90,6 @@ public class ItemCloneCopy extends ItemCloneTool {
     boundaryGrabActivated = false;
     boundaryCursorSide = UsefulConstants.FACE_NONE;
     currentHighlighting = SelectionType.NONE;
-
-    if (selectionMade) return;
 
     if (target != null && target.typeOfHit == EnumMovingObjectType.TILE) {
       currentlySelectedBlock = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
@@ -131,7 +135,8 @@ public class ItemCloneCopy extends ItemCloneTool {
   @Override
   public void renderBoundaryField(EntityPlayer player, float partialTick)
   {
-    if (!selectionMade) {
+    checkInvariants();
+    if (currentToolState.displayBoundaryField) {
       super.renderBoundaryField(player, partialTick);
     }
   }
@@ -141,29 +146,32 @@ public class ItemCloneCopy extends ItemCloneTool {
   {
     checkInvariants();
 
-    if (highlightedBlocks == null) return;
-    GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
-    GL11.glEnable(GL11.GL_BLEND);
-    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-    GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
-    GL11.glLineWidth(2.0F);
-    GL11.glDisable(GL11.GL_TEXTURE_2D);
-    GL11.glDepthMask(false);
-    double expandDistance = 0.002F;
-
-    double playerOriginX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
-    double playerOriginY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
-    double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
-
-    AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
-    for (ChunkCoordinates block : highlightedBlocks) {
-      boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX+1, block.posY+1, block.posZ+1);
-      boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
-      SelectionBoxRenderer.drawCube(boundingBox);
+    if (currentToolState.displaySelection) {
+      voxelSelectionManager.renderSelection(selectionOrigin);
     }
 
-    GL11.glDepthMask(true);
-    GL11.glPopAttrib();
+    if (currentToolState.displayHighlight && highlightedBlocks != null) {
+      GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+      GL11.glEnable(GL11.GL_BLEND);
+      GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+      GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
+      GL11.glLineWidth(2.0F);
+      GL11.glDisable(GL11.GL_TEXTURE_2D);
+      GL11.glDepthMask(false);
+      double expandDistance = 0.002F;
+
+      Vec3 playerOrigin = player.getPosition(partialTick);
+
+      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
+      for (ChunkCoordinates block : highlightedBlocks) {
+        boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX+1, block.posY+1, block.posZ+1);
+        boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
+        SelectionBoxRenderer.drawCube(boundingBox);
+      }
+
+      GL11.glDepthMask(true);
+      GL11.glPopAttrib();
+    }
   }
 
   /**
@@ -179,11 +187,7 @@ public class ItemCloneCopy extends ItemCloneTool {
     textList.add("Left click: remove all markers");
   }
 
-  /**
-   * Place or remove a boundary marker.
-   * If one of the two boundary markers is unplaced, set that.
-   * If both are placed, attempt to "grab" one of the boundary sides (cursor / line of sight intersects one of them)
-   *
+   /** respond to a button click
    * @param thePlayer
    * @param whichButton 0 = left (undo), 1 = right (use)
    */
@@ -200,36 +204,62 @@ public class ItemCloneCopy extends ItemCloneTool {
         break;
       }
       case 1: {
-        if (voxelSelectionManager != null) return;
-        long clickElapsedTime = System.nanoTime() - lastRightClickTime;
-        lastRightClickTime = System.nanoTime();
-
-        if (clickElapsedTime < DOUBLE_CLICK_SPEED_MS * 1000 * 1000) {
-          placeSelection(thePlayer);
-        } else {
-          boolean controlKeyDown =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-          if (controlKeyDown) {
-            flipSelection();
-          } else {
+        if (currentToolState.performingAction) return;
+        switch (currentToolState) {
+          case NO_SELECTION: {
             initiateSelectionCreation(thePlayer);
+            break;
+          }
+          case DISPLAYING_SELECTION: {
+            long clickElapsedTime = System.nanoTime() - lastRightClickTime;
+            lastRightClickTime = System.nanoTime();
+
+            boolean controlKeyDown =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+            if (controlKeyDown) {
+              flipSelection();
+            } else {
+              if (clickElapsedTime < DOUBLE_CLICK_SPEED_MS * 1000 * 1000) {
+                placeSelection(thePlayer);
+              } else {
+                Vec3 playerPosition = thePlayer.getPosition(1.0F);  // beware, Vec3 is short-lived
+                selectionGrabActivated = true;
+                selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
+              }
+            }
+
           }
         }
-        lastRightClickTime = System.nanoTime();
         break;
       }
-      default: {     // should never happen
+      default: {     // should never happen- if it does, ignore it
         break;
       }
     }
 
+    checkInvariants();
     return;
   }
 
   private void undo(EntityClientPlayerMP thePlayer)
   {
-    if (voxelSelectionManager == null) return;
-    voxelSelectionManager = null;
-    actionInProgress = ActionInProgress.NONE;
+    checkInvariants();
+    switch(currentToolState) {
+      case NO_SELECTION: {
+        break;
+      }
+      case GENERATING_SELECTION: {
+        actionInProgress = ActionInProgress.NONE;
+        currentToolState = ToolState.NO_SELECTION;
+        break;
+      }
+      case DISPLAYING_SELECTION: {
+        currentToolState = ToolState.NO_SELECTION;
+        break;
+      }
+      default: {
+        assert (currentToolState == ToolState.NO_SELECTION);
+      }
+    }
 //        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
   }
 
@@ -251,6 +281,9 @@ public class ItemCloneCopy extends ItemCloneTool {
       case FULL_BOX: {
         voxelSelectionManager = new BlockVoxelMultiSelector();
         voxelSelectionManager.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
+        sortBoundaryFieldCorners();
+        selectionOrigin = boundaryCorner1;
+        currentToolState = ToolState.GENERATING_SELECTION;
         actionInProgress = ActionInProgress.VOXELCREATION;
 //            playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
         break;
@@ -262,10 +295,7 @@ public class ItemCloneCopy extends ItemCloneTool {
         break;
       }
     }
-
-
   }
-
 
   /** called once per tick while the user is holding an ItemCloneTool
    * @param useKeyHeldDown
@@ -280,31 +310,72 @@ public class ItemCloneCopy extends ItemCloneTool {
         break;
       }
       case VOXELCREATION: {
-        if (voxelSelectionManager != null) {
-          boolean finished = voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
-          if (finished) {
-
-
-          }
+        boolean finished = voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
+        if (finished) {
+          actionInProgress = ActionInProgress.NONE;
+          voxelSelectionManager.createRenderList(world);
+          currentToolState = ToolState.DISPLAYING_SELECTION;
         }
         break;
       }
     }
+
+    if (currentToolState == ToolState.DISPLAYING_SELECTION) {
+      if (selectionGrabActivated & !useKeyHeldDown) {
+        Vec3 playerPosition = Minecraft.getMinecraft().renderViewEntity.getPosition(1.0F);
+        playerPosition.subtract(selectionGrabPoint);
+        selectionOrigin.posX += (int)Math.round(playerPosition.xCoord);
+        selectionOrigin.posY += (int)Math.round(playerPosition.yCoord);
+        selectionOrigin.posZ += (int)Math.round(playerPosition.zCoord);
+        selectionGrabActivated = false;
+//        playSound(CustomSoundsHandler.BOUNDARY_UNGRAB,
+//                (float)playerPosition.xCoord, (float)playerPosition.yCoord, (float)playerPosition.zCoord);
+      }
+    }
+
+    checkInvariants();
   }
 
   private void checkInvariants()
   {
-     assert (   (actionInProgress != ActionInProgress.VOXELCREATION)
-             || (actionInProgress == ActionInProgress.VOXELCREATION && voxelSelectionManager != null) );
-     assert (  (!selectionMade)
-             || (selectionMade && voxelSelectionManager != null) );
+    assert (    currentToolState != ToolState.NO_SELECTION
+            || (actionInProgress == ActionInProgress.NONE) );
+    assert (    currentToolState != ToolState.GENERATING_SELECTION
+            || (voxelSelectionManager != null && actionInProgress != ActionInProgress.NONE) );
+    assert (   currentToolState != ToolState.DISPLAYING_SELECTION
+            || (voxelSelectionManager != null && selectionOrigin != null && actionInProgress == ActionInProgress.NONE ) );
+
+    assert (    selectionGrabActivated == false || selectionGrabPoint != null);
   }
 
-  private boolean selectionMade;
-  private List<ChunkCoordinates> highlightedBlocks;
+  // the Item can be in several states as given by currentToolState:
+  // 1) NO_SELECTION
+  //    highlightBlocks() is used to update some variables, based on what the player is looking at
+  //      a) highlightedBlocks (block wire outline)
+  //      b) currentHighlighting (what type of highlighting depending on whether there is a boundary field, whether
+  //         the player is looking at a block or at a side of the boundary field
+  //      c) currentlySelectedBlock (if looking at a block)
+  //      d) boundaryCursorSide (if looking at the boundary field)
+  //    voxelSelectionManager is not valid
+  // 2) GENERATING_SELECTION - user has clicked to generate a selection
+  //    a) actionInProgress gives the action being performed
+  //    b) voxelSelectionManager has been created and initialised
+  //    c) every tick, the voxelSelectionManager is updated further until complete
+  // 3) DISPLAYING_SELECTION - selection is being displayed and/or moved
+  //    voxelSelectionManager is valid and has a renderlist
+  //
+
   private SelectionType currentHighlighting = SelectionType.NONE;
-  private BlockVoxelMultiSelector voxelSelectionManager;
+  private List<ChunkCoordinates> highlightedBlocks;
+
   private ActionInProgress actionInProgress = ActionInProgress.NONE;
+  private ToolState currentToolState = ToolState.NO_SELECTION;
+
+  private BlockVoxelMultiSelector voxelSelectionManager;
+  private ChunkCoordinates selectionOrigin;
+  private boolean selectionGrabActivated = false;
+  private Vec3    selectionGrabPoint = null;
+
   private long lastRightClickTime;
 
   private enum SelectionType {
@@ -314,4 +385,24 @@ public class ItemCloneCopy extends ItemCloneTool {
   private enum ActionInProgress {
     NONE, VOXELCREATION
   }
+
+  private enum ToolState {
+    NO_SELECTION(true, false, true, false),
+    GENERATING_SELECTION(false, false, true, true),
+    DISPLAYING_SELECTION(false, true, false, false);
+
+    public final boolean displayHighlight;
+    public final boolean displaySelection;
+    public final boolean displayBoundaryField;
+    public final boolean performingAction;
+
+    private ToolState(boolean init_displayHighlight, boolean init_displaySelection, boolean init_displayBoundaryField, boolean init_performingAction)
+    {
+      displayHighlight = init_displayHighlight;
+      displaySelection = init_displaySelection;
+      displayBoundaryField = init_displayBoundaryField;
+      performingAction = init_performingAction;
+    }
+  }
+
 }
