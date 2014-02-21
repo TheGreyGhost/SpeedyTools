@@ -160,7 +160,8 @@ public class ItemCloneCopy extends ItemCloneTool {
         dragSelectionOriginZ += distanceMoved.zCoord;
       }
       GL11.glTranslated(dragSelectionOriginX - playerOrigin.xCoord, dragSelectionOriginY - playerOrigin.yCoord, dragSelectionOriginZ - playerOrigin.zCoord);
-      voxelSelectionManager.renderSelection(selectionOrigin);
+      Vec3 playerRelativeToSelectionOrigin = playerOrigin.addVector(-dragSelectionOriginX, -dragSelectionOriginY, -dragSelectionOriginZ);
+      voxelSelectionManager.renderSelection(playerRelativeToSelectionOrigin);
     }
 
     if (currentToolState.displayHighlight && highlightedBlocks != null) {

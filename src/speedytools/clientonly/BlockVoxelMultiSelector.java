@@ -4,6 +4,7 @@ import cpw.mods.fml.common.FMLLog;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.Colour;
@@ -18,6 +19,13 @@ public class BlockVoxelMultiSelector
 {
   private VoxelSelection selection;
   private VoxelSelection shadow;
+
+  private int smallestVoxelX;
+  private int largestVoxelX;
+  private int smallestVoxelY;
+  private int largestVoxelY;
+  private int smallestVoxelZ;
+  private int largestVoxelZ;
 
 /*
   // the coordinates of the blocks that form the
@@ -43,7 +51,9 @@ public class BlockVoxelMultiSelector
   private OperationInProgress mode;
 
   private int displayListSelection = 0;
-  private int displayListWireframeStrip = 0;
+  private int displayListWireFrameXY = 0;
+  private int displayListWireFrameYZ = 0;
+  private int displayListWireFrameXZ = 0;
 
   /**
    * initialise conversion of the selected box to a VoxelSelection
@@ -58,6 +68,7 @@ public class BlockVoxelMultiSelector
     ypos = 0;
     zpos = 0;
     mode = OperationInProgress.ENTIREFIELD;
+    initialiseVoxelRange();
   }
 
   /**
@@ -82,12 +93,33 @@ public class BlockVoxelMultiSelector
           if (world.getBlockId(xpos + xOffset, ypos + yOffset, zpos + zOffset) != 0) {
             selection.setVoxel(xpos, ypos, zpos);
             shadow.setVoxel(xpos, 1, zpos);
+            expandVoxelRange(xpos, ypos, zpos);
           }
         }
       }
     }
     mode = OperationInProgress.COMPLETE;
     return true;
+  }
+
+  private void initialiseVoxelRange()
+  {
+    smallestVoxelX = xSize;
+    largestVoxelX = -1;
+    smallestVoxelY = ySize;
+    largestVoxelY = -1;
+    smallestVoxelZ = zSize;
+    largestVoxelZ = -1;
+  }
+
+  private void expandVoxelRange(int x, int y, int z)
+  {
+    smallestVoxelX = Math.min(smallestVoxelX, x);
+    smallestVoxelY = Math.min(smallestVoxelY, y);
+    smallestVoxelZ = Math.min(smallestVoxelZ, z);
+    largestVoxelX = Math.max(largestVoxelX, x);
+    largestVoxelY = Math.max(largestVoxelY, y);
+    largestVoxelZ = Math.max(largestVoxelZ, z);
   }
 
   private void initialiseSelectionSizeFromBoundary(ChunkCoordinates corner1, ChunkCoordinates corner2)
@@ -134,8 +166,8 @@ public class BlockVoxelMultiSelector
     GL11.glNewList(displayListSelection, GL11.GL_COMPILE);
     GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
     GL11.glDisable(GL11.GL_CULL_FACE);
+    GL11.glColor4f(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B, Colour.PINK_100.A);
     tessellator.startDrawingQuads();
-    tessellator.setColorOpaque_F(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B);
     // goes outside the VoxelSelection size, which always returns zero when out of bounds
     for (int y = 0; y <= ySize; ++y) {
       for (int z = 0; z <= zSize; ++z) {
@@ -212,45 +244,59 @@ public class BlockVoxelMultiSelector
 
     GL11.glPopAttrib();
     GL11.glEndList();
+
+    createMeshRenderLists(world);
   }
 
   /**
-   * a vertical wireframe strip made up of 1x1 squares, in the xy plane
-   * origin is the top (ymax) corner, i.e. the topmost square is [0,0,0] to [1, -1, 0]
+   * a vertical wireframe mesh made up of 1x1 squares, in the xy, yz, or xz plane
+   * origin is the top (ymax) corner, i.e. the topmost square is [0,0,0], the bottommost square is +xcount, -ycount, zcount
+   * one of the three must be 0 to specify which plane the mesh is in.
    */
-  private void generateWireFrameStrip()
+  private void generateWireFrame2DMesh(int displayListNumber, int xcount, int ycount, int zcount)
   {
-    if (displayListWireframeStrip == 0) {
-      displayListWireframeStrip = GLAllocation.generateDisplayLists(1);
-    }
-
-    if (displayListSelection == 0) {
-      FMLLog.warning("Unable to create a displayList in BlockVoxelMultiSelector::createShadowRenderList");
-      return;
-    }
+    if (displayListNumber == 0) return;
+    assert (xcount >= 0 && ycount >= 0 && zcount >= 0);
+    assert (xcount == 0 || ycount == 0 || zcount == 0);
 
     Tessellator tessellator = Tessellator.instance;
-    GL11.glNewList(displayListSelection, GL11.GL_COMPILE);
+    GL11.glNewList(displayListNumber, GL11.GL_COMPILE);
     GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-    GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
     GL11.glLineWidth(2.0F);
     GL11.glDisable(GL11.GL_TEXTURE_2D);
     GL11.glDepthMask(false);
 
-    final int FRAME_HEIGHT = 256;
     tessellator.startDrawing(GL11.GL_LINE_LOOP);
     tessellator.addVertex(0.0, 0.0, 0.0);
-    tessellator.addVertex(1.0, 0.0, 0.0);
-    tessellator.addVertex(1.0, -FRAME_HEIGHT, 0.0);
-    tessellator.addVertex(0.0, -FRAME_HEIGHT, 0.0);
+    if (xcount == 0) {
+      tessellator.addVertex(   0.0, -ycount,    0.0);
+      tessellator.addVertex(   0.0, -ycount, zcount);
+      tessellator.addVertex(   0.0,       0, zcount);
+    } else {
+      tessellator.addVertex(xcount,     0.0,    0.0);
+      tessellator.addVertex(xcount, -ycount, zcount);
+      tessellator.addVertex(   0.0, -ycount, zcount);
+    }
     tessellator.draw();
 
-    for (int y = -1; y > -FRAME_HEIGHT; --y) {
-      tessellator.startDrawing(GL11.GL_LINE);
-      tessellator.addVertex(0.0, y, 0.0);
-      tessellator.addVertex(1.0, y, 0.0);
+    for (int x = 1; x < xcount; ++x) {
+      tessellator.startDrawing(GL11.GL_LINES);
+      tessellator.addVertex(x,     0.0,    0.0);
+      tessellator.addVertex(x, -ycount, zcount);
+      tessellator.draw();
+    }
+    for (int y = 1; y < ycount; ++y) {
+      tessellator.startDrawing(GL11.GL_LINES);
+      tessellator.addVertex(   0.0, -y,    0.0);
+      tessellator.addVertex(xcount, -y, zcount);
+      tessellator.draw();
+    }
+    for (int z = 1; z < zcount; ++z) {
+      tessellator.startDrawing(GL11.GL_LINES);
+      tessellator.addVertex(   0.0,     0.0, z);
+      tessellator.addVertex(xcount, -ycount, z);
       tessellator.draw();
     }
 
@@ -259,9 +305,27 @@ public class BlockVoxelMultiSelector
     GL11.glEndList();
   }
 
-  private void createShadowRenderList(World world)
+  private void createMeshRenderLists(World world)
   {
-    generateWireFrameStrip();
+    if (displayListWireFrameXY == 0) {
+      displayListWireFrameXY = GLAllocation.generateDisplayLists(1);
+    }
+    if (displayListWireFrameXZ == 0) {
+      displayListWireFrameXZ = GLAllocation.generateDisplayLists(1);
+    }
+    if (displayListWireFrameYZ == 0) {
+      displayListWireFrameYZ = GLAllocation.generateDisplayLists(1);
+    }
+    if (displayListWireFrameXY == 0 || displayListWireFrameYZ == 0 || displayListWireFrameXZ == 0) {
+      FMLLog.warning("Unable to create a displayList in BlockVoxelMultiSelector::createMeshRenderLists");
+      return;
+    }
+
+    final int MESH_HEIGHT = 256;
+    generateWireFrame2DMesh(displayListWireFrameXY, largestVoxelX - smallestVoxelX + 1, MESH_HEIGHT,                                  0);
+    generateWireFrame2DMesh(displayListWireFrameXZ, largestVoxelX - smallestVoxelX + 1,           0, largestVoxelZ - smallestVoxelZ + 1);
+    generateWireFrame2DMesh(displayListWireFrameYZ,                                  0, MESH_HEIGHT, largestVoxelZ - smallestVoxelZ + 1);
+  }
 
 
 
@@ -334,14 +398,15 @@ public class BlockVoxelMultiSelector
       coordinates.posY = y;
     }
 */
-  }
+
 
 
   /**
    * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef so that the render starts in the
    *   correct spot  (the min[x,y,z] corner of the VoxelSelection will be drawn at [0,0,0])
+   *   relativePlayerPosition is the position of the player's eyes relative to the minimum [x,y,z] corner of the VoxelSelection
    */
-  public void renderSelection(ChunkCoordinates worldZeroPoint)
+  public void renderSelection(Vec3 relativePlayerPosition)
   {
     if (displayListSelection == 0) {
       return;
@@ -350,6 +415,62 @@ public class BlockVoxelMultiSelector
     GL11.glPushMatrix();
     GL11.glCallList(displayListSelection);
     GL11.glPopMatrix();
+
+    // cull the back faces of the grid:
+    // only draw a face if you can see the front of it
+    //   eg for xpos face - if player is to the right, for xneg - if player is to the left.  if between don't draw either one.
+    // exception: if inside the cube, render all faces.  Yneg is always drawn.
+    boolean inside =    (relativePlayerPosition.xCoord >= smallestVoxelX && relativePlayerPosition.xCoord <= largestVoxelX + 1)
+                     && (                                                   relativePlayerPosition.yCoord <= largestVoxelY + 1)
+                     && (relativePlayerPosition.zCoord >= smallestVoxelZ && relativePlayerPosition.zCoord <= largestVoxelZ + 1);
+
+    GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+
+    if (inside || relativePlayerPosition.xCoord < smallestVoxelX) {
+      GL11.glPushMatrix();
+      GL11.glTranslated(smallestVoxelX, largestVoxelY + 1, smallestVoxelZ);
+      GL11.glCallList(displayListWireFrameYZ);
+      GL11.glPopMatrix();
+    }
+
+    if (inside || relativePlayerPosition.xCoord > largestVoxelX + 1) {
+      GL11.glPushMatrix();
+      GL11.glTranslated(largestVoxelX + 1, largestVoxelY + 1, smallestVoxelZ);
+      GL11.glCallList(displayListWireFrameYZ);
+      GL11.glPopMatrix();
+    }
+
+    GL11.glColor4f(Colour.WHITE_40.R, Colour.WHITE_40.G, Colour.WHITE_40.B, Colour.WHITE_40.A);
+
+    if (true) {
+      GL11.glPushMatrix();
+      GL11.glTranslated(smallestVoxelX, smallestVoxelY, smallestVoxelZ);
+      GL11.glCallList(displayListWireFrameXZ);
+      GL11.glPopMatrix();
+    }
+
+    GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+
+    if (inside || relativePlayerPosition.yCoord > largestVoxelY + 1) {
+      GL11.glPushMatrix();
+      GL11.glTranslated(smallestVoxelX, largestVoxelY + 1, smallestVoxelZ);
+      GL11.glCallList(displayListWireFrameXZ);
+      GL11.glPopMatrix();
+    }
+
+    if (inside || relativePlayerPosition.zCoord < smallestVoxelZ) {
+      GL11.glPushMatrix();
+      GL11.glTranslated(smallestVoxelX, largestVoxelY + 1, smallestVoxelZ);
+      GL11.glCallList(displayListWireFrameXY);
+      GL11.glPopMatrix();
+    }
+
+    if (inside || relativePlayerPosition.zCoord > largestVoxelZ + 1) {
+      GL11.glPushMatrix();
+      GL11.glTranslated(smallestVoxelX, largestVoxelY + 1, largestVoxelZ + 1);
+      GL11.glCallList(displayListWireFrameXY);
+      GL11.glPopMatrix();
+    }
   }
 
   /**

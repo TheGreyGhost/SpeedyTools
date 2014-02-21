@@ -1,6 +1,8 @@
 package speedytools.clientonly;
 
 import cpw.mods.fml.common.FMLLog;
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.ChunkCoordinates;
 
 import java.util.BitSet;
 
