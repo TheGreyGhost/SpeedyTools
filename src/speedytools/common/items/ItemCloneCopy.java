@@ -16,6 +16,7 @@ import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.BlockVoxelMultiSelector;
 import speedytools.clientonly.SelectionBoxRenderer;
 import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
+import speedytools.common.Colour;
 import speedytools.common.UsefulConstants;
 
 import java.util.List;
@@ -146,7 +147,19 @@ public class ItemCloneCopy extends ItemCloneTool {
   {
     checkInvariants();
 
+    Vec3 playerOrigin = player.getPosition(partialTick);
+
     if (currentToolState.displaySelection) {
+      double dragSelectionOriginX = selectionOrigin.posX;
+      double dragSelectionOriginY = selectionOrigin.posY;
+      double dragSelectionOriginZ = selectionOrigin.posZ;
+      if (selectionGrabActivated) {
+        Vec3 distanceMoved = selectionGrabPoint.subtract(playerOrigin);
+        dragSelectionOriginX += distanceMoved.xCoord;
+        dragSelectionOriginY += distanceMoved.yCoord;
+        dragSelectionOriginZ += distanceMoved.zCoord;
+      }
+      GL11.glTranslated(dragSelectionOriginX - playerOrigin.xCoord, dragSelectionOriginY - playerOrigin.yCoord, dragSelectionOriginZ - playerOrigin.zCoord);
       voxelSelectionManager.renderSelection(selectionOrigin);
     }
 
@@ -154,13 +167,12 @@ public class ItemCloneCopy extends ItemCloneTool {
       GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
       GL11.glEnable(GL11.GL_BLEND);
       GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-      GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
+      GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
       GL11.glLineWidth(2.0F);
       GL11.glDisable(GL11.GL_TEXTURE_2D);
       GL11.glDepthMask(false);
       double expandDistance = 0.002F;
 
-      Vec3 playerOrigin = player.getPosition(partialTick);
 
       AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
       for (ChunkCoordinates block : highlightedBlocks) {
@@ -282,7 +294,7 @@ public class ItemCloneCopy extends ItemCloneTool {
         voxelSelectionManager = new BlockVoxelMultiSelector();
         voxelSelectionManager.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
         sortBoundaryFieldCorners();
-        selectionOrigin = boundaryCorner1;
+        selectionOrigin = new ChunkCoordinates(boundaryCorner1);
         currentToolState = ToolState.GENERATING_SELECTION;
         actionInProgress = ActionInProgress.VOXELCREATION;
 //            playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
@@ -323,10 +335,10 @@ public class ItemCloneCopy extends ItemCloneTool {
     if (currentToolState == ToolState.DISPLAYING_SELECTION) {
       if (selectionGrabActivated & !useKeyHeldDown) {
         Vec3 playerPosition = Minecraft.getMinecraft().renderViewEntity.getPosition(1.0F);
-        playerPosition.subtract(selectionGrabPoint);
-        selectionOrigin.posX += (int)Math.round(playerPosition.xCoord);
-        selectionOrigin.posY += (int)Math.round(playerPosition.yCoord);
-        selectionOrigin.posZ += (int)Math.round(playerPosition.zCoord);
+        Vec3 distanceMoved = selectionGrabPoint.subtract(playerPosition);
+        selectionOrigin.posX += (int)Math.round(distanceMoved.xCoord);
+        selectionOrigin.posY += (int)Math.round(distanceMoved.yCoord);
+        selectionOrigin.posZ += (int)Math.round(distanceMoved.zCoord);
         selectionGrabActivated = false;
 //        playSound(CustomSoundsHandler.BOUNDARY_UNGRAB,
 //                (float)playerPosition.xCoord, (float)playerPosition.yCoord, (float)playerPosition.zCoord);

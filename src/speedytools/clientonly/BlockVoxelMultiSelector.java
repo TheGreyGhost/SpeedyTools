@@ -1,18 +1,14 @@
 package speedytools.clientonly;
 
 import cpw.mods.fml.common.FMLLog;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.EnumMovingObjectType;
-import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.Colour;
 
-import java.util.*;
+import java.util.ArrayList;
 
 /**
  * User: The Grey Ghost
@@ -21,6 +17,15 @@ import java.util.*;
 public class BlockVoxelMultiSelector
 {
   private VoxelSelection selection;
+  private VoxelSelection shadow;
+
+/*
+  // the coordinates of the blocks that form the
+  private ArrayList<ChunkCoordinates> wireFrameXnegY;
+  private ArrayList<ChunkCoordinates> wireFrameXposY;
+  private ArrayList<ChunkCoordinates> wireFrameZnegY;
+  private ArrayList<ChunkCoordinates> wireFrameZposY;
+*/
   private int xSize;
   private int ySize;
   private int zSize;
@@ -37,7 +42,8 @@ public class BlockVoxelMultiSelector
   }
   private OperationInProgress mode;
 
-  private int displayListNumber = 0;
+  private int displayListSelection = 0;
+  private int displayListWireframeStrip = 0;
 
   /**
    * initialise conversion of the selected box to a VoxelSelection
@@ -72,9 +78,10 @@ public class BlockVoxelMultiSelector
     for ( ; zpos < zSize; ++zpos, xpos = 0) {
       for ( ; xpos < xSize; ++xpos, ypos = 0) {
         for ( ; ypos < ySize; ++ypos) {
-//          if (System.nanoTime() - startTime >= maxTimeInNS) return false;
+          if (System.nanoTime() - startTime >= maxTimeInNS) return false;
           if (world.getBlockId(xpos + xOffset, ypos + yOffset, zpos + zOffset) != 0) {
             selection.setVoxel(xpos, ypos, zpos);
+            shadow.setVoxel(xpos, 1, zpos);
           }
         }
       }
@@ -88,38 +95,43 @@ public class BlockVoxelMultiSelector
     xOffset = Math.min(corner1.posX, corner2.posX);
     yOffset = Math.min(corner1.posY, corner2.posY);
     zOffset = Math.min(corner1.posZ, corner2.posZ);
-    xSize = Math.max(corner1.posX, corner2.posX) - xOffset;
-    ySize = Math.max(corner1.posY, corner2.posY) - yOffset;
-    zSize = Math.max(corner1.posZ, corner2.posZ) - zOffset;
+    xSize = 1 + Math.max(corner1.posX, corner2.posX) - xOffset;
+    ySize = 1 + Math.max(corner1.posY, corner2.posY) - yOffset;
+    zSize = 1 + Math.max(corner1.posZ, corner2.posZ) - zOffset;
     if (selection == null) {
       selection = new VoxelSelection(xSize, ySize, zSize);
+      shadow = new VoxelSelection(xSize, 1, zSize);
     } else {
       selection.clearAll(xSize, ySize, zSize);
+      shadow.clearAll(xSize, 1, zSize);
     }
   }
 
   /**
-   * create a render list for the current selection
+   * create a render list for the current selection.
+   * Quads, with lines to outline them
    * @param world
    */
   public void createRenderList(World world)
   {
-    if (displayListNumber == 0) {
-      displayListNumber = GLAllocation.generateDisplayLists(1);
+    if (displayListSelection == 0) {
+      displayListSelection = GLAllocation.generateDisplayLists(1);
     }
-    if (displayListNumber == 0) {
+    if (displayListSelection == 0) {
       FMLLog.warning("Unable to create a displayList in BlockVoxelMultiSelector::createRenderList");
       return;
     }
 
     if (selection == null) {
-      GL11.glNewList(displayListNumber, GL11.GL_COMPILE);
+      GL11.glNewList(displayListSelection, GL11.GL_COMPILE);
       GL11.glEndList();
       return;
     }
 
+    final double NUDGE_DISTANCE = 0.0001;
+
     Tessellator tessellator = Tessellator.instance;
-    GL11.glNewList(displayListNumber, GL11.GL_COMPILE);
+    GL11.glNewList(displayListSelection, GL11.GL_COMPILE);
     GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
     GL11.glDisable(GL11.GL_CULL_FACE);
     tessellator.startDrawingQuads();
@@ -129,45 +141,214 @@ public class BlockVoxelMultiSelector
       for (int z = 0; z <= zSize; ++z) {
         for (int x = 0; x <= xSize; ++x) {
            if (selection.getVoxel(x, y, z) != selection.getVoxel(x-1, y, z)) {
-             tessellator.addVertex(x,   y,   z);
-             tessellator.addVertex(x, y+1,   z);
-             tessellator.addVertex(x, y+1, z+1);
-             tessellator.addVertex(x,   y, z+1);
+             double xNudge = x + (selection.getVoxel(x, y, z) ? -NUDGE_DISTANCE : +NUDGE_DISTANCE);
+             tessellator.addVertex(xNudge,   y,   z);
+             tessellator.addVertex(xNudge, y+1,   z);
+             tessellator.addVertex(xNudge, y+1, z+1);
+             tessellator.addVertex(xNudge,   y, z+1);
            }
           if (selection.getVoxel(x, y, z) != selection.getVoxel(x, y-1, z)) {
-            tessellator.addVertex(  x, y,   z);
-            tessellator.addVertex(x+1, y,   z);
-            tessellator.addVertex(x+1, y, z+1);
-            tessellator.addVertex(  x, y, z+1);
+            double yNudge = y + (selection.getVoxel(x, y, z) ? -NUDGE_DISTANCE : +NUDGE_DISTANCE);
+            tessellator.addVertex(  x, yNudge,   z);
+            tessellator.addVertex(x+1, yNudge,   z);
+            tessellator.addVertex(x+1, yNudge, z+1);
+            tessellator.addVertex(  x, yNudge, z+1);
           }
           if (selection.getVoxel(x, y, z) != selection.getVoxel(x, y, z-1)) {
-            tessellator.addVertex(  x,   y, z);
-            tessellator.addVertex(  x, y+1, z);
-            tessellator.addVertex(x+1, y+1, z);
-            tessellator.addVertex(x+1,   y, z);
+            double zNudge = z + (selection.getVoxel(x, y, z) ? -NUDGE_DISTANCE : +NUDGE_DISTANCE);
+            tessellator.addVertex(  x,   y, zNudge);
+            tessellator.addVertex(  x, y+1, zNudge);
+            tessellator.addVertex(x+1, y+1, zNudge);
+            tessellator.addVertex(x+1,   y, zNudge);
           }
         }
       }
     }
     tessellator.draw();
+
+    GL11.glEnable(GL11.GL_BLEND);
+    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+    GL11.glLineWidth(2.0F);
+    GL11.glDisable(GL11.GL_TEXTURE_2D);
+    GL11.glDepthMask(false);
+
+    // goes outside the VoxelSelection size, which always returns zero when out of bounds
+    for (int y = 0; y <= ySize; ++y) {
+      for (int z = 0; z <= zSize; ++z) {
+        for (int x = 0; x <= xSize; ++x) {
+          if (selection.getVoxel(x, y, z) != selection.getVoxel(x-1, y, z)) {
+            double xNudge = x + (selection.getVoxel(x, y, z) ? -NUDGE_DISTANCE : +NUDGE_DISTANCE);
+            tessellator.startDrawing(GL11.GL_LINE_LOOP);
+            tessellator.addVertex(xNudge,   y,   z);
+            tessellator.addVertex(xNudge, y+1,   z);
+            tessellator.addVertex(xNudge, y+1, z+1);
+            tessellator.addVertex(xNudge,   y, z+1);
+            tessellator.draw();
+          }
+          if (selection.getVoxel(x, y, z) != selection.getVoxel(x, y-1, z)) {
+            double yNudge = y + (selection.getVoxel(x, y, z) ? -NUDGE_DISTANCE : +NUDGE_DISTANCE);
+            tessellator.startDrawing(GL11.GL_LINE_LOOP);
+            tessellator.addVertex(  x, yNudge,   z);
+            tessellator.addVertex(x+1, yNudge,   z);
+            tessellator.addVertex(x+1, yNudge, z+1);
+            tessellator.addVertex(  x, yNudge, z+1);
+            tessellator.draw();
+          }
+          if (selection.getVoxel(x, y, z) != selection.getVoxel(x, y, z-1)) {
+            double zNudge = z + (selection.getVoxel(x, y, z) ? -NUDGE_DISTANCE : +NUDGE_DISTANCE);
+            tessellator.startDrawing(GL11.GL_LINE_LOOP);
+            tessellator.addVertex(  x,   y, zNudge);
+            tessellator.addVertex(  x, y+1, zNudge);
+            tessellator.addVertex(x+1, y+1, zNudge);
+            tessellator.addVertex(x+1,   y, zNudge);
+            tessellator.draw();
+          }
+        }
+      }
+    }
+
+    GL11.glDepthMask(true);
+
     GL11.glPopAttrib();
     GL11.glEndList();
   }
 
   /**
-   * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef appropriately to match world{X/Y/Z}atZero
-   * @param worldZeroPoint the world coordinate corresponding to the current rendering origin.  i.e. if I draw a cube from [0,0,0] to [1,1,1], what
-   *                       world coordinates does this correspond to?
+   * a vertical wireframe strip made up of 1x1 squares, in the xy plane
+   * origin is the top (ymax) corner, i.e. the topmost square is [0,0,0] to [1, -1, 0]
+   */
+  private void generateWireFrameStrip()
+  {
+    if (displayListWireframeStrip == 0) {
+      displayListWireframeStrip = GLAllocation.generateDisplayLists(1);
+    }
+
+    if (displayListSelection == 0) {
+      FMLLog.warning("Unable to create a displayList in BlockVoxelMultiSelector::createShadowRenderList");
+      return;
+    }
+
+    Tessellator tessellator = Tessellator.instance;
+    GL11.glNewList(displayListSelection, GL11.GL_COMPILE);
+    GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+    GL11.glEnable(GL11.GL_BLEND);
+    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+    GL11.glLineWidth(2.0F);
+    GL11.glDisable(GL11.GL_TEXTURE_2D);
+    GL11.glDepthMask(false);
+
+    final int FRAME_HEIGHT = 256;
+    tessellator.startDrawing(GL11.GL_LINE_LOOP);
+    tessellator.addVertex(0.0, 0.0, 0.0);
+    tessellator.addVertex(1.0, 0.0, 0.0);
+    tessellator.addVertex(1.0, -FRAME_HEIGHT, 0.0);
+    tessellator.addVertex(0.0, -FRAME_HEIGHT, 0.0);
+    tessellator.draw();
+
+    for (int y = -1; y > -FRAME_HEIGHT; --y) {
+      tessellator.startDrawing(GL11.GL_LINE);
+      tessellator.addVertex(0.0, y, 0.0);
+      tessellator.addVertex(1.0, y, 0.0);
+      tessellator.draw();
+    }
+
+    GL11.glDepthMask(true);
+    GL11.glPopAttrib();
+    GL11.glEndList();
+  }
+
+  private void createShadowRenderList(World world)
+  {
+    generateWireFrameStrip();
+
+
+
+/*
+    int [] convexHullXneg = new int[zSize];
+    int [] convexHullXpos = new int[zSize];
+    int [] convexHullZneg = new int[xSize];
+    int [] convexHullZpos = new int[xSize];
+
+    // eliminate all pixels which are not directly illuminated from both x and from z (i.e. are outermost in both x and z)
+
+    int x, y, z;
+    for (x = 0; x < xSize; ++x) {
+      for (z = 0; z < zSize && !shadow.getVoxel(x, 0, z); ++z) {} ;
+      convexHullZneg[x] = z;
+      for (z = zSize - 1; z >= 0 && !shadow.getVoxel(x, 0, z); --z) {} ;
+      convexHullZpos[x] = z;
+    }
+
+    for (z = 0; z < zSize; ++z) {
+      for (x = 0; x < xSize && !shadow.getVoxel(x, 0, z); ++x) {} ;
+      convexHullXneg[z] = x;
+
+      for (x = xSize-1; x >= 0 & !shadow.getVoxel(x, 0, z); --x) {};
+      convexHullXpos[z] = x;
+    }
+
+    wireFrameXnegY = new ArrayList<ChunkCoordinates>();
+    wireFrameXposY = new ArrayList<ChunkCoordinates>();
+    wireFrameZnegY = new ArrayList<ChunkCoordinates>();
+    wireFrameZposY = new ArrayList<ChunkCoordinates>();
+
+    for (x = 0; x < xSize; ++x) {
+      z = convexHullZneg[x];
+      if (z < zSize
+          && (convexHullXneg[z] == x || convexHullXpos[z] == x)) {
+        wireFrameZnegY.add(new ChunkCoordinates(x, 0, z));
+      }
+      z = convexHullZpos[x];
+      if (z >= 0
+          && (convexHullXneg[z] == x || convexHullXpos[z] == x)) {
+        wireFrameZposY.add(new ChunkCoordinates(x, 0, z));
+      }
+    }
+
+    for (z = 0; z < zSize; ++z) {
+      x = convexHullXneg[z];
+      if (x < xSize
+              && (convexHullZneg[x] == z || convexHullZpos[x] == z)) {
+        wireFrameXnegY.add(new ChunkCoordinates(x, 0, z));
+      }
+      x = convexHullXpos[z];
+      if (x >= 0
+              && (convexHullZneg[x] == z || convexHullZpos[x] == z)) {
+        wireFrameXposY.add(new ChunkCoordinates(x, 0, z));
+      }
+    }
+
+    for (ChunkCoordinates coordinates : wireFrameXnegY) {
+      x = coordinates.posX;
+      z = coordinates.posZ;
+      for (y = 0; y < ySize && !selection.getVoxel(x, y, z); ++y) {};
+      coordinates.posY = y;
+    }
+
+    for (ChunkCoordinates coordinates : wireFrameZY) {
+      x = coordinates.posX;
+      z = coordinates.posZ;
+      for (y = 0; y < ySize && !selection.getVoxel(x, y, z); ++y) {};
+      coordinates.posY = y;
+    }
+*/
+  }
+
+
+  /**
+   * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef so that the render starts in the
+   *   correct spot  (the min[x,y,z] corner of the VoxelSelection will be drawn at [0,0,0])
    */
   public void renderSelection(ChunkCoordinates worldZeroPoint)
   {
-    if (displayListNumber == 0) {
+    if (displayListSelection == 0) {
       return;
     }
 
     GL11.glPushMatrix();
-    GL11.glTranslatef(xOffset - worldZeroPoint.posX, yOffset - worldZeroPoint.posY, zOffset - worldZeroPoint.posZ);
-    GL11.glCallList(displayListNumber);
+    GL11.glCallList(displayListSelection);
     GL11.glPopMatrix();
   }
 

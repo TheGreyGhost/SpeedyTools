@@ -32,12 +32,12 @@ public class VoxelSelection
    */
   public void setVoxel(int x, int y, int z)
   {
-    if (   x < 0 || x >= xmax
-        || y < 0 || y >= ymax
-        || z < 0 || z >= zmax ) {
+    if (   x < 0 || x >= xsize
+        || y < 0 || y >= ysize
+        || z < 0 || z >= zsize) {
       return;
     }
-   voxels.set(x + xmax*(y + ymax * z) );
+   voxels.set(x + xsize *(y + ysize * z) );
   }
 
   /**
@@ -48,12 +48,12 @@ public class VoxelSelection
    */
   public void clearVoxel(int x, int y, int z)
   {
-    if (   x < 0 || x >= xmax
-        || y < 0 || y >= ymax
-        || z < 0 || z >= zmax ) {
+    if (   x < 0 || x >= xsize
+        || y < 0 || y >= ysize
+        || z < 0 || z >= zsize) {
       return;
     }
-    voxels.clear(x + xmax * (y + ymax * z));
+    voxels.clear(x + xsize * (y + ysize * z));
   }
 
   /**
@@ -65,13 +65,13 @@ public class VoxelSelection
    */
   public boolean getVoxel(int x, int y, int z)
   {
-    if (   x < 0 || x >= xmax
-        || y < 0 || y >= ymax
-        || z < 0 || z >= zmax ) {
+    if (   x < 0 || x >= xsize
+        || y < 0 || y >= ysize
+        || z < 0 || z >= zsize) {
       return false;
     }
 
-    return voxels.get(x + xmax*(y + ymax * z) );
+    return voxels.get(x + xsize *(y + ysize * z) );
   }
 
   private void resize(int x, int y, int z)
@@ -84,18 +84,18 @@ public class VoxelSelection
       y = 1;
       z = 1;
     }
-    xmax = x;
-    ymax = y;
-    zmax = z;
+    xsize = x;
+    ysize = y;
+    zsize = z;
     if (voxels == null) {
-      voxels = new BitSet(xmax * ymax * zmax);     // default to all false
+      voxels = new BitSet(xsize * ysize * zsize);     // default to all false
     } else {
       voxels.clear();
     }
   }
 
   private BitSet voxels;
-  private int xmax;
-  private int ymax;
-  private int zmax;
+  private int xsize;
+  private int ysize;
+  private int zsize;
 }
