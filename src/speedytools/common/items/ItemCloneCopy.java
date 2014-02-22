@@ -148,6 +148,7 @@ public class ItemCloneCopy extends ItemCloneTool {
     checkInvariants();
 
     Vec3 playerOrigin = player.getPosition(partialTick);
+    Vec3 playerLook = player.getLook(partialTick);
 
     if (currentToolState.displaySelection) {
       double dragSelectionOriginX = selectionOrigin.posX;
@@ -161,7 +162,7 @@ public class ItemCloneCopy extends ItemCloneTool {
       }
       GL11.glTranslated(dragSelectionOriginX - playerOrigin.xCoord, dragSelectionOriginY - playerOrigin.yCoord, dragSelectionOriginZ - playerOrigin.zCoord);
       Vec3 playerRelativeToSelectionOrigin = playerOrigin.addVector(-dragSelectionOriginX, -dragSelectionOriginY, -dragSelectionOriginZ);
-      voxelSelectionManager.renderSelection(playerRelativeToSelectionOrigin);
+      voxelSelectionManager.renderSelection(playerRelativeToSelectionOrigin, playerLook);
     }
 
     if (currentToolState.displayHighlight && highlightedBlocks != null) {
@@ -172,13 +173,13 @@ public class ItemCloneCopy extends ItemCloneTool {
       GL11.glLineWidth(2.0F);
       GL11.glDisable(GL11.GL_TEXTURE_2D);
       GL11.glDepthMask(false);
-      double expandDistance = 0.002F;
+      double EXPAND_DISTANCE = 0.002F;
 
 
       AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
       for (ChunkCoordinates block : highlightedBlocks) {
         boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX+1, block.posY+1, block.posZ+1);
-        boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
+        boundingBox = boundingBox.expand(EXPAND_DISTANCE, EXPAND_DISTANCE, EXPAND_DISTANCE).getOffsetBoundingBox(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
         SelectionBoxRenderer.drawCube(boundingBox);
       }
 
