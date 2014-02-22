@@ -46,6 +46,8 @@ public class BlockVoxelMultiSelector
   private int ypos;
   private int zpos;
 
+  private boolean empty = true;
+
   private enum OperationInProgress {
     IDLE, ENTIREFIELD, COMPLETE
   }
@@ -103,6 +105,15 @@ public class BlockVoxelMultiSelector
     return true;
   }
 
+  /**
+   * returns true if there are no solid pixels at all in this selection.
+   * @return
+   */
+  public boolean isEmpty()
+  {
+    return empty;
+  }
+
   private void initialiseVoxelRange()
   {
     smallestVoxelX = xSize;
@@ -111,6 +122,7 @@ public class BlockVoxelMultiSelector
     largestVoxelY = -1;
     smallestVoxelZ = zSize;
     largestVoxelZ = -1;
+    empty = true;
   }
 
   private void expandVoxelRange(int x, int y, int z)
@@ -121,6 +133,7 @@ public class BlockVoxelMultiSelector
     largestVoxelX = Math.max(largestVoxelX, x);
     largestVoxelY = Math.max(largestVoxelY, y);
     largestVoxelZ = Math.max(largestVoxelZ, z);
+    empty = false;
   }
 
   private void initialiseSelectionSizeFromBoundary(ChunkCoordinates corner1, ChunkCoordinates corner2)
@@ -169,13 +182,13 @@ public class BlockVoxelMultiSelector
     GL11.glDisable(GL11.GL_CULL_FACE);
     GL11.glDisable(GL11.GL_LIGHTING);
     GL11.glDisable(GL11.GL_TEXTURE_2D);
-    GL11.glDisable(GL11.GL_BLEND);
-    GL11.glDisable(GL11.GL_COLOR_LOGIC_OP);
-    GL11.glDisable(GL11.GL_FOG);
-    GL11.glDisable(GL11.GL_COLOR_MATERIAL);
-    GL11.glDisable(GL11.GL_DITHER);
-    GL11.glDisable(GL11.GL_POLYGON_SMOOTH);
-    GL11.glShadeModel(GL11.GL_FLAT);
+//    GL11.glDisable(GL11.GL_BLEND);
+//    GL11.glDisable(GL11.GL_COLOR_LOGIC_OP);
+//    GL11.glDisable(GL11.GL_FOG);
+//    GL11.glDisable(GL11.GL_COLOR_MATERIAL);
+//    GL11.glDisable(GL11.GL_DITHER);
+//    GL11.glDisable(GL11.GL_POLYGON_SMOOTH);
+//    GL11.glShadeModel(GL11.GL_FLAT);
 
     Tessellator tessellator = Tessellator.instance;
 
@@ -643,12 +656,11 @@ public class BlockVoxelMultiSelector
 */
     GL11.glPushMatrix();
     GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
-    GL11.glDisable(GL11.GL_COLOR_MATERIAL);
-    GL11.glDisable(GL11.GL_ALPHA_TEST);
+//    GL11.glDisable(GL11.GL_COLOR_MATERIAL);
+//    GL11.glDisable(GL11.GL_ALPHA_TEST);
     GL11.glCallList(displayListSelection);
     GL11.glPopAttrib();
     GL11.glPopMatrix();
-
 
     // cull the back faces of the grid:
     // only draw a face if you can see the front of it

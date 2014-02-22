@@ -145,6 +145,7 @@ public class ItemCloneCopy extends ItemCloneTool {
     @Override
   public void renderBlockHighlight(EntityPlayer player, float partialTick)
   {
+    final double THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID = 0.01;
     checkInvariants();
 
     Vec3 playerOrigin = player.getPosition(partialTick);
@@ -155,10 +156,22 @@ public class ItemCloneCopy extends ItemCloneTool {
       double dragSelectionOriginY = selectionOrigin.posY;
       double dragSelectionOriginZ = selectionOrigin.posZ;
       if (selectionGrabActivated) {
+        double currentSpeedSquared = player.motionX * player.motionX + player.motionY * player.motionY + player.motionZ * player.motionZ;
+        if (currentSpeedSquared >= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID) {
+          selectionMovedFastYet = true;
+        }
+        final boolean snapToGridWhileMoving = selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
+
         Vec3 distanceMoved = selectionGrabPoint.subtract(playerOrigin);
         dragSelectionOriginX += distanceMoved.xCoord;
         dragSelectionOriginY += distanceMoved.yCoord;
         dragSelectionOriginZ += distanceMoved.zCoord;
+        if (snapToGridWhileMoving) {
+          dragSelectionOriginX = Math.round(dragSelectionOriginX);
+          dragSelectionOriginY = Math.round(dragSelectionOriginY);
+          dragSelectionOriginZ = Math.round(dragSelectionOriginZ);
+        }
+        System.out.println("S:" + selectionMovedFastYet + ":" + snapToGridWhileMoving + ":" + currentSpeedSquared);
       }
       GL11.glTranslated(dragSelectionOriginX - playerOrigin.xCoord, dragSelectionOriginY - playerOrigin.yCoord, dragSelectionOriginZ - playerOrigin.zCoord);
       Vec3 playerRelativeToSelectionOrigin = playerOrigin.addVector(-dragSelectionOriginX, -dragSelectionOriginY, -dragSelectionOriginZ);
@@ -237,6 +250,7 @@ public class ItemCloneCopy extends ItemCloneTool {
               } else {
                 Vec3 playerPosition = thePlayer.getPosition(1.0F);  // beware, Vec3 is short-lived
                 selectionGrabActivated = true;
+                selectionMovedFastYet = false;
                 selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
               }
             }
@@ -327,8 +341,12 @@ public class ItemCloneCopy extends ItemCloneTool {
         boolean finished = voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
         if (finished) {
           actionInProgress = ActionInProgress.NONE;
-          voxelSelectionManager.createRenderList(world);
-          currentToolState = ToolState.DISPLAYING_SELECTION;
+          if (voxelSelectionManager.isEmpty()) {
+            currentToolState = ToolState.NO_SELECTION;
+          } else {
+            voxelSelectionManager.createRenderList(world);
+            currentToolState = ToolState.DISPLAYING_SELECTION;
+          }
         }
         break;
       }
@@ -389,6 +407,7 @@ public class ItemCloneCopy extends ItemCloneTool {
   private ChunkCoordinates selectionOrigin;
   private boolean selectionGrabActivated = false;
   private Vec3    selectionGrabPoint = null;
+  private boolean selectionMovedFastYet;
 
   private long lastRightClickTime;
 

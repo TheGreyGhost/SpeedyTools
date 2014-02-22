@@ -6,7 +6,6 @@ import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
@@ -14,9 +13,9 @@ import net.minecraft.util.*;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.SelectionBoxRenderer;
-import speedytools.clientonly.SpeedyToolControls;
-import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
+import speedytools.clientonly.VoxelSelection;
 import speedytools.common.UsefulConstants;
+import speedytools.common.UsefulFunctions;
 
 import java.util.*;
 
@@ -146,32 +145,32 @@ public abstract class ItemCloneTool extends Item
       switch (boundaryGrabSide) {
         case UsefulConstants.FACE_YNEG: {
           wYmin += playerPosition.yCoord - boundaryGrabPoint.yCoord;
-          wYmin = Math.min(wYmin, wYmax - 1.0);
+          wYmin = UsefulFunctions.clipToRange(wYmin, wYmax - SELECTION_MAX_YSIZE, wYmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_YPOS: {
           wYmax += playerPosition.yCoord - boundaryGrabPoint.yCoord;
-          wYmax = Math.max(wYmax, wYmin + 1.0);
+          wYmax = UsefulFunctions.clipToRange(wYmax, wYmin + SELECTION_MAX_YSIZE, wYmin + 1.0);
           break;
         }
         case UsefulConstants.FACE_ZNEG: {
           wZmin += playerPosition.zCoord - boundaryGrabPoint.zCoord;
-          wZmin = Math.min(wZmin, wZmax - 1.0);
+          wZmin = UsefulFunctions.clipToRange(wZmin, wZmax - SELECTION_MAX_ZSIZE, wZmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_ZPOS: {
           wZmax += playerPosition.zCoord - boundaryGrabPoint.zCoord;
-          wZmax = Math.max(wZmax, wZmin + 1.0);
+          wZmax = UsefulFunctions.clipToRange(wZmax, wZmin + SELECTION_MAX_ZSIZE, wZmin + 1.0);
           break;
         }
         case UsefulConstants.FACE_XNEG: {
           wXmin += playerPosition.xCoord - boundaryGrabPoint.xCoord;
-          wXmin = Math.min(wXmin, wXmax - 1.0);
+          wXmin = UsefulFunctions.clipToRange(wXmin, wXmax - SELECTION_MAX_XSIZE, wXmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_XPOS: {
           wXmax += playerPosition.xCoord - boundaryGrabPoint.xCoord;
-          wXmax = Math.max(wXmax, wXmin + 1.0);
+          wXmax = UsefulFunctions.clipToRange(wXmax, wXmin + SELECTION_MAX_XSIZE, wXmin + 1.0);
           break;
         }
         default: {
@@ -240,9 +239,9 @@ public abstract class ItemCloneTool extends Item
     GL11.glLineWidth(2.0F);
     GL11.glDisable(GL11.GL_TEXTURE_2D);
     GL11.glDepthMask(false);
-    double expandDistance = 0.002F;
+    double EXPAND_BOX_DISTANCE = 0.002F;
 
-    boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance)
+    boundingBox = boundingBox.expand(EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE)
                              .getOffsetBoundingBox(-playerPosition.xCoord, -playerPosition.yCoord, -playerPosition.zCoord);
     int faceToHighlight = -1;
     if (boundaryGrabActivated) {
@@ -266,7 +265,7 @@ public abstract class ItemCloneTool extends Item
   {
     if (boundaryCorner1 == null || boundaryCorner2 == null) return null;
 
-    final float MAX_GRAB_DISTANCE = 32.0F;
+    final float MAX_GRAB_DISTANCE = 128.0F;
     Vec3 playerPosition = player.getPosition(1.0F);
     Vec3 lookDirection = player.getLook(1.0F);
     Vec3 maxGrabPosition = playerPosition.addVector(lookDirection.xCoord * MAX_GRAB_DISTANCE, lookDirection.yCoord * MAX_GRAB_DISTANCE, lookDirection.zCoord * MAX_GRAB_DISTANCE);
@@ -329,4 +328,9 @@ public abstract class ItemCloneTool extends Item
   protected static Vec3 boundaryGrabPoint = null;
 
   protected static int boundaryCursorSide = -1;
+
+  protected static final int SELECTION_MAX_XSIZE = VoxelSelection.MAX_X_SIZE;
+  protected static final int SELECTION_MAX_YSIZE = VoxelSelection.MAX_Y_SIZE;
+  protected static final int SELECTION_MAX_ZSIZE = VoxelSelection.MAX_Z_SIZE;
+
 }

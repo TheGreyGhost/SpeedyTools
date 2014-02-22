@@ -12,6 +12,7 @@ import net.minecraft.world.World;
 import speedytools.clientonly.BlockMultiSelector;
 import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
 import speedytools.common.UsefulConstants;
+import speedytools.common.UsefulFunctions;
 
 import java.util.List;
 
@@ -158,8 +159,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
           playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
         } else if (boundaryCorner2 == null) {
           if (currentlySelectedBlock == null) return;
-          boundaryCorner2 = new ChunkCoordinates(currentlySelectedBlock);
-          sortBoundaryFieldCorners();
+          addCornerPointWithMaxSize(currentlySelectedBlock);
           playSound(CustomSoundsHandler.BOUNDARY_PLACE_2ND, thePlayer);
         } else {
           MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
@@ -179,6 +179,19 @@ public class ItemCloneBoundary extends ItemCloneTool {
     }
 
     return;
+  }
+
+  /**
+   * add a new corner to the boundary (replace boundaryCorner2).  If the selection is too big, move boundaryCorner1.
+   * @param newCorner
+   */
+  private void addCornerPointWithMaxSize(ChunkCoordinates newCorner)
+  {
+    boundaryCorner2 = new ChunkCoordinates(newCorner);
+    boundaryCorner1.posX = UsefulFunctions.clipToRange(boundaryCorner1.posX, newCorner.posX - SELECTION_MAX_XSIZE + 1, newCorner.posX + SELECTION_MAX_XSIZE - 1);
+    boundaryCorner1.posY = UsefulFunctions.clipToRange(boundaryCorner1.posY, newCorner.posY - SELECTION_MAX_YSIZE + 1, newCorner.posY + SELECTION_MAX_YSIZE - 1);
+    boundaryCorner1.posZ = UsefulFunctions.clipToRange(boundaryCorner1.posZ, newCorner.posZ - SELECTION_MAX_ZSIZE + 1, newCorner.posZ + SELECTION_MAX_ZSIZE - 1);
+    sortBoundaryFieldCorners();
   }
 
   private Icon iconTwoPlaced;
