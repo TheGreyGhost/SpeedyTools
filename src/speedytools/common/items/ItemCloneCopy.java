@@ -471,7 +471,7 @@ public class ItemCloneCopy extends ItemCloneTool {
     GL11.glTranslatef(width / 2, height / 2, Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
     GL11.glRotated(((tickCount + (double) partialTick) * CROSSHAIR_SPIN_DEGREES_PER_TICK) % 360.0, 0.0, 0.0, 1.0);
     drawTexturedModalRect(CROSSHAIR_X_OFFSET, CROSSHAIR_Y_OFFSET, Z_LEVEL_FROM_GUI_IN_GAME_FORGE,
-            0, 0, CROSSHAIR_ICON_WIDTH, CROSSHAIR_ICON_HEIGHT);
+                          0, 0, CROSSHAIR_ICON_WIDTH, CROSSHAIR_ICON_HEIGHT);
     GL11.glPopMatrix();
 
     GL11.glPushMatrix();
