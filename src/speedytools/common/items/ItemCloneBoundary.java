@@ -88,6 +88,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
   @Override
   public void tick(World world, boolean useKeyHeldDown)
   {
+    super.tick(world, useKeyHeldDown);
     // if the user was grabbing a boundary and has now released it, move the boundary blocks
 
     if (boundaryGrabActivated & !useKeyHeldDown) {

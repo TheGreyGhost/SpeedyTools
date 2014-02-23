@@ -4,18 +4,19 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.IconRegister;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.BlockVoxelMultiSelector;
+import speedytools.clientonly.OpenGLdebugging;
 import speedytools.clientonly.SelectionBoxRenderer;
-import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
 import speedytools.common.Colour;
 import speedytools.common.UsefulConstants;
 
@@ -171,7 +172,6 @@ public class ItemCloneCopy extends ItemCloneTool {
           dragSelectionOriginY = Math.round(dragSelectionOriginY);
           dragSelectionOriginZ = Math.round(dragSelectionOriginZ);
         }
-        System.out.println("S:" + selectionMovedFastYet + ":" + snapToGridWhileMoving + ":" + currentSpeedSquared);
       }
       GL11.glTranslated(dragSelectionOriginX - playerOrigin.xCoord, dragSelectionOriginY - playerOrigin.yCoord, dragSelectionOriginZ - playerOrigin.zCoord);
       Vec3 playerRelativeToSelectionOrigin = playerOrigin.addVector(-dragSelectionOriginX, -dragSelectionOriginY, -dragSelectionOriginZ);
@@ -187,7 +187,6 @@ public class ItemCloneCopy extends ItemCloneTool {
       GL11.glDisable(GL11.GL_TEXTURE_2D);
       GL11.glDepthMask(false);
       double EXPAND_DISTANCE = 0.002F;
-
 
       AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
       for (ChunkCoordinates block : highlightedBlocks) {
@@ -331,15 +330,19 @@ public class ItemCloneCopy extends ItemCloneTool {
   @Override
   public void tick(World world, boolean useKeyHeldDown)
   {
+    super.tick(world, useKeyHeldDown);
     checkInvariants();
-    final long MAX_TIME_IN_NS = 10 * 1000 * 1000;
+    final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
     switch (actionInProgress) {
       case NONE: {
         break;
       }
       case VOXELCREATION: {
-        boolean finished = voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
-        if (finished) {
+        System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);
+        actionPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
+        System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);
+
+        if (actionPercentComplete < 0.0F) {
           actionInProgress = ActionInProgress.NONE;
           if (voxelSelectionManager.isEmpty()) {
             currentToolState = ToolState.NO_SELECTION;
@@ -401,6 +404,7 @@ public class ItemCloneCopy extends ItemCloneTool {
   private List<ChunkCoordinates> highlightedBlocks;
 
   private ActionInProgress actionInProgress = ActionInProgress.NONE;
+  private float actionPercentComplete;
   private ToolState currentToolState = ToolState.NO_SELECTION;
 
   private BlockVoxelMultiSelector voxelSelectionManager;
@@ -438,4 +442,99 @@ public class ItemCloneCopy extends ItemCloneTool {
     }
   }
 
+  static int firsttime = 0;
+
+  @Override
+  public boolean renderCrossHairs(ScaledResolution scaledResolution, float partialTick)
+  {
+    if (actionInProgress == ActionInProgress.NONE) return false;
+
+    final float Z_LEVEL_FROM_GUI_IN_GAME_FORGE = -90.0F;            // taken from GuiInGameForge.renderCrossHairs
+    final double CROSSHAIR_SPIN_DEGREES_PER_TICK = 360.0 / 20;
+    final int CROSSHAIR_ICON_WIDTH = 16;
+    final int CROSSHAIR_ICON_HEIGHT = 16;
+    final int CROSSHAIR_X_OFFSET = -7;      // taken from GuiInGameForge.renderCrossHairs
+    final int CROSSHAIR_Y_OFFSET = -7;
+    final float ARC_LINE_WIDTH = 4.0F;
+
+    Minecraft mc = Minecraft.getMinecraft();
+    int width = scaledResolution.getScaledWidth();
+    int height = scaledResolution.getScaledHeight();
+
+    GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+
+    mc.getTextureManager().bindTexture(Gui.icons);
+    GL11.glEnable(GL11.GL_BLEND);
+    GL11.glBlendFunc(GL11.GL_ONE_MINUS_DST_COLOR, GL11.GL_ONE_MINUS_SRC_COLOR);
+
+    GL11.glPushMatrix();
+    GL11.glTranslatef(width / 2, height / 2, Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
+    GL11.glRotated(((tickCount + (double) partialTick) * CROSSHAIR_SPIN_DEGREES_PER_TICK) % 360.0, 0.0, 0.0, 1.0);
+    drawTexturedModalRect(CROSSHAIR_X_OFFSET, CROSSHAIR_Y_OFFSET, Z_LEVEL_FROM_GUI_IN_GAME_FORGE,
+            0, 0, CROSSHAIR_ICON_WIDTH, CROSSHAIR_ICON_HEIGHT);
+    GL11.glPopMatrix();
+
+    GL11.glPushMatrix();
+    GL11.glTranslatef(width / 2, height / 2, Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
+    GL11.glColor4d(1.0, 1.0, 1.0, 1.0);
+    GL11.glLineWidth(ARC_LINE_WIDTH);
+    GL11.glDisable(GL11.GL_TEXTURE_2D);
+    drawArc(12.0, 0.0, actionPercentComplete * 360.0 / 100.0, (double) Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
+    GL11.glPopMatrix();
+    
+    GL11.glPopAttrib();
+    return true;
+  }
+
+  /**
+   * Draws a textured rectangle at the given z-value. Args: x, y, u, v, width, height
+   */
+  public void drawTexturedModalRect(int x, int y, float z, int u, int v, int width, int height)
+  {
+    double ICON_SCALE_FACTOR_X = 1/256.0F;
+    double ICON_SCALE_FACTOR_Y =  1/256.0F;
+    Tessellator tessellator = Tessellator.instance;
+    tessellator.startDrawingQuads();
+    tessellator.addVertexWithUV(    x + 0, y + height, z,           u * ICON_SCALE_FACTOR_X, (v + height) * ICON_SCALE_FACTOR_Y);
+    tessellator.addVertexWithUV(x + width, y + height, z, (u + width) * ICON_SCALE_FACTOR_X, (v + height) * ICON_SCALE_FACTOR_Y);
+    tessellator.addVertexWithUV(x + width,      y + 0, z, (u + width) * ICON_SCALE_FACTOR_X,            v * ICON_SCALE_FACTOR_Y);
+    tessellator.addVertexWithUV(    x + 0,      y + 0, z,           u * ICON_SCALE_FACTOR_X,            v * ICON_SCALE_FACTOR_Y);
+    tessellator.draw();
+  }
+
+
+  /**
+   * Draw an arc centred around the zero point.  Setup translatef, colour and line width etc before calling.
+   * @param radius
+   * @param startAngle clockwise starting from 12 O'clock
+   * @param endAngle
+   */
+   void drawArc(double radius, double startAngle, double endAngle, double zLevel)
+  {
+    final double angleIncrement = Math.toRadians(10.0);
+    float direction = (endAngle >= startAngle) ? 1.0F : -1.0F;
+    double deltaAngle = Math.abs(endAngle - startAngle);
+    deltaAngle %= 360.0;
+
+    startAngle -= Math.floor(startAngle/360.0);
+    startAngle = Math.toRadians(startAngle);
+    deltaAngle = Math.toRadians(deltaAngle);
+
+    GL11.glBegin(GL11.GL_LINE_STRIP);
+
+    double x, y;
+    double arcPos = 0;
+    boolean arcFinished = false;
+    do {
+      double truncAngle = Math.min(arcPos, deltaAngle);
+      x = radius * Math.sin(startAngle + direction * truncAngle);
+      y = -radius * Math.cos(startAngle + direction * truncAngle);
+      GL11.glVertex3d(x, y, zLevel);
+
+      arcFinished = (arcPos >= deltaAngle);
+      arcPos += angleIncrement;
+    } while (!arcFinished);
+    GL11.glEnd();
+  }
 }
+

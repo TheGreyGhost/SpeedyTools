@@ -78,13 +78,13 @@ public class BlockVoxelMultiSelector
    * continue conversion of the selected box to a VoxelSelection.  Call repeatedly until conversion complete.
    * @param world
    * @param maxTimeInNS maximum elapsed duration before processing stops & function returns
-   * @return true if complete, false if timeout
+   * @return fraction complete (0 - 1), -ve number for finished
    */
-  public boolean selectAllInBoxContinue(World world, long maxTimeInNS)
+  public float selectAllInBoxContinue(World world, long maxTimeInNS)
   {
     if (mode != OperationInProgress.ENTIREFIELD) {
       FMLLog.severe("Mode should be ENTIREFIELD in BlockVoxelMultiSelector::selectEntireFieldContinue");
-      return true;
+      return -1;
     }
 
     long startTime = System.nanoTime();
@@ -92,7 +92,7 @@ public class BlockVoxelMultiSelector
     for ( ; zpos < zSize; ++zpos, xpos = 0) {
       for ( ; xpos < xSize; ++xpos, ypos = 0) {
         for ( ; ypos < ySize; ++ypos) {
-          if (System.nanoTime() - startTime >= maxTimeInNS) return false;
+          if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
           if (world.getBlockId(xpos + xOffset, ypos + yOffset, zpos + zOffset) != 0) {
             selection.setVoxel(xpos, ypos, zpos);
             shadow.setVoxel(xpos, 1, zpos);
@@ -102,7 +102,7 @@ public class BlockVoxelMultiSelector
       }
     }
     mode = OperationInProgress.COMPLETE;
-    return true;
+    return -1;
   }
 
   /**
@@ -627,9 +627,7 @@ public class BlockVoxelMultiSelector
       coordinates.posY = y;
     }
 */
-
-
-  static int firsttime = 0;
+//  static int firsttime = 0;
 
   /**
    * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef so that the render starts in the
@@ -642,9 +640,9 @@ public class BlockVoxelMultiSelector
       return;
     }
 
-    if (firsttime++ == 0) {
-      OpenGLdebugging.dumpAllIsEnabled();
-    }
+//    if (firsttime++ == 0) {
+//      OpenGLdebugging.dumpAllIsEnabled();
+//    }
 
     GL11.glPushMatrix();
 /*

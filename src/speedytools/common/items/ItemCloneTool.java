@@ -5,12 +5,16 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.SelectionBoxRenderer;
 import speedytools.clientonly.VoxelSelection;
@@ -18,6 +22,8 @@ import speedytools.common.UsefulConstants;
 import speedytools.common.UsefulFunctions;
 
 import java.util.*;
+
+import static net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType.CROSSHAIRS;
 
 /**
  * User: The Grey Ghost
@@ -118,7 +124,10 @@ public abstract class ItemCloneTool extends Item
   /** called once per tick while the user is holding an ItemCloneTool
    * @param useKeyHeldDown
    */
-  public void tick(World world, boolean useKeyHeldDown) {}
+  public void tick(World world, boolean useKeyHeldDown)
+  {
+    ++tickCount;
+  }
 
   /**
    * Calculate the new boundary field after being dragged to the current player position
@@ -256,6 +265,8 @@ public abstract class ItemCloneTool extends Item
     GL11.glDisable(GL11.GL_BLEND);
   }
 
+  public boolean renderCrossHairs(ScaledResolution scaledResolution, float partialTick) { return false;}
+
   /**
    * Check to see if the player's cursor is on one of the faces of the boundary field.
    * @param player
@@ -333,4 +344,5 @@ public abstract class ItemCloneTool extends Item
   protected static final int SELECTION_MAX_YSIZE = VoxelSelection.MAX_Y_SIZE;
   protected static final int SELECTION_MAX_ZSIZE = VoxelSelection.MAX_Z_SIZE;
 
+  protected static int tickCount;
 }
