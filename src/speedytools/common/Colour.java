@@ -24,5 +24,6 @@ public class Colour
   public static final Colour GREEN_20 = new Colour(0, 1.0F, 0, 0.2F);
   public static final Colour YELLOW_20 = new Colour(1.0F, 1.0F, 0, 0.2F);
   public static final Colour GREENYELLOW_20 = new Colour(0.5F, 1.0F, 0, 0.2F);
+  public static final Colour PINK_100 = new Colour(240.0F/255, 106.0F/255, 200.0F/255, 1.0F);
 }
 

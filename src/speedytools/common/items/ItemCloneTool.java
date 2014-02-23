@@ -5,20 +5,25 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientonly.SelectionBoxRenderer;
-import speedytools.clientonly.SpeedyToolControls;
-import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
+import speedytools.clientonly.VoxelSelection;
 import speedytools.common.UsefulConstants;
+import speedytools.common.UsefulFunctions;
 
 import java.util.*;
+
+import static net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType.CROSSHAIRS;
 
 /**
  * User: The Grey Ghost
@@ -76,7 +81,7 @@ public abstract class ItemCloneTool extends Item
   @SideOnly(Side.CLIENT)
   public void attackButtonClicked(EntityClientPlayerMP thePlayer)
   {
-    boolean success = buttonClicked(thePlayer, 0);
+    buttonClicked(thePlayer, 0);
   }
 
   /**
@@ -86,7 +91,7 @@ public abstract class ItemCloneTool extends Item
   @SideOnly(Side.CLIENT)
   public void useButtonClicked(EntityClientPlayerMP thePlayer)
   {
-    boolean success = buttonClicked(thePlayer, 1);
+    buttonClicked(thePlayer, 1);
   }
 
   /**
@@ -111,15 +116,18 @@ public abstract class ItemCloneTool extends Item
    */
 
   @SideOnly(Side.CLIENT)
-  public boolean buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
+  public void buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
-    return false;
+    return;
   }
 
   /** called once per tick while the user is holding an ItemCloneTool
    * @param useKeyHeldDown
    */
-  public void tickKeyStates(boolean useKeyHeldDown) {}
+  public void tick(World world, boolean useKeyHeldDown)
+  {
+    ++tickCount;
+  }
 
   /**
    * Calculate the new boundary field after being dragged to the current player position
@@ -146,32 +154,32 @@ public abstract class ItemCloneTool extends Item
       switch (boundaryGrabSide) {
         case UsefulConstants.FACE_YNEG: {
           wYmin += playerPosition.yCoord - boundaryGrabPoint.yCoord;
-          wYmin = Math.min(wYmin, wYmax - 1.0);
+          wYmin = UsefulFunctions.clipToRange(wYmin, wYmax - SELECTION_MAX_YSIZE, wYmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_YPOS: {
           wYmax += playerPosition.yCoord - boundaryGrabPoint.yCoord;
-          wYmax = Math.max(wYmax, wYmin + 1.0);
+          wYmax = UsefulFunctions.clipToRange(wYmax, wYmin + SELECTION_MAX_YSIZE, wYmin + 1.0);
           break;
         }
         case UsefulConstants.FACE_ZNEG: {
           wZmin += playerPosition.zCoord - boundaryGrabPoint.zCoord;
-          wZmin = Math.min(wZmin, wZmax - 1.0);
+          wZmin = UsefulFunctions.clipToRange(wZmin, wZmax - SELECTION_MAX_ZSIZE, wZmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_ZPOS: {
           wZmax += playerPosition.zCoord - boundaryGrabPoint.zCoord;
-          wZmax = Math.max(wZmax, wZmin + 1.0);
+          wZmax = UsefulFunctions.clipToRange(wZmax, wZmin + SELECTION_MAX_ZSIZE, wZmin + 1.0);
           break;
         }
         case UsefulConstants.FACE_XNEG: {
           wXmin += playerPosition.xCoord - boundaryGrabPoint.xCoord;
-          wXmin = Math.min(wXmin, wXmax - 1.0);
+          wXmin = UsefulFunctions.clipToRange(wXmin, wXmax - SELECTION_MAX_XSIZE, wXmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_XPOS: {
           wXmax += playerPosition.xCoord - boundaryGrabPoint.xCoord;
-          wXmax = Math.max(wXmax, wXmin + 1.0);
+          wXmax = UsefulFunctions.clipToRange(wXmax, wXmin + SELECTION_MAX_XSIZE, wXmin + 1.0);
           break;
         }
         default: {
@@ -240,9 +248,9 @@ public abstract class ItemCloneTool extends Item
     GL11.glLineWidth(2.0F);
     GL11.glDisable(GL11.GL_TEXTURE_2D);
     GL11.glDepthMask(false);
-    double expandDistance = 0.002F;
+    double EXPAND_BOX_DISTANCE = 0.002F;
 
-    boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance)
+    boundingBox = boundingBox.expand(EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE)
                              .getOffsetBoundingBox(-playerPosition.xCoord, -playerPosition.yCoord, -playerPosition.zCoord);
     int faceToHighlight = -1;
     if (boundaryGrabActivated) {
@@ -257,6 +265,8 @@ public abstract class ItemCloneTool extends Item
     GL11.glDisable(GL11.GL_BLEND);
   }
 
+  public boolean renderCrossHairs(ScaledResolution scaledResolution, float partialTick) { return false;}
+
   /**
    * Check to see if the player's cursor is on one of the faces of the boundary field.
    * @param player
@@ -266,7 +276,7 @@ public abstract class ItemCloneTool extends Item
   {
     if (boundaryCorner1 == null || boundaryCorner2 == null) return null;
 
-    final float MAX_GRAB_DISTANCE = 32.0F;
+    final float MAX_GRAB_DISTANCE = 128.0F;
     Vec3 playerPosition = player.getPosition(1.0F);
     Vec3 lookDirection = player.getLook(1.0F);
     Vec3 maxGrabPosition = playerPosition.addVector(lookDirection.xCoord * MAX_GRAB_DISTANCE, lookDirection.yCoord * MAX_GRAB_DISTANCE, lookDirection.zCoord * MAX_GRAB_DISTANCE);
@@ -329,4 +339,10 @@ public abstract class ItemCloneTool extends Item
   protected static Vec3 boundaryGrabPoint = null;
 
   protected static int boundaryCursorSide = -1;
+
+  protected static final int SELECTION_MAX_XSIZE = VoxelSelection.MAX_X_SIZE;
+  protected static final int SELECTION_MAX_YSIZE = VoxelSelection.MAX_Y_SIZE;
+  protected static final int SELECTION_MAX_ZSIZE = VoxelSelection.MAX_Z_SIZE;
+
+  protected static int tickCount;
 }

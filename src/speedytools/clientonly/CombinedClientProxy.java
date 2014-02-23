@@ -3,11 +3,8 @@ package speedytools.clientonly;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraftforge.common.MinecraftForge;
-import speedytools.clientonly.eventhandlers.ClientTickHandler;
-import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
-import speedytools.clientonly.eventhandlers.InputEventHandler;
+import speedytools.clientonly.eventhandlers.*;
 import speedytools.common.CommonProxy;
-import speedytools.clientonly.eventhandlers.ItemEventHandler;
 
 /**
  * CombinedClientProxy is used to set up the mod and start it running when installed on a standalone client.
@@ -46,6 +43,7 @@ public class CombinedClientProxy extends CommonProxy {
     MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
     MinecraftForge.EVENT_BUS.register(new CustomSoundsHandler());
     MinecraftForge.EVENT_BUS.register(new InputEventHandler());
+    MinecraftForge.EVENT_BUS.register(new RenderEventHandler());
     TickRegistry.registerTickHandler(new ClientTickHandler(), Side.CLIENT);
   }
 }
