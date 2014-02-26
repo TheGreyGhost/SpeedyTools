@@ -35,6 +35,9 @@ public class SpeedyToolWorldManipulator
     assert player instanceof EntityPlayerMP;
     EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
 
+    WorldBackup.backupWorld(); // todo remove
+
+
     switch (buttonClicked) {
       case 0: {
         UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
