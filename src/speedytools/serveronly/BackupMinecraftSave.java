@@ -39,6 +39,7 @@ import net.minecraft.nbt.NBTTagList;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 
@@ -77,8 +78,13 @@ public class BackupMinecraftSave
 
       Path contentsFile = destinationSaveFolder.resolve(CONTENTS_FILENAME);
 
-      try (FileOutputStream fout = Files.newOutputStream(contentsFile, StandardOpenOption.CREATE_NEW)) {
-        CompressedStreamTools.writeCompressed(nbttagcompound, new FileOutputStream(file1));
+      OutputStream out = Files.newOutputStream(contentsFile, StandardOpenOption.CREATE_NEW);
+      try {
+        CompressedStreamTools.writeCompressed(backupFolderContentsListing, out);
+      } finally {
+       if (out != null) {
+         out.close();
+       }
       }
 
     } catch (IOException e) {
