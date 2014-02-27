@@ -31,45 +31,80 @@ package speedytools.serveronly;
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import cpw.mods.fml.common.FMLLog;
+import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 
-/**
- * Sample code that copies files in a similar manner to the cp(1) program.
- */
 
 public class BackupMinecraftSave
 {
 
   /**
-   * Copy source file to target location. If {@code prompt} is true then
-   * prompt user to overwrite target if it exists. The {@code preserve}
-   * parameter determines if file attributes should be copied/preserved.
+   * Copy source file to target location.
    */
-  static void copyFile(Path source, Path target) {
+  static void copyFile(Path source, Path target) throws IOException {
     if (Files.notExists(target)) {
-      try {
-        Files.copy(source, target);
-      } catch (IOException x) {
-        System.err.format("Unable to copy: %s: %s%n", source, x);
-      }
+      Files.copy(source, target);
     }
   }
 
+  private final static String COMMENT_TAG = "PATH";
+  private final static String CONTENTS_TAG = "LIST_OF_FILES";
+  private final static String CONTENTS_FILENAME = "fileinfo.zip";
+
+  /**
+   * Copies a minecraft save folder to a backup folder
+   * @param currentSaveFolder
+   * @param destinationSaveFolder
+   * @return true for success, false for failure
+   */
+  static public boolean createBackupSave(Path currentSaveFolder, Path destinationSaveFolder, String comment)
+  {
+
+    try {
+      TreeCopier tc = new TreeCopier(currentSaveFolder, destinationSaveFolder);
+      Files.walkFileTree(currentSaveFolder, tc);
+      NBTTagCompound backupFolderContentsListing = new NBTTagCompound("BackupFolderContents");
+      backupFolderContentsListing.setString(COMMENT_TAG, comment);
+      backupFolderContentsListing.setTag(CONTENTS_TAG, tc.getAllFileInfo());
+
+      Path contentsFile = destinationSaveFolder.resolve(CONTENTS_FILENAME);
+
+      try (FileOutputStream fout = Files.newOutputStream(contentsFile, StandardOpenOption.CREATE_NEW)) {
+        CompressedStreamTools.writeCompressed(nbttagcompound, new FileOutputStream(file1));
+      }
+
+    } catch (IOException e) {
+      FMLLog.severe("Failed to create backup save: %s", e);
+      return false;
+    }
+    return true;
+  }
 
   static class TreeCopier implements FileVisitor<Path>
   {
     private final Path source;
     private final Path target;
+    private boolean success;
 
-    TreeCopier(Path source, Path target, boolean prompt, boolean preserve) {
+    public NBTTagList getAllFileInfo() {
+      return allFileInfo;
+    }
+
+    private NBTTagList allFileInfo;
+
+    TreeCopier(Path source, Path target) {
       this.source = source;
       this.target = target;
+      this.success = false;
+      allFileInfo = new NBTTagList();
     }
 
     private final String PATH_TAG = "PATH";
@@ -77,15 +112,64 @@ public class BackupMinecraftSave
     private final String FILE_CREATED_TAG = "CREATED";
     private final String FILE_MODIFIED_TAG = "MODIFIED";
 
-    private void addFileInfoEntry(File file, NBTTagCompound fileRecord) throws IOException
+    private void addFileInfoEntry(Path path, NBTTagCompound fileRecord) throws IOException
     {
-      BasicFileAttributes attributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-      fileRecord.setString(PATH_TAG, file.getPath());
+      BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+      fileRecord.setString(PATH_TAG, path.toString());
       fileRecord.setLong(FILE_SIZE_TAG, attributes.size());
       fileRecord.setLong(FILE_CREATED_TAG, attributes.lastModifiedTime().toMillis());
       fileRecord.setLong(FILE_MODIFIED_TAG, attributes.lastModifiedTime().toMillis());
     }
 
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException
+    {
+      // before visiting entries in a directory we copy the directory
+      // (okay if directory already exists).
+
+      Path newdir = target.resolve(source.relativize(dir));
+      System.out.println("creating new directory: " + newdir.toString());
+//        Files.copy(dir, newdir, options);
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
+//      copyFile(file, target.resolve(source.relativize(file)),
+//              prompt, preserve);
+      System.out.println("copying file " + path.toString() + " to " + target.resolve(source.relativize(path)));
+      NBTTagCompound thisFileInfo = new NBTTagCompound(target.toString());
+      addFileInfoEntry(path, thisFileInfo);
+      allFileInfo.appendTag(thisFileInfo);
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+ /*
+      // fix up modification time of directory when done
+      if (exc == null && preserve) {
+        Path newdir = target.resolve(source.relativize(dir));
+        try {
+          FileTime time = Files.getLastModifiedTime(dir);
+          Files.setLastModifiedTime(newdir, time);
+        } catch (IOException x) {
+          System.err.format("Unable to copy all attributes to: %s: %s%n", newdir, x);
+        }
+      }
+*/
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException
+    {
+      throw exc;
+    }
+  }
+}
+
+/*
     private void junk()
     {
       try
@@ -181,61 +265,9 @@ public class BackupMinecraftSave
 
       return null;
     }
+  */
 
-    @Override
-    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-      // before visiting entries in a directory we copy the directory
-      // (okay if directory already exists).
-
-      Path newdir = target.resolve(source.relativize(dir));
-      try {
-         System.out.println("creating new directory: " + newdir.toString());
-//        Files.copy(dir, newdir, options);
-      } catch (FileAlreadyExistsException x) {
-        // ignore
-      } catch (IOException x) {
-        System.err.format("Unable to create: %s: %s%n", newdir, x);
-        return FileVisitResult.TERMINATE;
-      }
-      return FileVisitResult.CONTINUE;
-    }
-
-    @Override
-    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-//      copyFile(file, target.resolve(source.relativize(file)),
-//              prompt, preserve);
-      System.out.println("copying file " + file.toString() + " to " + target.resolve(source.relativize(file)));
-      return FileVisitResult.CONTINUE;
-    }
-
-    @Override
-    public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
- /*
-      // fix up modification time of directory when done
-      if (exc == null && preserve) {
-        Path newdir = target.resolve(source.relativize(dir));
-        try {
-          FileTime time = Files.getLastModifiedTime(dir);
-          Files.setLastModifiedTime(newdir, time);
-        } catch (IOException x) {
-          System.err.format("Unable to copy all attributes to: %s: %s%n", newdir, x);
-        }
-      }
-*/
-      return FileVisitResult.CONTINUE;
-    }
-
-    @Override
-    public FileVisitResult visitFileFailed(Path file, IOException exc) {
-      if (exc instanceof FileSystemLoopException) {
-        System.err.println("cycle detected: " + file);
-      } else {
-        System.err.format("Unable to copy: %s: %s%n", file, exc);
-      }
-      return FileVisitResult.TERMINATE;
-    }
-  }
-
+/*
   public static void main(String[] args) throws IOException {
 
     // remaining arguments are the source files(s) and the target location
@@ -264,3 +296,4 @@ public class BackupMinecraftSave
     }
   }
 }
+*/
