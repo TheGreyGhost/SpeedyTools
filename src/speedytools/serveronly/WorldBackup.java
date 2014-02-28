@@ -8,6 +8,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.DimensionManager;
 
 import java.io.File;
+import java.nio.file.Path;
 
 /**
  * Created by TheGreyGhost on 24/02/14.
@@ -42,6 +43,8 @@ public class WorldBackup
         backupFilename = new File(rootSavesFolder, backupFolderName);
         backupFolderExists = backupFilename.exists();
       } while (backupFolderExists);
+
+      Path backupFolder
 
       boolean success = backupFilename.mkdir();
 
