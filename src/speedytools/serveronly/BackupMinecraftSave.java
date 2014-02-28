@@ -88,7 +88,7 @@ public class BackupMinecraftSave
       }
 
     } catch (IOException e) {
-      FMLLog.severe("Failed to create backup save: %s", e);
+      FMLLog.severe("BackupMinecraftSave::createBackupSave() failed to create backup save: %s", e);
       return false;
     }
     return true;
