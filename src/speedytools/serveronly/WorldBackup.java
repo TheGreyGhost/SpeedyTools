@@ -5,13 +5,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandServerSaveAll;
 import net.minecraft.command.CommandServerSaveOff;
 import net.minecraft.command.CommandServerSaveOn;
-import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.DimensionManager;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Created by TheGreyGhost on 24/02/14.
