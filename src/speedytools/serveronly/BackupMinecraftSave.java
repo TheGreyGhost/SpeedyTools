@@ -35,6 +35,7 @@ import cpw.mods.fml.common.FMLLog;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import speedytools.common.ErrorLog;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -56,9 +57,10 @@ public class BackupMinecraftSave
     }
   }
 
+  private final static String ROOT_TAG = "BACKUP_FOLDER_CONTENTS";
   private final static String COMMENT_TAG = "PATH";
   private final static String CONTENTS_TAG = "LIST_OF_FILES";
-  private final static String CONTENTS_FILENAME = "fileinfo.zip";
+  private final static String CONTENTS_FILENAME = "fileinfo.dat";
 
   /**
    * Copies a minecraft save folder to a backup folder
@@ -72,20 +74,13 @@ public class BackupMinecraftSave
     try {
       TreeCopier tc = new TreeCopier(currentSaveFolder, destinationSaveFolder);
       Files.walkFileTree(currentSaveFolder, tc);
-      NBTTagCompound backupFolderContentsListing = new NBTTagCompound("BackupFolderContents");
+      NBTTagCompound backupFolderContentsListing = new NBTTagCompound(ROOT_TAG);
       backupFolderContentsListing.setString(COMMENT_TAG, comment);
       backupFolderContentsListing.setTag(CONTENTS_TAG, tc.getAllFileInfo());
 
       Path contentsFile = destinationSaveFolder.resolve(CONTENTS_FILENAME);
 
-      OutputStream out = Files.newOutputStream(contentsFile, StandardOpenOption.CREATE_NEW);
-      try {
-        CompressedStreamTools.writeCompressed(backupFolderContentsListing, out);
-      } finally {
-       if (out != null) {
-         out.close();
-       }
-      }
+      CompressedStreamTools.write(backupFolderContentsListing, contentsFile.toFile());
 
     } catch (IOException e) {
       FMLLog.severe("BackupMinecraftSave::createBackupSave() failed to create backup save: %s", e);
@@ -93,6 +88,46 @@ public class BackupMinecraftSave
     }
     return true;
   }
+
+  static public boolean isBackupSaveUnmodified(Path backupFolder)
+  {
+    NBTTagCompound nbt = readFileInfo(backupFolder);
+    if (nbt == null) return false;
+
+    WALK THE DIRECTORY
+
+
+  }
+
+  /** read the file info listing from the provided file
+   *
+   * @param backupFolder
+   * @return the NBT with the list of file information, or null if error
+   */
+  static private NBTTagCompound readFileInfo(Path backupFolder)
+  {
+    Path contentsFile = backupFolder.resolve(CONTENTS_FILENAME);
+    if (!Files.isRegularFile(contentsFile) || !Files.isReadable(contentsFile)) return null;
+    NBTTagCompound nbt;
+    try {
+      nbt = CompressedStreamTools.read(contentsFile.toFile());
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Failed to read contents file: " + contentsFile.toString());
+      return null;
+    }
+    if (nbt.getName() != ROOT_TAG || !nbt.hasKey(CONTENTS_TAG)) {
+      ErrorLog.defaultLog().warning("tags missing from contents file: " + contentsFile.toString());
+      return null;
+    }
+    try {
+      nbt = nbt.getCompoundTag(CONTENTS_TAG);
+    } catch (Exception e) {
+      ErrorLog.defaultLog().warning("invalid contents tag in contents file: " + contentsFile.toString());
+      return null;
+    }
+    return nbt;
+  }
+
 
   static class TreeCopier implements FileVisitor<Path>
   {
@@ -121,7 +156,7 @@ public class BackupMinecraftSave
     private void addFileInfoEntry(Path path, NBTTagCompound fileRecord) throws IOException
     {
       BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-      fileRecord.setString(PATH_TAG, path.toString());
+//      fileRecord.setString(PATH_TAG, path.toString());
       fileRecord.setLong(FILE_SIZE_TAG, attributes.size());
       fileRecord.setLong(FILE_CREATED_TAG, attributes.lastModifiedTime().toMillis());
       fileRecord.setLong(FILE_MODIFIED_TAG, attributes.lastModifiedTime().toMillis());

@@ -78,16 +78,6 @@ public class WorldBackup
       File rootSavesFolder = new File(Minecraft.getMinecraft().mcDataDir, "saves");
       String saveFolderName = sourceSaveFolder.getFileName().toString();
 
-      int backupNumber = 1;
-      boolean backupFolderExists;
-      File backupFilename;
-      do {
-
-        String backupFolderName = saveFolderName + "-bk" + backupNumber;
-        backupFilename = new File(rootSavesFolder, backupFolderName);
-        backupFolderExists = backupFilename.exists();
-      } while (backupFolderExists);
-
       success = backupFilename.mkdir();
       if (success) {
         success = BackupMinecraftSave.createBackupSave(sourceSaveFolder, backupFilename.toPath(), "Test");

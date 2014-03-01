@@ -6,6 +6,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagString;
 import speedytools.common.ErrorLog;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -160,27 +161,46 @@ public class StoredBackups
 
   /**
    * provides a suitable folder name for the next save backup
-   * @param basePathAndStem the base path and filename stem eg /saves/GreysWorld
-   * @return the folder name to be used for the next save backup
+   * @param basePath and baseStem the base path and filename stem eg /saves and GreysWorld
+   * @return the folder name to be used for the next save backup, or null for failure
    */
-  public Path getNextSaveFolder(Path basePathAndStem) {
-    int maxBackupNumber = Integer.MIN_VALUE;
-
-    for (Integer entry : backupListing.keySet()) {
-       maxBackupNumber = Math.max(maxBackupNumber, entry);
+  public Path getNextSaveFolder(Path basePath, String baseStem) {
+    int nextBackupNumber = getNextBackupNumber();
+    char backupLetter = 'a';
+    boolean backupFolderExistsAlready;
+    Path folderToTry;
+    do {
+      folderToTry = basePath.resolve((baseStem + "-bk" + nextBackupNumber) + backupLetter);
+      backupFolderExistsAlready = Files.exists(folderToTry);
+      ++backupLetter;
+    } while (backupFolderExistsAlready && backupLetter <= 'z');
+    if (backupFolderExistsAlready) {
+      ErrorLog.defaultLog().warning("StoredBackups::getNextSaveFolder couldn't find a suitable name");
+      return null;
     }
-    if (maxBackupNumber == Integer.MIN_VALUE) maxBackupNumber = 0;
+    return folderToTry;
   }
 
   /**
    * Adds the given path to the listing of stored backups
    * @param newBackup
-   * @return
+   * @return true for success
    */
   public boolean addStoredBackup(Path newBackup) {
-
+    backupListing.put(new Integer(getNextBackupNumber()), newBackup);
+    return true;
   }
 
+  private int getNextBackupNumber()
+  {
+    int nextBackupNumber = Integer.MIN_VALUE;
+
+    for (Integer entry : backupListing.keySet()) {
+      nextBackupNumber = Math.max(nextBackupNumber, entry+1);
+    }
+    if (nextBackupNumber == Integer.MIN_VALUE) nextBackupNumber = 1;
+    return nextBackupNumber;
+  }
 
   private HashMap<Integer, Path> backupListing;
 
