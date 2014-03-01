@@ -1,6 +1,5 @@
 package speedytools.serveronly;
 
-import cpw.mods.fml.common.FMLLog;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandServerSaveAll;
 import net.minecraft.command.CommandServerSaveOff;
@@ -8,7 +7,9 @@ import net.minecraft.command.CommandServerSaveOn;
 import net.minecraft.nbt.*;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.DimensionManager;
+import speedytools.common.ErrorLog;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.nio.file.*;
 import java.util.HashMap;
@@ -42,16 +43,15 @@ public class WorldBackup
    * Creates a WorldBackup for the given save folder (not necessarily the current one)
    * @param currentSaveFolder
    */
-  public WorldBackup(File currentSaveFolder)
+  public WorldBackup(Path currentSaveFolder)
   {
     if (currentSaveFolder == null) {
-      currentSaveFolder = DimensionManager.getCurrentSaveRootDirectory();
+      currentSaveFolder = DimensionManager.getCurrentSaveRootDirectory().toPath();
     }
     sourceSaveFolder = currentSaveFolder;
     if (sourceSaveFolder == null) return;
 
-    Path backupListingPath = sourceSaveFolder.toPath();
-    backupListingPath.resolve(BACKUP_LISTING_FILENAME);
+    Path backupListingPath = sourceSaveFolder.resolve(BACKUP_LISTING_FILENAME);
     backupListing = retrieveBackupListing(backupListingPath);
   }
 
@@ -67,27 +67,29 @@ public class WorldBackup
    * in case of error, parses as much as possible.
    * does not check if the paths actually exist
    * @param backupListingPath
-   * @return a map of backup number vs path; listing will be truncated in case of errors
+   * @return a map of backup number vs path; null in case of error
    */
   public static HashMap<Integer, Path> retrieveBackupListing(Path backupListingPath)
   {
     HashMap<Integer, Path> retval = new HashMap<Integer, Path>();
+    HashMap<Integer, Path> errorval = null;
+
     if (!Files.isRegularFile(backupListingPath) || !Files.isReadable(backupListingPath)) {
-      return retval;
+      return errorval;
     }
     try {
       NBTTagCompound backupListing = CompressedStreamTools.read(backupListingPath.toFile());
       if (!backupListing.getName().equals(BACKUP_LISTING_NAME_VALUE) ) {
-        FMLLog.warning("Invalid backuplisting file (root name wrong): " + backupListingPath.toString());
-        return retval;
+        ErrorLog.defaultLog().warning("Invalid backuplisting file (root name wrong): " + backupListingPath.toString());
+        return errorval;
       }
       if (!backupListing.hasKey(BACKUP_LISTING_VERSION_TAG) || !backupListing.hasKey(BACKUP_LISTING_PATHS_TAG)) {
-        FMLLog.warning("Invalid backuplisting file (missing tag): " + backupListingPath.toString());
-        return retval;
+        ErrorLog.defaultLog().warning("Invalid backuplisting file (missing tag): " + backupListingPath.toString());
+        return errorval;
       }
       if (!backupListing.getString(BACKUP_LISTING_VERSION_TAG).equals(BACKUP_LISTING_VERSION_VALUE)) {
-        FMLLog.warning("Invalid backuplisting file (version wrong): "  + backupListingPath.toString());
-        return retval;
+        ErrorLog.defaultLog().warning("Invalid backuplisting file (version wrong): "  + backupListingPath.toString());
+        return errorval;
       }
       backupListing = backupListing.getCompoundTag(BACKUP_LISTING_PATHS_TAG);
 
@@ -105,22 +107,22 @@ public class WorldBackup
           try {
             backupNumber = new Integer(Integer.parseInt(backupNumberString));
           } catch (NumberFormatException nfe) {
-            FMLLog.warning("Invalid backupNumber tag in backuplisting file: "  + backupListingPath.toString());
-            return retval;
+            ErrorLog.defaultLog().warning("Invalid backupNumber tag in backuplisting file: "  + backupListingPath.toString());
+            return errorval;
           }
           if (retval.containsKey(backupNumber)) {
-            FMLLog.warning("Duplicate backupNumber tag in backuplisting file: "  + backupListingPath.toString());
-            return retval;
+            ErrorLog.defaultLog().warning("Duplicate backupNumber tag in backuplisting file: "  + backupListingPath.toString());
+            return errorval;
           }
           retval.put(backupNumber, Paths.get(entry.data));
         } else {
-          FMLLog.warning("Invalid backupNumber entry in backuplisting file: "  + backupListingPath.toString());
-          return retval;
+          ErrorLog.defaultLog().warning("Invalid backupNumber entry in backuplisting file: "  + backupListingPath.toString());
+          return errorval;
         }
       }
     } catch (IOException ioe) {
-      FMLLog.warning("Failure while reading backuplisting file ("  + backupListingPath.toString() + ") :" + ioe.toString());
-      return retval;
+      ErrorLog.defaultLog().warning("Failure while reading backuplisting file ("  + backupListingPath.toString() + ") :" + ioe.toString());
+      return errorval;
     }
     return retval;
   }
@@ -135,18 +137,17 @@ public class WorldBackup
       NBTTagCompound backupListingNBT = new NBTTagCompound(BACKUP_LISTING_NAME_VALUE);
       backupListingNBT.setString(BACKUP_LISTING_VERSION_TAG, BACKUP_LISTING_VERSION_VALUE);
 
-      NBTTagCompound paths = new NBTTagCompound(BACKUP_LISTING_PATHS_TAG);
+      NBTTagCompound paths = new NBTTagCompound("dummy");
       for (Map.Entry<Integer, Path> entry : backups.entrySet()) {
         paths.setString(entry.getKey().toString(), entry.getValue().toString());
       }
-      backupListingNBT.setTag("WhereIsThis", paths);
+      backupListingNBT.setTag(BACKUP_LISTING_PATHS_TAG, paths);
 
       OutputStream out = null;
       try {
-        out = Files.newOutputStream(fileToCreate, StandardOpenOption.CREATE_NEW);
-        CompressedStreamTools.writeCompressed(backupListingNBT, out);
+        CompressedStreamTools.write(backupListingNBT, fileToCreate.toFile());
       } catch (IOException e) {
-        FMLLog.severe("BackupMinecraftSave::createBackupSave() failed to create backup save: %s", e.toString());
+        ErrorLog.defaultLog().severe("WorldBackup::saveBackupListing() failed to create backup save: %s", e.toString());
         return false;
       } finally {
         if (out != null) {
@@ -158,7 +159,7 @@ public class WorldBackup
         }
       }
     } catch (Exception e) {
-      FMLLog.severe("BackupMinecraftSave::createBackupSave() failed to create backup save: %s", e.toString());
+      ErrorLog.defaultLog().severe("WorldBackup::saveBackupListing() failed to create backup save: %s", e.toString());
       return false;
     }
 
@@ -188,7 +189,7 @@ public class WorldBackup
 
     try {
       File rootSavesFolder = new File(Minecraft.getMinecraft().mcDataDir, "saves");
-      String saveFolderName = sourceSaveFolder.getName();
+      String saveFolderName = sourceSaveFolder.getFileName().toString();
 
       int backupNumber = 1;
       boolean backupFolderExists;
@@ -202,20 +203,20 @@ public class WorldBackup
 
       success = backupFilename.mkdir();
       if (success) {
-        success = BackupMinecraftSave.createBackupSave(sourceSaveFolder.toPath(), backupFilename.toPath(), "Test");
+        success = BackupMinecraftSave.createBackupSave(sourceSaveFolder, backupFilename.toPath(), "Test");
       }
 
     } catch (Exception e) {
       // todo: think of something to put here...
       success = false;
-      FMLLog.severe("WorldBackup::backupWorld() failed to create backup save: %s", e);
+      ErrorLog.defaultLog().severe("WorldBackup::backupWorld() failed to create backup save: %s", e);
     }
 
     saveOn.processCommand(minecraftServer, dummy);
     return success;
   }
 
-  private File sourceSaveFolder;
+  private Path sourceSaveFolder;
 
   private HashMap<Integer, Path> backupListing;
 
