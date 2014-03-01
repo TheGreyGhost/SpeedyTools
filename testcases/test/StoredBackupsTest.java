@@ -5,7 +5,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import speedytools.common.ErrorLog;
-import speedytools.serveronly.WorldBackup;
+import speedytools.serveronly.StoredBackups;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -17,10 +17,10 @@ import java.util.HashMap;
  * User: The Grey Ghost
  * Date: 1/03/14
  */
-public class WorldBackupTest
+public class StoredBackupsTest
 {
-  public final static String TEST_ERROR_LOG = "WorldBackupTestErrorLog.log";
-  public final static String PREMADE_FOLDER = "premade/WorldBackupTest";
+  public final static String TEST_ERROR_LOG = "StoredBackupsTestErrorLog.log";
+  public final static String PREMADE_FOLDER = "premade/StoredBackupsTest";
 
   @Test
   public void testRetrieveBackupListing() throws Exception {
@@ -38,16 +38,20 @@ public class WorldBackupTest
     boolean success;
     HashMap<Integer, Path> testResult;
     Path test1file = testdata.resolve("backuplisting1.dat");
-    success = WorldBackup.saveBackupListing(test1file, testInput);
-    testResult = WorldBackup.retrieveBackupListing(test1file);
+    StoredBackups storedBackups = new StoredBackups(testInput);
+    success = storedBackups.saveBackupListing(test1file);
     Assert.assertTrue("saveBackupListing succeeded", success);
-    Assert.assertTrue("Test1: retrieved listing exactly matches saved listing", testResult.equals(testInput));
+    success = storedBackups.retrieveBackupListing(test1file);
+    Assert.assertTrue("retrieveBackupListing succeeded", success);
+    Assert.assertTrue("Test1: retrieved listing exactly matches saved listing", storedBackups.getBackupListing().equals(testInput));
 
     testInput.put(new Integer(30), testdata.resolve("testpath30"));
-    success = WorldBackup.saveBackupListing(test1file, testInput);
-    testResult = WorldBackup.retrieveBackupListing(test1file);
+    storedBackups = new StoredBackups(testInput);
+    success = storedBackups.saveBackupListing(test1file);
     Assert.assertTrue("saveBackupListing over the top succeeded", success);
-    Assert.assertTrue("Test2: retrieved listing exactly matches saved listing", testResult.equals(testInput));
+    success = storedBackups.retrieveBackupListing(test1file);
+    Assert.assertTrue("retrieveBackupListing succeeded", success);
+    Assert.assertTrue("Test2: retrieved listing exactly matches saved listing", storedBackups.getBackupListing().equals(testInput));
 
     Path premade = Paths.get(PREMADE_FOLDER);
 
@@ -55,8 +59,8 @@ public class WorldBackupTest
                           "wrongPathType.dat", "wrongVersion.dat"};
 
     for (String testfile : testFiles) {
-      testResult = WorldBackup.retrieveBackupListing(premade.resolve(testfile));
-      Assert.assertNull("testfile " + testfile + "expected to fail", testResult);
+      success = storedBackups.retrieveBackupListing(premade.resolve(testfile));
+      Assert.assertFalse("testfile " + testfile + "expected to fail", success);
     }
   }
 
@@ -67,7 +71,8 @@ public class WorldBackupTest
 
     HashMap<Integer, Path> testInput = new HashMap<Integer, Path>();
     boolean success;
-    success = WorldBackup.saveBackupListing(tempDirPath.resolve(ILLEGAL_FILENAME), testInput);
+    StoredBackups storedBackups = new StoredBackups(testInput);
+    success = storedBackups.saveBackupListing(tempDirPath.resolve(ILLEGAL_FILENAME));
     Assert.assertFalse("Illegal filename causes failed save", success);
   }
 
@@ -79,7 +84,7 @@ public class WorldBackupTest
     ErrorLog.setLogFileAsDefault(testdata.toString());
 
     Path tempfolder = Paths.get(TEST_TEMP_ROOT_DIRECTORY);
-    tempDirPath = Files.createTempDirectory(tempfolder, "WorldBackupTest");
+    tempDirPath = Files.createTempDirectory(tempfolder, "StoredBackupsTest");
     tempDirFile = tempDirPath.toFile();
   } 
   @AfterClass
