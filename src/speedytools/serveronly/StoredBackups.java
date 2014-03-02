@@ -156,7 +156,8 @@ public class StoredBackups
     // This sequence leads to a fairly evenly increasing gap between saves, up to 6 saves deep
     int[] deletionSchedule = {1, 13, 1, 5, 1, 21, 1, 5, 1, 13, 1, 5, 1, 21, 1, 5};
 
-    CHECK VALIDITY OF EXISTING
+//    CHECK VALIDITY OF EXISTING
+    return true;
   }
 
   /**

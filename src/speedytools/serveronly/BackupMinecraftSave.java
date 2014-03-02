@@ -37,31 +37,12 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import speedytools.common.ErrorLog;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 
-
 public class BackupMinecraftSave
 {
-
-  /**
-   * Copy source file to target location.
-   */
-  static void copyFile(Path source, Path target) throws IOException {
-    if (Files.notExists(target)) {
-      Files.copy(source, target);
-    }
-  }
-
-  private final static String ROOT_TAG = "BACKUP_FOLDER_CONTENTS";
-  private final static String COMMENT_TAG = "PATH";
-  private final static String CONTENTS_TAG = "LIST_OF_FILES";
-  private final static String CONTENTS_FILENAME = "fileinfo.dat";
-
   /**
    * Copies a minecraft save folder to a backup folder
    * @param currentSaveFolder
@@ -89,14 +70,50 @@ public class BackupMinecraftSave
     return true;
   }
 
+  /**
+   * Checks the specified backup folder to see if the size and timestamps of all the files still match
+   *   the fileinfo file CONTENTS_FILENAME
+   * @param backupFolder
+   * @return true if all files match, false if any don't
+   */
   static public boolean isBackupSaveUnmodified(Path backupFolder)
   {
     NBTTagCompound nbt = readFileInfo(backupFolder);
     if (nbt == null) return false;
 
-    WALK THE DIRECTORY
+    try {
+      TreeCopier tc = new TreeCopier(backupFolder, null);
+      Files.walkFileTree(backupFolder, tc);
+      if (nbt.equals(tc.getAllFileInfo()) ) return true;
+    } catch (IOException e) {
+      ErrorLog.defaultLog().severe("BackupMinecraftSave::isBackupSaveUnmodified() failed to read: %s", e);
+      return false;
+    }
+    return false;
+  }
 
+  /**
+   * deletes the entire backup folder, checking each file against the list of expected files before deleting it
+   * @param backupSaveFolder
+   * @return true if there were no unexpected files and all the expected files were present and deleted
+   */
+  static public boolean deleteBackupSave(Path backupSaveFolder)
+  {
+    try {
+      NBTTagCompound nbtFileInfo = readFileInfo(backupSaveFolder);
+      if (nbtFileInfo == null) return false;
+      if (!isBackupSaveUnmodified(backupSaveFolder)) return false;
 
+      TreeDeleter treeDeleter = new TreeDeleter(nbtFileInfo);
+      Files.walkFileTree(backupSaveFolder, treeDeleter);
+      if (!treeDeleter.getAllFileInfo().hasNoTags()) return false;
+      Files.delete(backupSaveFolder);
+    } catch (IOException e) {
+      ErrorLog.defaultLog().severe("BackupMinecraftSave::deleteBackupSave() failed to delete backup save: %s", e);
+      return false;
+    }
+
+    return true;
   }
 
   /** read the file info listing from the provided file
@@ -128,24 +145,50 @@ public class BackupMinecraftSave
     return nbt;
   }
 
+  /**
+   * Copy source file to destination location.
+   */
+  static private void copyFile(Path source, Path target) throws IOException {
+    if (Files.notExists(target)) {
+      Files.copy(source, target);
+    }
+  }
+
+  private final static String ROOT_TAG = "BACKUP_FOLDER_CONTENTS";
+  private final static String COMMENT_TAG = "PATH";
+  private final static String CONTENTS_TAG = "LIST_OF_FILES";
+  private final static String CONTENTS_FILENAME = "fileinfo.dat";
 
   static class TreeCopier implements FileVisitor<Path>
   {
     private final Path source;
-    private final Path target;
+    private final Path destination;   // destination folder, set to = source if copyFiles is false
+    private boolean copyFiles;
     private boolean success;
 
-    public NBTTagList getAllFileInfo() {
+    public NBTTagCompound getAllFileInfo() {
       return allFileInfo;
     }
 
-    private NBTTagList allFileInfo;
+    private NBTTagCompound allFileInfo;
 
-    TreeCopier(Path source, Path target) {
-      this.source = source;
-      this.target = target;
+    /**
+     * create a FileVisitor to walk the folder tree, optionally copying each file & folder to a destination directory, and compiling a list
+     *   of information about each file in the folder.
+     * @param i_source the source folder
+     * @param i_destination the destination folder, or if null - don't copy.
+     */
+    TreeCopier(Path i_source, Path i_destination) {
+      this.source = i_source;
+      if (i_destination == null) {
+        copyFiles = false;
+        this.destination = this.source;
+      } else {
+        copyFiles = true;
+        this.destination = i_destination;
+      }
       this.success = false;
-      allFileInfo = new NBTTagList();
+      allFileInfo = new NBTTagCompound();
     }
 
     private final String PATH_TAG = "PATH";
@@ -153,13 +196,15 @@ public class BackupMinecraftSave
     private final String FILE_CREATED_TAG = "CREATED";
     private final String FILE_MODIFIED_TAG = "MODIFIED";
 
-    private void addFileInfoEntry(Path path, NBTTagCompound fileRecord) throws IOException
+    private NBTTagCompound createFileInfoEntry(Path path) throws IOException
     {
       BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
 //      fileRecord.setString(PATH_TAG, path.toString());
-      fileRecord.setLong(FILE_SIZE_TAG, attributes.size());
-      fileRecord.setLong(FILE_CREATED_TAG, attributes.lastModifiedTime().toMillis());
-      fileRecord.setLong(FILE_MODIFIED_TAG, attributes.lastModifiedTime().toMillis());
+      NBTTagCompound nbt = new NBTTagCompound();
+      nbt.setLong(FILE_SIZE_TAG, attributes.size());
+      nbt.setLong(FILE_CREATED_TAG, attributes.lastModifiedTime().toMillis());
+      nbt.setLong(FILE_MODIFIED_TAG, attributes.lastModifiedTime().toMillis());
+      return nbt;
     }
 
     @Override
@@ -168,37 +213,29 @@ public class BackupMinecraftSave
       // before visiting entries in a directory we copy the directory
       // (okay if directory already exists).
 
-      Path newdir = target.resolve(source.relativize(dir));
-      System.out.println("creating new directory: " + newdir.toString());
-//        Files.copy(dir, newdir, options);
+      if (!copyFiles) return FileVisitResult.CONTINUE;
+      Path newdir = destination.resolve(source.relativize(dir));
+//      System.out.println("creating new directory: " + newdir.toString());
+      Files.copy(dir, newdir);
       return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
-//      copyFile(file, target.resolve(source.relativize(file)),
-//              prompt, preserve);
-      System.out.println("copying file " + path.toString() + " to " + target.resolve(source.relativize(path)));
-      NBTTagCompound thisFileInfo = new NBTTagCompound(target.toString());
-      addFileInfoEntry(path, thisFileInfo);
-      allFileInfo.appendTag(thisFileInfo);
+      if (path.getFileName().equals(CONTENTS_FILENAME)) {  // ignore the contents file
+        return FileVisitResult.CONTINUE;
+      }
+      if (copyFiles) {
+        copyFile(path, destination.resolve(source.relativize(path)));
+      }
+//      System.out.println("copying file " + path.toString() + " to " + destination.resolve(source.relativize(path)));
+      NBTTagCompound thisFileInfo = createFileInfoEntry(path);
+      allFileInfo.setCompoundTag(destination.toString(), thisFileInfo);
       return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
- /*
-      // fix up modification time of directory when done
-      if (exc == null && preserve) {
-        Path newdir = target.resolve(source.relativize(dir));
-        try {
-          FileTime time = Files.getLastModifiedTime(dir);
-          Files.setLastModifiedTime(newdir, time);
-        } catch (IOException x) {
-          System.err.format("Unable to copy all attributes to: %s: %s%n", newdir, x);
-        }
-      }
-*/
       return FileVisitResult.CONTINUE;
     }
 
@@ -208,6 +245,76 @@ public class BackupMinecraftSave
       throw exc;
     }
   }
+
+  static class TreeDeleter implements FileVisitor<Path>
+  {
+    public NBTTagCompound getAllFileInfo() {
+      return allFileInfo;
+    }
+
+    /**
+     * create a FileVisitor to walk the folder tree, optionally copying each file & folder to a destination directory, and compiling a list
+     *   of information about each file in the folder.
+     * @param expectedFileList = the Files that are expected to be in this folder
+     */
+    TreeDeleter(NBTTagCompound expectedFileList) {
+      allFileInfo = (NBTTagCompound)expectedFileList.copy();
+    }
+
+    private final String FILE_SIZE_TAG = "SIZE";
+    private final String FILE_CREATED_TAG = "CREATED";
+    private final String FILE_MODIFIED_TAG = "MODIFIED";
+
+    private boolean isFileExpected(Path path, NBTTagCompound fileRecord) throws IOException
+    {
+      BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+      if (   fileRecord.getLong(FILE_SIZE_TAG) != attributes.size()
+          || fileRecord.getLong(FILE_CREATED_TAG) != attributes.lastModifiedTime().toMillis()
+          || fileRecord.getLong(FILE_MODIFIED_TAG) != attributes.lastModifiedTime().toMillis() ) {
+        return false;
+      } else {
+        return true;
+      }
+
+    }
+
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException
+    {
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
+      boolean okToDelete = false;
+
+      if (path.getFileName().equals(CONTENTS_FILENAME)) {  // delete the contents file
+        okToDelete = true;
+      } else {
+        okToDelete = isFileExpected(path, allFileInfo.getCompoundTag(path.toString()));
+      }
+
+      if (!okToDelete) return FileVisitResult.TERMINATE;
+
+      Files.delete(path);
+      allFileInfo.removeTag(path.toString());
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+      Files.delete(dir);
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException
+    {
+      throw exc;
+    }
+    private NBTTagCompound allFileInfo;
+  }
+
 }
 
 /*
@@ -311,15 +418,15 @@ public class BackupMinecraftSave
 /*
   public static void main(String[] args) throws IOException {
 
-    // remaining arguments are the source files(s) and the target location
-    Path target = Paths.get(args[argi]);
+    // remaining arguments are the source files(s) and the destination location
+    Path destination = Paths.get(args[argi]);
 
-    // check if target is a directory
-    boolean isDir = Files.isDirectory(target);
+    // check if destination is a directory
+    boolean isDir = Files.isDirectory(destination);
 
-    // copy each source file/directory to target
+    // copy each source file/directory to destination
     for (i=0; i<source.length; i++) {
-      Path dest = (isDir) ? target.resolve(source[i].getFileName()) : target;
+      Path dest = (isDir) ? destination.resolve(source[i].getFileName()) : destination;
 
       if (recursive) {
         // follow links when copying files
