@@ -41,6 +41,9 @@ public class ErrorLog
       return;
     }
     fileTxt.setFormatter(new SimpleFormatter());
+    for (Handler handler : logger.getHandlers()) {
+      logger.removeHandler(handler);
+    }
     logger.addHandler(fileTxt);
     logger.setUseParentHandlers(false);
     setDefaultErrorLogger(logger);

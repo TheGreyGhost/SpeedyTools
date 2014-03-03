@@ -44,7 +44,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 public class BackupMinecraftSave
 {
   /**
-   * Copies a minecraft save folder to a backup folder
+   * Copies a minecraft save folder to a backup folder.
+   * destinationSaveFolder is created (it should not exist already)
    * @param currentSaveFolder
    * @param destinationSaveFolder
    * @return true for success, false for failure
@@ -53,6 +54,10 @@ public class BackupMinecraftSave
   {
 
     try {
+//      if (!Files.exists(destinationSaveFolder)) {
+//        Files.createDirectory(destinationSaveFolder);
+//      }
+
       TreeCopier tc = new TreeCopier(currentSaveFolder, destinationSaveFolder);
       Files.walkFileTree(currentSaveFolder, tc);
       NBTTagCompound backupFolderContentsListing = new NBTTagCompound(ROOT_TAG);
@@ -64,7 +69,7 @@ public class BackupMinecraftSave
       CompressedStreamTools.write(backupFolderContentsListing, contentsFile.toFile());
 
     } catch (IOException e) {
-      FMLLog.severe("BackupMinecraftSave::createBackupSave() failed to create backup save: %s", e);
+      ErrorLog.defaultLog().severe("BackupMinecraftSave::createBackupSave() failed to create backup save: %s", e);
       return false;
     }
     return true;
@@ -104,10 +109,10 @@ public class BackupMinecraftSave
       if (nbtFileInfo == null) return false;
       if (!isBackupSaveUnmodified(backupSaveFolder)) return false;
 
-      TreeDeleter treeDeleter = new TreeDeleter(nbtFileInfo);
+      TreeDeleter treeDeleter = new TreeDeleter(backupSaveFolder, nbtFileInfo);
       Files.walkFileTree(backupSaveFolder, treeDeleter);
+      if (treeDeleter.lastWalkWasTerminated()) return false;
       if (!treeDeleter.getAllFileInfo().hasNoTags()) return false;
-      Files.delete(backupSaveFolder);
     } catch (IOException e) {
       ErrorLog.defaultLog().severe("BackupMinecraftSave::deleteBackupSave() failed to delete backup save: %s", e);
       return false;
@@ -116,7 +121,7 @@ public class BackupMinecraftSave
     return true;
   }
 
-  /** read the file info listing from the provided file
+  /** read the file info listing from contents listing file in the specified folder
    *
    * @param backupFolder
    * @return the NBT with the list of file information, or null if error
@@ -132,7 +137,7 @@ public class BackupMinecraftSave
       ErrorLog.defaultLog().warning("Failed to read contents file: " + contentsFile.toString());
       return null;
     }
-    if (nbt.getName() != ROOT_TAG || !nbt.hasKey(CONTENTS_TAG)) {
+    if (!nbt.getName().equals(ROOT_TAG) || !nbt.hasKey(CONTENTS_TAG)) {
       ErrorLog.defaultLog().warning("tags missing from contents file: " + contentsFile.toString());
       return null;
     }
@@ -188,7 +193,7 @@ public class BackupMinecraftSave
         this.destination = i_destination;
       }
       this.success = false;
-      allFileInfo = new NBTTagCompound();
+      allFileInfo = new NBTTagCompound(CONTENTS_TAG);
     }
 
     private final String PATH_TAG = "PATH";
@@ -222,7 +227,7 @@ public class BackupMinecraftSave
 
     @Override
     public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
-      if (path.getFileName().equals(CONTENTS_FILENAME)) {  // ignore the contents file
+      if (path.getFileName().equals(Paths.get(CONTENTS_FILENAME))) {  // ignore the contents file
         return FileVisitResult.CONTINUE;
       }
       if (copyFiles) {
@@ -230,7 +235,7 @@ public class BackupMinecraftSave
       }
 //      System.out.println("copying file " + path.toString() + " to " + destination.resolve(source.relativize(path)));
       NBTTagCompound thisFileInfo = createFileInfoEntry(path);
-      allFileInfo.setCompoundTag(destination.toString(), thisFileInfo);
+      allFileInfo.setCompoundTag(source.relativize(path).toString(), thisFileInfo);
       return FileVisitResult.CONTINUE;
     }
 
@@ -248,17 +253,23 @@ public class BackupMinecraftSave
 
   static class TreeDeleter implements FileVisitor<Path>
   {
-    public NBTTagCompound getAllFileInfo() {
-      return allFileInfo;
-    }
-
     /**
      * create a FileVisitor to walk the folder tree, optionally copying each file & folder to a destination directory, and compiling a list
      *   of information about each file in the folder.
      * @param expectedFileList = the Files that are expected to be in this folder
      */
-    TreeDeleter(NBTTagCompound expectedFileList) {
+    TreeDeleter(Path i_backupFolderRoot, NBTTagCompound expectedFileList) {
       allFileInfo = (NBTTagCompound)expectedFileList.copy();
+      backupFolderRoot = i_backupFolderRoot;
+      terminated = false;
+    }
+
+    public boolean lastWalkWasTerminated() {
+      return terminated;
+    }
+
+    public NBTTagCompound getAllFileInfo() {
+      return allFileInfo;
     }
 
     private final String FILE_SIZE_TAG = "SIZE";
@@ -287,17 +298,21 @@ public class BackupMinecraftSave
     @Override
     public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
       boolean okToDelete = false;
+      Path relativePath = backupFolderRoot.relativize(path);
 
-      if (path.getFileName().equals(CONTENTS_FILENAME)) {  // delete the contents file
+      if (path.getFileName().equals(Paths.get(CONTENTS_FILENAME))) {  // delete the contents file
         okToDelete = true;
       } else {
-        okToDelete = isFileExpected(path, allFileInfo.getCompoundTag(path.toString()));
+        okToDelete = isFileExpected(path, allFileInfo.getCompoundTag(relativePath.toString()));
       }
 
-      if (!okToDelete) return FileVisitResult.TERMINATE;
+      if (!okToDelete) {
+        terminated = true;
+        return FileVisitResult.TERMINATE;
+      }
 
       Files.delete(path);
-      allFileInfo.removeTag(path.toString());
+      allFileInfo.removeTag(relativePath.toString());
       return FileVisitResult.CONTINUE;
     }
 
@@ -313,6 +328,8 @@ public class BackupMinecraftSave
       throw exc;
     }
     private NBTTagCompound allFileInfo;
+    private Path backupFolderRoot;
+    private boolean terminated;
   }
 
 }
