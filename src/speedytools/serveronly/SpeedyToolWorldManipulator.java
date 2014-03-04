@@ -8,6 +8,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.serveronly.backup.WorldBackup;
 
 import java.util.*;
 

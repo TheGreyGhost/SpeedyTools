@@ -1,9 +1,8 @@
 package test;
 
-import net.minecraft.nbt.NBTTagCompound;
 import org.junit.*;
 import speedytools.common.ErrorLog;
-import speedytools.serveronly.BackupMinecraftSave;
+import speedytools.serveronly.backup.BackupMinecraftSave;
 
 import java.io.File;
 import java.io.FileWriter;

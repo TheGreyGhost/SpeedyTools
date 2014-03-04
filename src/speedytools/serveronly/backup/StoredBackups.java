@@ -1,4 +1,4 @@
-package speedytools.serveronly;
+package speedytools.serveronly.backup;
 
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTBase;
@@ -152,9 +152,11 @@ public class StoredBackups
   public boolean cullSurplus() {
     // If the saves are numbered from 0, 1, 2, etc and savenumber is the number of the
     //   current save,
-    //   then savenumber - deletionSchedule[savenumber%16] is to be deleted
+    //   then savenumber - deletionSchedule[savenumber%8] is to be deleted
     // This sequence leads to a fairly evenly increasing gap between saves, up to 6 saves deep
-    int[] deletionSchedule = {1, 13, 1, 5, 1, 21, 1, 5, 1, 13, 1, 5, 1, 21, 1, 5};
+    // The oldest save will be between 13 - 20 ago; there are always at least the previous two saves
+    int[] deletionSchedule = {12, 2, 4, 2, 20, 2, 4, 2};
+
 
 //    CHECK VALIDITY OF EXISTING
     return true;

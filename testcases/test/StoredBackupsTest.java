@@ -5,7 +5,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import speedytools.common.ErrorLog;
-import speedytools.serveronly.StoredBackups;
+import speedytools.serveronly.backup.StoredBackups;
 
 import java.io.File;
 import java.nio.file.Files;

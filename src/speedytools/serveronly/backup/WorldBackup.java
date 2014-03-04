@@ -1,4 +1,4 @@
-package speedytools.serveronly;
+package speedytools.serveronly.backup;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandServerSaveAll;
@@ -58,7 +58,7 @@ public class WorldBackup
 
   private static final String BACKUP_LISTING_FILENAME = "backuplisting.dat";
 
-  boolean backupWorld()
+  public boolean backupWorld()
   {
 
     boolean success = false;
