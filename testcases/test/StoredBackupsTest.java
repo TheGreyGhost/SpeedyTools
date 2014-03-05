@@ -5,6 +5,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import speedytools.common.ErrorLog;
+import speedytools.serveronly.backup.BackupMinecraftSave;
 import speedytools.serveronly.backup.StoredBackups;
 
 import java.io.File;
@@ -21,6 +22,7 @@ public class StoredBackupsTest
 {
   public final static String TEST_ERROR_LOG = "StoredBackupsTestErrorLog.log";
   public final static String PREMADE_FOLDER = "premade/StoredBackupsTest";
+  public final static String PREMADE_SAVE = "premade/BackupMinecraftSaveTest/TestFolderRoot";
 
   @Test
   public void testRetrieveBackupListing() throws Exception {
@@ -74,6 +76,45 @@ public class StoredBackupsTest
     StoredBackups storedBackups = new StoredBackups(testInput);
     success = storedBackups.saveBackupListing(tempDirPath.resolve(ILLEGAL_FILENAME));
     Assert.assertFalse("Illegal filename causes failed save", success);
+  }
+
+
+
+  private static final String BACKUP_STEM = "TestFolderRoot";
+
+  @Test
+  /**
+   * cullSurplus
+   * addStoredBackup
+   * getNextSaveFolder
+   */
+  public void testOthers() throws Exception {
+
+    StoredBackups storedBackups = new StoredBackups();
+    Path source = Paths.get(PREMADE_SAVE);
+
+    int failedDeletionCount = 0;
+    for (int i = 1; i <= 30; ++i) {
+//      Path dest = storedBackups.getNextSaveFolder(tempDirPath, BACKUP_STEM);
+      boolean success = storedBackups.createBackupSave(source, tempDirPath, "Test" + i);
+//      boolean success = BackupMinecraftSave.createBackupSave(source, dest, "Test" + i);
+      Assert.assertTrue("Created save successfully", success);
+//      success = storedBackups.addStoredBackup(dest);
+//      Assert.assertTrue("addStoredBackup successfully", success);
+      success = storedBackups.cullSurplus();
+      if (!success) ++failedDeletionCount;
+
+      HashMap<Integer, Path> backupListing = storedBackups.getBackupListing();
+      for (Path path : backupListing.values()) {
+        Assert.assertTrue("Check all saves ok", BackupMinecraftSave.isBackupSaveUnmodified(path));
+      }
+      for (File file : tempDirFile.listFiles()) {
+        if (file.isDirectory() && file.getName().startsWith(BACKUP_STEM)) {
+          Assert.assertTrue("No undeleted saves not in list", backupListing.containsValue(file.toPath()));
+        }
+      }
+    }
+    Assert.assertEquals("Number of failed deletions matches expected", failedDeletionCount, 6);
   }
 
   public static final String TEST_TEMP_ROOT_DIRECTORY = "temp";

@@ -10,6 +10,7 @@ import speedytools.common.ErrorLog;
 
 import java.io.*;
 import java.nio.file.*;
+import java.util.Calendar;
 
 /**
  * Created by TheGreyGhost on 24/02/14.
@@ -52,14 +53,14 @@ public class WorldBackup
 
     Path backupListingPath = sourceSaveFolder.resolve(BACKUP_LISTING_FILENAME);
     storedBackups = new StoredBackups();
-    boolean success = storedBackups.retrieveBackupListing(backupListingPath);
-    if (!success) storedBackups = null;
+    storedBackups.retrieveBackupListing(backupListingPath);
   }
 
   private static final String BACKUP_LISTING_FILENAME = "backuplisting.dat";
 
   public boolean backupWorld()
   {
+    if (sourceSaveFolder == null) return false;
 
     boolean success = false;
     MinecraftServer minecraftServer = MinecraftServer.getServer();
@@ -75,16 +76,18 @@ public class WorldBackup
     saveAll.processCommand(minecraftServer, dummy);
 
     try {
-      File rootSavesFolder = new File(Minecraft.getMinecraft().mcDataDir, "saves");
-      String saveFolderName = sourceSaveFolder.getFileName().toString();
-
-//      success = backupFilename.mkdir();
+      Path rootSavesFolder = new File(Minecraft.getMinecraft().mcDataDir, "saves").toPath();
+      Calendar now = Calendar.getInstance();
+      success = storedBackups.createBackupSave(sourceSaveFolder, rootSavesFolder, now.toString());
       if (success) {
-//        success = BackupMinecraftSave.createBackupSave(sourceSaveFolder, backupFilename.toPath(), "Test");
+        storedBackups.cullSurplus();     // ignore it if it fails to cull.
       }
-
+      boolean savedOK;
+      savedOK = storedBackups.saveBackupListing(sourceSaveFolder.resolve(BACKUP_LISTING_FILENAME));
+      if (!savedOK) {
+        ErrorLog.defaultLog().warning("storedBackups.saveBackupListing failed");
+      }
     } catch (Exception e) {
-      // todo: think of something to put here...
       success = false;
       ErrorLog.defaultLog().severe("WorldBackup::backupWorld() failed to create backup save: %s", e);
     }

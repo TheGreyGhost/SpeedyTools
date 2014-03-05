@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -24,7 +25,7 @@ import java.util.Map;
 public class StoredBackups
 {
   public StoredBackups() {
-    this(null);
+    this(new HashMap<Integer, Path>());
   }
 
   public StoredBackups(HashMap<Integer, Path> i_backupListing) {
@@ -40,6 +41,8 @@ public class StoredBackups
    * parses the backuplisting file into a map of backup number vs path
    * in case of error, parses as much as possible.
    * does not check if the paths actually exist
+   * If there is no backupListing file, the backupListing will be initialised to empty
+   *   If the file is incomplete or has an error, the backupListing will contain any valid entries read from the file
    * @param backupListingPath
    * @return true for success, false otherwise
    */
@@ -144,21 +147,66 @@ public class StoredBackups
   }
 
   /**
+   * Copies the source folder to a new backup folder and adds it to the list of StoredBackups
+   * @param folderToBeBackedUp the Minecraft Save folder to be backup up
+   * @param rootSavesFolder the root folder that Minecraft stores its saves into
+   * @param comment comment for the file
+   * @return success if backup successfully created, false otherwise.
+   */
+  public boolean createBackupSave(Path folderToBeBackedUp, Path rootSavesFolder,  String comment) {
+    boolean success;
+    Path newBackupName = getNextSaveFolder(rootSavesFolder, folderToBeBackedUp.getFileName().toString());
+    success = BackupMinecraftSave.createBackupSave(folderToBeBackedUp, newBackupName, comment);
+    if (success) {
+      success = addStoredBackup(newBackupName);
+    }
+
+    return success;
+  }
+
+  /**
    * Looks through the StoredBackups and culls any which are surplus
    * The deletion is performed to keep a series of backups with increasing spacing as they get older
    *     Up to six backups will be kept, the oldest will be at least 14 saves old (up to 21)
-   * @return
+   * @return true if a backup was deleted; false otherwise
    */
   public boolean cullSurplus() {
-    // If the saves are numbered from 0, 1, 2, etc and savenumber is the number of the
+    // If the saves are numbered from 1, 2, 3, etc and savenumber is the number of the
     //   current save,
     //   then savenumber - deletionSchedule[savenumber%8] is to be deleted
     // This sequence leads to a fairly evenly increasing gap between saves, up to 6 saves deep
     // The oldest save will be between 13 - 20 ago; there are always at least the previous two saves
-    int[] deletionSchedule = {12, 2, 4, 2, 20, 2, 4, 2};
+    // In the diagram below, the leftmost column is the newest save.  # = save, O = deletion
+    //  1: #
+    //  2: ##
+    //  3: ###
+    //  4: ##O#
+    //  5: ###.#
+    //  6: ##O#.#
+    //  7: ###.O.#
+    //  8: ##O#...#
+    //  9: ###.#...#
+    // 10: ##O#.#...#
+    // 11: ###.O.#...#
+    // 12: ##O#...#...#
+    // 13: ###.#...#...#
+    // 14: ##O#.#...#...#
+    // 15: ###.O.#...#...#
+    // 16: ##O#...#...#...#
+    // 17: ###.#...#...O...#
+    // 18: ##O#.#...#.......#
+    // 19: ###.O.#...#.......#
+    // 20: ##O#...#...#.......#
+    // 21: ###.#...#...#.......O
+    int[] deletionSchedule = {2, 12, 2, 4, 2, 20, 2, 4};
 
-
-//    CHECK VALIDITY OF EXISTING
+    int maximumStoredBackupNumber = getMaximumStoredBackupNumber();
+    int backupNumToDelete = maximumStoredBackupNumber - deletionSchedule[maximumStoredBackupNumber%8];
+    Path backupToDelete = backupListing.get(backupNumToDelete);
+    if (backupToDelete == null) return false;
+    boolean success = BackupMinecraftSave.deleteBackupSave(backupToDelete);
+    if (!success) return false;
+    backupListing.remove(backupNumToDelete);
     return true;
   }
 
@@ -194,15 +242,25 @@ public class StoredBackups
     return true;
   }
 
-  private int getNextBackupNumber()
+  /**
+   * the number of the most recent backup (highest number)
+   * @return the number or Integer.MIN_VALUE if no backups stored
+   */
+  private int getMaximumStoredBackupNumber()
   {
-    int nextBackupNumber = Integer.MIN_VALUE;
+    int highestBackupNumber = Integer.MIN_VALUE;
 
     for (Integer entry : backupListing.keySet()) {
-      nextBackupNumber = Math.max(nextBackupNumber, entry+1);
+      highestBackupNumber = Math.max(highestBackupNumber, entry);
     }
-    if (nextBackupNumber == Integer.MIN_VALUE) nextBackupNumber = 1;
-    return nextBackupNumber;
+    return highestBackupNumber;
+  }
+
+  private static final int STARTING_BACKUP_NUMBER = 1;
+  private int getNextBackupNumber()
+  {
+    if (backupListing.isEmpty()) return STARTING_BACKUP_NUMBER;
+    return getMaximumStoredBackupNumber() + 1;
   }
 
   private HashMap<Integer, Path> backupListing;
