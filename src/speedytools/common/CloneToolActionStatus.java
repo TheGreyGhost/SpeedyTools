@@ -1,5 +1,7 @@
 package speedytools.common;
 
+import speedytools.common.network.Packet250ToolActionStatus;
+
 /**
  * Created by TheGreyGhost on 7/03/14.
  *
@@ -23,6 +25,11 @@ public class CloneToolActionStatus
 
   }
 
+  public void updateStateFromPacket(Packet250ToolActionStatus packet) {
+
+  }
+
+
   public ClientStatus getClientStatus() {
     return clientStatus;
   }
@@ -36,11 +43,15 @@ public class CloneToolActionStatus
   }
 
   public enum ClientStatus {
-    IDLE, WAITING_FOR_ACTION_COMPLETE
+    IDLE, WAITING_FOR_ACTION_COMPLETE;
+
+    public static final ClientStatus[] allValues = {IDLE, WAITING_FOR_ACTION_COMPLETE};
   }
 
   public enum ServerStatus {
-    IDLE, PERFORMING_BACKUP, PERFORMING_YOUR_ACTION, UNDOING_YOUR_ACTION, BUSY_WITH_OTHER_PLAYER
+    IDLE, PERFORMING_BACKUP, PERFORMING_YOUR_ACTION, UNDOING_YOUR_ACTION, BUSY_WITH_OTHER_PLAYER;
+
+    public static final ServerStatus[] allValues = {IDLE, PERFORMING_BACKUP, PERFORMING_YOUR_ACTION, UNDOING_YOUR_ACTION, BUSY_WITH_OTHER_PLAYER};
   }
 
   private ClientStatus clientStatus = ClientStatus.IDLE;

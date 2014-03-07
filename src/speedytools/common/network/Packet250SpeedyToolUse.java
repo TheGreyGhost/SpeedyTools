@@ -5,6 +5,7 @@ import net.minecraft.block.Block;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.util.ChunkCoordinates;
 import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -75,22 +76,23 @@ public class Packet250SpeedyToolUse
    * @param sourcePacket250
    * @return the converted packet, or null if failure
    */
-  public Packet250SpeedyToolUse(Packet250CustomPayload sourcePacket250)
+  public static Packet250SpeedyToolUse createPacket250SpeedyToolUse(Packet250CustomPayload sourcePacket250)
   {
-    packet250 = sourcePacket250;
-    DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet250.data));
+    Packet250SpeedyToolUse newPacket = new Packet250SpeedyToolUse();
+    newPacket.packet250 = sourcePacket250;
+    DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(sourcePacket250.data));
 
     try {
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID) return;
+      if (packetID != PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID) return null;
 
-      toolItemID = inputStream.readInt();
-      button = inputStream.readInt();
+      newPacket.toolItemID = inputStream.readInt();
+      newPacket.button = inputStream.readInt();
       int blockID = inputStream.readInt();
 
-      blockToPlace = new BlockWithMetadata();
-      blockToPlace.block = (blockID == 0) ? null : Block.blocksList[blockID];
-      blockToPlace.metaData = inputStream.readInt();
+      newPacket.blockToPlace = new BlockWithMetadata();
+      newPacket.blockToPlace.block = (blockID == 0) ? null : Block.blocksList[blockID];
+      newPacket.blockToPlace.metaData = inputStream.readInt();
 
       int blockCount = inputStream.readInt();
       for (int i = 0; i < blockCount; ++i) {
@@ -98,11 +100,28 @@ public class Packet250SpeedyToolUse
         newCC.posX = inputStream.readInt();
         newCC.posY = inputStream.readInt();
         newCC.posZ = inputStream.readInt();
-        currentlySelectedBlocks.add(newCC);
+        newPacket.currentlySelectedBlocks.add(newCC);
       }
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
+      return null;
     }
+    if (!newPacket.checkInvariants()) return null;
+    return newPacket;
+  }
+
+  private Packet250SpeedyToolUse()
+  {
+  }
+
+  /**
+   * Checks if the packet is internally consistent
+   * @return true for success, false otherwise
+   */
+  private boolean checkInvariants()
+  {
+    if (button != 0 && button != 1) return false;
+    return true;
   }
 
   private int toolItemID;

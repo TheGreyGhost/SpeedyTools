@@ -26,18 +26,17 @@ public class PacketHandler implements IPacketHandler
       switch (packet.data[0]) {
         case PACKET250_SPEEDY_TOOL_USE_ID: {
           assert(side == Side.SERVER);
-          Packet250SpeedyToolUse toolUsePacket = new Packet250SpeedyToolUse(packet);
+          Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
+          if (toolUsePacket == null) return;
           SpeedyToolWorldManipulator.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
                                                          toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
           break;
         }
         case PACKET250_CLONE_TOOL_USE_ID: {
-          Packet250CloneToolUse toolUsePacket = new Packet250CloneToolUse(packet);
-          if (toolUsePacket.validForSide(side)) {
+          Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
+          if (toolUsePacket != null && toolUsePacket.validForSide(side)) {
             if (side == Side.SERVER) {
               CloneToolServerActions.handlePacket(toolUsePacket);
-            } else {
-
             }
           } else {
             malformedPacketError(playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
@@ -46,7 +45,7 @@ public class PacketHandler implements IPacketHandler
           break;
         }
         case PACKET250_TOOL_ACTION_STATUS_ID: {
-          Packet250CloneToolUse toolUsePacket = new Packet250CloneToolUse(packet);
+          Packet250ToolActionStatus toolUsePacket = Packet250ToolActionStatus.createPacket250ToolActionStatus(packet);
           if (toolUsePacket.validForSide(side)) {
             CloneToolServerActions.handlePacket(toolUsePacket);
           } else {

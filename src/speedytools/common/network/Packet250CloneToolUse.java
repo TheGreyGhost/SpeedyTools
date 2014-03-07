@@ -8,35 +8,24 @@ import speedytools.common.utilities.ErrorLog;
 import java.io.*;
 
 /**
- * This class is used to communicate between the client and server for clone use
- * Client to Server (C2S):
- * (1) when user has made a selection using a clone tool (--> will cause a server backup)
- * (3) user has performed an action with the tool (place, or undo) at the current selection position
- *
- * Server to Client (S2C):
- * (2) backup is finished, send the selection
- * (4) percentage completion information
+ * This class is used to communicate actions from the client to the server for clone use
+ * Client to Server:
+ * (1) when user has made a selection using a clone tool
+ * (2) user has performed an action with the tool (place) at the current selection position
+ * (3) user has performed an undo with the tool
  */
 public class Packet250CloneToolUse
 {
-  public static Packet250CloneToolUse selectionMadeC2S(int x, int y, int z)
+  public static Packet250CloneToolUse toolSelectionPerformed()
   {
-    Packet250CloneToolUse retval = new Packet250CloneToolUse(COMMAND_SELECTION_MADE);
-    retval.xpos = x;
-    retval.ypos = y;
-    retval.zpos = z;
-    retval.checkInvariants();
+    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.SELECTION_MADE);
+    assert (retval.checkInvariants());
     return retval;
   }
 
-  public static Packet250CloneToolUse readyForSelectionS2C()
+  public static Packet250CloneToolUse toolActionPerformed(int i_toolID, int x, int y, int z, byte i_rotationCount, boolean i_flipped)
   {
-    return new Packet250CloneToolUse(COMMAND_READY_FOR_SELECTION);
-  }
-
-  public static Packet250CloneToolUse toolActionPerformedC2S(int i_toolID, int x, int y, int z, byte i_rotationCount, boolean i_flipped)
-  {
-    Packet250CloneToolUse retval = new Packet250CloneToolUse(COMMAND_TOOL_ACTION_PERFORMED);
+    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.TOOL_ACTION_PERFORMED);
     retval.toolID = i_toolID;
     retval.xpos = x;
     retval.ypos = y;
@@ -44,49 +33,35 @@ public class Packet250CloneToolUse
     retval.flipped = i_flipped;
     retval.rotationCount = i_rotationCount;
 
-    retval.checkInvariants();
+    assert (retval.checkInvariants());
     return retval;
   }
 
-  public static Packet250CloneToolUse toolUndoPerformedC2S(int i_toolID)
+  public static Packet250CloneToolUse toolUndoPerformed(int i_toolID)
   {
-    Packet250CloneToolUse retval = new Packet250CloneToolUse(COMMAND_TOOL_UNDO_PERFORMED);
+    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.TOOL_UNDO_PERFORMED);
     retval.toolID = i_toolID;
-    retval.checkInvariants();
+    assert (retval.checkInvariants());
     return retval;
   }
 
-  /**
-   *
-   * @param percentComplete must be between 0 and 100 inclusive.  100 indicates completely finished.
-   * @return
-   */
-  public static Packet250CloneToolUse completionStatus(byte percentComplete)
-  {
-    Packet250CloneToolUse retval = new Packet250CloneToolUse(COMMAND_COMPLETION_STATUS);
-    retval.completionPercentage = percentComplete;
-    retval.checkInvariants();
-    return retval;
-  }
 
   public Packet250CustomPayload getPacket250CustomPayload()
   {
     checkInvariants();
     Packet250CustomPayload retval = null;
     try {
-      ByteArrayOutputStream bos = new ByteArrayOutputStream(1*1 + 1*4  + 4*4);
+      ByteArrayOutputStream bos = new ByteArrayOutputStream(1*1 + 1*2  + 4*4);
       DataOutputStream outputStream = new DataOutputStream(bos);
       outputStream.writeByte(PacketHandler.PACKET250_CLONE_TOOL_USE_ID);
-      outputStream.writeByte(command);
+      outputStream.writeByte(commandToByte(command));
       outputStream.writeInt(toolID);
       outputStream.writeInt(xpos);
       outputStream.writeInt(ypos);
       outputStream.writeInt(zpos);
-      outputStream.writeByte(completionPercentage);
       outputStream.writeByte(rotationCount);
       outputStream.writeBoolean(flipped);
       retval = new Packet250CustomPayload("speedytools",bos.toByteArray());
-
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Failed to getPacket250CustomPayload, due to exception " + ioe.toString());
       return null;
@@ -98,49 +73,38 @@ public class Packet250CloneToolUse
   /**
    * Creates a Packet250SpeedyToolUse from Packet250CustomPayload
    * @param sourcePacket250
+   * @return the new packet for success, or null for failure
    */
-  public Packet250CloneToolUse(Packet250CustomPayload sourcePacket250)
+  public static Packet250CloneToolUse createPacket250CloneToolUse(Packet250CustomPayload sourcePacket250)
   {
-    DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(sourcePacket250.data));
-
     try {
+      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(sourcePacket250.data));
+
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_CLONE_TOOL_USE_ID) return;
+      if (packetID != PacketHandler.PACKET250_CLONE_TOOL_USE_ID) return null;
 
-      command = inputStream.readByte();
-      toolID = inputStream.readInt();
-      xpos = inputStream.readInt();
-      ypos = inputStream.readInt();
-      zpos = inputStream.readInt();
-      completionPercentage = inputStream.readByte();
-      rotationCount = inputStream.readByte();
-      flipped = inputStream.readBoolean();
-    } catch (IOException e) {
-      e.printStackTrace();
+      byte commandValue = inputStream.readByte();
+      Command command = byteToCommand(commandValue);
+      if (command == null) return null;
+
+      Packet250CloneToolUse newPacket = new Packet250CloneToolUse(command);
+      newPacket.toolID = inputStream.readInt();
+      newPacket.xpos = inputStream.readInt();
+      newPacket.ypos = inputStream.readInt();
+      newPacket.zpos = inputStream.readInt();
+      newPacket.rotationCount = inputStream.readByte();
+      newPacket.flipped = inputStream.readBoolean();
+      if (newPacket.checkInvariants()) return newPacket;
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
     }
-    checkInvariants();
-  }
-
-  private Packet250CloneToolUse(Command command)
-  {
-    this.command = command;
+    return null;
   }
 
   public enum Command {
-    SELECTION_MADE, TOOL_ACTION_PERFORMED, TOOL_UNDO_PERFORMED
+    SELECTION_MADE, TOOL_ACTION_PERFORMED, TOOL_UNDO_PERFORMED;
+    public static final Command[] allValues = {SELECTION_MADE, TOOL_ACTION_PERFORMED, TOOL_UNDO_PERFORMED};
   }
-
-
-  private static final byte COMMAND_MINIMUM_VALID = 0;
-  public static final byte COMMAND_SELECTION_MADE = 0;
-  public static final byte COMMAND_READY_FOR_SELECTION = 1;
-  public static final byte COMMAND_TOOL_ACTION_PERFORMED = 2;
-  public static final byte COMMAND_TOOL_UNDO_PERFORMED = 3;
-  public static final byte COMMAND_COMPLETION_STATUS = 4;
-  private static final byte COMMAND_MAXIMUM_VALID = 4;
-
-  private static final int INVALID_INT_VALUE = Integer.MAX_VALUE;
-  private static final byte INVALID_BYTE_VALUE = Byte.MAX_VALUE;
 
   /**
    * Is this packet valid to be received and acted on by the given side?
@@ -149,63 +113,74 @@ public class Packet250CloneToolUse
    */
   public boolean validForSide(Side whichSide)
   {
-    checkInvariants();
-    switch (command) {
-      case COMMAND_SELECTION_MADE: return (whichSide == Side.SERVER);
-      case COMMAND_READY_FOR_SELECTION: return (whichSide == Side.CLIENT);
-      case COMMAND_TOOL_ACTION_PERFORMED: return (whichSide == Side.SERVER);
-      case COMMAND_TOOL_UNDO_PERFORMED: return (whichSide == Side.SERVER);
-      case COMMAND_COMPLETION_STATUS: return (whichSide == Side.CLIENT);
-      default: return false;
-    }
+    assert(checkInvariants());
+    return (whichSide == Side.SERVER);
   }
 
-  public byte getCommand()
+  public Command getCommand()
   {
-    checkInvariants();
+    assert (checkInvariants());
     return command;
   }
 
   public int getToolID() {
-    checkInvariants();
-    assert(toolID != INVALID_INT_VALUE);
+    assert (checkInvariants());
+    assert(command == Command.TOOL_ACTION_PERFORMED || command == Command.TOOL_UNDO_PERFORMED);
     return toolID;
   }
 
   public int getXpos() {
-    checkInvariants();
-    assert(xpos != INVALID_INT_VALUE);
+    assert (checkInvariants());
+    assert(command == Command.TOOL_ACTION_PERFORMED);
     return xpos;
   }
 
   public int getYpos() {
-    checkInvariants();
-    assert(ypos != INVALID_INT_VALUE);
+    assert (checkInvariants());
+    assert(command == Command.TOOL_ACTION_PERFORMED);
     return ypos;
   }
 
   public int getZpos() {
-    checkInvariants();
-    assert(zpos != INVALID_INT_VALUE);
+    assert (checkInvariants());
+    assert(command == Command.TOOL_ACTION_PERFORMED);
     return zpos;
   }
 
-  public byte getCompletionPercentage() {
-    checkInvariants();
-    assert(completionPercentage != INVALID_BYTE_VALUE);
-    return completionPercentage;
-  }
-
   public byte getRotationCount() {
-    checkInvariants();
-    assert(rotationCount != INVALID_BYTE_VALUE);
+    assert (checkInvariants());
+    assert(command == Command.TOOL_ACTION_PERFORMED);
     return rotationCount;
   }
 
   public boolean isFlipped() {
-    checkInvariants();
-    assert(command == COMMAND_TOOL_ACTION_PERFORMED);
+    assert (checkInvariants());
+    assert(command == Command.TOOL_ACTION_PERFORMED);
     return flipped;
+  }
+
+
+  private static Command byteToCommand(byte value)
+  {
+    if (value < 0 || value >= Command.allValues.length) return null;
+    return Command.allValues[value];
+  }
+
+  private static byte commandToByte(Command value) throws IOException
+  {
+    byte retval;
+
+    if (value != null) {
+      for (retval = 0; retval < Command.allValues.length; ++retval) {
+        if (Command.allValues[retval] == value) return retval;
+      }
+    }
+    throw new IOException("Invalid command value");
+  }
+
+  private Packet250CloneToolUse(Command command)
+  {
+    this.command = command;
   }
 
   /**
@@ -214,22 +189,28 @@ public class Packet250CloneToolUse
    */
   private boolean checkInvariants()
   {
-    boolean valid;
-    valid = (command >= COMMAND_MINIMUM_VALID && command <= COMMAND_MAXIMUM_VALID);
-    valid = valid && (command != COMMAND_SELECTION_MADE || (xpos != INVALID_INT_VALUE && ypos != INVALID_INT_VALUE && zpos != INVALID_INT_VALUE));
-    valid = valid && (command != COMMAND_TOOL_ACTION_PERFORMED
-                      || (xpos != INVALID_INT_VALUE && ypos != INVALID_INT_VALUE && zpos != INVALID_INT_VALUE
-                          && rotationCount!= INVALID_BYTE_VALUE && toolID != INVALID_INT_VALUE ));
-    valid = valid && (command != COMMAND_COMPLETION_STATUS || (completionPercentage >= 0 && completionPercentage <= 100));
-    return valid;
+    if (command == null) return false;
+    switch (command) {
+      case SELECTION_MADE: {
+        return true;
+      }
+      case TOOL_ACTION_PERFORMED: {
+        return (rotationCount >= 0 && rotationCount <= 3);
+      }
+      case TOOL_UNDO_PERFORMED: {
+        return true;
+      }
+      default: {
+        return false;
+      }
+    }
   }
 
-  private Command command = INVALID_BYTE_VALUE;
-  private int toolID = INVALID_INT_VALUE;
-  private int xpos = INVALID_INT_VALUE;
-  private int ypos = INVALID_INT_VALUE;
-  private int zpos = INVALID_INT_VALUE;
-  private byte completionPercentage = INVALID_BYTE_VALUE;
-  private byte rotationCount = INVALID_BYTE_VALUE;
-  private boolean flipped = false;
+  private Command command;
+  private int toolID;
+  private int xpos;
+  private int ypos;
+  private int zpos;
+  private byte rotationCount;
+  private boolean flipped;
 }
