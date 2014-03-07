@@ -83,7 +83,7 @@ public class MinecraftSaveFolderBackups
       Path rootSavesFolder = new File(Minecraft.getMinecraft().mcDataDir, "saves").toPath();
       success = storedBackups.createBackupSave(sourceSaveFolder, rootSavesFolder, now.toString());
       if (success) {
-        storedBackups.cullSurplus();     // ignore it if it fails to cull.
+        storedBackups.cullSurplus();     // ignore any failure to cull.
       }
       boolean savedOK;
       savedOK = storedBackups.saveBackupListing(sourceSaveFolder.resolve(BACKUP_LISTING_FILENAME));
