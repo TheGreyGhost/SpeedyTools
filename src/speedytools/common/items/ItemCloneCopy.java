@@ -14,15 +14,14 @@ import net.minecraft.util.*;
 import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
-import speedytools.clientonly.BlockVoxelMultiSelector;
-import speedytools.clientonly.OpenGLdebugging;
-import speedytools.clientonly.SelectionBoxRenderer;
-import speedytools.common.Colour;
-import speedytools.common.UsefulConstants;
+import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.clientside.rendering.SelectionBoxRenderer;
+import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.UsefulConstants;
 
 import java.util.List;
 
-import static speedytools.clientonly.BlockMultiSelector.selectFill;
+import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 
 /*
 three selection modes:

@@ -5,25 +5,21 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import org.lwjgl.opengl.GL11;
-import speedytools.clientonly.SelectionBoxRenderer;
-import speedytools.clientonly.VoxelSelection;
-import speedytools.common.UsefulConstants;
-import speedytools.common.UsefulFunctions;
+import speedytools.clientside.rendering.SelectionBoxRenderer;
+import speedytools.clientside.selections.VoxelSelection;
+import speedytools.common.utilities.UsefulConstants;
+import speedytools.common.utilities.UsefulFunctions;
+import speedytools.common.network.Packet250CloneToolUse;
 
 import java.util.*;
-
-import static net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType.CROSSHAIRS;
 
 /**
  * User: The Grey Ghost
@@ -127,6 +123,24 @@ public abstract class ItemCloneTool extends Item
   public void tick(World world, boolean useKeyHeldDown)
   {
     ++tickCount;
+  }
+
+  public static void handlePacket(Packet250CloneToolUse incomingPacket)
+  {
+    switch (incomingPacket.getCommand()) {
+      case Packet250CloneToolUse.COMMAND_READY_FOR_SELECTION: {
+
+
+        break;
+      }
+      case Packet250CloneToolUse.COMMAND_COMPLETION_STATUS: {
+
+        break;
+      }
+      default: {
+        assert false: "Invalid client side command";
+      }
+    }
   }
 
   /**

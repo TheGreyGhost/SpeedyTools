@@ -16,10 +16,10 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
-import speedytools.clientonly.BlockMultiSelector;
-import speedytools.clientonly.SelectionBoxRenderer;
+import speedytools.clientside.selections.BlockMultiSelector;
+import speedytools.clientside.rendering.SelectionBoxRenderer;
 import speedytools.common.blocks.BlockWithMetadata;
-import speedytools.common.clientserversynch.Packet250SpeedyToolUse;
+import speedytools.common.network.Packet250SpeedyToolUse;
 
 import java.io.IOException;
 import java.util.*;

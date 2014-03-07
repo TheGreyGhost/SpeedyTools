@@ -9,10 +9,10 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import speedytools.clientonly.BlockMultiSelector;
-import speedytools.clientonly.eventhandlers.CustomSoundsHandler;
-import speedytools.common.UsefulConstants;
-import speedytools.common.UsefulFunctions;
+import speedytools.clientside.selections.BlockMultiSelector;
+import speedytools.clientside.rendering.CustomSoundsHandler;
+import speedytools.common.utilities.UsefulConstants;
+import speedytools.common.utilities.UsefulFunctions;
 
 import java.util.List;
 

@@ -1,7 +1,7 @@
 package speedytools;
 
 import speedytools.common.CommonProxy;
-import speedytools.common.clientserversynch.PacketHandler;
+import speedytools.common.network.PacketHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.SidedProxy;

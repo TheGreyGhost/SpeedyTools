@@ -4,9 +4,9 @@ import junit.framework.Assert;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import speedytools.common.ErrorLog;
-import speedytools.serveronly.backup.BackupMinecraftSave;
-import speedytools.serveronly.backup.StoredBackups;
+import speedytools.common.utilities.ErrorLog;
+import speedytools.serverside.backup.FolderBackup;
+import speedytools.serverside.backup.StoredBackups;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -35,7 +35,7 @@ public class StoredBackupsTest
     testInput.put(new Integer(10), testdata.resolve("testpath10"));
     testInput.put(new Integer(20), testdata.resolve("testpath20"));
 
-//    WorldBackup wb = new WorldBackup(testdata.resolve("test2"));
+//    MinecraftSaveFolderBackups wb = new MinecraftSaveFolderBackups(testdata.resolve("test2"));
 
     boolean success;
     HashMap<Integer, Path> testResult;
@@ -106,7 +106,7 @@ public class StoredBackupsTest
 
       HashMap<Integer, Path> backupListing = storedBackups.getBackupListing();
       for (Path path : backupListing.values()) {
-        Assert.assertTrue("Check all saves ok", BackupMinecraftSave.isBackupSaveUnmodified(path));
+        Assert.assertTrue("Check all saves ok", FolderBackup.isBackupSaveUnmodified(path));
       }
       for (File file : tempDirFile.listFiles()) {
         if (file.isDirectory() && file.getName().startsWith(BACKUP_STEM)) {
