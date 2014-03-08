@@ -3,7 +3,6 @@ package speedytools.common.network;
 
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.common.CloneToolActionStatus;
 import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
@@ -13,12 +12,12 @@ import java.io.*;
  */
 public class Packet250ToolActionStatus
 {
-  public static Packet250ToolActionStatus serverStatusChange(CloneToolActionStatus.ServerStatus newStatus)
+  public static Packet250ToolActionStatus serverStatusChange(ServerStatus newStatus)
   {
     return new Packet250ToolActionStatus(null, newStatus, (byte)100);
   }
 
-  public static Packet250ToolActionStatus clientStatusChange(CloneToolActionStatus.ClientStatus newStatus)
+  public static Packet250ToolActionStatus clientStatusChange(ClientStatus newStatus)
   {
     return new Packet250ToolActionStatus(newStatus, null, (byte)100);
   }
@@ -27,7 +26,7 @@ public class Packet250ToolActionStatus
    *
    * @param newPercentage must be between 0 and 100 inclusive.  100 indicates completely finished.
    */
-  public static Packet250ToolActionStatus updateCompletionPercentage(CloneToolActionStatus.ServerStatus newStatus, byte newPercentage)
+  public static Packet250ToolActionStatus updateCompletionPercentage(ServerStatus newStatus, byte newPercentage)
   {
     return new Packet250ToolActionStatus(null, newStatus, newPercentage);
   }
@@ -80,8 +79,8 @@ public class Packet250ToolActionStatus
     return newPacket;
   }
 
-  private Packet250ToolActionStatus(CloneToolActionStatus.ClientStatus newClientStatus,
-                                    CloneToolActionStatus.ServerStatus newServerStatus,
+  private Packet250ToolActionStatus(ClientStatus newClientStatus,
+                                    ServerStatus newServerStatus,
                                     byte newPercentage)
   {
     clientStatus = newClientStatus;
@@ -103,12 +102,12 @@ public class Packet250ToolActionStatus
             || (serverStatus == null & whichSide == Side.SERVER)  );
   }
 
-  public CloneToolActionStatus.ServerStatus getServerStatus() {
+  public ServerStatus getServerStatus() {
     assert (serverStatus != null);
     return serverStatus;
   }
 
-  public CloneToolActionStatus.ClientStatus getClientStatus() {
+  public ClientStatus getClientStatus() {
     assert (clientStatus != null);
     return clientStatus;
   }
@@ -124,42 +123,42 @@ public class Packet250ToolActionStatus
     boolean valid;
     valid = (clientStatus == null || serverStatus == null);
     valid = valid & (clientStatus != null || serverStatus != null);
-    valid = valid & (serverStatus == CloneToolActionStatus.ServerStatus.IDLE
+    valid = valid & (serverStatus == ServerStatus.IDLE
                      || (completionPercentage >= 0 && completionPercentage <= 100) );
     return valid;
   }
 
-  private static CloneToolActionStatus.ServerStatus byteToServerStatus(byte value)
+  private static ServerStatus byteToServerStatus(byte value)
   {
-    if (value < 0 || value >= CloneToolActionStatus.ServerStatus.allValues.length) return null;
-    return CloneToolActionStatus.ServerStatus.allValues[value];
+    if (value < 0 || value >= ServerStatus.allValues.length) return null;
+    return ServerStatus.allValues[value];
   }
 
-  private static byte serverStatusToByte(CloneToolActionStatus.ServerStatus value) throws IOException
+  private static byte serverStatusToByte(ServerStatus value) throws IOException
   {
     byte retval;
 
     if (value == null) return NULL_BYTE_VALUE;
 
-    for (retval = 0; retval < CloneToolActionStatus.ServerStatus.allValues.length; ++retval) {
-      if (CloneToolActionStatus.ServerStatus.allValues[retval] == value) return retval;
+    for (retval = 0; retval < ServerStatus.allValues.length; ++retval) {
+      if (ServerStatus.allValues[retval] == value) return retval;
     }
     throw new IOException("Invalid command value");
   }
 
-  private static CloneToolActionStatus.ClientStatus byteToClientStatus(byte value)
+  private static ClientStatus byteToClientStatus(byte value)
   {
-    if (value < 0 || value >= CloneToolActionStatus.ServerStatus.allValues.length) return null;
-    return CloneToolActionStatus.ClientStatus.allValues[value];
+    if (value < 0 || value >= ServerStatus.allValues.length) return null;
+    return ClientStatus.allValues[value];
   }
 
-  private static byte clientStatusToByte(CloneToolActionStatus.ClientStatus value) throws IOException
+  private static byte clientStatusToByte(ClientStatus value) throws IOException
   {
     byte retval;
 
     if (value == null) return NULL_BYTE_VALUE;
-    for (retval = 0; retval < CloneToolActionStatus.ServerStatus.allValues.length; ++retval) {
-      if (CloneToolActionStatus.ClientStatus.allValues[retval] == value) return retval;
+    for (retval = 0; retval < ServerStatus.allValues.length; ++retval) {
+      if (ClientStatus.allValues[retval] == value) return retval;
     }
     throw new IOException("Invalid command value");
   }
@@ -168,7 +167,7 @@ public class Packet250ToolActionStatus
   {
   }
 
-  private CloneToolActionStatus.ClientStatus clientStatus;
-  private CloneToolActionStatus.ServerStatus serverStatus;
+  private ClientStatus clientStatus;
+  private ServerStatus serverStatus;
   private byte completionPercentage = 100;
 }

@@ -101,7 +101,7 @@ public class Packet250CloneToolUse
     return null;
   }
 
-  public enum Command {
+  public static enum Command {
     SELECTION_MADE, TOOL_ACTION_PERFORMED, TOOL_UNDO_PERFORMED;
     public static final Command[] allValues = {SELECTION_MADE, TOOL_ACTION_PERFORMED, TOOL_UNDO_PERFORMED};
   }

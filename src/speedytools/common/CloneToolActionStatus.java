@@ -1,17 +1,12 @@
 package speedytools.common;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.relauncher.Side;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.common.network.Packet250SpeedyToolUse;
+import speedytools.common.network.ClientStatus;
 import speedytools.common.network.Packet250ToolActionStatus;
-
-import java.io.IOException;
+import speedytools.common.network.ServerStatus;
 
 /**
  * Created by TheGreyGhost on 7/03/14.
@@ -25,13 +20,13 @@ public class CloneToolActionStatus
   public CloneToolActionStatus(EntityPlayerMP player)
   {
     whichSide = Side.SERVER;
-    whichPlayer = player;
+    entityPlayerMP = player;
   }
 
   public CloneToolActionStatus(EntityClientPlayerMP player)
   {
     whichSide = Side.CLIENT;
-    whichPlayer = player;
+    entityClientPlayerMP = player;
   }
 
   public boolean changeServerState(ServerStatus newStatus, byte percentCompletion)
@@ -39,11 +34,19 @@ public class CloneToolActionStatus
     assert (whichSide == Side.SERVER);
     assert (percentCompletion >= 0 && percentCompletion <= 100);
     serverStatus = newStatus;
-    return sendPacketToClient();
+    serverPercentComplete = percentCompletion;
+    boolean success;
+    if (clientStatus == ClientStatus.IDLE) return true;
+    success = sendPacketToClient();
+    return success;
   }
 
   public boolean changeClientState(ClientStatus newStatus)
   {
+    assert (whichSide == Side.CLIENT);
+    clientStatus = newStatus;
+    boolean success;
+    success = sendPacketToServer();
 
 
   }
@@ -66,9 +69,18 @@ public class CloneToolActionStatus
     Packet250ToolActionStatus packet = Packet250ToolActionStatus.updateCompletionPercentage(serverStatus, serverPercentComplete);
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 == null) return false;
-    PacketDispatcher.sendPacketToPlayer(packet250, whichPlayer);
+    entityPlayerMP.playerNetServerHandler.sendPacketToPlayer(packet250);
+    return true;
   }
 
+  private boolean sendPacketToClient()
+  {
+    Packet250ToolActionStatus packet = Packet250ToolActionStatus.clientStatusChange(clientStatus);
+    Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
+    if (packet250 == null) return false;
+    entityClientPlayerMP.sendQueue.addToSendQueue(packet250);
+    return true;
+  }
 
   public ClientStatus getClientStatus() {
     return clientStatus;
@@ -82,22 +94,11 @@ public class CloneToolActionStatus
     return serverPercentComplete;
   }
 
-  public enum ClientStatus {
-    IDLE, WAITING_FOR_ACTION_COMPLETE;
-
-    public static final ClientStatus[] allValues = {IDLE, WAITING_FOR_ACTION_COMPLETE};
-  }
-
-  public enum ServerStatus {
-    IDLE, PERFORMING_BACKUP, PERFORMING_YOUR_ACTION, UNDOING_YOUR_ACTION, BUSY_WITH_OTHER_PLAYER;
-
-    public static final ServerStatus[] allValues = {IDLE, PERFORMING_BACKUP, PERFORMING_YOUR_ACTION, UNDOING_YOUR_ACTION, BUSY_WITH_OTHER_PLAYER};
-  }
-
   private ClientStatus clientStatus = ClientStatus.IDLE;
   private ServerStatus serverStatus = ServerStatus.IDLE;
   private byte serverPercentComplete = 100;
 
-  EntityPlayer whichPlayer;
+  EntityPlayerMP entityPlayerMP;
+  EntityClientPlayerMP entityClientPlayerMP;
   Side whichSide;
 }

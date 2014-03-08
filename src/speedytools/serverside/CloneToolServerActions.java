@@ -1,8 +1,10 @@
 package speedytools.serverside;
 
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import speedytools.common.network.Packet250CloneToolUse;
+import speedytools.common.network.ServerStatus;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 
 import java.nio.file.Path;
@@ -12,26 +14,32 @@ import java.nio.file.Path;
  */
 public class CloneToolServerActions
 {
-  public static void handlePacket(Packet250CloneToolUse incomingPacket)
-  {
-    switch (incomingPacket.getCommand()) {
-      case Packet250CloneToolUse.COMMAND_SELECTION_MADE: {
-        assert (minecraftSaveFolderBackups != null);
-        minecraftSaveFolderBackups.backupWorld();
-        break;
-      }
-      case Packet250CloneToolUse.COMMAND_TOOL_ACTION_PERFORMED: {
 
-        break;
-      }
-      case Packet250CloneToolUse.COMMAND_TOOL_UNDO_PERFORMED: {
-        break;
-      }
-      default: {
-        assert false: "Invalid server side packet";
-      }
-    }
+  public void setCloneToolsNetworkServer(CloneToolsNetworkServer server)
+  {
+    cloneToolsNetworkServer = server;
   }
+
+  public void prepareForToolAction()
+  {
+    assert (minecraftSaveFolderBackups != null);
+    assert (cloneToolsNetworkServer != null);
+
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte)0);
+    minecraftSaveFolderBackups.backupWorld();
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+  }
+
+  public void performToolAction(EntityPlayerMP player, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
+  {
+    System.out.println("Server: Tool Action received: tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
+  }
+
+  public void performUndoAction(EntityPlayerMP player, int toolID)
+  {
+    System.out.println("Server: Tool Undo Action received: tool " + toolID);
+  }
+
 
   /**
    * ensure that the save folder backups are initialised
@@ -55,4 +63,5 @@ public class CloneToolServerActions
   }
 
   private static MinecraftSaveFolderBackups minecraftSaveFolderBackups;
+  private static CloneToolsNetworkServer cloneToolsNetworkServer;
 }

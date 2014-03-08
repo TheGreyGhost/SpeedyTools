@@ -47,6 +47,7 @@ public class PacketHandler implements IPacketHandler
         case PACKET250_TOOL_ACTION_STATUS_ID: {
           Packet250ToolActionStatus toolUsePacket = Packet250ToolActionStatus.createPacket250ToolActionStatus(packet);
           if (toolUsePacket.validForSide(side)) {
+            Clone
             CloneToolServerActions.handlePacket(toolUsePacket);
           } else {
             malformedPacketError(playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
