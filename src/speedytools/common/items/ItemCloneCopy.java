@@ -14,12 +14,16 @@ import net.minecraft.util.*;
 import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
+import speedytools.clientside.ClientSide;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.rendering.SelectionBoxRenderer;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.UsefulConstants;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 
@@ -205,11 +209,11 @@ public class ItemCloneCopy extends ItemCloneTool {
   @Override
   public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List textList, boolean useAdvancedItemTooltips)
   {
-    textList.add("Right click: place boundary");
-    textList.add("             markers (x2), then");
-    textList.add(" Right button hold: move around");
-    textList.add("             to drag boundary");
-    textList.add("Left click: remove all markers");
+    textList.add("Right click: create selection");
+    textList.add("Right hold: drag selection");
+    textList.add("Left click: undo selection");
+    textList.add("Right 2x click: copy selection");
+    textList.add("Left 2x click: undo copy");
   }
 
    /** respond to a button click
@@ -220,12 +224,21 @@ public class ItemCloneCopy extends ItemCloneTool {
   @Override
   public void buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
-    final int DOUBLE_CLICK_SPEED_MS = 200;
+    final long DOUBLE_CLICK_SPEED_NS = SpeedyToolsOptions.getDoubleClickSpeedMS() * 1000 * 1000;
     checkInvariants();
 
     switch (whichButton) {
       case 0: {
-        undo(thePlayer);
+        if (lastLeftClickTime == null) {
+          lastLeftClickTime = System.nanoTime();  // .tick() will act on this after the double click time has elapsed
+        } else {
+          long clickElapsedTime = System.nanoTime() - lastLeftClickTime;
+          if (clickElapsedTime < DOUBLE_CLICK_SPEED_NS) {
+            undoAction(thePlayer);
+          } else {
+            undoSelection(thePlayer);    // in case the tick didn't occur yet; discard second click
+          }
+        }
         break;
       }
       case 1: {
@@ -243,7 +256,7 @@ public class ItemCloneCopy extends ItemCloneTool {
             if (controlKeyDown) {
               flipSelection();
             } else {
-              if (clickElapsedTime < DOUBLE_CLICK_SPEED_MS * 1000 * 1000) {
+              if (clickElapsedTime < DOUBLE_CLICK_SPEED_NS) {
                 placeSelection(thePlayer);
               } else {
                 Vec3 playerPosition = thePlayer.getPosition(1.0F);  // beware, Vec3 is short-lived
@@ -252,7 +265,6 @@ public class ItemCloneCopy extends ItemCloneTool {
                 selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
               }
             }
-
           }
         }
         break;
@@ -266,31 +278,80 @@ public class ItemCloneCopy extends ItemCloneTool {
     return;
   }
 
-  private void undo(EntityClientPlayerMP thePlayer)
+  /**
+   * If there is a current selection, destroy it.  No effect if waiting for the server to do something.
+   * @param thePlayer
+   */
+  private void undoSelection(EntityClientPlayerMP thePlayer)
   {
-    checkInvariants();
-    switch(currentToolState) {
+    switch (currentToolState) {
       case NO_SELECTION: {
         break;
       }
-      case GENERATING_SELECTION: {
-        actionInProgress = ActionInProgress.NONE;
-        currentToolState = ToolState.NO_SELECTION;
-        break;
-      }
+      case GENERATING_SELECTION:
       case DISPLAYING_SELECTION: {
         currentToolState = ToolState.NO_SELECTION;
         break;
       }
+      case PERFORMING_ACTION:
+      case PERFORMING_UNDO: {
+        break;   // do nothing
+      }
+      default:
+        assert false : "invalid currentToolState";
+
+    }
+  }
+
+  /**
+   * if the player has previously performed an action, undo it.
+   * @param thePlayer
+   */
+  private void undoAction(EntityClientPlayerMP thePlayer)
+  {
+    checkInvariants();
+    // if we're currently undoing an action, do nothing
+    // if we're in the middle of performing an action, cancel it
+    // if we have previously performed an action, undo it.
+    switch(currentToolState) {
+      case NO_SELECTION:
+      case PERFORMING_UNDO:
+      case GENERATING_SELECTION: {
+        break;
+      }
+      case DISPLAYING_SELECTION: {
+        if (lastCompletedActionSequenceNumber != null) {
+          int undoSequenceNumber = ClientSide.getCloneToolsNetworkClient().toolUndoPerformed(lastCompletedActionSequenceNumber);
+          pendingUndoSequenceNumber = undoSequenceNumber;
+
+        }
+        break;
+      }
+      case PERFORMING_ACTION: {
+        if (pendingActionSequenceNumber != null) {
+          int undoSequenceNumber = ClientSide.getCloneToolsNetworkClient().toolUndoPerformed(pendingActionSequenceNumber);
+          pendingUndoSequenceNumber = undoSequenceNumber;
+        }
+        break;
+      }
+
       default: {
-        assert (currentToolState == ToolState.NO_SELECTION);
+        assert false : "Illegal currentToolState in undoAction";
       }
     }
 //        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
   }
 
+  /**
+   * don't call if an action is already pending
+   * @param thePlayer
+   */
   private void placeSelection(EntityClientPlayerMP thePlayer)
   {
+    assert pendingActionSequenceNumber == null && pendingUndoSequenceNumber == null;
+    int actionSequenceNumber = ClientSide.getCloneToolsNetworkClient().toolActionPerformed(itemID,
+                                                selectionOrigin.posX, selectionOrigin.posY, selectionOrigin.posZ, (byte)0, false); // todo: implement rotation and flipped
+    pendingActionSequenceNumber = actionSequenceNumber;
   }
 
   private void flipSelection()
@@ -302,7 +363,7 @@ public class ItemCloneCopy extends ItemCloneTool {
   {
     switch (currentHighlighting) {
       case NONE: {
-        break;
+        return;
       }
       case FULL_BOX: {
         voxelSelectionManager = new BlockVoxelMultiSelector();
@@ -310,7 +371,6 @@ public class ItemCloneCopy extends ItemCloneTool {
         sortBoundaryFieldCorners();
         selectionOrigin = new ChunkCoordinates(boundaryCorner1);
         currentToolState = ToolState.GENERATING_SELECTION;
-        actionInProgress = ActionInProgress.VOXELCREATION;
 //            playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
         break;
       }
@@ -321,9 +381,26 @@ public class ItemCloneCopy extends ItemCloneTool {
         break;
       }
     }
+    ClientSide.getCloneToolsNetworkClient().toolSelectionPerformed();
   }
 
-  /** called once per tick while the user is holding an ItemCloneTool
+  @Override
+  public void updateAction(int sequenceNumber, boolean successfullyStarted)
+  {
+
+    switch ()
+
+    private Integer pendingActionSequenceNumber = null;              // if not null, an action is pending that hasn't been confirmed started by the server
+    private Integer lastCompletedActionSequenceNumber = null;        // if not null, there is a completed action which can be undone
+    private Integer pendingUndoSequenceNumber = null;                // if not null, an undo action is pending that hasn't been confirmed by the server
+
+  }
+
+  /** called once per tick on the client side while the user is holding an ItemCloneTool
+   * used to:
+   * (1) background generation of a selection, if it has been initiated
+   * (2) drag the selection around (ungrabbing it if the user had released the button)
+   * (3) perform an undo selection, once enough time has elapsed to it is clear that this is a single left click not a double left click
    * @param useKeyHeldDown
    */
   @Override
@@ -332,25 +409,18 @@ public class ItemCloneCopy extends ItemCloneTool {
     super.tick(world, useKeyHeldDown);
     checkInvariants();
     final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
-    switch (actionInProgress) {
-      case NONE: {
-        break;
-      }
-      case VOXELCREATION: {
-        System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);
-        actionPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
-        System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);
+    if (currentToolState == ToolState.GENERATING_SELECTION) {
+      System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);                                     //todo: remove
+      actionPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
+      System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);                                           //todo: remove
 
-        if (actionPercentComplete < 0.0F) {
-          actionInProgress = ActionInProgress.NONE;
-          if (voxelSelectionManager.isEmpty()) {
-            currentToolState = ToolState.NO_SELECTION;
-          } else {
-            voxelSelectionManager.createRenderList(world);
-            currentToolState = ToolState.DISPLAYING_SELECTION;
-          }
+      if (actionPercentComplete < 0.0F) {
+        if (voxelSelectionManager.isEmpty()) {
+          currentToolState = ToolState.NO_SELECTION;
+        } else {
+          voxelSelectionManager.createRenderList(world);
+          currentToolState = ToolState.DISPLAYING_SELECTION;
         }
-        break;
       }
     }
 
@@ -367,17 +437,22 @@ public class ItemCloneCopy extends ItemCloneTool {
       }
     }
 
+    final long DOUBLE_CLICK_SPEED_NS = SpeedyToolsOptions.getDoubleClickSpeedMS() * 1000 * 1000;
+    if (lastLeftClickTime != null) {
+      long clickElapsedTime = System.nanoTime() - lastLeftClickTime;
+      if (clickElapsedTime > DOUBLE_CLICK_SPEED_NS) { // the double-click time has elapsed without a second click
+        undoSelection(Minecraft.getMinecraft().thePlayer);
+      }
+    }
+
     checkInvariants();
   }
 
   private void checkInvariants()
   {
-    assert (    currentToolState != ToolState.NO_SELECTION
-            || (actionInProgress == ActionInProgress.NONE) );
-    assert (    currentToolState != ToolState.GENERATING_SELECTION
-            || (voxelSelectionManager != null && actionInProgress != ActionInProgress.NONE) );
+    assert (    currentToolState != ToolState.GENERATING_SELECTION || voxelSelectionManager != null);
     assert (   currentToolState != ToolState.DISPLAYING_SELECTION
-            || (voxelSelectionManager != null && selectionOrigin != null && actionInProgress == ActionInProgress.NONE ) );
+            || (voxelSelectionManager != null && selectionOrigin != null) );
 
     assert (    selectionGrabActivated == false || selectionGrabPoint != null);
   }
@@ -397,12 +472,12 @@ public class ItemCloneCopy extends ItemCloneTool {
   //    c) every tick, the voxelSelectionManager is updated further until complete
   // 3) DISPLAYING_SELECTION - selection is being displayed and/or moved
   //    voxelSelectionManager is valid and has a renderlist
-  //
+  // 4) PERFORMING_ACTION - we've sent the action command to the server and are waiting for it to finish
+  // 5) PERFORMING_UNDO - we've send an undo command to the server and are waiting for it to finish
 
   private SelectionType currentHighlighting = SelectionType.NONE;
   private List<ChunkCoordinates> highlightedBlocks;
 
-  private ActionInProgress actionInProgress = ActionInProgress.NONE;
   private float actionPercentComplete;
   private ToolState currentToolState = ToolState.NO_SELECTION;
 
@@ -412,20 +487,23 @@ public class ItemCloneCopy extends ItemCloneTool {
   private Vec3    selectionGrabPoint = null;
   private boolean selectionMovedFastYet;
 
-  private long lastRightClickTime;
+  private Long lastRightClickTime = null;
+  private Long lastLeftClickTime = null;
+
+  private Integer pendingActionSequenceNumber = null;              // if not null, an action is pending that hasn't been confirmed started by the server
+  private Integer lastCompletedActionSequenceNumber = null;        // if not null, there is a completed action which can be undone
+  private Integer pendingUndoSequenceNumber = null;                // if not null, an undo action is pending that hasn't been confirmed by the server
 
   private enum SelectionType {
     NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL
   }
 
-  private enum ActionInProgress {
-    NONE, VOXELCREATION
-  }
-
   private enum ToolState {
     NO_SELECTION(true, false, true, false),
     GENERATING_SELECTION(false, false, true, true),
-    DISPLAYING_SELECTION(false, true, false, false);
+    DISPLAYING_SELECTION(false, true, false, false),
+    PERFORMING_ACTION(false, false, false, true),
+    PERFORMING_UNDO(false, false, false, true);
 
     public final boolean displayHighlight;
     public final boolean displaySelection;
@@ -441,12 +519,10 @@ public class ItemCloneCopy extends ItemCloneTool {
     }
   }
 
-  static int firsttime = 0;
-
   @Override
   public boolean renderCrossHairs(ScaledResolution scaledResolution, float partialTick)
   {
-    if (actionInProgress == ActionInProgress.NONE) return false;
+    if (!currentToolState.performingAction) return false;
 
     final float Z_LEVEL_FROM_GUI_IN_GAME_FORGE = -90.0F;            // taken from GuiInGameForge.renderCrossHairs
     final double CROSSHAIR_SPIN_DEGREES_PER_TICK = 360.0 / 20;

@@ -88,6 +88,20 @@ public class CloneToolsNetworkServer
   }
 
   /**
+   *  send a packet back to the client acknowledging their Action, with success or failure
+    * @param packet the action packet sent by the client
+   * @param successfulStart true if the action has been started on the server, false if not
+   */
+  private void acknowledgeAction(EntityPlayerMP player, Packet250CloneToolUse packet, boolean successfulStart)
+  {
+    packet.setCommandSuccessfullyStarted(successfulStart);
+    Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
+    if (packet250 != null) {
+      player.playerNetServerHandler.sendPacketToPlayer(packet250);
+    }
+  }
+
+  /**
    * respond to an incoming action packet.
    * If the server is not busy with something else, perform the action, otherwise send the appropriate non-idle packet back to the caller
    * @param player
@@ -101,28 +115,29 @@ public class CloneToolsNetworkServer
         break;
       }
       case TOOL_ACTION_PERFORMED: {
+        boolean successfulStart = false;
         if (serverStatus == ServerStatus.IDLE) {
-          cloneToolServerActions.performToolAction(player, packet.getToolID(),
-                                                    packet.getXpos(), packet.getYpos(), packet.getZpos(),
-                                                    packet.getRotationCount(), packet.isFlipped());
-        } else {
-          sendUpdateToClient(player);
+          successfulStart = cloneToolServerActions.performToolAction(player, packet.getToolID(), packet.getSequenceNumber(),
+                                                                      packet.getXpos(), packet.getYpos(), packet.getZpos(),
+                                                                      packet.getRotationCount(), packet.isFlipped());
         }
+        acknowledgeAction(player, packet, successfulStart);
+        sendUpdateToClient(player);
         break;
       }
       case TOOL_UNDO_PERFORMED: {
+        boolean successfulUndoStart = false;
         if (serverStatus == ServerStatus.IDLE || playerBeingServiced == player) {
-          cloneToolServerActions.performUndoAction(player, packet.getToolID());
-        } else {
-          sendUpdateToClient(player);
+          successfulUndoStart = cloneToolServerActions.performUndoAction(player, packet.getSequenceNumber());
         }
+        acknowledgeAction(player, packet, successfulUndoStart);
+        sendUpdateToClient(player);
         break;
       }
       default: {
         assert false: "Invalid server side packet";
       }
     }
-
   }
 
   /**

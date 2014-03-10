@@ -13,9 +13,12 @@ import java.io.*;
  * (1) when user has made a selection using a clone tool
  * (2) user has performed an action with the tool (place) at the current selection position
  * (3) user has performed an undo with the tool
+ * Server to Client:
+ * (1) The packet received by the server, updated with the success status of the action, is returned to the client.
  */
 public class Packet250CloneToolUse
 {
+
   public static Packet250CloneToolUse toolSelectionPerformed()
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.SELECTION_MADE);
@@ -32,30 +35,33 @@ public class Packet250CloneToolUse
     retval.zpos = z;
     retval.flipped = i_flipped;
     retval.rotationCount = i_rotationCount;
+    retval.sequenceNumber = nextSequenceNumber;
+    ++nextSequenceNumber;
 
     assert (retval.checkInvariants());
     return retval;
   }
 
-  public static Packet250CloneToolUse toolUndoPerformed(int i_toolID)
+  public static Packet250CloneToolUse toolUndoPerformed(int i_sequenceNumber)
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.TOOL_UNDO_PERFORMED);
-    retval.toolID = i_toolID;
+    retval.sequenceNumber = i_sequenceNumber;
     assert (retval.checkInvariants());
     return retval;
   }
-
 
   public Packet250CustomPayload getPacket250CustomPayload()
   {
     checkInvariants();
     Packet250CustomPayload retval = null;
     try {
-      ByteArrayOutputStream bos = new ByteArrayOutputStream(1*1 + 1*2  + 4*4);
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
       outputStream.writeByte(PacketHandler.PACKET250_CLONE_TOOL_USE_ID);
       outputStream.writeByte(commandToByte(command));
       outputStream.writeInt(toolID);
+      outputStream.writeInt(sequenceNumber);
+      outputStream.writeBoolean(commandSuccessfullyStarted);
       outputStream.writeInt(xpos);
       outputStream.writeInt(ypos);
       outputStream.writeInt(zpos);
@@ -89,6 +95,8 @@ public class Packet250CloneToolUse
 
       Packet250CloneToolUse newPacket = new Packet250CloneToolUse(command);
       newPacket.toolID = inputStream.readInt();
+      newPacket.sequenceNumber = inputStream.readInt();
+      newPacket.commandSuccessfullyStarted = inputStream.readBoolean();
       newPacket.xpos = inputStream.readInt();
       newPacket.ypos = inputStream.readInt();
       newPacket.zpos = inputStream.readInt();
@@ -99,6 +107,11 @@ public class Packet250CloneToolUse
       ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
     }
     return null;
+  }
+
+  public void setCommandSuccessfullyStarted(boolean newCommandSuccessful)
+  {
+    commandSuccessfullyStarted = newCommandSuccessful;
   }
 
   public static enum Command {
@@ -114,7 +127,7 @@ public class Packet250CloneToolUse
   public boolean validForSide(Side whichSide)
   {
     assert(checkInvariants());
-    return (whichSide == Side.SERVER);
+    return true;
   }
 
   public Command getCommand()
@@ -159,6 +172,14 @@ public class Packet250CloneToolUse
     return flipped;
   }
 
+
+  public boolean isCommandSuccessfullyStarted() {
+    return commandSuccessfullyStarted;
+  }
+
+  public int getSequenceNumber() {
+    return sequenceNumber;
+  }
 
   private static Command byteToCommand(byte value)
   {
@@ -208,9 +229,13 @@ public class Packet250CloneToolUse
 
   private Command command;
   private int toolID;
+  private boolean commandSuccessfullyStarted;
+  private int sequenceNumber;
   private int xpos;
   private int ypos;
   private int zpos;
   private byte rotationCount;
   private boolean flipped;
+
+  private static int nextSequenceNumber = 0;
 }

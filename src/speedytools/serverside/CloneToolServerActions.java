@@ -30,14 +30,28 @@ public class CloneToolServerActions
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
   }
 
-  public void performToolAction(EntityPlayerMP player, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
+  /**
+   *  Start a tool action for the given player
+   * @param player
+   * @param toolID
+   * @param sequenceNumber the unique sequencenumber for this action
+   * @param xpos
+   * @param ypos
+   * @param zpos
+   * @param rotationCount
+   * @param flipped
+   * @return true if the action has been successfully started
+   */
+  public boolean performToolAction(EntityPlayerMP player, int toolID, int sequenceNumber, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
   {
-    System.out.println("Server: Tool Action received: tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
+    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
+    return true;
   }
 
-  public void performUndoAction(EntityPlayerMP player, int toolID)
+  public boolean performUndoAction(EntityPlayerMP player, int sequenceNumber)
   {
-    System.out.println("Server: Tool Undo Action received: tool " + toolID);
+    System.out.println("Server: Tool Undo Action received: sequenceNumber " + sequenceNumber);
+    return true;
   }
 
   /**

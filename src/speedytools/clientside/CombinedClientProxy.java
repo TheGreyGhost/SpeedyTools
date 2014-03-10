@@ -8,6 +8,7 @@ import speedytools.clientside.userinput.ClientTickHandler;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
+import speedytools.common.network.ClientStatus;
 
 /**
  * CombinedClientProxy is used to set up the mod and start it running when installed on a standalone client.
@@ -48,5 +49,6 @@ public class CombinedClientProxy extends CommonProxy {
     MinecraftForge.EVENT_BUS.register(new InputEventHandler());
     MinecraftForge.EVENT_BUS.register(new RenderEventHandler());
     TickRegistry.registerTickHandler(new ClientTickHandler(), Side.CLIENT);
+    ClientSide.initialise();
   }
 }

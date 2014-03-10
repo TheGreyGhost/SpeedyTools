@@ -125,22 +125,14 @@ public abstract class ItemCloneTool extends Item
     ++tickCount;
   }
 
-  public static void handlePacket(Packet250CloneToolUse incomingPacket)
+  /**
+   * Inform the tool whether their action or undo was successfully started by the server or not
+   * @param sequenceNumber
+   * @param successfullyStarted
+   */
+  public void updateAction(int sequenceNumber, boolean successfullyStarted)
   {
-    switch (incomingPacket.getCommand()) {
-      case Packet250CloneToolUse.COMMAND_READY_FOR_SELECTION: {
-
-
-        break;
-      }
-      case Packet250CloneToolUse.COMMAND_COMPLETION_STATUS: {
-
-        break;
-      }
-      default: {
-        assert false: "Invalid client side command";
-      }
-    }
+    // default is do nothing
   }
 
   /**

@@ -9,6 +9,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.INetworkManager;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.server.MinecraftServer;
+import speedytools.clientside.ClientSide;
 import speedytools.serverside.CloneToolServerActions;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.SpeedyToolWorldManipulator;
@@ -40,6 +41,8 @@ public class PacketHandler implements IPacketHandler
           if (toolUsePacket != null && toolUsePacket.validForSide(side)) {
             if (side == Side.SERVER) {
               ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
+            } else {
+              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
             }
           } else {
             malformedPacketError(playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
