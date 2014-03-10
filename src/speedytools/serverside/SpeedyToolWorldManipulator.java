@@ -30,14 +30,11 @@ public class SpeedyToolWorldManipulator
    * @param blockToPlace the Block and metadata to fill the selection with (buttonClicked = 1 only)
    * @param blockSelection the blocks in the selection to be filled (buttonClicked = 1 only)
    */
-  public static void performServerAction(Player player, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void performServerAction(Player player, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
 //    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
     assert player instanceof EntityPlayerMP;
     EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-
-    MinecraftSaveFolderBackups minecraftSaveFolderBackups = new MinecraftSaveFolderBackups();
-    minecraftSaveFolderBackups.backupWorld(); // todo remove
 
     switch (buttonClicked) {
       case 0: {
@@ -92,7 +89,7 @@ public class SpeedyToolWorldManipulator
    * @param blockSelection the blocks to be filled
    * @return the undo information necessary to undo the placement; null if no blocks placed
    */
-  protected static UndoEntry fillBlockSelection(EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  protected UndoEntry fillBlockSelection(EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
     if (blockSelection == null || blockSelection.isEmpty()) return null;
     UndoEntry retval = createUndoInformation(entityPlayerMP.theItemInWorldManager.theWorld, blockSelection);
@@ -110,7 +107,7 @@ public class SpeedyToolWorldManipulator
    * undoes the last fill, including TileEntities
    * @param undoEntry the undo information from the last fill
    */
-  protected static void undoLastFill(EntityPlayerMP entityPlayerMP, SpeedyToolWorldManipulator.UndoEntry undoEntry)
+  protected void undoLastFill(EntityPlayerMP entityPlayerMP, SpeedyToolWorldManipulator.UndoEntry undoEntry)
   {
     World world = entityPlayerMP.theItemInWorldManager.theWorld;
 
@@ -136,7 +133,7 @@ public class SpeedyToolWorldManipulator
    * @param blockSelection the blocks to be saved
    * @return a list of information about each block in the selection
    */
-  protected static UndoEntry createUndoInformation(World world, List<ChunkCoordinates> blockSelection)
+  protected UndoEntry createUndoInformation(World world, List<ChunkCoordinates> blockSelection)
   {
     UndoEntry retval = new UndoEntry();
     for (ChunkCoordinates cc : blockSelection) {
@@ -179,6 +176,6 @@ public class SpeedyToolWorldManipulator
   }
 
   // the undo history for all players
-  protected static Map<String, UndoHistory> undoHistories = new HashMap<String, UndoHistory>();
+  protected Map<String, UndoHistory> undoHistories = new HashMap<String, UndoHistory>();
 
 }

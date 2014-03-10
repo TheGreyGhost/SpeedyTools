@@ -1,5 +1,6 @@
-package speedytools.serverside;
+package speedytools.clientside;
 
+import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.ClientStatus;
@@ -7,6 +8,7 @@ import speedytools.common.network.Packet250CloneToolUse;
 import speedytools.common.network.Packet250ToolActionStatus;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.serverside.CloneToolServerActions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,48 +16,31 @@ import java.util.Map;
 /**
  * User: The Grey Ghost
  * Date: 8/03/14
+ * Used to send commands to the server and
  */
-public class CloneToolsNetworkServer
+public class CloneToolsNetworkClient
 {
-  public CloneToolsNetworkServer(CloneToolServerActions i_cloneToolServerActions)
+  public CloneToolsNetworkClient()
   {
-    playerStatuses = new HashMap<EntityPlayerMP, ClientStatus>();
-    cloneToolServerActions = i_cloneToolServerActions;
-    cloneToolServerActions.setCloneToolsNetworkServer(this);
   }
 
-  public void addPlayer(EntityPlayerMP newPlayer)
+  public void connectedToServer(EntityClientPlayerMP newPlayer)
   {
-    if (!playerStatuses.containsKey(newPlayer)) {
-      playerStatuses.put(newPlayer, ClientStatus.IDLE);
-    }
+    player = newPlayer;
   }
 
-  public void removePlayer(EntityPlayerMP whichPlayer)
+  public void disconnect()
   {
-    playerStatuses.remove(whichPlayer);
+    player = null;
   }
 
   /**
-   * Changes the server status and informs all clients who are interested in it.
-   * @param newServerStatus
-   * @param newServerPercentComplete
+   * Informs the server of the new client status
    */
-  public void changeServerStatus(ServerStatus newServerStatus, EntityPlayerMP newPlayerBeingServiced, byte newServerPercentComplete)
+  public void changeClientStatus(ClientStatus newClientStatus)
   {
-    assert (newServerPercentComplete >= 0 && newServerPercentComplete <= 100);
-    if (newServerStatus == serverStatus && newPlayerBeingServiced == playerBeingServiced && newServerPercentComplete == serverPercentComplete) {
-      return;
-    }
+    assert player != null;
 
-    serverStatus = newServerStatus;
-    serverPercentComplete = newServerPercentComplete;
-    playerBeingServiced = newPlayerBeingServiced;
-    for (Map.Entry<EntityPlayerMP,ClientStatus> playerStatus : playerStatuses.entrySet()) {
-      if (playerStatus.getValue() != ClientStatus.IDLE) {
-        sendUpdateToClient(playerStatus.getKey());
-      }
-    }
   }
 
   /**
@@ -145,6 +130,8 @@ public class CloneToolsNetworkServer
     }
 
   }
+
+  private EntityClientPlayerMP player;
 
   private Map<EntityPlayerMP, ClientStatus> playerStatuses;
   private ServerStatus serverStatus;

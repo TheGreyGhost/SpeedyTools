@@ -2,6 +2,9 @@ package speedytools.common;
 
 import net.minecraft.network.packet.Packet;
 import speedytools.common.items.RegistryForItems;
+import speedytools.serverside.CloneToolServerActions;
+import speedytools.serverside.CloneToolsNetworkServer;
+import speedytools.serverside.ServerSide;
 
 /**
  * CommonProxy is used to set up the mod and start it running.  It contains all the code that should run on both the
@@ -30,7 +33,7 @@ public class CommonProxy {
    */
   public void postInit()
   {
-
-
+    ServerSide.initialise();
   }
+
 }

@@ -5,10 +5,12 @@ import cpw.mods.fml.common.network.IPacketHandler;
 import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.INetworkManager;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.server.MinecraftServer;
 import speedytools.serverside.CloneToolServerActions;
+import speedytools.serverside.ServerSide;
 import speedytools.serverside.SpeedyToolWorldManipulator;
 
 public class PacketHandler implements IPacketHandler
@@ -28,15 +30,16 @@ public class PacketHandler implements IPacketHandler
           assert(side == Side.SERVER);
           Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
           if (toolUsePacket == null) return;
-          SpeedyToolWorldManipulator.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
-                                                         toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
+          SpeedyToolWorldManipulator manipulator = ServerSide.getSpeedyToolWorldManipulator();
+          manipulator.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
+                                          toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
           break;
         }
         case PACKET250_CLONE_TOOL_USE_ID: {
           Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
           if (toolUsePacket != null && toolUsePacket.validForSide(side)) {
             if (side == Side.SERVER) {
-              CloneToolServerActions.handlePacket(toolUsePacket);
+              ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
             }
           } else {
             malformedPacketError(playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
@@ -45,10 +48,11 @@ public class PacketHandler implements IPacketHandler
           break;
         }
         case PACKET250_TOOL_ACTION_STATUS_ID: {
-          Packet250ToolActionStatus toolUsePacket = Packet250ToolActionStatus.createPacket250ToolActionStatus(packet);
-          if (toolUsePacket.validForSide(side)) {
-            Clone
-            CloneToolServerActions.handlePacket(toolUsePacket);
+          Packet250ToolActionStatus toolStatusPacket = Packet250ToolActionStatus.createPacket250ToolActionStatus(packet);
+          if (toolStatusPacket.validForSide(side)) {
+            if (side == Side.SERVER) {
+              ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolStatusPacket);
+            }
           } else {
             malformedPacketError(playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
             return;

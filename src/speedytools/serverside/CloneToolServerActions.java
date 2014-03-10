@@ -40,7 +40,6 @@ public class CloneToolServerActions
     System.out.println("Server: Tool Undo Action received: tool " + toolID);
   }
 
-
   /**
    * ensure that the save folder backups are initialised
    * @param world
