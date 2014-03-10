@@ -44,12 +44,14 @@ public class CloneToolServerActions
    */
   public boolean performToolAction(EntityPlayerMP player, int toolID, int sequenceNumber, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
   {
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
     return true;
   }
 
   public boolean performUndoAction(EntityPlayerMP player, int sequenceNumber)
   {
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     System.out.println("Server: Tool Undo Action received: sequenceNumber " + sequenceNumber);
     return true;
   }

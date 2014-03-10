@@ -103,6 +103,22 @@ public class CloneToolsNetworkClient
     return serverStatus;
   }
 
+  public int getServerAcceptedAction() {
+    return serverAcceptedAction;
+  }
+
+  public int getServerRejectedAction() {
+    return serverRejectedAction;
+  }
+
+  public int getServerAcceptedUndo() {
+    return serverAcceptedUndo;
+  }
+
+  public int getServerRejectedUndo() {
+    return serverRejectedUndo;
+  }
+
   /**
    * respond to an incoming action packet.
    * @param player
@@ -111,6 +127,7 @@ public class CloneToolsNetworkClient
   public void handlePacket(EntityPlayerMP player, Packet250CloneToolUse packet)
   {
     System.out.println("Command #" + packet.getSequenceNumber() + (packet.isCommandSuccessfullyStarted() ? " succeeded" : "failed"));  // todo: remove
+
   }
 
   /**
@@ -122,10 +139,18 @@ public class CloneToolsNetworkClient
   {
     serverStatus = packet.getServerStatus();
     serverPercentComplete = packet.getCompletionPercentage();
+    serverAcceptedAction = packet.getLastAcceptedAction();
+    serverRejectedAction = packet.getLastRejectedAction();
+    serverAcceptedUndo = packet.getLastAcceptedUndo();
+    serverRejectedUndo = packet.getLastRejectedUndo();
   }
 
   private EntityClientPlayerMP player;
 
   private ServerStatus serverStatus;
   private byte serverPercentComplete;
+  private int serverAcceptedAction;
+  private int serverRejectedAction;
+  private int serverAcceptedUndo;
+  private int serverRejectedUndo;
 }

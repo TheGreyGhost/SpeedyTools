@@ -20,6 +20,11 @@ public class CloneToolsNetworkServer
   public CloneToolsNetworkServer(CloneToolServerActions i_cloneToolServerActions)
   {
     playerStatuses = new HashMap<EntityPlayerMP, ClientStatus>();
+    mostRecentAcceptedAction = new HashMap<EntityPlayerMP, Integer>();
+    mostRecentRejectedAction = new HashMap<EntityPlayerMP, Integer>();
+    mostRecentAcceptedUndo = new HashMap<EntityPlayerMP, Integer>();
+    mostRecentRejectedUndo = new HashMap<EntityPlayerMP, Integer>();
+
     cloneToolServerActions = i_cloneToolServerActions;
     cloneToolServerActions.setCloneToolsNetworkServer(this);
   }
@@ -28,6 +33,10 @@ public class CloneToolsNetworkServer
   {
     if (!playerStatuses.containsKey(newPlayer)) {
       playerStatuses.put(newPlayer, ClientStatus.IDLE);
+      mostRecentAcceptedAction.put(newPlayer, Integer.MIN_VALUE);
+      mostRecentRejectedAction.put(newPlayer, Integer.MIN_VALUE);
+      mostRecentAcceptedUndo.put(newPlayer, Integer.MIN_VALUE);
+      mostRecentRejectedUndo.put(newPlayer, Integer.MIN_VALUE);
     }
   }
 
@@ -59,6 +68,36 @@ public class CloneToolsNetworkServer
   }
 
   /**
+   * update the most recent action status(es) for the given player
+   * @param player
+   * @param newSequenceNumber
+   * @param accepted true if the action was accepted
+   */
+  public void updateMostRecentAction(EntityPlayerMP player, int newSequenceNumber, boolean accepted)
+  {
+    if (accepted) {
+      mostRecentAcceptedAction.put(player, newSequenceNumber);
+    } else {
+      mostRecentRejectedUndo.put(player, newSequenceNumber);
+    }
+  }
+
+  /**
+   * update the most recent undo status(es) for the given player
+   * @param player
+   * @param newSequenceNumber
+   * @param accepted  true if the undo was accepted
+   */
+  public void updateMostRecentUndo(EntityPlayerMP player, int newSequenceNumber, boolean accepted)
+  {
+   if (accepted) {
+     mostRecentAcceptedUndo.put(player, newSequenceNumber);
+   } else {
+     mostRecentRejectedUndo.put(player, newSequenceNumber);
+   }
+  }
+
+  /**
    * Send the appropriate update status packet to this player
    * @param player
    */
@@ -80,7 +119,19 @@ public class CloneToolsNetworkServer
           assert false: "Invalid serverStatus";
       }
     }
-    Packet250ToolActionStatus packet = Packet250ToolActionStatus.updateCompletionPercentage(serverStatusForThisPlayer, serverPercentComplete);
+
+    if (   !mostRecentAcceptedAction.containsKey(player) || !mostRecentRejectedAction.containsKey(player)
+        || !mostRecentAcceptedUndo.containsKey(player) || !mostRecentRejectedUndo.containsKey(player)    ) {
+      ErrorLog.defaultLog().warning("mostRecentxxx maps did not contain player");
+      return;
+    }
+
+    Packet250ToolActionStatus packet = Packet250ToolActionStatus.serverStatusChange(serverStatusForThisPlayer, serverPercentComplete,
+                                                                                    mostRecentAcceptedAction.get(player),
+                                                                                    mostRecentRejectedAction.get(player),
+                                                                                    mostRecentAcceptedUndo.get(player),
+                                                                                    mostRecentRejectedUndo.get(player)
+            );
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 != null) {
       player.playerNetServerHandler.sendPacketToPlayer(packet250);
@@ -121,7 +172,8 @@ public class CloneToolsNetworkServer
                                                                       packet.getXpos(), packet.getYpos(), packet.getZpos(),
                                                                       packet.getRotationCount(), packet.isFlipped());
         }
-        acknowledgeAction(player, packet, successfulStart);
+//        acknowledgeAction(player, packet, successfulStart);
+        updateMostRecentAction(player, packet.getSequenceNumber(), successfulStart);
         sendUpdateToClient(player);
         break;
       }
@@ -130,7 +182,8 @@ public class CloneToolsNetworkServer
         if (serverStatus == ServerStatus.IDLE || playerBeingServiced == player) {
           successfulUndoStart = cloneToolServerActions.performUndoAction(player, packet.getSequenceNumber());
         }
-        acknowledgeAction(player, packet, successfulUndoStart);
+//        acknowledgeAction(player, packet, successfulUndoStart);
+        updateMostRecentUndo(player, packet.getSequenceNumber(), successfulUndoStart);
         sendUpdateToClient(player);
         break;
       }
@@ -162,6 +215,11 @@ public class CloneToolsNetworkServer
   }
 
   private Map<EntityPlayerMP, ClientStatus> playerStatuses;
+  private Map<EntityPlayerMP, Integer> mostRecentAcceptedAction;
+  private Map<EntityPlayerMP, Integer> mostRecentRejectedAction;
+  private Map<EntityPlayerMP, Integer> mostRecentAcceptedUndo;
+  private Map<EntityPlayerMP, Integer> mostRecentRejectedUndo;
+
   private ServerStatus serverStatus;
   private byte serverPercentComplete;
   private CloneToolServerActions cloneToolServerActions;

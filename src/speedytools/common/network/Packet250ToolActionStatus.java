@@ -12,23 +12,18 @@ import java.io.*;
  */
 public class Packet250ToolActionStatus
 {
-  public static Packet250ToolActionStatus serverStatusChange(ServerStatus newStatus)
+  public static Packet250ToolActionStatus serverStatusChange(ServerStatus newStatus, byte newPercentage,
+                                                             int newLastAcceptedAction, int newLastRejectedAction,
+                                                             int newLastAcceptedUndo, int newLastRejectedUndo
+                                                             )
   {
-    return new Packet250ToolActionStatus(null, newStatus, (byte)100);
+    return new Packet250ToolActionStatus(null, newStatus, newPercentage,
+                                         newLastAcceptedAction, newLastRejectedAction, newLastAcceptedUndo, newLastRejectedUndo);
   }
 
   public static Packet250ToolActionStatus clientStatusChange(ClientStatus newStatus)
   {
-    return new Packet250ToolActionStatus(newStatus, null, (byte)100);
-  }
-
-  /**
-   *
-   * @param newPercentage must be between 0 and 100 inclusive.  100 indicates completely finished.
-   */
-  public static Packet250ToolActionStatus updateCompletionPercentage(ServerStatus newStatus, byte newPercentage)
-  {
-    return new Packet250ToolActionStatus(null, newStatus, newPercentage);
+    return new Packet250ToolActionStatus(newStatus, null, (byte)100, 0, 0, 0, 0);
   }
 
   /**
@@ -40,12 +35,16 @@ public class Packet250ToolActionStatus
     checkInvariants();
     Packet250CustomPayload retval = null;
     try {
-      ByteArrayOutputStream bos = new ByteArrayOutputStream(1*4);
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
       outputStream.writeByte(PacketHandler.PACKET250_TOOL_ACTION_STATUS_ID);
       outputStream.writeByte(clientStatusToByte(clientStatus));
       outputStream.writeByte(serverStatusToByte(serverStatus));
       outputStream.writeByte(completionPercentage);
+      outputStream.writeInt(lastAcceptedAction);
+      outputStream.writeInt(lastRejectedAction);
+      outputStream.writeInt(lastAcceptedUndo);
+      outputStream.writeInt(lastRejectedUndo);
       retval = new Packet250CustomPayload("speedytools",bos.toByteArray());
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Failed to getPacket250CustomPayload, due to exception " + ioe.toString());
@@ -71,6 +70,10 @@ public class Packet250ToolActionStatus
       newPacket.clientStatus = byteToClientStatus(inputStream.readByte());
       newPacket.serverStatus = byteToServerStatus(inputStream.readByte());
       newPacket.completionPercentage = inputStream.readByte();
+      newPacket.lastAcceptedAction = inputStream.readInt();
+      newPacket.lastRejectedAction = inputStream.readInt();
+      newPacket.lastAcceptedUndo = inputStream.readInt();
+      newPacket.lastRejectedUndo = inputStream.readInt();
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
       return null;
@@ -81,11 +84,18 @@ public class Packet250ToolActionStatus
 
   private Packet250ToolActionStatus(ClientStatus newClientStatus,
                                     ServerStatus newServerStatus,
-                                    byte newPercentage)
+                                    byte newPercentage,
+                                    int newLastAcceptedAction, int newLastRejectedAction,
+                                    int newLastAcceptedUndo, int newLastRejectedUndo
+                                    )
   {
     clientStatus = newClientStatus;
     serverStatus = newServerStatus;
     completionPercentage = newPercentage;
+    lastAcceptedAction = newLastAcceptedAction;
+    lastRejectedAction = newLastRejectedAction;
+    lastAcceptedUndo = newLastAcceptedUndo;
+    lastRejectedUndo = newLastRejectedUndo;
   }
 
   private static final byte NULL_BYTE_VALUE = Byte.MAX_VALUE;
@@ -116,6 +126,26 @@ public class Packet250ToolActionStatus
     assert (checkInvariants());
     assert (serverStatus != null);
     return completionPercentage;
+  }
+
+  public int getLastAcceptedAction() {
+    assert (serverStatus != null);
+    return lastAcceptedAction;
+  }
+
+  public int getLastRejectedAction() {
+    assert (serverStatus != null);
+    return lastRejectedAction;
+  }
+
+  public int getLastAcceptedUndo() {
+    assert (serverStatus != null);
+    return lastAcceptedUndo;
+  }
+
+  public int getLastRejectedUndo() {
+    assert (serverStatus != null);
+    return lastRejectedUndo;
   }
 
   private boolean checkInvariants()
@@ -170,4 +200,8 @@ public class Packet250ToolActionStatus
   private ClientStatus clientStatus;
   private ServerStatus serverStatus;
   private byte completionPercentage = 100;
+  private int lastAcceptedAction;
+  private int lastRejectedAction;
+  private int lastAcceptedUndo;
+  private int lastRejectedUndo;
 }

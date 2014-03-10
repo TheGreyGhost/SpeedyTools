@@ -18,12 +18,12 @@ import speedytools.clientside.ClientSide;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.rendering.SelectionBoxRenderer;
 import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.UsefulConstants;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 
@@ -242,7 +242,7 @@ public class ItemCloneCopy extends ItemCloneTool {
         break;
       }
       case 1: {
-        if (currentToolState.performingAction) return;
+        if (waitingForServerAcknowledge || currentToolState.performingAction) return;
         switch (currentToolState) {
           case NO_SELECTION: {
             initiateSelectionCreation(thePlayer);
@@ -284,23 +284,8 @@ public class ItemCloneCopy extends ItemCloneTool {
    */
   private void undoSelection(EntityClientPlayerMP thePlayer)
   {
-    switch (currentToolState) {
-      case NO_SELECTION: {
-        break;
-      }
-      case GENERATING_SELECTION:
-      case DISPLAYING_SELECTION: {
-        currentToolState = ToolState.NO_SELECTION;
-        break;
-      }
-      case PERFORMING_ACTION:
-      case PERFORMING_UNDO: {
-        break;   // do nothing
-      }
-      default:
-        assert false : "invalid currentToolState";
-
-    }
+    if (waitingForServerAcknowledge) return;
+    currentToolState = ToolState.NO_SELECTION;
   }
 
   /**
@@ -313,32 +298,13 @@ public class ItemCloneCopy extends ItemCloneTool {
     // if we're currently undoing an action, do nothing
     // if we're in the middle of performing an action, cancel it
     // if we have previously performed an action, undo it.
-    switch(currentToolState) {
-      case NO_SELECTION:
-      case PERFORMING_UNDO:
-      case GENERATING_SELECTION: {
-        break;
-      }
-      case DISPLAYING_SELECTION: {
-        if (lastCompletedActionSequenceNumber != null) {
-          int undoSequenceNumber = ClientSide.getCloneToolsNetworkClient().toolUndoPerformed(lastCompletedActionSequenceNumber);
-          pendingUndoSequenceNumber = undoSequenceNumber;
+    boolean startUndo = false;
+    if (waitingForServerAcknowledge) return;
+    if (actionsPerformed.isEmpty()) return;
+    assert (actionsPerformed.peekLast().acknowledged);
 
-        }
-        break;
-      }
-      case PERFORMING_ACTION: {
-        if (pendingActionSequenceNumber != null) {
-          int undoSequenceNumber = ClientSide.getCloneToolsNetworkClient().toolUndoPerformed(pendingActionSequenceNumber);
-          pendingUndoSequenceNumber = undoSequenceNumber;
-        }
-        break;
-      }
-
-      default: {
-        assert false : "Illegal currentToolState in undoAction";
-      }
-    }
+    int undoSequenceNumber = ClientSide.getCloneToolsNetworkClient().toolUndoPerformed(actionsPerformed.peekLast().sequenceNumber);
+    pendingUndoSequenceNumber = undoSequenceNumber;
 //        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
   }
 
@@ -348,10 +314,11 @@ public class ItemCloneCopy extends ItemCloneTool {
    */
   private void placeSelection(EntityClientPlayerMP thePlayer)
   {
-    assert pendingActionSequenceNumber == null && pendingUndoSequenceNumber == null;
+    if (waitingForServerAcknowledge) return;
+    assert pendingUndoSequenceNumber == null;
     int actionSequenceNumber = ClientSide.getCloneToolsNetworkClient().toolActionPerformed(itemID,
                                                 selectionOrigin.posX, selectionOrigin.posY, selectionOrigin.posZ, (byte)0, false); // todo: implement rotation and flipped
-    pendingActionSequenceNumber = actionSequenceNumber;
+    actionsPerformed.push(new ServerAction(actionSequenceNumber, false));
   }
 
   private void flipSelection()
@@ -384,16 +351,48 @@ public class ItemCloneCopy extends ItemCloneTool {
     ClientSide.getCloneToolsNetworkClient().toolSelectionPerformed();
   }
 
+  /**
+   * process the response from the server on the last action or undo we asked it to make
+   * @param sequenceNumber
+   * @param successfullyStarted
+   */
   @Override
   public void updateAction(int sequenceNumber, boolean successfullyStarted)
   {
+    if (!waitingForServerAcknowledge) {
+      ErrorLog.defaultLog().warning("Received ItemCloneCopy::updateAction when !waitingForServerAcknowledge");
+      return;    // must have given up waiting
+    }
 
-    switch ()
+    if (pendingUndoSequenceNumber != null) {
+      if (pendingUndoSequenceNumber != sequenceNumber) {
+        ErrorLog.defaultLog().warning("Sequence number " + sequenceNumber + " didn't match pendingUndoSequenceNumber" + pendingUndoSequenceNumber);
+        return;    // must have given up waiting
+      }
+      pendingUndoSequenceNumber = null;
+      waitingForServerAcknowledge = false;
+      if (actionsPerformed.peekLast().sequenceNumber != sequenceNumber) {
+        ErrorLog.defaultLog().warning("Sequence number " + sequenceNumber + " didn't match actionsPerformed.peekLast" + actionsPerformed.peekLast().sequenceNumber);
+        return;
+      }
+      if (successfullyStarted) actionsPerformed.removeLast();
+      return;
+    }
 
-    private Integer pendingActionSequenceNumber = null;              // if not null, an action is pending that hasn't been confirmed started by the server
-    private Integer lastCompletedActionSequenceNumber = null;        // if not null, there is a completed action which can be undone
-    private Integer pendingUndoSequenceNumber = null;                // if not null, an undo action is pending that hasn't been confirmed by the server
-
+    if (actionsPerformed.isEmpty()) {
+      ErrorLog.defaultLog().warning("Received ItemCloneCopy::updateAction when actionsPerformed is empty");
+      return;
+    }
+    if (actionsPerformed.peekLast().sequenceNumber != sequenceNumber) {
+      ErrorLog.defaultLog().warning("Sequence number " + sequenceNumber + " didn't match actionsPerformed.peekLast" + actionsPerformed.peekLast().sequenceNumber);
+      return;
+    }
+    if (successfullyStarted) {
+      actionsPerformed.peekLast().acknowledged = true;
+    } else {
+      actionsPerformed.removeLast();
+    }
+    waitingForServerAcknowledge = false;
   }
 
   /** called once per tick on the client side while the user is holding an ItemCloneTool
@@ -401,6 +400,7 @@ public class ItemCloneCopy extends ItemCloneTool {
    * (1) background generation of a selection, if it has been initiated
    * (2) drag the selection around (ungrabbing it if the user had released the button)
    * (3) perform an undo selection, once enough time has elapsed to it is clear that this is a single left click not a double left click
+   * (4) update the client status to the server
    * @param useKeyHeldDown
    */
   @Override
@@ -472,8 +472,6 @@ public class ItemCloneCopy extends ItemCloneTool {
   //    c) every tick, the voxelSelectionManager is updated further until complete
   // 3) DISPLAYING_SELECTION - selection is being displayed and/or moved
   //    voxelSelectionManager is valid and has a renderlist
-  // 4) PERFORMING_ACTION - we've sent the action command to the server and are waiting for it to finish
-  // 5) PERFORMING_UNDO - we've send an undo command to the server and are waiting for it to finish
 
   private SelectionType currentHighlighting = SelectionType.NONE;
   private List<ChunkCoordinates> highlightedBlocks;
@@ -490,9 +488,18 @@ public class ItemCloneCopy extends ItemCloneTool {
   private Long lastRightClickTime = null;
   private Long lastLeftClickTime = null;
 
-  private Integer pendingActionSequenceNumber = null;              // if not null, an action is pending that hasn't been confirmed started by the server
-  private Integer lastCompletedActionSequenceNumber = null;        // if not null, there is a completed action which can be undone
-  private Integer pendingUndoSequenceNumber = null;                // if not null, an undo action is pending that hasn't been confirmed by the server
+  private boolean waitingForServerAcknowledge;                                // if true, we have sent an action or undo to the server and are waiting for a response
+  private Integer pendingUndoSequenceNumber = null;                           // if not null, an undo action is pending that hasn't been confirmed by the server
+  private Deque<ServerAction> actionsPerformed = new LinkedList<ServerAction>();
+
+  private static class ServerAction {
+    public int sequenceNumber;
+    public boolean acknowledged;    // the server has acknowledged that this action is being performed
+    ServerAction(int i_sequenceNumber, boolean i_acknowledged) {
+      sequenceNumber = i_sequenceNumber;
+      acknowledged = i_acknowledged;
+    }
+  }
 
   private enum SelectionType {
     NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL
@@ -501,9 +508,7 @@ public class ItemCloneCopy extends ItemCloneTool {
   private enum ToolState {
     NO_SELECTION(true, false, true, false),
     GENERATING_SELECTION(false, false, true, true),
-    DISPLAYING_SELECTION(false, true, false, false),
-    PERFORMING_ACTION(false, false, false, true),
-    PERFORMING_UNDO(false, false, false, true);
+    DISPLAYING_SELECTION(false, true, false, false);
 
     public final boolean displayHighlight;
     public final boolean displaySelection;
