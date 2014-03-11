@@ -233,6 +233,7 @@ public class ItemCloneCopy extends ItemCloneTool {
           lastLeftClickTime = System.nanoTime();  // .tick() will act on this after the double click time has elapsed
         } else {
           long clickElapsedTime = System.nanoTime() - lastLeftClickTime;
+          lastLeftClickTime = null;
           if (clickElapsedTime < DOUBLE_CLICK_SPEED_NS) {
             undoAction(thePlayer);
           } else {
@@ -356,6 +357,7 @@ public class ItemCloneCopy extends ItemCloneTool {
    * @param sequenceNumber
    * @param successfullyStarted
    */
+/*
   @Override
   public void updateAction(int sequenceNumber, boolean successfullyStarted)
   {
@@ -394,7 +396,7 @@ public class ItemCloneCopy extends ItemCloneTool {
     }
     waitingForServerAcknowledge = false;
   }
-
+*/
   /** called once per tick on the client side while the user is holding an ItemCloneTool
    * used to:
    * (1) background generation of a selection, if it has been initiated
@@ -441,6 +443,7 @@ public class ItemCloneCopy extends ItemCloneTool {
     if (lastLeftClickTime != null) {
       long clickElapsedTime = System.nanoTime() - lastLeftClickTime;
       if (clickElapsedTime > DOUBLE_CLICK_SPEED_NS) { // the double-click time has elapsed without a second click
+        lastLeftClickTime = null;
         undoSelection(Minecraft.getMinecraft().thePlayer);
       }
     }
@@ -485,21 +488,15 @@ public class ItemCloneCopy extends ItemCloneTool {
   private Vec3    selectionGrabPoint = null;
   private boolean selectionMovedFastYet;
 
-  private Long lastRightClickTime = null;
-  private Long lastLeftClickTime = null;
+  private long lastRightClickTime;                                            // used for double-click detection
+  private Long lastLeftClickTime = null;                                      // used for double-click detection
 
   private boolean waitingForServerAcknowledge;                                // if true, we have sent an action or undo to the server and are waiting for a response
   private Integer pendingUndoSequenceNumber = null;                           // if not null, an undo action is pending that hasn't been confirmed by the server
-  private Deque<ServerAction> actionsPerformed = new LinkedList<ServerAction>();
+  private Integer pendingActionSequenceNumber = null;                         // if not null, an action is pending that hasn't been confirmed by the server
+  private Deque<Integer> actionsPerformed = new LinkedList<Integer>();        // the sequence numbers of the actions that were successfully acknowledged
 
-  private static class ServerAction {
-    public int sequenceNumber;
-    public boolean acknowledged;    // the server has acknowledged that this action is being performed
-    ServerAction(int i_sequenceNumber, boolean i_acknowledged) {
-      sequenceNumber = i_sequenceNumber;
-      acknowledged = i_acknowledged;
-    }
-  }
+  private int nextActionSequenceNumber = 0;                                   // the sequence number to be used for the next action
 
   private enum SelectionType {
     NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL

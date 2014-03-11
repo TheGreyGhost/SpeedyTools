@@ -26,7 +26,7 @@ public class Packet250CloneToolUse
     return retval;
   }
 
-  public static Packet250CloneToolUse toolActionPerformed(int i_toolID, int x, int y, int z, byte i_rotationCount, boolean i_flipped)
+  public static Packet250CloneToolUse toolActionPerformed(int i_sequenceNumber, int i_toolID, int x, int y, int z, byte i_rotationCount, boolean i_flipped)
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.TOOL_ACTION_PERFORMED);
     retval.toolID = i_toolID;
@@ -35,17 +35,17 @@ public class Packet250CloneToolUse
     retval.zpos = z;
     retval.flipped = i_flipped;
     retval.rotationCount = i_rotationCount;
-    retval.sequenceNumber = nextSequenceNumber;
-    ++nextSequenceNumber;
+    retval.sequenceNumber = i_sequenceNumber;
 
     assert (retval.checkInvariants());
     return retval;
   }
 
-  public static Packet250CloneToolUse toolUndoPerformed(int i_sequenceNumber)
+  public static Packet250CloneToolUse toolUndoPerformed(int i_undoSequenceNumber, int i_actionSequenceNumber)
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.TOOL_UNDO_PERFORMED);
-    retval.sequenceNumber = i_sequenceNumber;
+    retval.sequenceNumber = i_undoSequenceNumber;
+    retval.actionToBeUndoneSequenceNumber = i_actionSequenceNumber;
     assert (retval.checkInvariants());
     return retval;
   }
@@ -61,7 +61,7 @@ public class Packet250CloneToolUse
       outputStream.writeByte(commandToByte(command));
       outputStream.writeInt(toolID);
       outputStream.writeInt(sequenceNumber);
-      outputStream.writeBoolean(commandSuccessfullyStarted);
+      outputStream.writeInt(actionToBeUndoneSequenceNumber);
       outputStream.writeInt(xpos);
       outputStream.writeInt(ypos);
       outputStream.writeInt(zpos);
@@ -96,7 +96,7 @@ public class Packet250CloneToolUse
       Packet250CloneToolUse newPacket = new Packet250CloneToolUse(command);
       newPacket.toolID = inputStream.readInt();
       newPacket.sequenceNumber = inputStream.readInt();
-      newPacket.commandSuccessfullyStarted = inputStream.readBoolean();
+      newPacket.actionToBeUndoneSequenceNumber = inputStream.readInt();
       newPacket.xpos = inputStream.readInt();
       newPacket.ypos = inputStream.readInt();
       newPacket.zpos = inputStream.readInt();
@@ -107,11 +107,6 @@ public class Packet250CloneToolUse
       ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
     }
     return null;
-  }
-
-  public void setCommandSuccessfullyStarted(boolean newCommandSuccessful)
-  {
-    commandSuccessfullyStarted = newCommandSuccessful;
   }
 
   public static enum Command {
@@ -172,13 +167,12 @@ public class Packet250CloneToolUse
     return flipped;
   }
 
-
-  public boolean isCommandSuccessfullyStarted() {
-    return commandSuccessfullyStarted;
-  }
-
   public int getSequenceNumber() {
     return sequenceNumber;
+  }
+
+  public int getActionToBeUndoneSequenceNumber() {
+    return actionToBeUndoneSequenceNumber;
   }
 
   private static Command byteToCommand(byte value)
@@ -229,13 +223,12 @@ public class Packet250CloneToolUse
 
   private Command command;
   private int toolID;
-  private boolean commandSuccessfullyStarted;
   private int sequenceNumber;
+  private int actionToBeUndoneSequenceNumber;
   private int xpos;
   private int ypos;
   private int zpos;
   private byte rotationCount;
   private boolean flipped;
 
-  private static int nextSequenceNumber = 0;
 }

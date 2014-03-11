@@ -68,9 +68,9 @@ public class CloneToolsNetworkClient
    * @param flipped true if flipped left-right
    * @return a unique sequence number for this command
    */
-  public int toolActionPerformed(int toolID, int x, int y, int z, byte rotationCount, boolean flipped)
+  public int toolActionPerformed(int sequenceNumber, int toolID, int x, int y, int z, byte rotationCount, boolean flipped)
   {
-    Packet250CloneToolUse packet = Packet250CloneToolUse.toolActionPerformed(toolID, x, y, z, rotationCount, flipped);
+    Packet250CloneToolUse packet = Packet250CloneToolUse.toolActionPerformed(sequenceNumber, toolID, x, y, z, rotationCount, flipped);
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 != null) {
       player.sendQueue.addToSendQueue(packet250);
@@ -81,12 +81,13 @@ public class CloneToolsNetworkClient
 
   /**
    * sends the "Tool Undo" command to the server
-   * @param sequenceNumber = the sequence number of the action to be undone
+   * @param undoSequenceNumber = the sequence number of this undo request
+   * @param actionSequenceNumber = the sequence number of the action that should be undone
    * @return a unique sequence number for this command
    */
-  public int toolUndoPerformed(int sequenceNumber)
+  public int toolUndoPerformed(int undoSequenceNumber, int actionSequenceNumber)
   {
-    Packet250CloneToolUse packet = Packet250CloneToolUse.toolUndoPerformed(sequenceNumber);
+    Packet250CloneToolUse packet = Packet250CloneToolUse.toolUndoPerformed(undoSequenceNumber, actionSequenceNumber);
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 != null) {
       player.sendQueue.addToSendQueue(packet250);
@@ -145,12 +146,33 @@ public class CloneToolsNetworkClient
     serverRejectedUndo = packet.getLastRejectedUndo();
   }
 
+  /**
+   * Called once per tick to handle timeouts
+   */
+  public void tick()
+  {
+
+
+  }
+
+  public static enum AcknowledgementStatus {
+    NONE_PENDING, WAITING_FOR_REPLY, ACCEPTED, REJECTED, TIMEOUT;
+  }
+
   private EntityClientPlayerMP player;
 
   private ServerStatus serverStatus;
   private byte serverPercentComplete;
   private int serverAcceptedAction;
   private int serverRejectedAction;
+  private int serverLatestNotUndoneAction;
   private int serverAcceptedUndo;
   private int serverRejectedUndo;
+
+  private Integer lastActionRequested;  //action sequence number  null = none pending
+  private Integer lastUndoRequested;    //action sequence number  null = none pending
+
+  private Long lastServerStatusUpdateTime;  //time in ns.  null = none
+  private Long lastActionSentTime;          //time in ns.  null = none
+  private Long lastUndoSentTime;            //time in ns.  null = none
 }
