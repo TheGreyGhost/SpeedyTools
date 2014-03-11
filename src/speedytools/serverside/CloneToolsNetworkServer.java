@@ -3,8 +3,8 @@ package speedytools.serverside;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.ClientStatus;
+import speedytools.common.network.Packet250CloneToolStatus;
 import speedytools.common.network.Packet250CloneToolUse;
-import speedytools.common.network.Packet250ToolActionStatus;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.ErrorLog;
 
@@ -126,12 +126,12 @@ public class CloneToolsNetworkServer
       return;
     }
 
-    Packet250ToolActionStatus packet = Packet250ToolActionStatus.serverStatusChange(serverStatusForThisPlayer, serverPercentComplete,
-                                                                                    mostRecentAcceptedAction.get(player),
-                                                                                    mostRecentRejectedAction.get(player),
-                                                                                    mostRecentAcceptedUndo.get(player),
-                                                                                    mostRecentRejectedUndo.get(player)
-            );
+    Packet250CloneToolStatus packet = Packet250CloneToolStatus.serverStatusChange(serverStatusForThisPlayer, serverPercentComplete,
+            mostRecentAcceptedAction.get(player),
+            mostRecentRejectedAction.get(player),
+            mostRecentAcceptedUndo.get(player),
+            mostRecentRejectedUndo.get(player)
+    );
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 != null) {
       player.playerNetServerHandler.sendPacketToPlayer(packet250);
@@ -165,7 +165,7 @@ public class CloneToolsNetworkServer
         cloneToolServerActions.prepareForToolAction();
         break;
       }
-      case TOOL_ACTION_PERFORMED: {
+      case PERFORM_TOOL_ACTION: {
         boolean successfulStart = false;
         if (serverStatus == ServerStatus.IDLE) {
           successfulStart = cloneToolServerActions.performToolAction(player, packet.getToolID(), packet.getSequenceNumber(),
@@ -177,7 +177,7 @@ public class CloneToolsNetworkServer
         sendUpdateToClient(player);
         break;
       }
-      case TOOL_UNDO_PERFORMED: {
+      case PERFORM_TOOL_UNDO: {
         boolean successfulUndoStart = false;
         if (serverStatus == ServerStatus.IDLE || playerBeingServiced == player) {
           successfulUndoStart = cloneToolServerActions.performUndoAction(player, packet.getSequenceNumber());
@@ -198,7 +198,7 @@ public class CloneToolsNetworkServer
    * @param player
    * @param packet
    */
-  public void handlePacket(EntityPlayerMP player, Packet250ToolActionStatus packet)
+  public void handlePacket(EntityPlayerMP player, Packet250CloneToolStatus packet)
   {
     ClientStatus newStatus = packet.getClientStatus();
 

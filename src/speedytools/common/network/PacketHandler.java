@@ -10,7 +10,6 @@ import net.minecraft.network.INetworkManager;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.server.MinecraftServer;
 import speedytools.clientside.ClientSide;
-import speedytools.serverside.CloneToolServerActions;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.SpeedyToolWorldManipulator;
 
@@ -18,7 +17,8 @@ public class PacketHandler implements IPacketHandler
 {
   public static final byte PACKET250_SPEEDY_TOOL_USE_ID = 0;
   public static final byte PACKET250_CLONE_TOOL_USE_ID = 1;
-  public static final byte PACKET250_TOOL_ACTION_STATUS_ID = 2;
+  public static final byte PACKET250_TOOL_STATUS_ID = 2;
+  public static final byte PACKET250_TOOL_ACKNOWLEDGE_ID = 3;
 
   @Override
   public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity)
@@ -28,7 +28,10 @@ public class PacketHandler implements IPacketHandler
 
       switch (packet.data[0]) {
         case PACKET250_SPEEDY_TOOL_USE_ID: {
-          assert(side == Side.SERVER);
+          if (side != Side.SERVER) {
+            malformedPacketError(playerEntity, "PACKET250_SPEEDY_TOOL_USE_ID received on wrong side");
+            return;
+          }
           Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
           if (toolUsePacket == null) return;
           SpeedyToolWorldManipulator manipulator = ServerSide.getSpeedyToolWorldManipulator();
@@ -41,8 +44,6 @@ public class PacketHandler implements IPacketHandler
           if (toolUsePacket != null && toolUsePacket.validForSide(side)) {
             if (side == Side.SERVER) {
               ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
-            } else {
-              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
             }
           } else {
             malformedPacketError(playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
@@ -50,17 +51,30 @@ public class PacketHandler implements IPacketHandler
           }
           break;
         }
-        case PACKET250_TOOL_ACTION_STATUS_ID: {
-          Packet250ToolActionStatus toolStatusPacket = Packet250ToolActionStatus.createPacket250ToolActionStatus(packet);
+        case PACKET250_TOOL_STATUS_ID: {
+          Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
           if (toolStatusPacket.validForSide(side)) {
             if (side == Side.SERVER) {
               ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolStatusPacket);
+            } else {
+              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityPlayerMP)playerEntity, toolStatusPacket);
             }
           } else {
-            malformedPacketError(playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
+            malformedPacketError(playerEntity, "PACKET250_TOOL_STATUS_ID received on wrong side");
             return;
           }
           break;
+        }
+        case PACKET250_TOOL_ACKNOWLEDGE_ID: {
+          Packet250CloneToolAcknowledge toolAcknowledgePacket = Packet250CloneToolAcknowledge.createPacket250CloneToolUse(packet);
+          if (toolAcknowledgePacket.validForSide(side)) {
+            if (side == Side.CLIENT) {
+              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityPlayerMP)playerEntity, toolAcknowledgePacket);
+            }
+          } else {
+            malformedPacketError(playerEntity, "PACKET250_TOOL_ACKNOWLEDGE_ID received on wrong side");
+            return;
+          }
         }
         default: {
           malformedPacketError(playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID");

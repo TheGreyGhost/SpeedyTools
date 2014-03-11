@@ -5,7 +5,7 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.ClientStatus;
-import speedytools.common.network.Packet250ToolActionStatus;
+import speedytools.common.network.Packet250CloneToolStatus;
 import speedytools.common.network.ServerStatus;
 
 /**
@@ -51,7 +51,7 @@ public class CloneToolActionStatus
 
   }
 
-  public void updateStateFromPacket(Packet250ToolActionStatus packet) {
+  public void updateStateFromPacket(Packet250CloneToolStatus packet) {
     if (packet.validForSide(Side.CLIENT)) {
       serverStatus =  packet.getServerStatus();
       serverPercentComplete = packet.getCompletionPercentage();
@@ -66,7 +66,7 @@ public class CloneToolActionStatus
 
   private boolean sendPacketToServer()
   {
-    Packet250ToolActionStatus packet = Packet250ToolActionStatus.updateCompletionPercentage(serverStatus, serverPercentComplete);
+    Packet250CloneToolStatus packet = Packet250CloneToolStatus.updateCompletionPercentage(serverStatus, serverPercentComplete);
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 == null) return false;
     entityPlayerMP.playerNetServerHandler.sendPacketToPlayer(packet250);
@@ -75,7 +75,7 @@ public class CloneToolActionStatus
 
   private boolean sendPacketToClient()
   {
-    Packet250ToolActionStatus packet = Packet250ToolActionStatus.clientStatusChange(clientStatus);
+    Packet250CloneToolStatus packet = Packet250CloneToolStatus.clientStatusChange(clientStatus);
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 == null) return false;
     entityClientPlayerMP.sendQueue.addToSendQueue(packet250);

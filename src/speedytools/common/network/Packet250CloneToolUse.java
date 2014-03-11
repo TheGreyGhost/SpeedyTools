@@ -13,22 +13,20 @@ import java.io.*;
  * (1) when user has made a selection using a clone tool
  * (2) user has performed an action with the tool (place) at the current selection position
  * (3) user has performed an undo with the tool
- * Server to Client:
- * (1) The packet received by the server, updated with the success status of the action, is returned to the client.
  */
 public class Packet250CloneToolUse
 {
 
-  public static Packet250CloneToolUse toolSelectionPerformed()
+  public static Packet250CloneToolUse informSelectionMade()
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.SELECTION_MADE);
     assert (retval.checkInvariants());
     return retval;
   }
 
-  public static Packet250CloneToolUse toolActionPerformed(int i_sequenceNumber, int i_toolID, int x, int y, int z, byte i_rotationCount, boolean i_flipped)
+  public static Packet250CloneToolUse performToolAction(int i_sequenceNumber, int i_toolID, int x, int y, int z, byte i_rotationCount, boolean i_flipped)
   {
-    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.TOOL_ACTION_PERFORMED);
+    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_ACTION);
     retval.toolID = i_toolID;
     retval.xpos = x;
     retval.ypos = y;
@@ -41,11 +39,20 @@ public class Packet250CloneToolUse
     return retval;
   }
 
-  public static Packet250CloneToolUse toolUndoPerformed(int i_undoSequenceNumber, int i_actionSequenceNumber)
+  public static Packet250CloneToolUse cancelCurentAction(int i_undoSequenceNumber, int i_actionSequenceNumber)
   {
-    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.TOOL_UNDO_PERFORMED);
+    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_UNDO);
     retval.sequenceNumber = i_undoSequenceNumber;
     retval.actionToBeUndoneSequenceNumber = i_actionSequenceNumber;
+    assert (retval.checkInvariants());
+    return retval;
+  }
+
+  public static Packet250CloneToolUse performToolUndo(int i_undoSequenceNumber)
+  {
+    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_UNDO);
+    retval.sequenceNumber = i_undoSequenceNumber;
+    retval.actionToBeUndoneSequenceNumber = NULL_SEQUENCE_NUMBER;
     assert (retval.checkInvariants());
     return retval;
   }
@@ -110,8 +117,8 @@ public class Packet250CloneToolUse
   }
 
   public static enum Command {
-    SELECTION_MADE, TOOL_ACTION_PERFORMED, TOOL_UNDO_PERFORMED;
-    public static final Command[] allValues = {SELECTION_MADE, TOOL_ACTION_PERFORMED, TOOL_UNDO_PERFORMED};
+    SELECTION_MADE, PERFORM_TOOL_ACTION, PERFORM_TOOL_UNDO;
+    public static final Command[] allValues = {SELECTION_MADE, PERFORM_TOOL_ACTION, PERFORM_TOOL_UNDO};
   }
 
   /**
@@ -122,7 +129,7 @@ public class Packet250CloneToolUse
   public boolean validForSide(Side whichSide)
   {
     assert(checkInvariants());
-    return true;
+    return (whichSide == Side.SERVER);
   }
 
   public Command getCommand()
@@ -133,46 +140,49 @@ public class Packet250CloneToolUse
 
   public int getToolID() {
     assert (checkInvariants());
-    assert(command == Command.TOOL_ACTION_PERFORMED || command == Command.TOOL_UNDO_PERFORMED);
+    assert(command == Command.PERFORM_TOOL_ACTION || command == Command.PERFORM_TOOL_UNDO);
     return toolID;
   }
 
   public int getXpos() {
     assert (checkInvariants());
-    assert(command == Command.TOOL_ACTION_PERFORMED);
+    assert(command == Command.PERFORM_TOOL_ACTION);
     return xpos;
   }
 
   public int getYpos() {
     assert (checkInvariants());
-    assert(command == Command.TOOL_ACTION_PERFORMED);
+    assert(command == Command.PERFORM_TOOL_ACTION);
     return ypos;
   }
 
   public int getZpos() {
     assert (checkInvariants());
-    assert(command == Command.TOOL_ACTION_PERFORMED);
+    assert(command == Command.PERFORM_TOOL_ACTION);
     return zpos;
   }
 
   public byte getRotationCount() {
     assert (checkInvariants());
-    assert(command == Command.TOOL_ACTION_PERFORMED);
+    assert(command == Command.PERFORM_TOOL_ACTION);
     return rotationCount;
   }
 
   public boolean isFlipped() {
     assert (checkInvariants());
-    assert(command == Command.TOOL_ACTION_PERFORMED);
+    assert(command == Command.PERFORM_TOOL_ACTION);
     return flipped;
   }
+
 
   public int getSequenceNumber() {
     return sequenceNumber;
   }
 
-  public int getActionToBeUndoneSequenceNumber() {
-    return actionToBeUndoneSequenceNumber;
+  // null means no specific action nominated for undo
+  public Integer getActionToBeUndoneSequenceNumber()
+  {
+    return (actionToBeUndoneSequenceNumber == NULL_SEQUENCE_NUMBER) ? null : actionToBeUndoneSequenceNumber;
   }
 
   private static Command byteToCommand(byte value)
@@ -209,10 +219,10 @@ public class Packet250CloneToolUse
       case SELECTION_MADE: {
         return true;
       }
-      case TOOL_ACTION_PERFORMED: {
+      case PERFORM_TOOL_ACTION: {
         return (rotationCount >= 0 && rotationCount <= 3);
       }
-      case TOOL_UNDO_PERFORMED: {
+      case PERFORM_TOOL_UNDO: {
         return true;
       }
       default: {
@@ -221,6 +231,7 @@ public class Packet250CloneToolUse
     }
   }
 
+  private static final int NULL_SEQUENCE_NUMBER = Integer.MIN_VALUE;
   private Command command;
   private int toolID;
   private int sequenceNumber;
@@ -230,5 +241,4 @@ public class Packet250CloneToolUse
   private int zpos;
   private byte rotationCount;
   private boolean flipped;
-
 }

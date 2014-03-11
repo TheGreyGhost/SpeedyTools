@@ -2,7 +2,7 @@ package speedytools.common;
 
 import cpw.mods.fml.relauncher.Side;
 import speedytools.common.network.ClientStatus;
-import speedytools.common.network.Packet250ToolActionStatus;
+import speedytools.common.network.Packet250CloneToolStatus;
 
 /**
  * User: The Grey Ghost
@@ -15,7 +15,7 @@ public class CloneToolActionStatusClient
     return sendPacketToServer();
   }
 
-  public void updateStateFromPacket(Packet250ToolActionStatus packet) {
+  public void updateStateFromPacket(Packet250CloneToolStatus packet) {
     if (packet.validForSide(Side.CLIENT)) {
       serverStatus =  packet.getServerStatus();
       serverPercentComplete = packet.getCompletionPercentage();
