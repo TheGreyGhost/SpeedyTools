@@ -2,12 +2,12 @@ package speedytools.serverside;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.common.network.ClientStatus;
-import speedytools.common.network.Packet250CloneToolStatus;
-import speedytools.common.network.Packet250CloneToolUse;
-import speedytools.common.network.ServerStatus;
+import speedytools.common.network.Packet250CloneToolAcknowledge.Acknowledgement;
+import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
 
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,10 +20,12 @@ public class CloneToolsNetworkServer
   public CloneToolsNetworkServer(CloneToolServerActions i_cloneToolServerActions)
   {
     playerStatuses = new HashMap<EntityPlayerMP, ClientStatus>();
-    mostRecentAcceptedAction = new HashMap<EntityPlayerMP, Integer>();
-    mostRecentRejectedAction = new HashMap<EntityPlayerMP, Integer>();
-    mostRecentAcceptedUndo = new HashMap<EntityPlayerMP, Integer>();
-    mostRecentRejectedUndo = new HashMap<EntityPlayerMP, Integer>();
+    lastAcknowledgedAction = new HashMap<EntityPlayerMP, Integer>();
+    lastAcknowledgedActionPacket = new HashMap<EntityPlayerMP, Packet250CustomPayload>();
+    lastAcknowledgedUndo = new HashMap<EntityPlayerMP, Integer>();
+    lastAcknowledgedUndoPacket = new HashMap<EntityPlayerMP, Packet250CustomPayload>();
+    lastStatusPacketTimeNS = new HashMap<EntityPlayerMP, Long>();
+ //   undoNotifications = new HashMap<EntityPlayerMP, ArrayList<TimeStampSequenceNumber>>();
 
     cloneToolServerActions = i_cloneToolServerActions;
     cloneToolServerActions.setCloneToolsNetworkServer(this);
@@ -33,16 +35,20 @@ public class CloneToolsNetworkServer
   {
     if (!playerStatuses.containsKey(newPlayer)) {
       playerStatuses.put(newPlayer, ClientStatus.IDLE);
-      mostRecentAcceptedAction.put(newPlayer, Integer.MIN_VALUE);
-      mostRecentRejectedAction.put(newPlayer, Integer.MIN_VALUE);
-      mostRecentAcceptedUndo.put(newPlayer, Integer.MIN_VALUE);
-      mostRecentRejectedUndo.put(newPlayer, Integer.MIN_VALUE);
+      lastAcknowledgedAction.put(newPlayer, Integer.MIN_VALUE);
+      lastAcknowledgedUndo.put(newPlayer, Integer.MIN_VALUE);
+      lastStatusPacketTimeNS.put(newPlayer, new Long(0));
     }
   }
 
   public void removePlayer(EntityPlayerMP whichPlayer)
   {
     playerStatuses.remove(whichPlayer);
+    lastAcknowledgedAction.remove(whichPlayer);
+    lastAcknowledgedUndo.remove(whichPlayer);
+    lastAcknowledgedUndoPacket.remove(whichPlayer);
+    lastAcknowledgedActionPacket.remove(whichPlayer);
+    lastStatusPacketTimeNS.remove(whichPlayer);
   }
 
   /**
@@ -67,34 +73,24 @@ public class CloneToolsNetworkServer
     }
   }
 
-  /**
-   * update the most recent action status(es) for the given player
+  /** tell the client that the current action has been completed
+   *
    * @param player
-   * @param newSequenceNumber
-   * @param accepted true if the action was accepted
+   * @param actionSequenceNumber
    */
-  public void updateMostRecentAction(EntityPlayerMP player, int newSequenceNumber, boolean accepted)
+  public void actionCompleted(EntityPlayerMP player, int actionSequenceNumber)
   {
-    if (accepted) {
-      mostRecentAcceptedAction.put(player, newSequenceNumber);
-    } else {
-      mostRecentRejectedUndo.put(player, newSequenceNumber);
-    }
+    sendAcknowledgement(player, Acknowledgement.COMPLETED, actionSequenceNumber, Acknowledgement.NOUPDATE, 0);
   }
 
-  /**
-   * update the most recent undo status(es) for the given player
+  /**tell the client that the current undo has been completed
+   *
    * @param player
-   * @param newSequenceNumber
-   * @param accepted  true if the undo was accepted
+   * @param undoSequenceNumber
    */
-  public void updateMostRecentUndo(EntityPlayerMP player, int newSequenceNumber, boolean accepted)
+  public void undoCompleted(EntityPlayerMP player, int undoSequenceNumber)
   {
-   if (accepted) {
-     mostRecentAcceptedUndo.put(player, newSequenceNumber);
-   } else {
-     mostRecentRejectedUndo.put(player, newSequenceNumber);
-   }
+    sendAcknowledgement(player, Acknowledgement.NOUPDATE, 0, Acknowledgement.COMPLETED, undoSequenceNumber);
   }
 
   /**
@@ -120,41 +116,44 @@ public class CloneToolsNetworkServer
       }
     }
 
-    if (   !mostRecentAcceptedAction.containsKey(player) || !mostRecentRejectedAction.containsKey(player)
-        || !mostRecentAcceptedUndo.containsKey(player) || !mostRecentRejectedUndo.containsKey(player)    ) {
-      ErrorLog.defaultLog().warning("mostRecentxxx maps did not contain player");
-      return;
-    }
-
-    Packet250CloneToolStatus packet = Packet250CloneToolStatus.serverStatusChange(serverStatusForThisPlayer, serverPercentComplete,
-            mostRecentAcceptedAction.get(player),
-            mostRecentRejectedAction.get(player),
-            mostRecentAcceptedUndo.get(player),
-            mostRecentRejectedUndo.get(player)
-    );
+    Packet250CloneToolStatus packet = Packet250CloneToolStatus.serverStatusChange(serverStatusForThisPlayer, serverPercentComplete);
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 != null) {
       player.playerNetServerHandler.sendPacketToPlayer(packet250);
+      lastStatusPacketTimeNS.put(player, System.nanoTime());
     }
   }
 
   /**
    *  send a packet back to the client acknowledging their Action, with success or failure
-    * @param packet the action packet sent by the client
-   * @param successfulStart true if the action has been started on the server, false if not
+   *  updates private variables to reflect the latest action and/or undo acknowledgments
    */
-  private void acknowledgeAction(EntityPlayerMP player, Packet250CloneToolUse packet, boolean successfulStart)
+  private void sendAcknowledgement(EntityPlayerMP player,
+                                   Acknowledgement actionAcknowledgement, int actionSequenceNumber,
+                                   Acknowledgement undoAcknowledgement, int undoSequenceNumber       )
   {
-    packet.setCommandSuccessfullyStarted(successfulStart);
-    Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
+    Packet250CloneToolAcknowledge packetAck;
+    packetAck =  new Packet250CloneToolAcknowledge(actionAcknowledgement, actionSequenceNumber,
+                                                   undoAcknowledgement, undoSequenceNumber);
+    Packet250CustomPayload packet250 = packetAck.getPacket250CustomPayload();
     if (packet250 != null) {
       player.playerNetServerHandler.sendPacketToPlayer(packet250);
+    }
+
+    if (actionAcknowledgement != Acknowledgement.NOUPDATE) {
+      assert (lastAcknowledgedAction.get(player) < actionSequenceNumber);
+      lastAcknowledgedAction.put(player, actionSequenceNumber);
+      lastAcknowledgedActionPacket.put(player, packet250);
+    }
+    if (undoAcknowledgement != Acknowledgement.NOUPDATE) {
+      assert (lastAcknowledgedUndo.get(player) < undoSequenceNumber);
+      lastAcknowledgedUndo.put(player, undoSequenceNumber);
+      lastAcknowledgedUndoPacket.put(player, packet250);
     }
   }
 
   /**
    * respond to an incoming action packet.
-   * If the server is not busy with something else, perform the action, otherwise send the appropriate non-idle packet back to the caller
    * @param player
    * @param packet
    */
@@ -162,29 +161,66 @@ public class CloneToolsNetworkServer
   {
     switch (packet.getCommand()) {
       case SELECTION_MADE: {
-        cloneToolServerActions.prepareForToolAction();
+        cloneToolServerActions.prepareForToolAction(player);
         break;
       }
       case PERFORM_TOOL_ACTION: {
-        boolean successfulStart = false;
-        if (serverStatus == ServerStatus.IDLE) {
-          successfulStart = cloneToolServerActions.performToolAction(player, packet.getToolID(), packet.getSequenceNumber(),
-                                                                      packet.getXpos(), packet.getYpos(), packet.getZpos(),
-                                                                      packet.getRotationCount(), packet.isFlipped());
+        int sequenceNumber = packet.getSequenceNumber();
+        if (sequenceNumber == lastAcknowledgedAction.get(player)) {
+          Packet250CustomPayload packet250 = lastAcknowledgedActionPacket.get(player);
+          if (packet250 != null) {
+            player.playerNetServerHandler.sendPacketToPlayer(packet250);
+          }
+          break;
+        } else if (sequenceNumber < lastAcknowledgedAction.get(player)) {
+          break; // do nothing, just ignore it
+        } else {
+//          boolean foundundo = false;
+//          for (TimeStampSequenceNumber tssn : undoNotifications.get(player)) {
+//            if (tssn.sequenceNumber == sequenceNumber) {
+//              foundundo = true;
+//              break;
+//            }
+//          }
+//          if (!foundundo) {
+          boolean success = false;
+          if (serverStatus == ServerStatus.IDLE) {
+            success = cloneToolServerActions.performToolAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
+                                                               packet.getRotationCount(), packet.isFlipped());
+          }
+          sendAcknowledgement(player, (success ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, Acknowledgement.NOUPDATE, 0);
         }
-//        acknowledgeAction(player, packet, successfulStart);
-        updateMostRecentAction(player, packet.getSequenceNumber(), successfulStart);
-        sendUpdateToClient(player);
         break;
       }
       case PERFORM_TOOL_UNDO: {
-        boolean successfulUndoStart = false;
-        if (serverStatus == ServerStatus.IDLE || playerBeingServiced == player) {
-          successfulUndoStart = cloneToolServerActions.performUndoAction(player, packet.getSequenceNumber());
+        int sequenceNumber = packet.getSequenceNumber();
+        if (sequenceNumber == lastAcknowledgedUndo.get(player)) {
+          Packet250CustomPayload packet250 = lastAcknowledgedUndoPacket.get(player);
+          if (packet250 != null) {
+            player.playerNetServerHandler.sendPacketToPlayer(packet250);
+          }
+          break;
+        } else if (sequenceNumber < lastAcknowledgedUndo.get(player)) {
+          break; // do nothing, just ignore it
+        } else {
+          boolean success = false;
+          if (packet.getActionToBeUndoneSequenceNumber() == null) { // undo last completed action
+            if (serverStatus == ServerStatus.IDLE) {
+              success = cloneToolServerActions.performUndoOfLastAction(player, packet.getSequenceNumber());
+            }
+            sendAcknowledgement(player, Acknowledgement.NOUPDATE, 0, (success ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber);
+            break;
+          } else if (packet.getActionToBeUndoneSequenceNumber() > lastAcknowledgedAction.get(player)    ) {  // undo for an action we haven't received yet
+            sendAcknowledgement(player, Acknowledgement.REJECTED, packet.getActionToBeUndoneSequenceNumber(),
+                                        Acknowledgement.COMPLETED, packet.getSequenceNumber()                   );
+            break;
+          } else if (packet.getActionToBeUndoneSequenceNumber() == lastAcknowledgedAction.get(player)) {
+            if (serverStatus == ServerStatus.IDLE) {
+              success = cloneToolServerActions.performUndoOfCurrentAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
+            }
+            sendAcknowledgement(player, Acknowledgement.NOUPDATE, 0, (success ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber);
+          }
         }
-//        acknowledgeAction(player, packet, successfulUndoStart);
-        updateMostRecentUndo(player, packet.getSequenceNumber(), successfulUndoStart);
-        sendUpdateToClient(player);
         break;
       }
       default: {
@@ -214,11 +250,36 @@ public class CloneToolsNetworkServer
 
   }
 
+  /**
+   * sends periodic status updates to the clients who have registered an interest.
+   */
+  public void tick()
+  {
+    long thresholdTime = System.nanoTime() - STATUS_UPDATE_WAIT_TIME_MS * 1000 * 1000;
+    for (Map.Entry<EntityPlayerMP, ClientStatus> clientStatus : playerStatuses.entrySet()) {
+      if (clientStatus.getValue() != ClientStatus.IDLE) {
+        if (lastStatusPacketTimeNS.get(clientStatus.getKey()) < thresholdTime ) {
+           sendUpdateToClient(clientStatus.getKey());
+        }
+      }
+    }
+  }
+
   private Map<EntityPlayerMP, ClientStatus> playerStatuses;
-  private Map<EntityPlayerMP, Integer> mostRecentAcceptedAction;
-  private Map<EntityPlayerMP, Integer> mostRecentRejectedAction;
-  private Map<EntityPlayerMP, Integer> mostRecentAcceptedUndo;
-  private Map<EntityPlayerMP, Integer> mostRecentRejectedUndo;
+  private Map<EntityPlayerMP, Integer> lastAcknowledgedAction;
+  private Map<EntityPlayerMP, Packet250CustomPayload> lastAcknowledgedActionPacket;
+  private Map<EntityPlayerMP, Integer> lastAcknowledgedUndo;
+  private Map<EntityPlayerMP, Packet250CustomPayload> lastAcknowledgedUndoPacket;
+  private Map<EntityPlayerMP, Long> lastStatusPacketTimeNS;
+
+//  private class TimeStampSequenceNumber {
+//    public long timestamp;
+//    public int sequenceNumber;
+//  }
+
+//  private Map<EntityPlayerMP, ArrayList<TimeStampSequenceNumber>> undoNotifications;
+
+  private static final int STATUS_UPDATE_WAIT_TIME_MS = 1000;  // how often to send a status update
 
   private ServerStatus serverStatus;
   private byte serverPercentComplete;

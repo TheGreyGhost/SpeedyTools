@@ -20,7 +20,12 @@ public class CloneToolServerActions
     cloneToolsNetworkServer = server;
   }
 
-  public void prepareForToolAction()
+  /**
+   * performed in response to a "I've made a selection" message from the client
+   * @return true for success, false otherwise
+   * TODO: make asynchronous later
+   */
+  public boolean prepareForToolAction(EntityPlayerMP player)
   {
     assert (minecraftSaveFolderBackups != null);
     assert (cloneToolsNetworkServer != null);
@@ -28,6 +33,7 @@ public class CloneToolServerActions
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte)0);
     minecraftSaveFolderBackups.backupWorld();
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    return true;
   }
 
   /**
@@ -42,19 +48,27 @@ public class CloneToolServerActions
    * @param flipped
    * @return true if the action has been successfully started
    */
-  public boolean performToolAction(EntityPlayerMP player, int toolID, int sequenceNumber, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
+  public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
   {
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
     return true;
   }
 
-  public boolean performUndoAction(EntityPlayerMP player, int sequenceNumber)
+  public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-    System.out.println("Server: Tool Undo Action received: sequenceNumber " + sequenceNumber);
+    System.out.println("Server: Tool Undo Current Action received: sequenceNumber " + actionSequenceNumber);
     return true;
   }
+
+  public boolean performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
+  {
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+    System.out.println("Server: Tool Undo Last Completed Action received ");
+    return true;
+  }
+
 
   /**
    * ensure that the save folder backups are initialised

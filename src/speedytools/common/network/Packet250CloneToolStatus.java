@@ -12,18 +12,14 @@ import java.io.*;
  */
 public class Packet250CloneToolStatus
 {
-  public static Packet250CloneToolStatus serverStatusChange(ServerStatus newStatus, byte newPercentage,
-                                                             int newLastAcceptedAction, int newLastRejectedAction,
-                                                             int newLastAcceptedUndo, int newLastRejectedUndo
-                                                             )
+  public static Packet250CloneToolStatus serverStatusChange(ServerStatus newStatus, byte newPercentage)
   {
-    return new Packet250CloneToolStatus(null, newStatus, newPercentage,
-                                         newLastAcceptedAction, newLastRejectedAction, newLastAcceptedUndo, newLastRejectedUndo);
+    return new Packet250CloneToolStatus(null, newStatus, newPercentage);
   }
 
   public static Packet250CloneToolStatus clientStatusChange(ClientStatus newStatus)
   {
-    return new Packet250CloneToolStatus(newStatus, null, (byte)100, 0, 0, 0, 0);
+    return new Packet250CloneToolStatus(newStatus, null, (byte)100);
   }
 
   /**
@@ -76,9 +72,7 @@ public class Packet250CloneToolStatus
 
   private Packet250CloneToolStatus(ClientStatus newClientStatus,
                                    ServerStatus newServerStatus,
-                                   byte newPercentage,
-                                   int newLastAcceptedAction, int newLastRejectedAction,
-                                   int newLastAcceptedUndo, int newLastRejectedUndo
+                                   byte newPercentage
   )
   {
     clientStatus = newClientStatus;

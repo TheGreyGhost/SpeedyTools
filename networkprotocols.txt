@@ -3,14 +3,14 @@ This file describes the communication between Client and Server for the CloneToo
 The protocol for the clone tools has been designed to be tolerant of lost or out-of-order packets.
 There are three types of communication:
 (1) "Action" packets sent from the client to the server, asking the server to do something.  Each action is given
-    a unique sequencenumber to identify it.  An undo is assigned a unique sequencenumber, and also refers to the sequence number of
+    a unique sequencenumber to identify it.  An undo is assigned a unique sequencenumber, and also provides the sequence number of
     the action to be undone
-(2) "Selection" packets which are sent from the client to the server to define the selection; these are sent in multiple parts
+(2) "Selection" packets sent from the client to the server to define the selection; these are sent in multiple parts
     and the server sends acknowledgement to the client for all the pieces.
 (3) "Status" packets sent in both directions:
     The client sends its status to let the server know when the client is interested in receiving status updates from the server
     The server sends its status to all interested clients:
-    whether the server is idle, busy with a task for that client, or busy with a task for a different client
+      status is: the server is idle, busy with a task for that client, or busy with a task for a different client
     These packets are sent whenever the status is updated, or at least once per second, to all interested clients.
 
 When the client starts to make a selection, it sends a SELECTION_MADE packet to the server.  This causes the server to
@@ -51,15 +51,16 @@ When the user performs an undo:
    When the client receives the acknowledge packet, this will be either REJECT, ACKNOWLEDGE (pending) or COMPLETE.
    If there is a timeout waiting for the acknowledge packet, the client will send the same packet again.
    When the server receives the undo request:
-   If the sequencenumber is for an action that hasn't been received yet, it accepts the undo request and stores the undo sequence number
-     and responds COMPLETE.  Any further action packets with that sequence number are ignored.
-   If the sequencenumber is for an action that is currently in progress, it accepts the undo request and responds ACKNOWLEDGE.
+   Any undo requests with an UndoSequenceNumber older than the latest undo received, are ignored.
+   Repeat undo requests with the same UndoSequenceNumber trigger a resend of the same acknowledgement packet.
+   If the Actionsequencenumber is for an action that hasn't been received yet, it accepts the undo request, and responds COMPLETE
+     It also sends a REJECT packet for that action, so that any further action packets with that sequence number automatically receive REJECT
+   If the Actionsequencenumber is for an action that is currently in progress, it accepts the undo request and responds ACKNOWLEDGE.
      Once the undo is complete, it sends COMPLETE.
+   If the Actionsequencenumber is for an action that is older than the latest one, it is ignored because the undoSequenceNumber will also be older.
    If the server is busy with another player, it rejects the request
    Otherwise, the server responds ACKNOWLEDGE and then COMPLETE when finished.
 
-   Any undo requests with an UndoSequenceNumber older than the latest undo received, are ignored.
-   Repeat undo requests with the same UndoSequenceNumber are ignored.
 
 The client does the action/undo -> response and timeout monitoring in CloneToolsNetworkClient.  It is periodically polled by the
   clone tool to determine the status of the most recent action and/or undo.

@@ -185,34 +185,34 @@ public class CloneToolsNetworkClient
       }
     }
     if (lastUndoStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT || lastUndoStatus == ActionStatus.PROCESSING) {
-    if (packet.getUndoSequenceNumber() == currentUndoSequenceNumber) {
-      switch (packet.getUndoAcknowledgement()) {
-        case NOUPDATE: {
-          break;
-        }
-        case REJECTED: {
-          lastUndoStatus = ActionStatus.REJECTED;
-          ++currentUndoSequenceNumber;
-          break;
-        }
-        case ACCEPTED: {
-          lastUndoStatus = ActionStatus.PROCESSING;
-          lastUndoSentTime = System.nanoTime();
-          break;
-        }
-        case COMPLETED: {
-          lastUndoStatus = ActionStatus.COMPLETED;
-          ++currentUndoSequenceNumber;
-          break;
-        }
-        default: {
-          ErrorLog.defaultLog().warning("Illegal undo Acknowledgement in Packet250CloneToolAcknowledgement");
-          return;
+      if (packet.getUndoSequenceNumber() == currentUndoSequenceNumber) {
+        switch (packet.getUndoAcknowledgement()) {
+          case NOUPDATE: {
+            break;
+          }
+          case REJECTED: {
+            lastUndoStatus = ActionStatus.REJECTED;
+            ++currentUndoSequenceNumber;
+            break;
+          }
+          case ACCEPTED: {
+            lastUndoStatus = ActionStatus.PROCESSING;
+            lastUndoSentTime = System.nanoTime();
+            break;
+          }
+          case COMPLETED: {
+            lastUndoStatus = ActionStatus.COMPLETED;
+            ++currentUndoSequenceNumber;
+            break;
+          }
+          default: {
+            ErrorLog.defaultLog().warning("Illegal undo Acknowledgement in Packet250CloneToolAcknowledgement");
+            return;
+          }
         }
       }
     }
   }
-}
 
   /**
    * Called once per tick to handle timeouts (if no response obtained, send packet again)
