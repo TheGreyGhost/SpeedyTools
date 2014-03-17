@@ -1,7 +1,5 @@
 package speedytools.common.network;
 
-import speedytools.common.CloneToolActionStatus;
-
 /**
 * User: The Grey Ghost
 * Date: 8/03/14

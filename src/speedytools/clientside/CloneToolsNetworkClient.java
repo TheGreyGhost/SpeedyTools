@@ -92,6 +92,7 @@ public class CloneToolsNetworkClient
     if (lastActionStatus != ActionStatus.NONE_PENDING || lastUndoStatus != ActionStatus.NONE_PENDING || serverStatus != ServerStatus.IDLE) {
       return false;
     }
+
     Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, rotationCount, flipped);
     lastActionPacket = packet.getPacket250CustomPayload();
     if (lastActionPacket != null) {
@@ -111,7 +112,10 @@ public class CloneToolsNetworkClient
   public boolean performToolUndo()
   {
     Packet250CloneToolUse packet;
-    if (lastUndoStatus != ActionStatus.NONE_PENDING) return false;
+    if (lastUndoStatus != ActionStatus.NONE_PENDING
+        || serverStatus == ServerStatus.BUSY_WITH_OTHER_PLAYER || serverStatus == ServerStatus.PERFORMING_BACKUP) {
+      return false;
+    }
     if (lastActionStatus == ActionStatus.PROCESSING || lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT) {
       packet = Packet250CloneToolUse.cancelCurentAction(currentUndoSequenceNumber, currentActionSequenceNumber);
     } else {
