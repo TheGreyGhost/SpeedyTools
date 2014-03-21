@@ -6,7 +6,7 @@ import speedytools.serverside.CloneToolsNetworkServer;
 /**
  * User: The Grey Ghost
  * Date: 10/03/14
- * Contains the various objects that define the server side
+ * Contains the various objects that define the client side
  */
 public class ClientSide
 {
@@ -25,6 +25,6 @@ public class ClientSide
     return cloneToolsNetworkClient;
   }
 
-  private static CloneToolsNetworkClient cloneToolsNetworkClient;
+  public static CloneToolsNetworkClient cloneToolsNetworkClient;
 
 }

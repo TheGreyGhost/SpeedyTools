@@ -144,7 +144,7 @@ public class CloneToolsNetworkClient
    * @param player
    * @param packet
    */
-  public void handlePacket(EntityPlayerMP player, Packet250CloneToolStatus packet)
+  public void handlePacket(EntityClientPlayerMP player, Packet250CloneToolStatus packet)
   {
     serverStatus = packet.getServerStatus();
     serverPercentComplete = packet.getCompletionPercentage();
@@ -158,7 +158,7 @@ public class CloneToolsNetworkClient
    * @param player
    * @param packet
    */
-  public void handlePacket(EntityPlayerMP player, Packet250CloneToolAcknowledge packet)
+  public void handlePacket(EntityClientPlayerMP player, Packet250CloneToolAcknowledge packet)
   {
     if (lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT || lastActionStatus == ActionStatus.PROCESSING) {
       if (packet.getActionSequenceNumber() == currentActionSequenceNumber) {

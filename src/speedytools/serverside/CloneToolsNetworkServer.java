@@ -281,8 +281,8 @@ public class CloneToolsNetworkServer
 
   private static final int STATUS_UPDATE_WAIT_TIME_MS = 1000;  // how often to send a status update
 
-  private ServerStatus serverStatus;
-  private byte serverPercentComplete;
+  private ServerStatus serverStatus = ServerStatus.IDLE;
+  private byte serverPercentComplete = 0;
   private CloneToolServerActions cloneToolServerActions;
   private EntityPlayerMP playerBeingServiced;
 }

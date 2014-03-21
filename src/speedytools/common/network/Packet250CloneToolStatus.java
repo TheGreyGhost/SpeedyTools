@@ -57,7 +57,7 @@ public class Packet250CloneToolStatus
 
     try {
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_CLONE_TOOL_USE_ID) return null;
+      if (packetID != PacketHandler.PACKET250_TOOL_STATUS_ID) return null;
 
       newPacket.clientStatus = byteToClientStatus(inputStream.readByte());
       newPacket.serverStatus = byteToServerStatus(inputStream.readByte());
