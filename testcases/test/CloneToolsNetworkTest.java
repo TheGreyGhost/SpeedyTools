@@ -1,5 +1,6 @@
 package test;
 
+import com.sun.corba.se.impl.oa.toa.TOA;
 import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;
 import junit.framework.Assert;
@@ -48,7 +49,10 @@ import java.util.TreeMap;
  * (3) Change the server status and verify that only the interested clients receive an update
  * (4) Change the server status and verify that the clients get the correct status (eg "busy with other player")
  * (5) tick the server many times in rapid succession to verify that it sends updates about once per second
- *
+ * testSelectionMade
+ * (1) Send an informSelectionMade to the server
+ * (2) verify that CloneToolServerActions was called
+ * (3) verify that the client receives first PERFORMING_BACKUP then IDLE
  */
 public class CloneToolsNetworkTest
 {
@@ -94,16 +98,24 @@ public class CloneToolsNetworkTest
 
   @After
   public void tearDown() throws Exception {
-     stubEntityClientPlayerMP = null;
-     stubNetClientHandler  = null;
-     networkClients  = null;
-    stubNetServerHandler  = null;
-     stubEntityPlayerMP  = null;
+     stubEntityClientPlayerMP.clear();
+     stubNetClientHandler.clear();
+     networkClients.clear();
+    stubNetServerHandler.clear();
+     stubEntityPlayerMP.clear();
     stubCloneToolServerActions = null;
      networkServer = null;
   }
 
-    @Test
+  public void runTests() throws  Exception
+  {
+    testStatus();
+    tearDown();
+    setUp();
+    testSelectionMade();
+  }
+
+  @Test
   public void testStatus() throws Exception {
     boolean result;
     for (String name : names) {
@@ -210,6 +222,43 @@ public class CloneToolsNetworkTest
     Assert.assertTrue("Received at least one update", countReceived > 0);
     Assert.assertTrue("Received not too many updates", countReceived < 10);
     Assert.assertTrue("Client status changed correctly", testClient.getServerStatus() == ServerStatus.PERFORMING_BACKUP);
+
+  }
+
+  @Test
+  public void testSelectionMade() throws Exception {
+    boolean result;
+    for (String name : names) {
+      networkClients.put(name, new CloneToolsNetworkClient());
+      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
+
+      networkServer.addPlayer(stubEntityPlayerMP.get(name));
+    }
+
+    // client changes its status to interested, performs an inform and gets the correct statuses back:
+    // first PERFORMING_BACKUP then IDLE
+    CloneToolsNetworkClient testClient = networkClients.get(names.get(0));
+    testClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    result = processAllServers();
+    result = processAllClients();
+    result = testClient.informSelectionMade();
+    Assert.assertTrue("informSelectionMade ok", result);
+    result = processAllServers();
+    Assert.assertTrue("Server received at least one packet", result);
+    result = processAllClients();
+    Assert.assertTrue("Client received first packet", result);
+    for (CloneToolsNetworkClient client : networkClients.values()) {
+      if (client == testClient) {
+        Assert.assertTrue("Test client updated to backup", client.getServerStatus() == ServerStatus.PERFORMING_BACKUP);
+      } else {
+        Assert.assertTrue("All non-test clients not updated", client.getServerStatus() == ServerStatus.IDLE);
+      }
+    }
+    result = processAllClients();
+    Assert.assertTrue("Client received second packet", result);
+    for (CloneToolsNetworkClient client : networkClients.values()) {
+      Assert.assertTrue("All clients IDLE", client.getServerStatus() == ServerStatus.IDLE);
+    }
 
   }
 
@@ -381,19 +430,28 @@ public class CloneToolsNetworkTest
     {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+      ++countPrepareForToolAction;
       return true;
     }
 
     public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
     {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
+      lastToolID = toolID;
+      lastXpos = xpos;
+      lastYpos = ypos;
+      lastZpos = zpos;
+      lastRotationCount = rotationCount;
+      lastFlipped = flipped;
+      ++countPerformToolAction;
 //      System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
       return true;
     }
-
     public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
     {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+      lastActionSequenceNumber = actionSequenceNumber;
+      ++countPerformUndoOfCurrentAction;
 //      System.out.println("Server: Tool Undo Current Action received: sequenceNumber " + actionSequenceNumber);
       return true;
     }
@@ -401,10 +459,22 @@ public class CloneToolsNetworkTest
     public boolean performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
     {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+      ++countPerformUndoOfLastAction;
 //      System.out.println("Server: Tool Undo Last Completed Action received ");
       return true;
     }
     private CloneToolsNetworkServer cloneToolsNetworkServer;
+    public int countPerformUndoOfLastAction = 0;
+    public int countPerformUndoOfCurrentAction = 0;
+    public int countPerformToolAction = 0;
+    public int countPrepareForToolAction = 0;
+    public int lastActionSequenceNumber = 0;
+    public int lastToolID = 0;
+    public int lastXpos = 0;
+    public int lastYpos = 0;
+    public int lastZpos = 0;
+    public Byte lastRotationCount = null;
+    public Boolean lastFlipped = null;
   }
 
   public static class StubPacketHandler {
@@ -414,8 +484,8 @@ public class CloneToolsNetworkTest
         Side side = (playerEntity instanceof EntityPlayerMP) ? Side.SERVER : Side.CLIENT;
 
         switch (packet.data[0]) {
-          case PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID: {
 /*
+          case PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID: {
             if (side != Side.SERVER) {
               malformedPacketError(side, playerEntity, "PACKET250_SPEEDY_TOOL_USE_ID received on wrong side");
               return;
@@ -427,18 +497,19 @@ public class CloneToolsNetworkTest
                     toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
             break;
           }
+          */
           case PacketHandler.PACKET250_CLONE_TOOL_USE_ID: {
             Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
             if (toolUsePacket != null && toolUsePacket.validForSide(side)) {
               if (side == Side.SERVER) {
-                ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
+                networkServer.handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
               }
             } else {
               malformedPacketError(side, playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
               return;
             }
             break;
-*/
+
           }
           case PacketHandler.PACKET250_TOOL_STATUS_ID: {
             Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
