@@ -112,8 +112,7 @@ public class CloneToolsNetworkClient
   public boolean performToolUndo()
   {
     Packet250CloneToolUse packet;
-    if (lastUndoStatus != ActionStatus.NONE_PENDING
-        || serverStatus == ServerStatus.BUSY_WITH_OTHER_PLAYER || serverStatus == ServerStatus.PERFORMING_BACKUP) {
+    if (lastUndoStatus != ActionStatus.NONE_PENDING) {
       return false;
     }
     if (lastActionStatus == ActionStatus.PROCESSING || lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT) {
@@ -228,11 +227,13 @@ public class CloneToolsNetworkClient
     if (lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT || lastActionStatus == ActionStatus.PROCESSING) {
       if (timenow - lastActionSentTime > RESPONSE_TIMEOUT_MS * 1000 * 1000) {
         player.sendQueue.addToSendQueue(lastActionPacket);
+        lastActionSentTime = timenow;
       }
     }
     if (lastUndoStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT || lastUndoStatus == ActionStatus.PROCESSING) {
       if (timenow - lastUndoSentTime > RESPONSE_TIMEOUT_MS * 1000 * 1000) {
         player.sendQueue.addToSendQueue(lastUndoPacket);
+        lastUndoSentTime = timenow;
       }
     }
     if (clientStatus != ClientStatus.IDLE && (timenow - lastServerStatusUpdateTime > RESPONSE_TIMEOUT_MS * 1000 * 1000) ) {
@@ -240,7 +241,7 @@ public class CloneToolsNetworkClient
       Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
       if (packet250 != null) {
         player.sendQueue.addToSendQueue(packet250);
-        lastServerStatusUpdateTime = System.nanoTime();
+        lastServerStatusUpdateTime = timenow;
       }
     }
   }
@@ -260,7 +261,7 @@ public class CloneToolsNetworkClient
   }
 
   /**
-   * retrieves the status of the undo currently being peformed
+   * retrieves the status of the undo currently being performed
    * If the status is REJECTED or COMPLETED, it will revert to NONE_PENDING after the call
    * @return
    */

@@ -141,12 +141,18 @@ public class CloneToolsNetworkServer
     }
 
     if (actionAcknowledgement != Acknowledgement.NOUPDATE) {
-      assert (lastAcknowledgedAction.get(player) < actionSequenceNumber);
+      assert (lastAcknowledgedAction.get(player) < actionSequenceNumber ||
+              (lastAcknowledgedAction.get(player) == actionSequenceNumber
+               && actionAcknowledgement == Acknowledgement.COMPLETED
+               && Packet250CloneToolAcknowledge.createPacket250CloneToolAcknowledge(lastAcknowledgedActionPacket.get(player)).getActionAcknowledgement() == Acknowledgement.ACCEPTED)  );
       lastAcknowledgedAction.put(player, actionSequenceNumber);
       lastAcknowledgedActionPacket.put(player, packet250);
     }
     if (undoAcknowledgement != Acknowledgement.NOUPDATE) {
-      assert (lastAcknowledgedUndo.get(player) < undoSequenceNumber);
+      assert (lastAcknowledgedUndo.get(player) < undoSequenceNumber ||
+              (lastAcknowledgedUndo.get(player) == undoSequenceNumber
+               && undoAcknowledgement == Acknowledgement.COMPLETED
+               && Packet250CloneToolAcknowledge.createPacket250CloneToolAcknowledge(lastAcknowledgedUndoPacket.get(player)).getUndoAcknowledgement() == Acknowledgement.ACCEPTED)  );
       lastAcknowledgedUndo.put(player, undoSequenceNumber);
       lastAcknowledgedUndoPacket.put(player, packet250);
     }
@@ -215,9 +221,7 @@ public class CloneToolsNetworkServer
                                         Acknowledgement.COMPLETED, packet.getSequenceNumber()                   );
             break;
           } else if (packet.getActionToBeUndoneSequenceNumber() == lastAcknowledgedAction.get(player)) {
-            if (serverStatus == ServerStatus.IDLE) {
-              success = cloneToolServerActions.performUndoOfCurrentAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
-            }
+            success = cloneToolServerActions.performUndoOfCurrentAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
             sendAcknowledgement(player, Acknowledgement.NOUPDATE, 0, (success ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber);
           }
         }

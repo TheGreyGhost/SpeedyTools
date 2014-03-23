@@ -58,6 +58,7 @@ public class CloneToolServerActions
   public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+    cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
     System.out.println("Server: Tool Undo Current Action received: sequenceNumber " + actionSequenceNumber);
     return true;
   }

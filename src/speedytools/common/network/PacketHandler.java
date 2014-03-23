@@ -1,6 +1,5 @@
 package speedytools.common.network;
 
-import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.network.IPacketHandler;
 import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;
@@ -67,7 +66,7 @@ public class PacketHandler implements IPacketHandler
           break;
         }
         case PACKET250_TOOL_ACKNOWLEDGE_ID: {
-          Packet250CloneToolAcknowledge toolAcknowledgePacket = Packet250CloneToolAcknowledge.createPacket250CloneToolUse(packet);
+          Packet250CloneToolAcknowledge toolAcknowledgePacket = Packet250CloneToolAcknowledge.createPacket250CloneToolAcknowledge(packet);
           if (toolAcknowledgePacket != null && toolAcknowledgePacket.validForSide(side)) {
             if (side == Side.CLIENT) {
               ClientSide.getCloneToolsNetworkClient().handlePacket((EntityClientPlayerMP)playerEntity, toolAcknowledgePacket);

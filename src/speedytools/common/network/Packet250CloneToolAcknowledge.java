@@ -47,13 +47,13 @@ public class Packet250CloneToolAcknowledge
    * @param sourcePacket250
    * @return the new packet for success, or null for failure
    */
-  public static Packet250CloneToolAcknowledge createPacket250CloneToolUse(Packet250CustomPayload sourcePacket250)
+  public static Packet250CloneToolAcknowledge createPacket250CloneToolAcknowledge(Packet250CustomPayload sourcePacket250)
   {
     try {
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(sourcePacket250.data));
 
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_CLONE_TOOL_USE_ID) return null;
+      if (packetID != PacketHandler.PACKET250_TOOL_ACKNOWLEDGE_ID) return null;
       Packet250CloneToolAcknowledge newPacket = new Packet250CloneToolAcknowledge();
       newPacket.actionAcknowledgement = byteToAcknowledgement(inputStream.readByte());
       newPacket.actionSequenceNumber = inputStream.readInt();
