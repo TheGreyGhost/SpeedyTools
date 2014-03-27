@@ -1,0 +1,85 @@
+Multipart Packets are used to send large amounts of data, bigger than will fit into a single Packet250CustomPayload.
+They are designed to be tolerant of network faults such as dropped packets, out-of-order packets, duplicate copies
+  of the same packet, loss of connection, etc
+
+MultipartPacketHandler is the interface to the client and server code.
+
+  MultipartPacket is the entire payload
+
+  Packet250CustomPayload:
+  Comprised of a header with
+  channel, packetID, MultipartPacket unique ID number, BitSet header for all segments, in addition to the actual packet data
+  abort command
+  Max size 32 k per payload?
+
+  MultipartPacket:
+  specify packet size
+  base class; overridden by the specific packet of interest
+  processIncomingPacket(Packet250CustomPayload)
+  getMultipartSegment - returns a Packet250CustomPayload
+  complete and acknowledged
+  isComplete
+  resetAcknowledged, isAcknowledged
+  various methods to get & set the data in the packet as appropriate
+
+  MultipartPacketHandler
+  sendMultipartPacket - start transmission, provide a callback
+  registerPacketReceiverFactory - tells the handler what class to call for newPacketStarted
+  processIncomingPacket - called by PacketHandler, which then calls MultipartPacket methods as appropriate
+  onTick - sends new segments; checks for timeouts, resends segments if necessary
+
+  keeps track of completed and aborted packets for a certain length of time
+  Sender sends all segments without waiting for acknowledgement, but if it doesn't get acknowledgement within a certain
+    length of time, it will resend a single unacknowledged segment every timeout until it gets acknowledgement
+    Once acknowledgement is received, it will send all remaining unacknowledged segments without waiting for each one
+    to be acknowledged (and the timeout will start again).
+  Summary: 4 states
+  a) sending initial segments
+  b) waiting for acknowledgements (not yet timeout)
+  c) timed out, waiting for acknowledgement of first resend
+  d) first resend has been acknowledged, resending remainder
+     once all are resent, return to state (b)
+
+  CallbackPacketSender interface
+  - progressUpdate (how many acknowledgements received)
+  - packetCompleted (passes ownership of packet back to sender)
+  - abort (to abort transmission of this packet)
+  - packetAborted (transmission of this packet was aborted before completion)
+
+  CallbackPacketReceiverFactory interface
+  - newPacketStarted  (creates a new CallBackPacketReceiver which the receiving class will use to receive notification of progress)
+
+  CallbackPacketReceiver interface
+  - progressUpdate
+  - packetCompleted (passes ownership of packet to receiver)
+  - abort (to abort receiving / transmission of this packet)
+  - packetAborted (transmission of this packet was aborted before completion)
+
+  PacketSender interface
+     - used to wrap NetClientHandler and NetServerHandler so that we can just send a packet to it without worrying about which side
+
+Usage:
+
+(1) Create MultipartPacketHandler, supply it with a suitable PacketSender (wraps a NetClientHandler or NetServerHandler)
+(1a) Set handler options - packet size, timeout auto-resend, max transmission bandwidth
+(1b) Set up the network packet handler to call MultipartPacketHandler.processIncomingPacket with any suitable incoming packets.
+(2) Define a class implementing the CallbackPacketReceiverFactory; register it with MultipartPacketHandler.registerPacketReceiverFactory
+    This object will be called whenever an incoming packet starts
+(3) Define a class implementing CallbackPacketReceiver.  This object will be created (by the factory) every time a new packet starts, and is used to
+    communicate progress to the receiver and provide the assembled packet when transmission is complete
+(4) Define a class implementing CallbackSender.  This object is used to communicate the progress of the transmission back to the sender
+(5) To send a packet:
+  (a) Create the MultipartPacket
+  (b) call MultipartPacketHandler.sendMultipartPacket, providing the packet and the CallbackSender
+  (c) Progress report and completion is pushed from the MultipartPacket using the CallbackSender
+  (d) To abort transmission, use CallbackSender.abort()
+(6) To receive a packet:
+  (a) When the first part of the packet is received by MultipartPacketHandler, CallbackPacketReceiverFactory.newPacketStarted is called to create
+      a CallbackPacketReceiver.
+  (b) The CallbackPacketReceiver is used to keep the receiver informed of progress, and to provide the fully assembled packet when completed
+  (c) to abort transmission, use CallbackReceiver.abort()
+
+
+
+
+
