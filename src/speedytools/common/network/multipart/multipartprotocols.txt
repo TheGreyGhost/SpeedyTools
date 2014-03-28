@@ -102,6 +102,22 @@ Usage:
   (b) The CallbackPacketReceiver is used to keep the receiver informed of progress, and to provide the fully assembled packet when completed
   (c) to abort transmission, use CallbackReceiver.abort()
 
+Handling of incoming packets:
+(1) packet arrives at MultipartHandler
+(2) calls static method MultipartPacket.getUniqueID
+(3) MultipartHandler looks up the uniqueID in its storage table to see if this packet already exists
+(3a) If it exists, the packet is passed to MultipartPacket.processIncomingPacket
+(3b) If it doesn't exist, call the static method MultipartPacket.createFromPacket and add the MultipartPacket to the storage table.
+     Look up the CallbackReceiverFactory for that class, generate a CallbackReceiver, and add it to the storage table.
+
+
+To add a new type of MultipartPacket:
+(1) create class extending MultipartPacket
+(2) add the class to the switch in MultipartPacket.createFromPacket
+
+Listener
+
+
 
 
 

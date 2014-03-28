@@ -6,6 +6,7 @@ import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
 import java.util.BitSet;
+import java.util.HashMap;
 
 /**
  * User: The Grey Ghost
@@ -17,8 +18,117 @@ import java.util.BitSet;
  */
 public abstract class MultipartPacket
 {
+  /**
+   * returns the uniqueID for this packet, assuming it is a MultipartPacket
+   * @param packet
+   * @return the uniqueID, or null if invalid
+   */
+  public static Long readUniqueID(Packet250CustomPayload packet)
+  {
+    try {
+      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
+      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
+      return chi.getUniqueID();
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Exception while reading processIncomingPacket: " + ioe);
+    }
+    return null;
+  }
 
+/*
+  protected static interface MultipartPacketCreator {
+    public MultipartPacket createNew(Packet250CustomPayload packet);
+  }
+*/
 
+  public static MultipartPacket createFromPacket(Packet250CustomPayload packet)
+  {
+    try {
+      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
+      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
+
+      MultipartPacket retval;
+      switch (chi.multipacketTypeID) {
+        case SelectionPacket.MY_MULTIPART_PACKET_TYPE_ID: {
+          retval = new SelectionPacket();
+          break;
+        }
+        default: {
+
+        }
+      }
+      byte commandValue = inputStream.readByte();
+      Command command = byteToCommand(commandValue);
+      if (command == null) return null;
+
+      Packet250CloneToolUse newPacket = new Packet250CloneToolUse(command);
+      newPacket.toolID = inputStream.readInt();
+      newPacket.sequenceNumber = inputStream.readInt();
+      newPacket.actionToBeUndoneSequenceNumber = inputStream.readInt();
+      newPacket.xpos = inputStream.readInt();
+      newPacket.ypos = inputStream.readInt();
+      newPacket.zpos = inputStream.readInt();
+      newPacket.rotationCount = inputStream.readByte();
+      newPacket.flipped = inputStream.readBoolean();
+      if (newPacket.checkInvariants()) return newPacket;
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Exception while reading processIncomingPacket: " + ioe);
+    }
+    return false;
+
+  }
+
+  protected abstract void initialiseFromPacket(Packet250CustomPayload packet);
+
+  protected static class CommonHeaderInfo
+  {
+    public byte packet250CustomPayloadID;
+    public byte multipacketTypeID;
+    public int uniquePacketID;
+    public Command command;
+
+    public long getUniqueID() {
+      long retval = 0;
+      retval |= packet250CustomPayloadID;
+      retval <<= 8;
+      retval |= multipacketTypeID;
+      retval <<= 32;
+      retval |= uniquePacketID;
+      return retval;
+    }
+
+    /**
+     * reads the header common to all packet types
+     * @param inputStream
+     * @return true if the packet is valid, false otherwise
+     * @throws IOException
+     */
+    protected static CommonHeaderInfo readCommonHeader(DataInputStream inputStream) throws IOException
+    {
+      CommonHeaderInfo chi = new CommonHeaderInfo();
+      chi.packet250CustomPayloadID = inputStream.readByte();
+      chi.multipacketTypeID = inputStream.readByte();
+      chi.uniquePacketID = inputStream.readInt();
+      chi.command = byteToCommand(inputStream.readByte());
+      return chi;
+    }
+
+    /**
+     *   Writes the header common to all packet types
+     *    - byte packet250CustomPayloadID (as per normal Packet250CustomPayload data[0])
+     *    - byte multipartPacket type ID (unique for each class derived from MultipartPacket eg MapdataPacket extends MultipartPacket, SelectiondataPacket extends MultipartPacket, etc)
+     *    - int uniqueMultipartPacketID (in ascending order) - unique ID for the whole packet
+     *    - byte command type (segment data, acknowledgement of segments, abort)
+     * @param outputStream
+     */
+    protected void writeCommonHeader(DataOutputStream outputStream, Command command) throws IOException
+    {
+      outputStream.writeByte(packet250CustomPayloadID);
+      outputStream.writeByte(multipacketTypeID);
+      outputStream.writeInt(uniquePacketID);
+      outputStream.writeByte(commandToByte(command));
+    }
+  }
 
   public boolean processIncomingPacket(Packet250CustomPayload packet)
   {
@@ -140,7 +250,7 @@ public abstract class MultipartPacket
     try {
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      writeCommonHeader(outputStream, Command.ACKNOWLEDGEMENT);
+      commonHeaderInfo.writeCommonHeader(outputStream, Command.ACKNOWLEDGEMENT);
       byte [] buff = segmentsNotAcknowledged.toByteArray();
       if (buff.length > MAX_SEGMENT_SIZE) throw new IOException("bitset too big");
       outputStream.writeShort(buff.length);
@@ -164,7 +274,7 @@ public abstract class MultipartPacket
     try {
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      writeCommonHeader(outputStream, Command.ABORT);
+      commonHeaderInfo.writeCommonHeader(outputStream, Command.ABORT);
       retval = new Packet250CustomPayload(channel, bos.toByteArray());
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Failed to getAbortPacket, due to exception " + ioe.toString());
@@ -191,7 +301,7 @@ public abstract class MultipartPacket
 
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      writeCommonHeader(outputStream, Command.SEGMENTDATA);
+      commonHeaderInfo.writeCommonHeader(outputStream, Command.SEGMENTDATA);
       outputStream.writeShort(segmentNumber);
       outputStream.writeShort(segmentLength);
       outputStream.writeInt(rawData.length);
@@ -204,46 +314,6 @@ public abstract class MultipartPacket
     return retval;
   }
 
-  /**
-   * reads the header common to all packet types
-   * @param inputStream
-   * @return true if the packet is valid, false otherwise
-   * @throws IOException
-   */
-  protected boolean readCommonHeader(DataInputStream inputStream) throws IOException
-  {
-    if (inputStream.readByte();
-    byte multi
-    outputStream.writeByte(multipacketTypeID);
-    outputStream.writeInt(uniquePacketID);
-    outputStream.writeByte(commandToByte(command));
-
-    byte commandValue = inputStream.readByte();
-    Command command = byteToCommand(commandValue);
-    if (command == null) return null;
-
-    Packet250CloneToolUse newPacket = new Packet250CloneToolUse(command);
-    newPacket.toolID = inputStream.readInt();
-    newPacket.sequenceNumber = inputStream.readInt();
-
-
-  }
-
-  /**
-   *   Writes the header common to all packet types
-   *    - byte packet250CustomPayloadID (as per normal Packet250CustomPayload data[0])
-   *    - byte multipartPacket type ID (unique for each class derived from MultipartPacket eg MapdataPacket extends MultipartPacket, SelectiondataPacket extends MultipartPacket, etc)
-   *    - int uniqueMultipartPacketID (in ascending order) - unique ID for the whole packet
-   *    - byte command type (segment data, acknowledgement of segments, abort)
-   * @param outputStream
-   */
-  protected void writeCommonHeader(DataOutputStream outputStream, Command command) throws IOException
-  {
-    outputStream.writeByte(packet250CustomPayloadID);
-    outputStream.writeByte(multipacketTypeID);
-    outputStream.writeInt(uniquePacketID);
-    outputStream.writeByte(commandToByte(command));
-  }
 
   protected MultipartPacket(String i_channel, byte i_packet250CustomPayloadID, byte i_multipacketTypeID, int i_uniquePacketID, int i_segmentSize)
   {
@@ -290,10 +360,11 @@ public abstract class MultipartPacket
   private final int MAX_SEGMENT_COUNT = Short.MAX_VALUE;
   private final int MAX_SEGMENT_SIZE = 30000;
 
-  private String channel;
-  private byte packet250CustomPayloadID;
-  private byte multipacketTypeID;
-  private int uniquePacketID;
+  private static String channel;
+  private static byte packet250CustomPayloadID;
+  private static byte multipacketTypeID;
+  private CommonHeaderInfo commonHeaderInfo;
+
   private int segmentSize;
   private int segmentCount;
   private byte [] rawData;
@@ -306,6 +377,9 @@ public abstract class MultipartPacket
   private int nextUnsentSegment = -1;         // the next segment we have never sent.  -1 is dummy value to trigger error if we forget to initialise
   private int nextUnacknowledgedSegment = 0; // the next unacknowledged segment.
   private boolean aborted = false;
+
+
+
 }
 
 
