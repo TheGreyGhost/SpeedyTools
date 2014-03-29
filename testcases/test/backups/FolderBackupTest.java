@@ -1,4 +1,4 @@
-package test;
+package test.backups;
 
 import org.junit.*;
 import speedytools.common.utilities.ErrorLog;

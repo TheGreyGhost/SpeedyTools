@@ -1,4 +1,4 @@
-package test;
+package test.clonetoolsnetwork;
 
 import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;

@@ -1,5 +1,6 @@
 package speedytools.common.network.multipart;
 
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.PacketHandler;
 import speedytools.common.utilities.ErrorLog;
@@ -86,9 +87,11 @@ public abstract class MultipartPacket
         }
         case ABORT: {
           processAbort(inputStream);
+          break;
         }
         case SEGMENTDATA: {
           processSegmentData(inputStream);
+          break;
         }
         default: {
           assert false : "Invalid command";
@@ -212,7 +215,7 @@ public abstract class MultipartPacket
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
       commonHeaderInfo.writeCommonHeader(outputStream, Command.ACKNOWLEDGEMENT);
-      byte [] buff = segmentsNotAcknowledged.toByteArray();
+      byte [] buff = segmentsNotReceived.toByteArray();
       if (buff.length > MAX_SEGMENT_SIZE) throw new IOException("bitset too big");
       outputStream.writeShort(buff.length);
       outputStream.write(buff);
@@ -299,21 +302,24 @@ public abstract class MultipartPacket
   /** Generate a MultipartPacket to be used for sending data
    *  It is initialised to have no data; the sub class must add the rawData later using setRawData
    * @param i_channel  The channel to use when sending packets
+   * @param i_whichSideAmIOn is this packet being created on the server side or the client side?
    * @param i_packet250CustomPayloadID The custom payload ID to use when sending packets
    * @param i_segmentSize The segment size to be used
    */
-  protected MultipartPacket(String i_channel, byte i_packet250CustomPayloadID, int i_segmentSize)
+  protected MultipartPacket(String i_channel, Side i_whichSideAmIOn, byte i_packet250CustomPayloadID, int i_segmentSize)
   {
     channel = i_channel;
+    iAmASender = true;
+    whichSideAmIOn = i_whichSideAmIOn;
+
     commonHeaderInfo.packet250CustomPayloadID = i_packet250CustomPayloadID;
     if (i_segmentSize <= 0 || i_segmentSize > MAX_SEGMENT_SIZE) throw new IllegalArgumentException("segmentSize " + i_segmentSize + " is out of range [0 -  " + MAX_SEGMENT_SIZE + "]");
     segmentSize = i_segmentSize;
-    commonHeaderInfo.uniquePacketID = (nextUniquePacketID << 1) + (iAmASender ? 1 : 0);
+    commonHeaderInfo.uniquePacketID = (nextUniquePacketID << 1) + (whichSideAmIOn == Side.SERVER ? 1 : 0);
     nextUniquePacketID++;
 
     segmentCount = 0;
     rawData = null;
-    iAmASender = true;
     segmentsNotAcknowledged = null;
     segmentsNotReceived = null;
     acknowledgementsReceivedFlag = false;
@@ -427,10 +433,12 @@ public abstract class MultipartPacket
   {
     if (!iAmASender) throw new IOException("received acknowledgement packet on receiver side");
     short ackDataLength = inputStream.readShort();
-    if (ackDataLength <= 0) throw new IOException("Invalid data length" + ackDataLength);
+    if (ackDataLength < 0) throw new IOException("Invalid data length" + ackDataLength);
     byte [] buff = new byte[ackDataLength];
-    int readcount = inputStream.read(buff);
-    if (readcount != ackDataLength) throw new IOException("readCount " + readcount + " didn't match expected " + ackDataLength);
+    if (ackDataLength != 0) {
+      int readcount = inputStream.read(buff);
+      if (readcount != ackDataLength) throw new IOException("readCount " + readcount + " didn't match expected " + ackDataLength);
+    }
     BitSet notAcknowledged = BitSet.valueOf(buff);
 
     // check to see if we have received acknowledgement for any segments we haven't sent yet!
@@ -513,7 +521,7 @@ public abstract class MultipartPacket
    */
   protected boolean checkInvariants()
   {
-    if (aborted) return true;
+    if (aborted) return false;
     if (segmentSize <= 0 || segmentSize > MAX_SEGMENT_SIZE) return false;
     if (segmentCount <= 0 || segmentCount > MAX_SEGMENT_COUNT) return false;
     if (iAmASender) {
@@ -521,11 +529,10 @@ public abstract class MultipartPacket
       if (nextUnacknowledgedSegment < 0 || nextUnacknowledgedSegment > segmentCount) return false;
       if (segmentsNotAcknowledged.length() > segmentCount) return false;
       if (segmentsNotAcknowledged == null || segmentsNotAcknowledged.length() > segmentCount) return false;
-      if (segmentsNotAcknowledged.previousClearBit(segmentCount) > nextUnsentSegment) return false;
-      if ((commonHeaderInfo.uniquePacketID & 1) == 0) return false;
+      if (segmentsNotAcknowledged.previousClearBit(segmentCount-1) > nextUnsentSegment) return false;
+      if ((commonHeaderInfo.uniquePacketID & 1) != (whichSideAmIOn == Side.SERVER ? 1 : 0 )) return false;
     } else {
       if (segmentsNotReceived == null || segmentsNotReceived.length() > segmentCount) return false;
-      if ((commonHeaderInfo.uniquePacketID & 1) == 1) return false;
     }
 
     return true;
@@ -535,7 +542,8 @@ public abstract class MultipartPacket
   private final int MAX_SEGMENT_SIZE = 30000;
 
   private String channel;
-  private CommonHeaderInfo commonHeaderInfo;
+  private Side whichSideAmIOn;
+  private CommonHeaderInfo commonHeaderInfo = new CommonHeaderInfo();
 
   private int segmentSize;
   private int segmentCount;

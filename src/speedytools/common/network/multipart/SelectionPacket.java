@@ -1,5 +1,6 @@
 package speedytools.common.network.multipart;
 
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.utilities.ErrorLog;
 
@@ -15,9 +16,9 @@ import java.io.IOException;
  */
 public class SelectionPacket extends MultipartPacket
 {
-  public static SelectionPacket createSenderPacket(String i_channel, byte i_packet250CustomPayloadID, int i_segmentSize)
+  public static SelectionPacket createSenderPacket(String i_channel, Side whichSideAmIOn, byte i_packet250CustomPayloadID, int i_segmentSize)
   {
-    return new SelectionPacket(i_channel, i_packet250CustomPayloadID, i_segmentSize);
+    return new SelectionPacket(i_channel, whichSideAmIOn, i_packet250CustomPayloadID, i_segmentSize);
   }
 
   public static SelectionPacket createReceiverPacket(Packet250CustomPayload packet)
@@ -39,8 +40,8 @@ public class SelectionPacket extends MultipartPacket
     super(packet);
   }
 
-  protected SelectionPacket(String i_channel, byte i_packet250CustomPayloadID, int i_segmentSize)
+  protected SelectionPacket(String i_channel, Side whichSideAmIOn, byte i_packet250CustomPayloadID, int i_segmentSize)
   {
-    super(i_channel, i_packet250CustomPayloadID, i_segmentSize);
+    super(i_channel, whichSideAmIOn, i_packet250CustomPayloadID, i_segmentSize);
   }
 }

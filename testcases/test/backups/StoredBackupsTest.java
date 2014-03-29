@@ -1,4 +1,4 @@
-package test;
+package test.backups;
 
 import junit.framework.Assert;
 import org.junit.AfterClass;
