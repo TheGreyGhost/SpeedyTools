@@ -5,6 +5,7 @@ import speedytools.common.network.PacketHandler;
 import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 
@@ -35,63 +36,15 @@ public abstract class MultipartPacket
     return null;
   }
 
-/*
-  protected static interface MultipartPacketCreator {
-    public MultipartPacket createNew(Packet250CustomPayload packet);
-  }
-*/
-
-  public static MultipartPacket createFromPacket(Packet250CustomPayload packet)
-  {
-    try {
-      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
-      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
-
-      MultipartPacket retval;
-      switch (chi.multipacketTypeID) {
-        case SelectionPacket.MY_MULTIPART_PACKET_TYPE_ID: {
-          retval = new SelectionPacket();
-          break;
-        }
-        default: {
-
-        }
-      }
-      byte commandValue = inputStream.readByte();
-      Command command = byteToCommand(commandValue);
-      if (command == null) return null;
-
-      Packet250CloneToolUse newPacket = new Packet250CloneToolUse(command);
-      newPacket.toolID = inputStream.readInt();
-      newPacket.sequenceNumber = inputStream.readInt();
-      newPacket.actionToBeUndoneSequenceNumber = inputStream.readInt();
-      newPacket.xpos = inputStream.readInt();
-      newPacket.ypos = inputStream.readInt();
-      newPacket.zpos = inputStream.readInt();
-      newPacket.rotationCount = inputStream.readByte();
-      newPacket.flipped = inputStream.readBoolean();
-      if (newPacket.checkInvariants()) return newPacket;
-    } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Exception while reading processIncomingPacket: " + ioe);
-    }
-    return false;
-
-  }
-
-  protected abstract void initialiseFromPacket(Packet250CustomPayload packet);
-
   protected static class CommonHeaderInfo
   {
     public byte packet250CustomPayloadID;
-    public byte multipacketTypeID;
     public int uniquePacketID;
     public Command command;
 
     public long getUniqueID() {
       long retval = 0;
       retval |= packet250CustomPayloadID;
-      retval <<= 8;
-      retval |= multipacketTypeID;
       retval <<= 32;
       retval |= uniquePacketID;
       return retval;
@@ -107,7 +60,6 @@ public abstract class MultipartPacket
     {
       CommonHeaderInfo chi = new CommonHeaderInfo();
       chi.packet250CustomPayloadID = inputStream.readByte();
-      chi.multipacketTypeID = inputStream.readByte();
       chi.uniquePacketID = inputStream.readInt();
       chi.command = byteToCommand(inputStream.readByte());
       return chi;
@@ -124,34 +76,40 @@ public abstract class MultipartPacket
     protected void writeCommonHeader(DataOutputStream outputStream, Command command) throws IOException
     {
       outputStream.writeByte(packet250CustomPayloadID);
-      outputStream.writeByte(multipacketTypeID);
       outputStream.writeInt(uniquePacketID);
       outputStream.writeByte(commandToByte(command));
     }
   }
 
+  /**
+   * attempt to process the incoming packet
+   * @param packet
+   * @return true for success
+   */
   public boolean processIncomingPacket(Packet250CustomPayload packet)
   {
     try {
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
+      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
+      if (chi.packet250CustomPayloadID != commonHeaderInfo.packet250CustomPayloadID) throw new IOException("Invalid payloadID");
+      if (chi.command == null) throw new IOException("Invalid command");
 
-      byte packetID = inputStream.readByte();
-      if (packetID != packet250CustomPayloadID) return false;
-
-      byte commandValue = inputStream.readByte();
-      Command command = byteToCommand(commandValue);
-      if (command == null) return null;
-
-      Packet250CloneToolUse newPacket = new Packet250CloneToolUse(command);
-      newPacket.toolID = inputStream.readInt();
-      newPacket.sequenceNumber = inputStream.readInt();
-      newPacket.actionToBeUndoneSequenceNumber = inputStream.readInt();
-      newPacket.xpos = inputStream.readInt();
-      newPacket.ypos = inputStream.readInt();
-      newPacket.zpos = inputStream.readInt();
-      newPacket.rotationCount = inputStream.readByte();
-      newPacket.flipped = inputStream.readBoolean();
-      if (newPacket.checkInvariants()) return newPacket;
+      switch (chi.command) {
+        case ACKNOWLEDGEMENT: {
+          processAcknowledgement(inputStream);
+          break;
+        }
+        case ABORT: {
+          processAbort(inputStream);
+        }
+        case SEGMENTDATA: {
+          processSegmentData(inputStream);
+        }
+        default: {
+          assert false : "Invalid command";
+        }
+      }
+      return true;
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Exception while reading processIncomingPacket: " + ioe);
     }
@@ -224,7 +182,9 @@ public abstract class MultipartPacket
   public boolean hasBeenAborted() {return aborted; }
 
   /**
-   * returns true if at least one acknowledgement has been received since the last reset
+   * returns true if at least one new acknowledgement has been received since the last reset
+   * (in order to be counted, the acknowledgement must have included at least one
+   *   segment not previously acknowledged)
    * @return
    */
   public boolean getAcknowledgementsReceivedFlag()
@@ -236,6 +196,21 @@ public abstract class MultipartPacket
    * reset the acknowledgementsReceived flag
    */
   public void resetAcknowledgementsReceivedFlag()  { acknowledgementsReceivedFlag = false; }
+
+  /**
+   * returns true if at least one new segment has been received since the last reset
+   * (segments which have been received previously don't count)
+   * @return
+   */
+  public boolean getSegmentsReceivedFlag()
+  {
+    return segmentsReceivedFlag;
+  }
+
+  /**
+   * reset the segmentsReceivedFlag flag
+   */
+  public void resetSegmentsReceivedFlag()  { segmentsReceivedFlag = false; }
 
   /**
    * create a packet to inform of all the segments received to date
@@ -283,8 +258,6 @@ public abstract class MultipartPacket
     return retval;
   }
 
-  protected abstract void createMultipartPacket();
-
   /**
    * get the packet for the given segment number
    * @param segmentNumber from 0 up to segmentCount - 1 inclusive
@@ -314,14 +287,101 @@ public abstract class MultipartPacket
     return retval;
   }
 
-
-  protected MultipartPacket(String i_channel, byte i_packet250CustomPayloadID, byte i_multipacketTypeID, int i_uniquePacketID, int i_segmentSize)
+  protected MultipartPacket(String i_channel, byte i_packet250CustomPayloadID, int i_uniquePacketID,
+                            int i_segmentSize, boolean i_thisPacketIsASender)
   {
     channel = i_channel;
-    packet250CustomPayloadID = i_packet250CustomPayloadID;
-    multipacketTypeID = i_multipacketTypeID;
-    uniquePacketID = i_uniquePacketID;
+    commonHeaderInfo.packet250CustomPayloadID = i_packet250CustomPayloadID;
+    commonHeaderInfo.uniquePacketID = i_uniquePacketID;
+    if (i_segmentSize <= 0 || i_segmentSize > MAX_SEGMENT_SIZE) throw new IllegalArgumentException("segmentSize " + i_segmentSize + " is out of range [0 -  " + MAX_SEGMENT_SIZE + "]");
     segmentSize = i_segmentSize;
+
+    segmentCount = 0;
+    rawData = null;
+    iAmASender = i_thisPacketIsASender;
+    segmentsNotAcknowledged = null;
+    segmentsNotReceived = null;
+    acknowledgementsReceivedFlag = false;
+    segmentsReceivedFlag = false;
+
+    nextUnsentSegment = 0;
+    nextUnacknowledgedSegment = 0;
+    aborted = false;
+
+  }
+
+  /** set the raw data for this packet and initialise the associated segment data
+   *
+   * @param newRawData
+   */
+  protected void setRawData(byte [] newRawData)
+  {
+    int totalLength = newRawData.length;
+    if (totalLength > MAX_SEGMENT_COUNT * segmentSize) {
+      throw new IllegalArgumentException("RawData size " + totalLength + " is greater than the maximum " + segmentSize * MAX_SEGMENT_COUNT + "for segment size " + segmentSize);
+    }
+    segmentCount = (totalLength + segmentSize - 1) / segmentSize;
+
+    rawData = newRawData;
+    segmentsNotReceived = new BitSet(segmentCount);
+    segmentsNotReceived.set(0, segmentCount);
+    segmentsNotAcknowledged = new BitSet(segmentCount);
+    segmentsNotAcknowledged.set(0, segmentCount);
+  }
+
+  /** abort this packet
+   * @param inputStream
+   * @throws IOException
+   */
+  protected void processAbort(DataInputStream inputStream) throws IOException
+  {
+    aborted = true;
+  }
+
+  /** incorporate the data for this segment into the packet
+   * @param inputStream
+   * @throws IOException
+   */
+  protected void processSegmentData(DataInputStream inputStream) throws IOException
+  {
+    short segmentNumber = inputStream.readShort();
+    short segmentLength = inputStream.readShort();
+    int   rawdataLength = inputStream.readInt();
+    if (segmentNumber < 0 || segmentNumber >= segmentCount) throw new IOException("Packet segment number " + segmentNumber + " outside valid range [0 - " + (segmentCount-1) + "] inclusive");
+    if (!segmentsNotReceived.get(segmentNumber)) return;  // duplicate of a segment already received, just ignore it
+
+    if (rawdataLength != rawData.length) throw new IOException("Packet rawdataLength " + rawdataLength + " does not match expected (" + rawData.length + ")");
+    int startBuffPos = segmentNumber * segmentSize;
+    int expectedSegmentLength = Math.min(segmentSize, rawData.length - startBuffPos);
+    if (expectedSegmentLength != segmentLength) throw new IOException("Packet segment length " + segmentLength + " does not match expected (" + expectedSegmentLength + ")");
+    assert (segmentLength < Short.MAX_VALUE);
+    int bytesread = inputStream.read(rawData, startBuffPos, segmentLength);
+    if (bytesread != segmentLength) throw new IOException("Size of segment data read " + bytesread + " did not match expected " + segmentLength);
+
+    segmentsNotReceived.clear(segmentNumber);
+  }
+
+  /** integrate the acknowledgement bits into this packet
+   * @param inputStream
+   * @throws IOException
+   */
+  protected void processAcknowledgement(DataInputStream inputStream) throws IOException
+  {
+    if (!iAmASender) throw new IOException("received acknowledgement packet on receiver side");
+    short ackDataLength = inputStream.readShort();
+    if (ackDataLength <= 0) throw new IOException("Invalid data length" + ackDataLength);
+    byte [] buff = new byte[ackDataLength];
+    int readcount = inputStream.read(buff);
+    if (readcount != ackDataLength) throw new IOException("readCount " + readcount + " didn't match expected " + ackDataLength);
+    BitSet notAcknowledged = BitSet.valueOf(buff);
+
+    // check to see if we have received acknowledgement for any segments we haven't sent yet!
+    //  i.e. if the last zero is greater than the sent segment count
+    int lastAcknowledgedPacket = notAcknowledged.previousClearBit(segmentCount - 1);
+    if (lastAcknowledgedPacket >= nextUnsentSegment) throw new IOException("acknowledged segment was never sent");
+    BitSet savedNack = (BitSet)segmentsNotAcknowledged.clone();
+    segmentsNotAcknowledged.and(notAcknowledged);
+    if (!savedNack.equals(segmentsNotAcknowledged)) acknowledgementsReceivedFlag = true;
   }
 
   protected enum Command {
@@ -360,41 +420,22 @@ public abstract class MultipartPacket
   private final int MAX_SEGMENT_COUNT = Short.MAX_VALUE;
   private final int MAX_SEGMENT_SIZE = 30000;
 
-  private static String channel;
-  private static byte packet250CustomPayloadID;
-  private static byte multipacketTypeID;
+  private String channel;
   private CommonHeaderInfo commonHeaderInfo;
 
   private int segmentSize;
   private int segmentCount;
   private byte [] rawData;
 
-  private boolean iAmASender;        // true if this packet is being sent; false if it's being received.
+  private boolean iAmASender;                    // true if this packet is being sent; false if it's being received.
   private BitSet segmentsNotReceived;
   private BitSet segmentsNotAcknowledged;
   private boolean acknowledgementsReceivedFlag;  // set to true once one or more acknowledgements have been received
+  private boolean segmentsReceivedFlag;          // set to true once one or more segments have been received
 
   private int nextUnsentSegment = -1;         // the next segment we have never sent.  -1 is dummy value to trigger error if we forget to initialise
   private int nextUnacknowledgedSegment = 0; // the next unacknowledged segment.
   private boolean aborted = false;
 
-
-
 }
 
-
-Packet250CustomPayload:
-        Comprised of a header with
-        channel, packetID, MultipacketTypeID, MultipartPacket unique ID number, BitSet header for all segments, in addition to the actual packet data
-        abort command
-        Max size 32 k per payload?
-
-        MultipartPacket:
-        specify packet size
-        base class; overridden by the specific packet of interest
-        processIncomingPacket(Packet250CustomPayload)
-        getMultipartSegment - returns a Packet250CustomPayload
-        complete and acknowledged
-        isComplete
-        resetAcknowledged, isAcknowledged
-        various methods to get & set the data in the packet as appropriate

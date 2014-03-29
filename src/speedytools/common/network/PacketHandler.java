@@ -13,20 +13,24 @@ import speedytools.clientside.ClientSide;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.SpeedyToolWorldManipulator;
 
+import java.util.HashMap;
+
 public class PacketHandler implements IPacketHandler
 {
+  public static final String CHANNEL_NAME = "speedytools";
   public static final byte PACKET250_SPEEDY_TOOL_USE_ID = 0;
   public static final byte PACKET250_CLONE_TOOL_USE_ID = 1;
   public static final byte PACKET250_TOOL_STATUS_ID = 2;
   public static final byte PACKET250_TOOL_ACKNOWLEDGE_ID = 3;
 
+
   @Override
   public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity)
   {
-    if (packet.channel.equals("speedytools")) {
+    if (packet.channel.equals(CHANNEL_NAME)) {
       Side side = (playerEntity instanceof EntityPlayerMP) ? Side.SERVER : Side.CLIENT;
-
-      switch (packet.data[0]) {
+      byte packetID = packet.data[0];
+      switch (packetID) {
         case PACKET250_SPEEDY_TOOL_USE_ID: {
           if (side != Side.SERVER) {
             malformedPacketError(side, playerEntity, "PACKET250_SPEEDY_TOOL_USE_ID received on wrong side");
@@ -77,11 +81,54 @@ public class PacketHandler implements IPacketHandler
           }
         }
         default: {
-          malformedPacketError(side, playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID");
+          PacketHandlerMethod handlerMethod;
+          if (side == Side.CLIENT) {
+            handlerMethod = clientSideHandlers.get(packetID);
+          } else {
+            handlerMethod = serverSideHandlers.get(packetID);
+          }
+          if (handlerMethod != null) {
+           handlerMethod.handlePacket(packetID, packet);
+          } else {
+            malformedPacketError(side, playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID");
+          }
           return;
         }
 
       }
+    }
+  }
+
+  public static interface PacketHandlerMethod {
+    public void handlePacket(byte packetID, Packet250CustomPayload packet);
+  }
+
+  public static void registerHandlerMethod(Side side, byte packetID, PacketHandlerMethod handlerMethod)
+  {
+    switch (side) {
+      case CLIENT: {
+        if (clientSideHandlers.containsKey(packetID)) {
+          if (handlerMethod != clientSideHandlers.get(packetID)) {
+            throw new IllegalArgumentException("Duplicate Client-side PacketHandler ID:" + packetID);
+          }
+        } else {
+          clientSideHandlers.put(packetID, handlerMethod);
+        }
+        break;
+      }
+
+      case SERVER: {
+        if (serverSideHandlers.containsKey(packetID)) {
+          if (handlerMethod != serverSideHandlers.get(packetID)) {
+            throw new IllegalArgumentException("Duplicate Server-side PacketHandler ID:" + packetID);
+          }
+        } else {
+          serverSideHandlers.put(packetID, handlerMethod);
+        }
+        break;
+      }
+      default:
+        throw new IllegalArgumentException("Invalid side:" + side);
     }
   }
 
@@ -99,5 +146,8 @@ public class PacketHandler implements IPacketHandler
         assert false: "invalid Side";
     }
   }
+
+  private static HashMap<Byte, PacketHandlerMethod> clientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+  private static HashMap<Byte, PacketHandlerMethod> serverSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
 }
 

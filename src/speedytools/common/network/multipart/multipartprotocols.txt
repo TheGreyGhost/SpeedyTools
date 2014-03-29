@@ -9,7 +9,6 @@ MultipartPacketHandler is the interface to the client and server code.
   Packet250CustomPayload:
   Comprised of a header with
   - byte packet250CustomPayloadID (as per normal Packet250CustomPayload data[0])
-  - byte multipartPacket type ID (unique for each class derived from MultipartPacket eg MapdataPacket extends MultipartPacket, SelectiondataPacket extends MultipartPacket, etc)
   - int uniqueMultipartPacketID (in ascending order) - unique ID for the whole packet
   - byte command type (segment data, acknowledgement of segments, abort)
 
@@ -113,7 +112,7 @@ Handling of incoming packets:
 
 To add a new type of MultipartPacket:
 (1) create class extending MultipartPacket
-(2) add the class to the switch in MultipartPacket.createFromPacket
+(2) register handler with PacketHandler - each extension of Multipart is given its own handler
 
 Listener
 
