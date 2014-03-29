@@ -10,59 +10,37 @@ import java.io.IOException;
 /**
  * User: The Grey Ghost
  * Date: 28/03/14
+ *
+ * For usage, see MultipartPacket
  */
 public class SelectionPacket extends MultipartPacket
 {
-  @Override
-  protected void createMultipartPacket() {
-
-  }
-
-  public static SelectionPacket createFromPacket(Packet250CustomPayload packet)
+  public static SelectionPacket createSenderPacket(String i_channel, byte i_packet250CustomPayloadID, int i_segmentSize)
   {
+    return new SelectionPacket(i_channel, i_packet250CustomPayloadID, i_segmentSize);
+  }
+
+  public static SelectionPacket createReceiverPacket(Packet250CustomPayload packet)
+  {
+    SelectionPacket newPacket;
     try {
-      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
-      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
+      newPacket = new SelectionPacket(packet);
+      newPacket.processIncomingPacket(packet);
 
-      MultipartPacket retval;
-      switch (chi.multipacketTypeID) {
-        case SelectionPacket.MY_MULTIPART_PACKET_TYPE_ID: {
-          retval = new SelectionPacket();
-          break;
-        }
-        default: {
-
-        }
-      }
-      byte commandValue = inputStream.readByte();
-      Command command = byteToCommand(commandValue);
-      if (command == null) return null;
-
-      Packet250CloneToolUse newPacket = new Packet250CloneToolUse(command);
-      newPacket.toolID = inputStream.readInt();
-      newPacket.sequenceNumber = inputStream.readInt();
-      newPacket.actionToBeUndoneSequenceNumber = inputStream.readInt();
-      newPacket.xpos = inputStream.readInt();
-      newPacket.ypos = inputStream.readInt();
-      newPacket.zpos = inputStream.readInt();
-      newPacket.rotationCount = inputStream.readByte();
-      newPacket.flipped = inputStream.readBoolean();
-      if (newPacket.checkInvariants()) return newPacket;
+      return newPacket;
     } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Exception while reading processIncomingPacket: " + ioe);
-    }
-    return false;
-
-  }
-
-
-  private SelectionPacket() {}
-
-  /*
-  public static class SelectionPacketCreator implements MultipartPacketCreator {
-    public MultipartPacket createNew(Packet250CustomPayload packet) {
-      return createNewFromPacket(packet);
+      ErrorLog.defaultLog().warning("Failed to createReceiverPacket, due to exception " + ioe.toString());
+      return null;
     }
   }
-  */
+
+  protected SelectionPacket(Packet250CustomPayload packet) throws IOException
+  {
+    super(packet);
+  }
+
+  protected SelectionPacket(String i_channel, byte i_packet250CustomPayloadID, int i_segmentSize)
+  {
+    super(i_channel, i_packet250CustomPayloadID, i_segmentSize);
+  }
 }

@@ -22,7 +22,7 @@ public class PacketHandler implements IPacketHandler
   public static final byte PACKET250_CLONE_TOOL_USE_ID = 1;
   public static final byte PACKET250_TOOL_STATUS_ID = 2;
   public static final byte PACKET250_TOOL_ACKNOWLEDGE_ID = 3;
-
+  public static final byte PACKET250_SELECTION_PACKET = 4;
 
   @Override
   public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity)
