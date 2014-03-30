@@ -7,6 +7,8 @@ import org.junit.Test;
 import speedytools.common.network.multipart.MultipartPacket;
 import speedytools.common.utilities.ErrorLog;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -154,6 +156,7 @@ public class MultipartPacketTest
     sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
     sender.setTestData(TEST_DATA);
     packet = sender.getNextUnsentSegment();
+    packet = sender.getNextUnsentSegment();
     packet = sender.getNextUnacknowledgedSegment();
     Assert.assertTrue(packet != null);
     packet = sender.getNextUnacknowledgedSegment();
@@ -284,7 +287,59 @@ public class MultipartPacketTest
     Assert.assertTrue(packet == null);
 
     sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    sender.setTestData(TEST_DATA);
+    packet = sender.getNextUnsentSegment();
+    Packet250CustomPayload badPacket;
 
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)0, (short)SEGMENT_SIZE, TEST_DATA.length);    // should succeed
+    Assert.assertTrue(null != MultipartPacketTester.createReceiverPacket(badPacket));
+
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)-1, (short)SEGMENT_SIZE, TEST_DATA.length);
+    Assert.assertTrue(null == MultipartPacketTester.createReceiverPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)SEGMENT_COUNT, (short)SEGMENT_SIZE, TEST_DATA.length);
+    Assert.assertTrue(null == MultipartPacketTester.createReceiverPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)0, (short)0, TEST_DATA.length);
+    Assert.assertTrue(null == MultipartPacketTester.createReceiverPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)0, Short.MAX_VALUE, TEST_DATA.length);
+    Assert.assertTrue(null == MultipartPacketTester.createReceiverPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)0, (short)SEGMENT_SIZE, -1);
+    Assert.assertTrue(null == MultipartPacketTester.createReceiverPacket(badPacket));
+
+    receiver = MultipartPacketTester.createReceiverPacket(packet);
+    packet = sender.getNextUnsentSegment();
+    final byte SEG_DATA_COMMAND = 0;
+    final byte BAD_COMMAND = 6;
+    int correctPacketID = MultipartPacket.readUniqueID(packet);
+    badPacket = MultipartPacketTester.corruptPacket(packet, 0, PACKET_ID, correctPacketID, SEG_DATA_COMMAND);  // should succeed
+    Assert.assertTrue(receiver.processIncomingPacket(badPacket));
+    packet = sender.getNextUnsentSegment();
+    badPacket = MultipartPacketTester.corruptPacket(packet, 0, (byte)(PACKET_ID+1), correctPacketID, SEG_DATA_COMMAND);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptPacket(packet, 0, PACKET_ID, correctPacketID+1, SEG_DATA_COMMAND);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptPacket(packet, 0, PACKET_ID, correctPacketID, BAD_COMMAND);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptPacket(packet, -1, PACKET_ID, correctPacketID, SEG_DATA_COMMAND);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)-1, (short)SEGMENT_SIZE, TEST_DATA.length);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)4, (short)SEGMENT_SIZE, TEST_DATA.length);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)3, (short)(SEGMENT_SIZE+1), TEST_DATA.length);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)3, (short)(SEGMENT_SIZE-1), TEST_DATA.length);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)3, (short)SEGMENT_SIZE, TEST_DATA.length+1);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)3, (short)SEGMENT_SIZE, TEST_DATA.length-1);
+    Assert.assertFalse(receiver.processIncomingPacket(badPacket));
+
+    packet = receiver.getAcknowledgementPacket();
+    badPacket = MultipartPacketTester.corruptAckPacket(packet, (short)-1);
+    Assert.assertFalse(sender.processIncomingPacket(badPacket));
+    badPacket = MultipartPacketTester.corruptAckPacket(packet, (short) 2);
+    Assert.assertFalse(sender.processIncomingPacket(badPacket));
 
   }
 
@@ -300,9 +355,9 @@ public class MultipartPacketTest
       MultipartPacketTester newPacket;
       try {
         newPacket = new MultipartPacketTester(packet);
-        newPacket.processIncomingPacket(packet);
+        boolean result = newPacket.processIncomingPacket(packet);
 
-        return newPacket;
+        return result ? newPacket : null;
       } catch (IOException ioe) {
         ErrorLog.defaultLog().warning("Failed to createReceiverPacket, due to exception " + ioe.toString());
         return null;
@@ -328,6 +383,72 @@ public class MultipartPacketTest
     {
       super(i_channel, whichSide, i_packet250CustomPayloadID, i_segmentSize);
     }
+
+    public static Packet250CustomPayload corruptPacket(Packet250CustomPayload packet, int deltaPacketLength,
+                                                       byte newCustomPayloadID, int newUniquePacketID, byte newCommand)
+    {
+      try {
+        Packet250CustomPayload newPacket = new Packet250CustomPayload();
+        newPacket.channel = packet.channel;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream outputStream = new DataOutputStream(bos);
+        outputStream.writeByte(newCustomPayloadID);
+        outputStream.writeInt(newUniquePacketID);
+        outputStream.writeByte(newCommand);
+        byte [] newdata = new byte[packet.data.length + deltaPacketLength];
+        System.arraycopy(packet.data, 0, newdata, 0, newdata.length);
+        System.arraycopy(bos.toByteArray(), 0, newdata, 0, bos.size());
+        newPacket.data = newdata;
+        newPacket.length = packet.length + deltaPacketLength;
+        return newPacket;
+      } catch (IOException ioe) {
+        Assert.fail("exception " + ioe);
+        return null;
+      }
+    }
+
+    public static Packet250CustomPayload corruptAckPacket(Packet250CustomPayload packet, short newAckDataLength)
+    {
+      try {
+        Packet250CustomPayload newPacket = new Packet250CustomPayload();
+        newPacket.channel = packet.channel;
+        newPacket.data = packet.data.clone();
+        newPacket.length = packet.length;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream outputStream = new DataOutputStream(bos);
+        outputStream.writeShort(newAckDataLength);
+
+        final int ACK_DATA_LEN_POSITION = 6;
+        System.arraycopy(bos.toByteArray(), 0, newPacket.data, ACK_DATA_LEN_POSITION, bos.size());
+        return newPacket;
+      } catch (IOException ioe) {
+        Assert.fail("exception " + ioe);
+        return null;
+      }
+    }
+
+    public static Packet250CustomPayload corruptSegPacket(Packet250CustomPayload packet,  short newSegmentNumber, short newSegmentSize, int newRawDataLength)
+    {
+      try {
+      Packet250CustomPayload newPacket = new Packet250CustomPayload();
+      newPacket.channel = packet.channel;
+      newPacket.data = packet.data.clone();
+      newPacket.length = packet.length;
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+      DataOutputStream outputStream = new DataOutputStream(bos);
+      outputStream.writeShort(newSegmentNumber);
+      outputStream.writeShort(newSegmentSize);
+      outputStream.writeInt(newRawDataLength);
+
+      final int SEGMENT_NUMBER_POSITION = 6;
+      System.arraycopy(bos.toByteArray(), 0, newPacket.data, SEGMENT_NUMBER_POSITION, bos.size());
+      return newPacket;
+      } catch (IOException ioe) {
+        Assert.fail("exception " + ioe);
+        return null;
+      }
+    }
+
   }
 
 }

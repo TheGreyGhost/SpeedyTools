@@ -55,7 +55,7 @@ public abstract class MultipartPacket
    * @param packet
    * @return the uniqueID, or null if invalid
    */
-  public static Long readUniqueID(Packet250CustomPayload packet)
+  public static Integer readUniqueID(Packet250CustomPayload packet)
   {
     try {
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
@@ -478,13 +478,13 @@ public abstract class MultipartPacket
     throw new IOException("Invalid Command value");
   }
 
-  protected static class CommonHeaderInfo
+  public static class CommonHeaderInfo
   {
     public byte packet250CustomPayloadID;
     public int uniquePacketID;
     public Command command;
 
-    public long getUniqueID() {
+    public int getUniqueID() {
       return uniquePacketID;
     }
 
@@ -494,7 +494,7 @@ public abstract class MultipartPacket
      * @return true if the packet is valid, false otherwise
      * @throws IOException
      */
-    protected static CommonHeaderInfo readCommonHeader(DataInputStream inputStream) throws IOException
+    public static CommonHeaderInfo readCommonHeader(DataInputStream inputStream) throws IOException
     {
       CommonHeaderInfo chi = new CommonHeaderInfo();
       chi.packet250CustomPayloadID = inputStream.readByte();
@@ -511,7 +511,7 @@ public abstract class MultipartPacket
      *    - byte command type (segment data, acknowledgement of segments, abort)
      * @param outputStream
      */
-    protected void writeCommonHeader(DataOutputStream outputStream, Command command) throws IOException
+    public void writeCommonHeader(DataOutputStream outputStream, Command command) throws IOException
     {
       outputStream.writeByte(packet250CustomPayloadID);
       outputStream.writeInt(uniquePacketID);
