@@ -44,7 +44,7 @@ import java.util.HashMap;
  *   (3) When allSegmentsReceived is true, the packet is complete and can be processed
  *   (4) transmission of the packet can be aborted by calling getAbortPacket() and sending it.
  *       if you receive a packet for an ID which you have aborted, call the static getAbortPacketForLostPacket(packet) to
- *       convert it to an abort packet and send it back
+ *       convert it to an abort packet and send it back.  (No abort packets are generated in response to an incoming abort packet)
  *   (5) You should maintain a list of completed and aborted packet IDs for a suitable length of time, to avoid creating a new Multipart
  *       packet in response to delayed packets.
  */
@@ -79,7 +79,9 @@ public abstract class MultipartPacket
       CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
       if (chi.packet250CustomPayloadID != commonHeaderInfo.packet250CustomPayloadID) throw new IOException("Invalid payloadID");
       if (chi.command == null) throw new IOException("Invalid command");
-
+      if (chi.uniquePacketID != commonHeaderInfo.uniquePacketID) {
+        throw new IOException("incoming unique ID " + chi.uniquePacketID + " doesn't match multipart unique ID " + commonHeaderInfo.uniquePacketID);
+      }
       switch (chi.command) {
         case ACKNOWLEDGEMENT: {
           processAcknowledgement(inputStream);
@@ -228,13 +230,14 @@ public abstract class MultipartPacket
   }
 
   /**
-   * create a packet to inform that this multipartPacket has been aborted
+   * aborts this multipartPacket, and creates a packet to inform that this multipartPacket has been aborted
    * @return the packet, or null for a problem
    */
   public Packet250CustomPayload getAbortPacket()
   {
     assert(checkInvariants());
     Packet250CustomPayload retval = null;
+    aborted = true;
     try {
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
@@ -248,8 +251,8 @@ public abstract class MultipartPacket
   }
 
   /**
-   * create a packet to inform that this multipartPacket has been aborted
-   * @return the abort packet, or null if not possible
+   * create a packet to inform that this multipartPacket lostPacket has been aborted
+   * @return the abort packet, or null if not possible, or if the lostPacket is itself an abort packet
    */
   public static Packet250CustomPayload getAbortPacketForLostPacket(Packet250CustomPayload lostPacket)
   {
@@ -257,6 +260,7 @@ public abstract class MultipartPacket
     try {
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(lostPacket.data));
       CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
+      if (chi.command == Command.ABORT) return null;
 
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
@@ -521,7 +525,7 @@ public abstract class MultipartPacket
    */
   protected boolean checkInvariants()
   {
-    if (aborted) return false;
+    if (aborted) return true;
     if (segmentSize <= 0 || segmentSize > MAX_SEGMENT_SIZE) return false;
     if (segmentCount <= 0 || segmentCount > MAX_SEGMENT_COUNT) return false;
     if (iAmASender) {
@@ -538,8 +542,8 @@ public abstract class MultipartPacket
     return true;
   }
 
-  private final int MAX_SEGMENT_COUNT = Short.MAX_VALUE;
-  private final int MAX_SEGMENT_SIZE = 30000;
+  public final int MAX_SEGMENT_COUNT = Short.MAX_VALUE;
+  public final int MAX_SEGMENT_SIZE = 30000;
 
   private String channel;
   private Side whichSideAmIOn;
