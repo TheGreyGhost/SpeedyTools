@@ -44,4 +44,13 @@ public class SelectionPacket extends MultipartPacket
   {
     super(i_channel, whichSideAmIOn, i_packet250CustomPayloadID, i_segmentSize);
   }
+
+  // derived classes should implement this interface so that other wishing to create a new MultipartPacket (in response to an incoming packet) can pass this object to the packet handler which will invoke it.
+  public static class SelectionPacketCreator implements MultipartPacketCreator
+  {
+    public MultipartPacket createNewPacket(Packet250CustomPayload packet)
+    {
+      return createReceiverPacket(packet);
+    }
+  }
 }

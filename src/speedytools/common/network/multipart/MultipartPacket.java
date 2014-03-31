@@ -25,8 +25,8 @@ import java.util.HashMap;
  *    (b) For generating a receive packet: the constructor should accept a packet, call the equivalent MultipartPacket constructor,
  *        complete setup of the class, AND THEN CALL processIncomingPacket after construction is finished, to process the segment rawdata
  *   For senders:
- *   (1) call getNextUnsentSegment to retrieve the next unsent segment, and send it over the network.  null means there are no more.
- *   (2) as incoming packets (acknowledgements) arrive, sent them to processIncomingPacket
+ *   (1) call getNextUnsentSegment to retrieve the next unsent segment.  Send it over the network.  null means there are no more segments.
+ *   (2) as incoming packets (acknowledgements) arrive, use MultipartPacket.readUniqueID to find the packet ID, and then send them to processIncomingPacket
  *   (3) once all segments are sent (allSegmentsSent, or getNextUnsentSegment returns null), wait for an appropriate time, then
  *       check for unacknowledged packets (allSegmentsAcknowledged is false).  If necessary:
  *   (4) use getNextUnacknowledgedSegment to iterate through segments which were sent but no acknowledgement yet received.
@@ -517,6 +517,12 @@ public abstract class MultipartPacket
       outputStream.writeInt(uniquePacketID);
       outputStream.writeByte(commandToByte(command));
     }
+  }
+
+  // derived classes should implement this interface so that other wishing to create a new MultipartPacket (in response to an incoming packet) can pass this object to the packet handler which will invoke it.
+  public interface MultipartPacketCreator
+  {
+    public MultipartPacket createNewPacket(Packet250CustomPayload packet);
   }
 
   /**

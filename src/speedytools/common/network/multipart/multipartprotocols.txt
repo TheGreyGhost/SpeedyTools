@@ -44,7 +44,7 @@ MultipartPacketHandler is the interface to the client and server code.
 
   MultipartPacketHandler
   sendMultipartPacket - start transmission, provide a callback
-  registerPacketReceiverFactory - tells the handler what class to call for newPacketStarted for a given MultipartPacket type
+  registerMultipartPacketType - tells the handler what class to call for newPacketStarted for a given MultipartPacket type
   processIncomingPacket - called by PacketHandler, which then calls MultipartPacket methods as appropriate
   onTick - sends new segments; checks for timeouts, resends segments if necessary
 
@@ -61,16 +61,16 @@ MultipartPacketHandler is the interface to the client and server code.
      once all are resent, return to state (b)
   The transmission of a packet can be aborted by either end.  Upon receiving an abort, the recipient will send an abort back to confirm.
 
-  CallbackPacketSender interface
+  PacketSenderLinkage interface
   - progressUpdate (how many acknowledgements received)
   - packetCompleted (passes ownership of packet back to sender)
   - abort (to abort transmission of this packet)
   - packetAborted (transmission of this packet was aborted before completion)
 
-  CallbackPacketReceiverFactory interface
-  - newPacketStarted  (creates a new CallBackPacketReceiver which the receiving class will use to receive notification of progress)
+  PacketReceiverLinkageFactory interface
+  - newPacketStarted  (creates a new PacketReceiverLinkage which the receiving class will use to receive notification of progress)
 
-  CallbackPacketReceiver interface
+  PacketReceiverLinkage interface
   - progressUpdate
   - packetCompleted (passes ownership of packet to receiver)
   - abort (to abort receiving / transmission of this packet)
