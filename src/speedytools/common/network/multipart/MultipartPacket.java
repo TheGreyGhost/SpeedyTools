@@ -68,6 +68,15 @@ public abstract class MultipartPacket
   }
 
   /**
+   * returns the unique ID for this packet
+   * @return the packet's unique ID
+   */
+  public int getUniqueID()
+  {
+    return commonHeaderInfo.getUniqueID();
+  }
+
+  /**
    * attempt to process the incoming packet
    * @param packet
    * @return true for success
