@@ -158,21 +158,21 @@ public abstract class MultipartPacket
 
   /**
    * have all segments been sent at least once?
-   * @return true if all segments been sent at least once
+   * @return true if I am a sender and all segments been sent at least once
    */
-  public boolean allSegmentsSent() { return nextUnsentSegment >= segmentCount; }
+  public boolean allSegmentsSent() { return iAmASender ? nextUnsentSegment >= segmentCount : false; }
 
   /**
    * have all segments been acknowledged?
-   * @return true if all segments have been acknowledged
+   * @return true if I am a sender and all segments have been acknowledged
    */
-  public boolean allSegmentsAcknowledged() { return segmentsNotAcknowledged.isEmpty(); }
+  public boolean allSegmentsAcknowledged() { return iAmASender ? segmentsNotAcknowledged.isEmpty() : false; }
 
   /**
    * have all segments been received?
-   * @return true if all segments have been received
+   * @return true if I am a receiver and all segments have been received,
    */
-  public boolean allSegmentsReceived() { return segmentsNotReceived.isEmpty(); }
+  public boolean allSegmentsReceived() { return iAmASender ? false : segmentsNotReceived.isEmpty(); }
 
   /**
    * has this packet has been aborted?

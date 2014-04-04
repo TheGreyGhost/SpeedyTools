@@ -1,10 +1,12 @@
 package speedytools.common.network.multipart;
 
 import net.minecraft.network.packet.Packet250CustomPayload;
-import org.lwjgl.Sys;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import speedytools.common.network.PacketSender;
+import speedytools.common.utilities.ErrorLog;
 
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * User: The Grey Ghost
@@ -15,6 +17,9 @@ public class MultipartPacketHandler
   public MultipartPacketHandler()
   {
     packetCreatorRegistry = new HashMap<Byte, MultipartPacket.MultipartPacketCreator>();
+    packetLinkageFactories = new HashMap<Byte, PacketReceiverLinkageFactory>();
+    packetsToIgnoreByID = new HashMap<Integer, Long>();
+    packetsToIgnoreByTime = new PriorityQueue<Pair<Long, Integer>>();
   }
 
   /**
@@ -129,19 +134,68 @@ public class MultipartPacketHandler
     Integer packetUniqueID = MultipartPacket.readUniqueID(packet);
     if (packetUniqueID == null) return false;
 
+    if (packetsToIgnoreByID.containsKey(packetUniqueID)) return false;
     if (packetsBeingSent.containsKey(packetUniqueID)) {
+      PacketTransmissionInfo pti = packetsBeingSent.get(packetUniqueID);
+      boolean success = doProcessIncoming(packetsBeingSent, pti,  packet);
+      if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
+      return success;
 
+    } else if (packetsBeingReceived.containsKey(packetUniqueID)) {
+      PacketTransmissionInfo pti = packetsBeingReceived.get(packetUniqueID);
+      boolean success = doProcessIncoming(packetsBeingReceived, pti, packet);
+      if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
+      return success;
+
+    } else {  // new packet for receiving
+      if (!packetCreatorRegistry.containsKey(packet.data[0])) {
+        ErrorLog.defaultLog().warning("Received packet type " + packet.data[0] + " but no corresponding PacketCreator in registry");
+        return false;
+      }
+
+      if (!packetLinkageFactories.containsKey(packet.data[0])) {
+        ErrorLog.defaultLog().warning("Received packet type " + packet.data[0] + " but no corresponding LinkageFactory in registry");
+        return false;
+      }
+
+      MultipartPacket newPacket = packetCreatorRegistry.get(packet.data[0]).createNewPacket(packet);
+      PacketLinkage newLinkage = packetLinkageFactories.get(packet.data[0]).createNewLinkage();
+      if (newPacket == null || newLinkage == null) return false;
+
+      PacketTransmissionInfo packetTransmissionInfo = new PacketTransmissionInfo();
+      packetTransmissionInfo.packet = newPacket;
+      packetTransmissionInfo.linkage = newLinkage;
+      packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.RECEIVING;
+      packetTransmissionInfo.timeOfLastAction = System.nanoTime();
+      packetsBeingReceived.put(newLinkage.getPacketID(), packetTransmissionInfo);
+      boolean success = doProcessIncoming(packetsBeingReceived, packetTransmissionInfo, packet);
+      if (success) newLinkage.progressUpdate(newPacket.getPercentComplete());
+      return success;
     }
 
+  }
 
+  private boolean doProcessIncoming(HashMap<Integer, PacketTransmissionInfo> packetListing, PacketTransmissionInfo packetTransmissionInfo, Packet250CustomPayload packet)
+  {
+    boolean success = packetTransmissionInfo.packet.processIncomingPacket(packet);
 
-            || packetsBeingReceived.containsKey(packet.getUniqueID())) return false;
-    if (linkage.getPacketID() != packet.getUniqueID()) {
-      throw new IllegalArgumentException("linkage packetID " + linkage.getPacketID() + " did not match packet packetID "+ packet.getUniqueID());
+    if (   packetTransmissionInfo.packet.hasBeenAborted()
+        || packetTransmissionInfo.packet.allSegmentsReceived()
+        || packetTransmissionInfo.packet.allSegmentsAcknowledged()) {
+      int uniqueID = packetTransmissionInfo.packet.getUniqueID();
+      packetListing.remove(uniqueID);
+      long timenow = System.nanoTime();
+      packetsToIgnoreByID.put(uniqueID, timenow);
+      packetsToIgnoreByTime.add(new ImmutablePair<Long, Integer>(timenow, uniqueID));
+      if (packetTransmissionInfo.packet.hasBeenAborted()) {
+        packetTransmissionInfo.linkage.packetAborted();
+      } else {
+        packetTransmissionInfo.linkage.packetCompleted();
+      }
+    } else {
+      packetTransmissionInfo.linkage.progressUpdate(packetTransmissionInfo.packet.getPercentComplete());
     }
-    if (packet.hasBeenAborted()) return false;
-
-  //  - called by PacketHandler, which then calls MultipartPacket methods as appropriate
+    return success;
   }
 
   public void onTick()
@@ -161,6 +215,12 @@ public class MultipartPacketHandler
     packetCreatorRegistry.put(packet250CustomPayloadID, packetCreator);
   }
 
+  public void registerLinkageFactory(byte packet250CustomPayloadID, PacketReceiverLinkageFactory linkageFactory)
+  {
+    if (packetLinkageFactories.containsKey(packet250CustomPayloadID)) throw new IllegalArgumentException("Duplicate packet id:" + packet250CustomPayloadID);
+    packetLinkageFactories.put(packet250CustomPayloadID, linkageFactory);
+  }
+
   /**
    * This class is used by the MultipartPacketHandler to communicate the packet transmission progress to the sender
    */
@@ -172,6 +232,9 @@ public class MultipartPacketHandler
     public int getPacketID();
   }
 
+  /**
+   * The Factory creates a new linkage, which will be used to communicate the packet receiving progress to the recipient
+   */
   public interface PacketReceiverLinkageFactory
   {
     public PacketLinkage createNewLinkage();
@@ -186,9 +249,12 @@ public class MultipartPacketHandler
   }
 
   private HashMap<Byte, MultipartPacket.MultipartPacketCreator> packetCreatorRegistry;
+  private HashMap<Byte, PacketReceiverLinkageFactory> packetLinkageFactories;
   private HashMap<Integer, PacketTransmissionInfo> packetsBeingSent;
   private HashMap<Integer, PacketTransmissionInfo> packetsBeingReceived;
 
+  private HashMap<Integer, Long> packetsToIgnoreByID;
+  private PriorityQueue<Pair<Long, Integer>> packetsToIgnoreByTime;
   private PacketSender packetSender;
 
 }
