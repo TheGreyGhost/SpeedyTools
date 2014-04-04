@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
-import speedytools.clientside.CloneToolsNetworkClient;
+import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.common.network.*;
 import speedytools.serverside.CloneToolServerActions;
 import speedytools.serverside.CloneToolsNetworkServer;

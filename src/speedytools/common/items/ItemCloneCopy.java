@@ -15,13 +15,11 @@ import net.minecraft.world.World;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientside.ClientSide;
-import speedytools.clientside.CloneToolsNetworkClient;
+import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.rendering.SelectionBoxRenderer;
 import speedytools.common.SpeedyToolsOptions;
-import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.Colour;
-import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.UsefulConstants;
 
 import java.util.*;

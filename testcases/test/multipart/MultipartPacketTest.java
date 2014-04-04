@@ -67,6 +67,7 @@ public class MultipartPacketTest
     ArrayList<Packet250CustomPayload> savedPackets = new ArrayList<Packet250CustomPayload>();
     for (int i = 0; i < SEGMENT_COUNT; ++i) {
       Assert.assertFalse(sender.allSegmentsSent());
+      Assert.assertTrue(sender.getPercentComplete() == 100 * i / 2 / SEGMENT_COUNT);
       Packet250CustomPayload packet = sender.getNextUnsentSegment();
       Assert.assertTrue(packet != null);
       savedPackets.add(packet);
@@ -82,6 +83,7 @@ public class MultipartPacketTest
     Assert.assertFalse(receiver.getSegmentsReceivedFlag());
 
     for (int i = 1; i < SEGMENT_COUNT; ++i) {
+      Assert.assertTrue(receiver.getPercentComplete() == 100 * i / SEGMENT_COUNT);
       Assert.assertFalse(receiver.allSegmentsReceived());
       result = receiver.processIncomingPacket(savedPackets.get(i));
       Assert.assertTrue(result);
@@ -149,6 +151,8 @@ public class MultipartPacketTest
     Assert.assertTrue(sender.allSegmentsSent());
     Assert.assertTrue(receiver.allSegmentsReceived());
     Assert.assertTrue(sender.allSegmentsAcknowledged());
+    Assert.assertTrue(sender.getPercentComplete() == 100);
+    Assert.assertTrue(receiver.getPercentComplete() == 100);
     packet = receiver.getNextUnacknowledgedSegment();
     Assert.assertTrue(packet == null);
 

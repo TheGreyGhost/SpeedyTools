@@ -1,4 +1,4 @@
-package speedytools.clientside;
+package speedytools.clientside.network;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayerMP;

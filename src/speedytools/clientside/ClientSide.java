@@ -1,7 +1,6 @@
 package speedytools.clientside;
 
-import speedytools.serverside.CloneToolServerActions;
-import speedytools.serverside.CloneToolsNetworkServer;
+import speedytools.clientside.network.CloneToolsNetworkClient;
 
 /**
  * User: The Grey Ghost

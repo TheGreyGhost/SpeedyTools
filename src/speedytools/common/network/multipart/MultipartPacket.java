@@ -211,6 +211,20 @@ public abstract class MultipartPacket
    */
   public void resetSegmentsReceivedFlag()  { segmentsReceivedFlag = false; }
 
+  /** returns the percentage completion of the transmission
+   *
+   * @return 0 - 100 inclusive
+   */
+  public int getPercentComplete()
+  {
+    if (iAmASender) {
+      int segmentsComplete = nextUnsentSegment + (segmentCount -  segmentsNotAcknowledged.cardinality());
+      return 100 * segmentsComplete / 2 / segmentCount;
+    } else {
+      return 100 - (100 * segmentsNotReceived.cardinality() / segmentCount);
+    }
+  }
+
   /**
    * create a packet to inform of all the segments received to date
    * @return the packet, or null for a problem

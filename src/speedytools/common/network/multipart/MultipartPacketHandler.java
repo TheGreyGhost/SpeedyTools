@@ -1,5 +1,9 @@
 package speedytools.common.network.multipart;
 
+import net.minecraft.network.packet.Packet250CustomPayload;
+import org.lwjgl.Sys;
+import speedytools.common.network.PacketSender;
+
 import java.util.HashMap;
 
 /**
@@ -14,6 +18,16 @@ public class MultipartPacketHandler
   }
 
   /**
+   * Changes to a new PacketSender
+   * @param newPacketSender
+   */
+  public void setPacketSender(PacketSender newPacketSender)
+  {
+    packetSender = newPacketSender;
+  }
+
+
+  /**
    * start sending the given packet.
    * if the same packet is added multiple times, it is ignored
    * @param linkage the linkage that should be used to inform the sender of progress
@@ -25,8 +39,10 @@ public class MultipartPacketHandler
   //  - start transmission, provide a callback
     if (packetsBeingSent.containsKey(packet.getUniqueID()) || packetsBeingReceived.containsKey(packet.getUniqueID())) return false;
     if (linkage.getPacketID() != packet.getUniqueID()) {
-      throw new IllegalArgumentException("linkage packetID " + linkage.getPacketID() + " did not match packet packetID "+ packet.getUniqueID())
+      throw new IllegalArgumentException("linkage packetID " + linkage.getPacketID() + " did not match packet packetID "+ packet.getUniqueID());
     }
+    if (packet.hasBeenAborted()) return false;
+
     PacketTransmissionInfo packetTransmissionInfo = new PacketTransmissionInfo();
     packetTransmissionInfo.packet = packet;
     packetTransmissionInfo.linkage = linkage;
@@ -34,26 +50,72 @@ public class MultipartPacketHandler
     packetTransmissionInfo.timeOfLastAction = 0;
     packetsBeingSent.put(linkage.getPacketID(), packetTransmissionInfo);
     doTransmission(packetTransmissionInfo);
+    linkage.progressUpdate(packet.getPercentComplete());
     return true;
   }
 
+  private final int ACKNOWLEDGEMENT_WAIT_MS = 100;  // minimum ms elapsed between sending a packet and expecting an acknowledgement
+
   private void doTransmission(PacketTransmissionInfo packetTransmissionInfo)
   {
+    // see multipartprotocols.txt for more information on the transmission behaviour
+    assert !packetTransmissionInfo.packet.hasBeenAborted();   // packet should have been removed from transmission list
+
     switch (packetTransmissionInfo.transmissionState) {
       case RECEIVING: {
+        assert false: "doTransmission called for a packet in RECEIVING state:";
         break;
       }
       case SENDING_INITIAL_SEGMENTS: {
-        if (packetTransmissionInfo.timeOfLastAction
+        if (!packetTransmissionInfo.packet.allSegmentsSent()) {
+          Packet250CustomPayload nextSegment = packetTransmissionInfo.packet.getNextUnsentSegment();
+          if (nextSegment != null) {
+            packetSender.sendPacket(nextSegment);
+            packetTransmissionInfo.timeOfLastAction = System.nanoTime();
+          }
+        }
+        if (packetTransmissionInfo.packet.allSegmentsSent()) {
+          packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.SENDER_WAITING_FOR_ACK;
+        }
         break;
       }
       case SENDER_WAITING_FOR_ACK: {
+        assert !packetTransmissionInfo.packet.allSegmentsAcknowledged();       // packet should have been removed from transmission list
+        if (System.nanoTime() - packetTransmissionInfo.timeOfLastAction >= ACKNOWLEDGEMENT_WAIT_MS * 1000000) {  // timeout waiting for ack: send the first unacked segment, then wait
+          Packet250CustomPayload nextSegment = packetTransmissionInfo.packet.getNextUnacknowledgedSegment();
+          if (nextSegment != null) {
+            packetSender.sendPacket(nextSegment);
+            packetTransmissionInfo.timeOfLastAction = System.nanoTime();
+            packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.WAITING_FOR_FIRST_RESEND;
+            packetTransmissionInfo.packet.resetAcknowledgementsReceivedFlag();
+          }
+        }
         break;
       }
       case WAITING_FOR_FIRST_RESEND: {
+        assert !packetTransmissionInfo.packet.allSegmentsAcknowledged();       // packet should have been removed from transmission list
+        if (packetTransmissionInfo.packet.getAcknowledgementsReceivedFlag()) {
+          packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.RESENDING;
+        } else if (System.nanoTime() - packetTransmissionInfo.timeOfLastAction >= ACKNOWLEDGEMENT_WAIT_MS * 1000000) {  // timeout waiting for ack: resend the first unacked segment, then wait again
+          packetTransmissionInfo.packet.resetToOldestUnacknowledgedSegment();
+          Packet250CustomPayload nextSegment = packetTransmissionInfo.packet.getNextUnacknowledgedSegment();
+          if (nextSegment != null) {
+            packetSender.sendPacket(nextSegment);
+            packetTransmissionInfo.timeOfLastAction = System.nanoTime();
+          }
+        }
         break;
       }
       case RESENDING: {
+        assert !packetTransmissionInfo.packet.allSegmentsAcknowledged();       // packet should have been removed from transmission list
+        Packet250CustomPayload nextSegment = packetTransmissionInfo.packet.getNextUnacknowledgedSegment();
+        if (nextSegment == null) {
+          packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.SENDER_WAITING_FOR_ACK;
+        } else {
+          packetSender.sendPacket(nextSegment);
+          packetTransmissionInfo.timeOfLastAction = System.nanoTime();
+          packetTransmissionInfo.packet.resetToOldestUnacknowledgedSegment();
+        }
         break;
       }
       default: {
@@ -62,8 +124,23 @@ public class MultipartPacketHandler
     }
   }
 
-  public boolean processIncomingPacket()
+  public boolean processIncomingPacket(Packet250CustomPayload packet)
   {
+    Integer packetUniqueID = MultipartPacket.readUniqueID(packet);
+    if (packetUniqueID == null) return false;
+
+    if (packetsBeingSent.containsKey(packetUniqueID)) {
+
+    }
+
+
+
+            || packetsBeingReceived.containsKey(packet.getUniqueID())) return false;
+    if (linkage.getPacketID() != packet.getUniqueID()) {
+      throw new IllegalArgumentException("linkage packetID " + linkage.getPacketID() + " did not match packet packetID "+ packet.getUniqueID());
+    }
+    if (packet.hasBeenAborted()) return false;
+
   //  - called by PacketHandler, which then calls MultipartPacket methods as appropriate
   }
 
@@ -85,11 +162,11 @@ public class MultipartPacketHandler
   }
 
   /**
-   * This class is used by the MultipartPacketHandler to communicate the packet progress to the sender
+   * This class is used by the MultipartPacketHandler to communicate the packet transmission progress to the sender
    */
   public interface PacketLinkage
   {
-    public void progressUpdate();
+    public void progressUpdate(int percentComplete);
     public void packetCompleted();
     public void packetAborted();
     public int getPacketID();
@@ -111,5 +188,7 @@ public class MultipartPacketHandler
   private HashMap<Byte, MultipartPacket.MultipartPacketCreator> packetCreatorRegistry;
   private HashMap<Integer, PacketTransmissionInfo> packetsBeingSent;
   private HashMap<Integer, PacketTransmissionInfo> packetsBeingReceived;
+
+  private PacketSender packetSender;
 
 }
