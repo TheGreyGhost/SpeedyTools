@@ -8,5 +8,16 @@ import net.minecraft.network.packet.Packet250CustomPayload;
  */
 public interface PacketSender
 {
-  public void sendPacket(Packet250CustomPayload packet);
+  /**
+   * Send a packet to the recipient
+   * @param packet
+   * @return true if packet could be queued for sending, false if not (eg network overloaded)
+   */
+  public boolean sendPacket(Packet250CustomPayload packet);
+
+  /**
+   * Check if the sender is ready for another packet
+   * @return true if ready, false if not (eg network is overloaded)
+   */
+  public boolean readyForAnotherPacket();
 }

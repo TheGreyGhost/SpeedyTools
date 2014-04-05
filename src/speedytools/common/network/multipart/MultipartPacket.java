@@ -104,6 +104,10 @@ public abstract class MultipartPacket
           processSegmentData(inputStream);
           break;
         }
+        case ACKNOWLEDGE_ALL: {
+          processAcknowledgeAll(inputStream);
+          break;
+        }
         default: {
           assert false : "Invalid command";
         }
@@ -298,6 +302,29 @@ public abstract class MultipartPacket
   }
 
   /**
+   * create a packet to inform that this multipartPacket lostPacket has been completed (ACKNOWLEDGE ALL)
+   * @return the abort packet, or null if not possible, or if the lostPacket is an abort packet
+   */
+  public static Packet250CustomPayload getFullAcknowledgePacketForLostPacket(Packet250CustomPayload lostPacket)
+  {
+    Packet250CustomPayload retval = null;
+    try {
+      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(lostPacket.data));
+      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
+      if (chi.command == Command.ABORT) return null;
+
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+      DataOutputStream outputStream = new DataOutputStream(bos);
+      chi.writeCommonHeader(outputStream, Command.ACKNOWLEDGE_ALL);
+      lostPacket.data = bos.toByteArray();
+      retval = lostPacket;
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Failed to getFullAcknowledgePacketForLostPacket, due to exception " + ioe.toString());
+      return null;
+    }
+    return retval;
+  }
+  /**
    * get the packet for the given segment number
    * @param segmentNumber from 0 up to segmentCount - 1 inclusive
    * @return the packet, or null for failure
@@ -427,6 +454,19 @@ public abstract class MultipartPacket
     assert checkInvariants();
   }
 
+  /** fully acknowledge this packet
+   * @param inputStream
+   * @throws IOException
+   */
+  protected void processAcknowledgeAll(DataInputStream inputStream) throws IOException
+  {
+    if (!iAmASender) throw new IOException("received acknowledgement packet on receiver side");
+    if (segmentsNotAcknowledged.isEmpty()) return;
+    segmentsNotAcknowledged.clear();
+    acknowledgementsReceivedFlag = true;
+    assert checkInvariants();
+  }
+
   /** incorporate the data for this segment into the packet
    * @param inputStream
    * @throws IOException
@@ -479,8 +519,8 @@ public abstract class MultipartPacket
   }
 
   protected enum Command {
-    SEGMENTDATA, ACKNOWLEDGEMENT, ABORT;
-    public static final Command[] allValues = {SEGMENTDATA, ACKNOWLEDGEMENT, ABORT};
+    SEGMENTDATA, ACKNOWLEDGEMENT, ABORT, ACKNOWLEDGE_ALL;
+    public static final Command[] allValues = {SEGMENTDATA, ACKNOWLEDGEMENT, ABORT, ACKNOWLEDGE_ALL};
   }
 
   private static Command byteToCommand(byte value)

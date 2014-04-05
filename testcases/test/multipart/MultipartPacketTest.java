@@ -345,6 +345,9 @@ public class MultipartPacketTest
     badPacket = MultipartPacketTester.corruptAckPacket(packet, (short) 2);
     Assert.assertFalse(sender.processIncomingPacket(badPacket));
 
+    ADD A TEST HERE FOR ACKNOWLEDGE_ALL
+
+
   }
 
   public static class MultipartPacketTester extends MultipartPacket

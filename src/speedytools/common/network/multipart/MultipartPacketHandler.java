@@ -18,8 +18,8 @@ public class MultipartPacketHandler
   {
     packetCreatorRegistry = new HashMap<Byte, MultipartPacket.MultipartPacketCreator>();
     packetLinkageFactories = new HashMap<Byte, PacketReceiverLinkageFactory>();
-    packetsToIgnoreByID = new HashMap<Integer, Long>();
-    packetsToIgnoreByTime = new PriorityQueue<Pair<Long, Integer>>();
+    abortedPacketsByID = new HashMap<Integer, Long>();
+    abortedPacketsByTime = new PriorityQueue<Pair<Long, Integer>>();
   }
 
   /**
@@ -59,12 +59,23 @@ public class MultipartPacketHandler
     return true;
   }
 
-  private final int ACKNOWLEDGEMENT_WAIT_MS = 100;  // minimum ms elapsed between sending a packet and expecting an acknowledgement
+  private static final int ACKNOWLEDGEMENT_WAIT_MS = 100;  // minimum ms elapsed between sending a packet and expecting an acknowledgement
+  private static final int MS_TO_NS = 1000000;
 
-  private void doTransmission(PacketTransmissionInfo packetTransmissionInfo)
+  /**
+   * Transmit the next part of this packet as necessary
+   * @param packetTransmissionInfo
+   * @return true if something was transmitted, false if no action was performed
+   */
+
+  private boolean doTransmission(PacketTransmissionInfo packetTransmissionInfo)
   {
     // see multipartprotocols.txt for more information on the transmission behaviour
     assert !packetTransmissionInfo.packet.hasBeenAborted();   // packet should have been removed from transmission list
+
+    if (!packetSender.readyForAnotherPacket()) return false;
+
+    boolean sentSomethingFlag = false;
 
     switch (packetTransmissionInfo.transmissionState) {
       case RECEIVING: {
@@ -75,7 +86,7 @@ public class MultipartPacketHandler
         if (!packetTransmissionInfo.packet.allSegmentsSent()) {
           Packet250CustomPayload nextSegment = packetTransmissionInfo.packet.getNextUnsentSegment();
           if (nextSegment != null) {
-            packetSender.sendPacket(nextSegment);
+            sentSomethingFlag = packetSender.sendPacket(nextSegment);
             packetTransmissionInfo.timeOfLastAction = System.nanoTime();
           }
         }
@@ -86,10 +97,10 @@ public class MultipartPacketHandler
       }
       case SENDER_WAITING_FOR_ACK: {
         assert !packetTransmissionInfo.packet.allSegmentsAcknowledged();       // packet should have been removed from transmission list
-        if (System.nanoTime() - packetTransmissionInfo.timeOfLastAction >= ACKNOWLEDGEMENT_WAIT_MS * 1000000) {  // timeout waiting for ack: send the first unacked segment, then wait
+        if (System.nanoTime() - packetTransmissionInfo.timeOfLastAction >= ACKNOWLEDGEMENT_WAIT_MS * MS_TO_NS) {  // timeout waiting for ack: send the first unacked segment, then wait
           Packet250CustomPayload nextSegment = packetTransmissionInfo.packet.getNextUnacknowledgedSegment();
           if (nextSegment != null) {
-            packetSender.sendPacket(nextSegment);
+            sentSomethingFlag = packetSender.sendPacket(nextSegment);
             packetTransmissionInfo.timeOfLastAction = System.nanoTime();
             packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.WAITING_FOR_FIRST_RESEND;
             packetTransmissionInfo.packet.resetAcknowledgementsReceivedFlag();
@@ -101,11 +112,11 @@ public class MultipartPacketHandler
         assert !packetTransmissionInfo.packet.allSegmentsAcknowledged();       // packet should have been removed from transmission list
         if (packetTransmissionInfo.packet.getAcknowledgementsReceivedFlag()) {
           packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.RESENDING;
-        } else if (System.nanoTime() - packetTransmissionInfo.timeOfLastAction >= ACKNOWLEDGEMENT_WAIT_MS * 1000000) {  // timeout waiting for ack: resend the first unacked segment, then wait again
+        } else if (System.nanoTime() - packetTransmissionInfo.timeOfLastAction >= ACKNOWLEDGEMENT_WAIT_MS * MS_TO_NS) {  // timeout waiting for ack: resend the first unacked segment, then wait again
           packetTransmissionInfo.packet.resetToOldestUnacknowledgedSegment();
           Packet250CustomPayload nextSegment = packetTransmissionInfo.packet.getNextUnacknowledgedSegment();
           if (nextSegment != null) {
-            packetSender.sendPacket(nextSegment);
+            sentSomethingFlag = packetSender.sendPacket(nextSegment);
             packetTransmissionInfo.timeOfLastAction = System.nanoTime();
           }
         }
@@ -117,7 +128,7 @@ public class MultipartPacketHandler
         if (nextSegment == null) {
           packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.SENDER_WAITING_FOR_ACK;
         } else {
-          packetSender.sendPacket(nextSegment);
+          sentSomethingFlag = packetSender.sendPacket(nextSegment);
           packetTransmissionInfo.timeOfLastAction = System.nanoTime();
           packetTransmissionInfo.packet.resetToOldestUnacknowledgedSegment();
         }
@@ -127,17 +138,35 @@ public class MultipartPacketHandler
         assert false: "invalid transmission state: " + packetTransmissionInfo.transmissionState;
       }
     }
+    return sentSomethingFlag;
   }
 
+  /**
+   * processes an incoming packet; creates a new MultipartPacket if necessary (calling the LinkageFactory),
+   * informs the appropriate linkage of progress
+   * @param packet
+   * @return true for success, false if packet is invalid or is ignored
+   */
   public boolean processIncomingPacket(Packet250CustomPayload packet)
   {
     Integer packetUniqueID = MultipartPacket.readUniqueID(packet);
     if (packetUniqueID == null) return false;
 
-    if (packetsToIgnoreByID.containsKey(packetUniqueID)) return false;
+    if (abortedPacketsByID.containsKey(packetUniqueID)) {
+      Packet250CustomPayload abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet);
+      if (abortPacket != null) packetSender.sendPacket(abortPacket);
+      return false;
+    }
+
+    if (completedPacketsByID.containsKey(packetUniqueID)) {
+      Packet250CustomPayload fullAckPacket = MultipartPacket.getFullAcknowledgePacketForLostPacket(packet);
+      if (fullAckPacket != null) packetSender.sendPacket(fullAckPacket);
+      return false;
+    }
+
     if (packetsBeingSent.containsKey(packetUniqueID)) {
       PacketTransmissionInfo pti = packetsBeingSent.get(packetUniqueID);
-      boolean success = doProcessIncoming(packetsBeingSent, pti,  packet);
+      boolean success = doProcessIncoming(packetsBeingSent, pti, packet);
       if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
       return success;
 
@@ -185,11 +214,13 @@ public class MultipartPacketHandler
       int uniqueID = packetTransmissionInfo.packet.getUniqueID();
       packetListing.remove(uniqueID);
       long timenow = System.nanoTime();
-      packetsToIgnoreByID.put(uniqueID, timenow);
-      packetsToIgnoreByTime.add(new ImmutablePair<Long, Integer>(timenow, uniqueID));
       if (packetTransmissionInfo.packet.hasBeenAborted()) {
+        abortedPacketsByID.put(uniqueID, timenow);
+        abortedPacketsByTime.add(new ImmutablePair<Long, Integer>(timenow, uniqueID));
         packetTransmissionInfo.linkage.packetAborted();
       } else {
+        completedPacketsByID.put(uniqueID, timenow);
+        completedPacketsByTime.add(new ImmutablePair<Long, Integer>(timenow, uniqueID));
         packetTransmissionInfo.linkage.packetCompleted();
       }
     } else {
@@ -198,10 +229,52 @@ public class MultipartPacketHandler
     return success;
   }
 
+  private static final long TIMEOUT_AGE_S = 120;           // discard "stale" packets older than this - also abort packets and completed receive packets
+  private static final long NS_TO_S = 1000 * 1000 * 1000;
+
+  /**
+   * should be called frequently to handle packet maintenance tasks, especially timeouts, sending of segments within packet, etc
+   */
   public void onTick()
   {
-  //onTick - sends new segments; checks for timeouts, resends segments if necessary
+    // must make a copy to avoid the transmission altering packetsBeingSent while we're iterating through it
+    LinkedList<PacketTransmissionInfo> packetListCopy = new LinkedList<PacketTransmissionInfo>(packetsBeingSent.values());
 
+    for (PacketTransmissionInfo packetTransmissionInfo : packetListCopy) {
+      doTransmission(packetTransmissionInfo);
+    }
+
+    long timeNow =  System.nanoTime();
+    long discardTime = timeNow - TIMEOUT_AGE_S * NS_TO_S;
+
+    // discard old "aborted" packet information
+    while (    abortedPacketsByTime.peek() != null
+            && abortedPacketsByTime.peek().getLeft() < discardTime) {
+      int uniqueIDtoDelete = abortedPacketsByTime.poll().getRight();
+      abortedPacketsByID.remove(uniqueIDtoDelete);
+    }
+
+    // discard old "completed" packet information
+    while (    completedPacketsByTime.peek() != null
+            && completedPacketsByTime.peek().getLeft() < discardTime) {
+      int uniqueIDtoDelete = completedPacketsByTime.poll().getRight();
+      completedPacketsByID.remove(uniqueIDtoDelete);
+    }
+
+    // discard incoming packets which haven't been updated for a long time
+    Iterator<Map.Entry<Integer, PacketTransmissionInfo>> entries = packetsBeingReceived.entrySet().iterator();
+    while (entries.hasNext()) {
+      Map.Entry<Integer, PacketTransmissionInfo> thisEntry = entries.next();
+      PacketTransmissionInfo pti = thisEntry.getValue();
+      if (pti.timeOfLastAction < discardTime) {
+        Packet250CustomPayload packet = pti.packet.getAbortPacket();
+        packetSender.sendPacket(packet);
+        abortedPacketsByID.put(pti.packet.getUniqueID(), timeNow);
+        abortedPacketsByTime.add(new ImmutablePair<Long, Integer>(timeNow, pti.packet.getUniqueID()));
+        thisEntry.getValue().linkage.packetAborted();
+        entries.remove();
+      }
+    }
   }
 
   public void abortPacket(PacketLinkage linkage)
@@ -253,8 +326,12 @@ public class MultipartPacketHandler
   private HashMap<Integer, PacketTransmissionInfo> packetsBeingSent;
   private HashMap<Integer, PacketTransmissionInfo> packetsBeingReceived;
 
-  private HashMap<Integer, Long> packetsToIgnoreByID;
-  private PriorityQueue<Pair<Long, Integer>> packetsToIgnoreByTime;
+  private HashMap<Integer, Long> abortedPacketsByID;
+  private PriorityQueue<Pair<Long, Integer>> abortedPacketsByTime;
+
+  private HashMap<Integer, Long> completedPacketsByID;
+  private PriorityQueue<Pair<Long, Integer>> completedPacketsByTime;
+
   private PacketSender packetSender;
 
 }
