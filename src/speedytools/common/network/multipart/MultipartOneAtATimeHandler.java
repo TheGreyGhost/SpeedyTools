@@ -13,9 +13,9 @@ import java.util.*;
  * Date: 31/03/14
  * CLASS IS NOT COMPLETED
  */
-public class MultipartPacketHandler
+public class MultipartOneAtATimeHandler
 {
-  public MultipartPacketHandler()
+  public MultipartOneAtATimeHandler()
   {
     packetCreatorRegistry = new HashMap<Byte, MultipartPacket.MultipartPacketCreator>();
     packetLinkageFactories = new HashMap<Byte, PacketReceiverLinkageFactory>();
@@ -35,7 +35,8 @@ public class MultipartPacketHandler
 
   /**
    * start sending the given packet.
-   * if the same packet is added multiple times, it is ignored
+   * Only one packet of any given type can be sent at any one time.  If a second packet of the same type is added, the first is aborted.
+   * the packet uniqueID must greater than all previously sent packets
    * @param linkage the linkage that should be used to inform the sender of progress
    * @param packet the packet to be sent.  The uniqueID of the packet must match the unique ID of the linkage!
    * @return true if the packet was successfully added (and hadn't previously been added)
@@ -43,7 +44,18 @@ public class MultipartPacketHandler
   public boolean sendMultipartPacket(PacketLinkage linkage, MultipartPacket packet)
   {
   //  - start transmission, provide a callback
-    if (packetsBeingSent.containsKey(packet.getUniqueID()) || packetsBeingReceived.containsKey(packet.getUniqueID())) return false;
+    byte packetTypeID = packet.getPacketTypeID();
+
+    if (packet.getUniqueID() <= getLastProcessedPacket(packetTypeID)) {
+      throw new IllegalArgumentException("packetID " + packet.getUniqueID() + " was older than a previous saved packetID "+ getLastProcessedPacket(packetTypeID));
+    }
+
+    if (packetsBeingSent.containsKey(packetTypeID)) {
+      if (packet.getUniqueID() <= packetsBeingSent.get(packetTypeID).packet.getUniqueID()) {
+        throw new IllegalArgumentException("packetID " + packet.getUniqueID() + " was older than existing packetID "+ packetsBeingSent.get(packetTypeID).packet.getUniqueID());
+      }
+      abortPacket(packetTypeID);
+    }
     if (linkage.getPacketID() != packet.getUniqueID()) {
       throw new IllegalArgumentException("linkage packetID " + linkage.getPacketID() + " did not match packet packetID "+ packet.getUniqueID());
     }
@@ -54,10 +66,36 @@ public class MultipartPacketHandler
     packetTransmissionInfo.linkage = linkage;
     packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.SENDING_INITIAL_SEGMENTS;
     packetTransmissionInfo.timeOfLastAction = 0;
-    packetsBeingSent.put(linkage.getPacketID(), packetTransmissionInfo);
+    packetsBeingSent.put(packetTypeID, packetTransmissionInfo);
     doTransmission(packetTransmissionInfo);
     linkage.progressUpdate(packet.getPercentComplete());
     return true;
+  }
+
+  private void abortPacket(byte packetTypeID)
+  {
+    PacketTransmissionInfo pti = packetsBeingSent.get(packetTypeID);
+    pti.linkage.packetAborted();
+    Packet250CustomPayload abortPacket = pti.packet.getAbortPacket();
+    packetSender.sendPacket(abortPacket);
+    previousAbortedPacketID.put(packetTypeID, pti.packet.getUniqueID());
+  }
+
+  /**
+   * For a given packetTypeID, returns the last packet uniqueID either completed or aborted
+   * @param packetTypeID
+   * @return the last uniqueID either completed or aborted; or -1 if none
+   */
+  private int getLastProcessedPacket(byte packetTypeID)
+  {
+   int retval = -1;
+    if (previousAbortedPacketID.containsKey(packetTypeID)) {
+      retval = Math.max(retval, previousAbortedPacketID.get(packetTypeID));
+    }
+    if (previousCompletedPacketID.containsKey(packetTypeID)) {
+      retval = Math.max(retval, previousCompletedPacketID.get(packetTypeID));
+    }
+    return retval;
   }
 
   private static final int ACKNOWLEDGEMENT_WAIT_MS = 100;  // minimum ms elapsed between sending a packet and expecting an acknowledgement
@@ -150,22 +188,32 @@ public class MultipartPacketHandler
    */
   public boolean processIncomingPacket(Packet250CustomPayload packet)
   {
+
+    UP TO HERE - need to split send & receive packets
+          Think about different types of msgs
+
     Integer packetUniqueID = MultipartPacket.readUniqueID(packet);
     if (packetUniqueID == null) return false;
 
-    if (abortedPacketsByID.containsKey(packetUniqueID)) {
+    // in case our abort message was never received
+    Byte packetTypeID = MultipartPacket.readPacketTypeID(packet);
+    if (previousAbortedPacketID.get(packetTypeID) == packetUniqueID) {
       Packet250CustomPayload abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet);
       if (abortPacket != null) packetSender.sendPacket(abortPacket);
       return false;
     }
 
-    if (completedPacketsByID.containsKey(packetUniqueID)) {
+    // in case our acknowledgement was never received
+    if (previousCompletedPacketID.get(packetUniqueID) == packetUniqueID) {
       Packet250CustomPayload fullAckPacket = MultipartPacket.getFullAcknowledgePacketForLostPacket(packet);
       if (fullAckPacket != null) packetSender.sendPacket(fullAckPacket);
       return false;
     }
 
-    if (packetsBeingSent.containsKey(packetUniqueID)) {
+    if (packetUniqueID <= getLastProcessedPacket(packetTypeID)
+        || packetUniqueID <     ) return false;  // discard old packets
+
+    if (packetsBeingSent.get(packetTypeID) == ) {
       PacketTransmissionInfo pti = packetsBeingSent.get(packetUniqueID);
       boolean success = doProcessIncoming(packetsBeingSent, pti, packet);
       if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
@@ -324,14 +372,11 @@ public class MultipartPacketHandler
 
   private HashMap<Byte, MultipartPacket.MultipartPacketCreator> packetCreatorRegistry;
   private HashMap<Byte, PacketReceiverLinkageFactory> packetLinkageFactories;
-  private HashMap<Integer, PacketTransmissionInfo> packetsBeingSent;
-  private HashMap<Integer, PacketTransmissionInfo> packetsBeingReceived;
+  private HashMap<Byte, PacketTransmissionInfo> packetsBeingSent;
+  private HashMap<Byte, PacketTransmissionInfo> packetsBeingReceived;
 
-  private HashMap<Integer, Long> abortedPacketsByID;
-  private PriorityQueue<Pair<Long, Integer>> abortedPacketsByTime;
-
-  private HashMap<Integer, Long> completedPacketsByID;
-  private PriorityQueue<Pair<Long, Integer>> completedPacketsByTime;
+  private HashMap<Byte, Integer> previousAbortedPacketID;
+  private HashMap<Byte, Integer> previousCompletedPacketID;
 
   private PacketSender packetSender;
 

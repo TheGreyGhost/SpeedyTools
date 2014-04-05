@@ -347,6 +347,8 @@ public class MultipartPacketTest
 
     ADD A TEST HERE FOR ACKNOWLEDGE_ALL
 
+    TEST for readPacketTypeID
+
 
   }
 

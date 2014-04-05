@@ -68,6 +68,24 @@ public abstract class MultipartPacket
   }
 
   /**
+   * returns the packetTypeID for this packet, assuming it is a MultipartPacket
+   * @param packet
+   * @return the packetTypeID, or null if invalid
+   */
+  public static Byte readPacketTypeID(Packet250CustomPayload packet)
+  {
+    try {
+      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
+      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
+      return chi.packet250CustomPayloadID;
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Exception while reading processIncomingPacket: " + ioe);
+    }
+    return null;
+  }
+
+
+  /**
    * returns the unique ID for this packet
    * @return the packet's unique ID
    */
@@ -75,6 +93,8 @@ public abstract class MultipartPacket
   {
     return commonHeaderInfo.getUniqueID();
   }
+
+  public byte getPacketTypeID() {return commonHeaderInfo.packet250CustomPayloadID; }
 
   /**
    * attempt to process the incoming packet
