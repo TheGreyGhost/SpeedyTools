@@ -84,7 +84,6 @@ public abstract class MultipartPacket
     return null;
   }
 
-
   /**
    * returns the unique ID for this packet
    * @return the packet's unique ID

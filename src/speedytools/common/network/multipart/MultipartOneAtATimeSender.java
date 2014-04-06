@@ -13,12 +13,10 @@ import java.util.*;
  * Date: 31/03/14
  * CLASS IS NOT COMPLETED
  */
-public class MultipartOneAtATimeHandler
+public class MultipartOneAtATimeSender
 {
-  public MultipartOneAtATimeHandler()
+  public MultipartOneAtATimeSender()
   {
-    packetCreatorRegistry = new HashMap<Byte, MultipartPacket.MultipartPacketCreator>();
-    packetLinkageFactories = new HashMap<Byte, PacketReceiverLinkageFactory>();
     abortedPacketsByID = new HashMap<Integer, Long>();
     abortedPacketsByTime = new PriorityQueue<Pair<Long, Integer>>();
   }
@@ -31,7 +29,6 @@ public class MultipartOneAtATimeHandler
   {
     packetSender = newPacketSender;
   }
-
 
   /**
    * start sending the given packet.
@@ -46,8 +43,8 @@ public class MultipartOneAtATimeHandler
   //  - start transmission, provide a callback
     byte packetTypeID = packet.getPacketTypeID();
 
-    if (packet.getUniqueID() <= getLastProcessedPacket(packetTypeID)) {
-      throw new IllegalArgumentException("packetID " + packet.getUniqueID() + " was older than a previous saved packetID "+ getLastProcessedPacket(packetTypeID));
+    if (packet.getUniqueID() <= previousPacketIDs.get(packetTypeID)) {
+      throw new IllegalArgumentException("packetID " + packet.getUniqueID() + " was older than a previous saved packetID "+ previousPacketIDs.get(packetTypeID));
     }
 
     if (packetsBeingSent.containsKey(packetTypeID)) {
@@ -78,24 +75,9 @@ public class MultipartOneAtATimeHandler
     pti.linkage.packetAborted();
     Packet250CustomPayload abortPacket = pti.packet.getAbortPacket();
     packetSender.sendPacket(abortPacket);
-    previousAbortedPacketID.put(packetTypeID, pti.packet.getUniqueID());
-  }
-
-  /**
-   * For a given packetTypeID, returns the last packet uniqueID either completed or aborted
-   * @param packetTypeID
-   * @return the last uniqueID either completed or aborted; or -1 if none
-   */
-  private int getLastProcessedPacket(byte packetTypeID)
-  {
-   int retval = -1;
-    if (previousAbortedPacketID.containsKey(packetTypeID)) {
-      retval = Math.max(retval, previousAbortedPacketID.get(packetTypeID));
-    }
-    if (previousCompletedPacketID.containsKey(packetTypeID)) {
-      retval = Math.max(retval, previousCompletedPacketID.get(packetTypeID));
-    }
-    return retval;
+    assert previousPacketIDs.get(packetTypeID) <= pti.packet.getUniqueID();
+    previousPacketIDs.put(packetTypeID, pti.packet.getUniqueID());
+    packetsBeingSent.remove(packetTypeID);
   }
 
   private static final int ACKNOWLEDGEMENT_WAIT_MS = 100;  // minimum ms elapsed between sending a packet and expecting an acknowledgement
@@ -181,97 +163,45 @@ public class MultipartOneAtATimeHandler
   }
 
   /**
-   * processes an incoming packet; creates a new MultipartPacket if necessary (calling the LinkageFactory),
+   * processes an incoming packet;
    * informs the appropriate linkage of progress
+   * sends an abort packet back if this packet has already been completed
    * @param packet
    * @return true for success, false if packet is invalid or is ignored
    */
   public boolean processIncomingPacket(Packet250CustomPayload packet)
   {
-
-    UP TO HERE - need to split send & receive packets
-          Think about different types of msgs
-
     Integer packetUniqueID = MultipartPacket.readUniqueID(packet);
     if (packetUniqueID == null) return false;
 
-    // in case our abort message was never received
+    // perhaps we sent an abort message that was never received
     Byte packetTypeID = MultipartPacket.readPacketTypeID(packet);
-    if (previousAbortedPacketID.get(packetTypeID) == packetUniqueID) {
+    if (packetUniqueID <= previousPacketIDs.get(packetTypeID)) {
       Packet250CustomPayload abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet);
       if (abortPacket != null) packetSender.sendPacket(abortPacket);
       return false;
     }
-
-    // in case our acknowledgement was never received
-    if (previousCompletedPacketID.get(packetUniqueID) == packetUniqueID) {
-      Packet250CustomPayload fullAckPacket = MultipartPacket.getFullAcknowledgePacketForLostPacket(packet);
-      if (fullAckPacket != null) packetSender.sendPacket(fullAckPacket);
+    PacketTransmissionInfo pti = packetsBeingSent.get(packetTypeID);
+    if (packetUniqueID != pti.packet.getUniqueID()) {
+      ErrorLog.defaultLog().warning("Incoming packetUniqueID " + packetUniqueID + " did not match packet being sent ID " + pti.packet.getUniqueID() + " for packet type " + packetTypeID);
       return false;
     }
-
-    if (packetUniqueID <= getLastProcessedPacket(packetTypeID)
-        || packetUniqueID <     ) return false;  // discard old packets
-
-    if (packetsBeingSent.get(packetTypeID) == ) {
-      PacketTransmissionInfo pti = packetsBeingSent.get(packetUniqueID);
-      boolean success = doProcessIncoming(packetsBeingSent, pti, packet);
-      if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
-      return success;
-
-    } else if (packetsBeingReceived.containsKey(packetUniqueID)) {
-      PacketTransmissionInfo pti = packetsBeingReceived.get(packetUniqueID);
-      boolean success = doProcessIncoming(packetsBeingReceived, pti, packet);
-      if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
-      return success;
-
-    } else {  // new packet for receiving
-      if (!packetCreatorRegistry.containsKey(packet.data[0])) {
-        ErrorLog.defaultLog().warning("Received packet type " + packet.data[0] + " but no corresponding PacketCreator in registry");
-        return false;
-      }
-
-      if (!packetLinkageFactories.containsKey(packet.data[0])) {
-        ErrorLog.defaultLog().warning("Received packet type " + packet.data[0] + " but no corresponding LinkageFactory in registry");
-        return false;
-      }
-
-      MultipartPacket newPacket = packetCreatorRegistry.get(packet.data[0]).createNewPacket(packet);
-      PacketLinkage newLinkage = packetLinkageFactories.get(packet.data[0]).createNewLinkage();
-      if (newPacket == null || newLinkage == null) return false;
-
-      PacketTransmissionInfo packetTransmissionInfo = new PacketTransmissionInfo();
-      packetTransmissionInfo.packet = newPacket;
-      packetTransmissionInfo.linkage = newLinkage;
-      packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.RECEIVING;
-      packetTransmissionInfo.timeOfLastAction = System.nanoTime();
-      packetsBeingReceived.put(newLinkage.getPacketID(), packetTransmissionInfo);
-      boolean success = doProcessIncoming(packetsBeingReceived, packetTransmissionInfo, packet);
-      if (success) newLinkage.progressUpdate(newPacket.getPercentComplete());
-      return success;
-    }
-
+    boolean success = doProcessIncoming(pti, packet);
+    if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
+    return success;
   }
 
-  private boolean doProcessIncoming(HashMap<Integer, PacketTransmissionInfo> packetListing, PacketTransmissionInfo packetTransmissionInfo, Packet250CustomPayload packet)
+  private boolean doProcessIncoming(PacketTransmissionInfo packetTransmissionInfo, Packet250CustomPayload packet)
   {
     boolean success = packetTransmissionInfo.packet.processIncomingPacket(packet);
 
     if (   packetTransmissionInfo.packet.hasBeenAborted()
         || packetTransmissionInfo.packet.allSegmentsReceived()
         || packetTransmissionInfo.packet.allSegmentsAcknowledged()) {
-      int uniqueID = packetTransmissionInfo.packet.getUniqueID();
-      packetListing.remove(uniqueID);
-      long timenow = System.nanoTime();
-      if (packetTransmissionInfo.packet.hasBeenAborted()) {
-        abortedPacketsByID.put(uniqueID, timenow);
-        abortedPacketsByTime.add(new ImmutablePair<Long, Integer>(timenow, uniqueID));
-        packetTransmissionInfo.linkage.packetAborted();
-      } else {
-        completedPacketsByID.put(uniqueID, timenow);
-        completedPacketsByTime.add(new ImmutablePair<Long, Integer>(timenow, uniqueID));
-        packetTransmissionInfo.linkage.packetCompleted();
-      }
+      byte packetTypeID = packetTransmissionInfo.packet.getPacketTypeID();
+      assert previousPacketIDs.get(packetTypeID) <= packetTransmissionInfo.packet.getUniqueID();
+      previousPacketIDs.put(packetTypeID, packetTransmissionInfo.packet.getUniqueID());
+      packetsBeingSent.remove(packetTypeID);
     } else {
       packetTransmissionInfo.linkage.progressUpdate(packetTransmissionInfo.packet.getPercentComplete());
     }
@@ -282,7 +212,7 @@ public class MultipartOneAtATimeHandler
   private static final long NS_TO_S = 1000 * 1000 * 1000;
 
   /**
-   * should be called frequently to handle packet maintenance tasks, especially timeouts, sending of segments within packet, etc
+   * should be called frequently to handle sending of segments within packet, etc
    */
   public void onTick()
   {
@@ -292,55 +222,11 @@ public class MultipartOneAtATimeHandler
     for (PacketTransmissionInfo packetTransmissionInfo : packetListCopy) {
       doTransmission(packetTransmissionInfo);
     }
-
-    long timeNow =  System.nanoTime();
-    long discardTime = timeNow - TIMEOUT_AGE_S * NS_TO_S;
-
-    // discard old "aborted" packet information
-    while (    abortedPacketsByTime.peek() != null
-            && abortedPacketsByTime.peek().getLeft() < discardTime) {
-      int uniqueIDtoDelete = abortedPacketsByTime.poll().getRight();
-      abortedPacketsByID.remove(uniqueIDtoDelete);
-    }
-
-    // discard old "completed" packet information
-    while (    completedPacketsByTime.peek() != null
-            && completedPacketsByTime.peek().getLeft() < discardTime) {
-      int uniqueIDtoDelete = completedPacketsByTime.poll().getRight();
-      completedPacketsByID.remove(uniqueIDtoDelete);
-    }
-
-    // discard incoming packets which haven't been updated for a long time
-    Iterator<Map.Entry<Integer, PacketTransmissionInfo>> entries = packetsBeingReceived.entrySet().iterator();
-    while (entries.hasNext()) {
-      Map.Entry<Integer, PacketTransmissionInfo> thisEntry = entries.next();
-      PacketTransmissionInfo pti = thisEntry.getValue();
-      if (pti.timeOfLastAction < discardTime) {
-        Packet250CustomPayload packet = pti.packet.getAbortPacket();
-        packetSender.sendPacket(packet);
-        abortedPacketsByID.put(pti.packet.getUniqueID(), timeNow);
-        abortedPacketsByTime.add(new ImmutablePair<Long, Integer>(timeNow, pti.packet.getUniqueID()));
-        thisEntry.getValue().linkage.packetAborted();
-        entries.remove();
-      }
-    }
   }
 
   public void abortPacket(PacketLinkage linkage)
   {
 
-  }
-
-  public void registerMultipartPacketType(byte packet250CustomPayloadID, MultipartPacket.MultipartPacketCreator packetCreator)
-  {
-    if (packetCreatorRegistry.containsKey(packet250CustomPayloadID)) throw new IllegalArgumentException("Duplicate packet id:" + packet250CustomPayloadID);
-    packetCreatorRegistry.put(packet250CustomPayloadID, packetCreator);
-  }
-
-  public void registerLinkageFactory(byte packet250CustomPayloadID, PacketReceiverLinkageFactory linkageFactory)
-  {
-    if (packetLinkageFactories.containsKey(packet250CustomPayloadID)) throw new IllegalArgumentException("Duplicate packet id:" + packet250CustomPayloadID);
-    packetLinkageFactories.put(packet250CustomPayloadID, linkageFactory);
   }
 
   /**
@@ -354,14 +240,6 @@ public class MultipartOneAtATimeHandler
     public int getPacketID();
   }
 
-  /**
-   * The Factory creates a new linkage, which will be used to communicate the packet receiving progress to the recipient
-   */
-  public interface PacketReceiverLinkageFactory
-  {
-    public PacketLinkage createNewLinkage();
-  }
-
   private static class PacketTransmissionInfo {
     public MultipartPacket packet;
     public PacketLinkage linkage;
@@ -370,13 +248,8 @@ public class MultipartOneAtATimeHandler
     public enum TransmissionState {RECEIVING, SENDING_INITIAL_SEGMENTS, SENDER_WAITING_FOR_ACK, WAITING_FOR_FIRST_RESEND, RESENDING};
   }
 
-  private HashMap<Byte, MultipartPacket.MultipartPacketCreator> packetCreatorRegistry;
-  private HashMap<Byte, PacketReceiverLinkageFactory> packetLinkageFactories;
   private HashMap<Byte, PacketTransmissionInfo> packetsBeingSent;
-  private HashMap<Byte, PacketTransmissionInfo> packetsBeingReceived;
-
-  private HashMap<Byte, Integer> previousAbortedPacketID;
-  private HashMap<Byte, Integer> previousCompletedPacketID;
+  private HashMap<Byte, Integer> previousPacketIDs;
 
   private PacketSender packetSender;
 
