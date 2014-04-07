@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 
 /**
  * User: The Grey Ghost
@@ -36,7 +35,10 @@ import java.util.LinkedList;
  *    a) verify that once aborted, the getPackets stop working
  * (6) start sending, generate abort packet from receiver, verify sender aborts
  * (7) start sending, getAbortPacketForLostPacket from the packet, verify sender aborts.  Try to generate another abort packet from the first abort packet, verify it fails
+ *       Try to generate another abort packet from the first abort packet, this time with the "acknowledgeAbortPackets" true, and verify it succeeds
  * (8) start sending, getAbortPacketForLostPacket from a received acknowledge packet, verify receiver aborts
+ * (8-1) start sending, getFullAcknowledgePacketForLostPacket and verify that sender goes complete
+ *       start sending, generate an abort packet, call getFullAcknowledgePacketForLostPacket with it, and verify that the sender aborts
  * (9) errors:
  *   a) attempt to use a sender to create Ack packet
  *   b) use receiver to create segment packet
@@ -75,6 +77,8 @@ public class MultipartPacketTest
     Assert.assertTrue(sender.allSegmentsSent());
     Assert.assertTrue(null == sender.getNextUnsentSegment());
 
+    Assert.assertTrue(sender.getPacketTypeID() == PACKET_ID);
+
     MultipartPacketTester receiver = MultipartPacketTester.createReceiverPacket(savedPackets.get(0));
     Assert.assertTrue(receiver != null);
     boolean result;
@@ -91,6 +95,7 @@ public class MultipartPacketTest
     Assert.assertTrue(receiver.getSegmentsReceivedFlag());
     Assert.assertTrue(receiver.allSegmentsReceived());
     Assert.assertTrue(receiver.matchesTestData(TEST_DATA));
+    Assert.assertTrue(receiver.getPacketTypeID() == PACKET_ID);
 
     // test (2)
     final int START_PACKET2 = 2;
@@ -254,12 +259,14 @@ public class MultipartPacketTest
     sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
     sender.setTestData(TEST_DATA);
     packet = sender.getNextUnsentSegment();
-    packet = MultipartPacket.getAbortPacketForLostPacket(packet);
+    packet = MultipartPacket.getAbortPacketForLostPacket(packet, false);
     result = sender.processIncomingPacket(packet);
     Assert.assertTrue(result);
     Assert.assertTrue(sender.hasBeenAborted());
-    packet = MultipartPacket.getAbortPacketForLostPacket(packet);
-    Assert.assertTrue(packet == null);
+    Packet250CustomPayload abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, false);
+    Assert.assertTrue(abortPacket == null);
+    abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, true);
+    Assert.assertTrue(abortPacket != null);
 
     // test (8)
     sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
@@ -271,13 +278,30 @@ public class MultipartPacketTest
     sender2.setTestData(TEST_DATA);
     packet = sender2.getNextUnsentSegment();
     packet = receiver.getAcknowledgementPacket();
-    packet = MultipartPacket.getAbortPacketForLostPacket(packet);
+    packet = MultipartPacket.getAbortPacketForLostPacket(packet, false);
     result = sender.processIncomingPacket(packet);
     Assert.assertTrue(result);
     Assert.assertTrue(sender.hasBeenAborted());
     Assert.assertFalse(sender2.hasBeenAborted());
 
-    // test (9)
+    // test (8-1)
+    sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    sender.setTestData(TEST_DATA);
+    packet = sender.getNextUnsentSegment();
+    packet = MultipartPacket.getFullAcknowledgePacketForLostPacket(packet);
+    result = sender.processIncomingPacket(packet);
+    Assert.assertTrue(result);
+    Assert.assertTrue(sender.allSegmentsAcknowledged());
+
+    sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    sender.setTestData(TEST_DATA);
+    packet = sender.getAbortPacket();
+    packet = MultipartPacket.getFullAcknowledgePacketForLostPacket(packet);
+    Assert.assertTrue(packet != null);
+    packet = MultipartPacket.getAbortPacketForLostPacket(packet, false);
+    Assert.assertTrue(packet == null);
+
+            // test (9)
     sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
     sender.setTestData(TEST_DATA);
     packet = sender.getNextUnsentSegment();
@@ -344,12 +368,6 @@ public class MultipartPacketTest
     Assert.assertFalse(sender.processIncomingPacket(badPacket));
     badPacket = MultipartPacketTester.corruptAckPacket(packet, (short) 2);
     Assert.assertFalse(sender.processIncomingPacket(badPacket));
-
-    ADD A TEST HERE FOR ACKNOWLEDGE_ALL
-
-    TEST for readPacketTypeID
-
-
   }
 
   public static class MultipartPacketTester extends MultipartPacket

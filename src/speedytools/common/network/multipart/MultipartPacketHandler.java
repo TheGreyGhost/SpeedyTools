@@ -154,7 +154,7 @@ public class MultipartPacketHandler
     if (packetUniqueID == null) return false;
 
     if (abortedPacketsByID.containsKey(packetUniqueID)) {
-      Packet250CustomPayload abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet);
+      Packet250CustomPayload abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, false);
       if (abortPacket != null) packetSender.sendPacket(abortPacket);
       return false;
     }

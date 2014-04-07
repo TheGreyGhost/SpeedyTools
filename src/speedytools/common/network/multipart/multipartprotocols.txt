@@ -60,6 +60,7 @@ MultipartPacketHandler is the interface to the client and server code.
   d) first resend has been acknowledged, resending remainder
      once all are resent, return to state (b)
   The transmission of a packet can be aborted by either end.  Upon receiving an abort, the recipient will send an abort back to confirm.
+    The sender will keep sending aborts until the receiver acknowledges.
 
   PacketSenderLinkage interface
   - progressUpdate (how many acknowledgements received)
@@ -104,17 +105,17 @@ Usage:
 Handling of incoming packets:
 (1) packet arrives at MultipartHandler
 (2) calls static method MultipartPacket.getUniqueID
-(3) MultipartHandler looks up the uniqueID in its storage table to see if this packet already exists
+(3) MultipartHandler looks up the uniqueID in its storage table to see if this packet already exists, if it has been aborted, or if it has been fully acknowledged
 (3a) If it exists, the packet is passed to MultipartPacket.processIncomingPacket
 (3b) If it doesn't exist, call the static method MultipartPacket.createFromPacket and add the MultipartPacket to the storage table.
      Look up the CallbackReceiverFactory for that class, generate a CallbackReceiver, and add it to the storage table.
-
+(3c) If it has been aborted by the Receiver, an abort packet is sent
+(3d) If it was completed, an acknowledgement packet is sent.
 
 To add a new type of MultipartPacket:
 (1) create class extending MultipartPacket
 (2) register handler with PacketHandler - each extension of Multipart is given its own handler
 
-Listener
 
 
 

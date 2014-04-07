@@ -298,15 +298,16 @@ public abstract class MultipartPacket
 
   /**
    * create a packet to inform that this multipartPacket lostPacket has been aborted
-   * @return the abort packet, or null if not possible, or if the lostPacket is itself an abort packet
+   * @param acknowledgeAbortPackets - if true, generate an abort packet even if the lostPacket is itself an abort packet
+   * @return the abort packet, or null if not possible, or if the lostPacket is itself an abort packet and acknowledgeAbortPackets is false
    */
-  public static Packet250CustomPayload getAbortPacketForLostPacket(Packet250CustomPayload lostPacket)
+  public static Packet250CustomPayload getAbortPacketForLostPacket(Packet250CustomPayload lostPacket, boolean acknowledgeAbortPackets)
   {
     Packet250CustomPayload retval = null;
     try {
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(lostPacket.data));
       CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
-      if (chi.command == Command.ABORT) return null;
+      if (chi.command == Command.ABORT && !acknowledgeAbortPackets) return null;
 
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
@@ -322,7 +323,7 @@ public abstract class MultipartPacket
 
   /**
    * create a packet to inform that this multipartPacket lostPacket has been completed (ACKNOWLEDGE ALL)
-   * @return the abort packet, or null if not possible, or if the lostPacket is an abort packet
+   * @return the acknowledge packet, or null if not possible, or an abort packet if the lostPacket is an abort packet
    */
   public static Packet250CustomPayload getFullAcknowledgePacketForLostPacket(Packet250CustomPayload lostPacket)
   {
@@ -330,11 +331,10 @@ public abstract class MultipartPacket
     try {
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(lostPacket.data));
       CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
-      if (chi.command == Command.ABORT) return null;
 
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      chi.writeCommonHeader(outputStream, Command.ACKNOWLEDGE_ALL);
+      chi.writeCommonHeader(outputStream, (chi.command == Command.ABORT) ? Command.ABORT : Command.ACKNOWLEDGE_ALL);
       lostPacket.data = bos.toByteArray();
       retval = lostPacket;
     } catch (IOException ioe) {
@@ -482,7 +482,9 @@ public abstract class MultipartPacket
     if (!iAmASender) throw new IOException("received acknowledgement packet on receiver side");
     if (segmentsNotAcknowledged.isEmpty()) return;
     segmentsNotAcknowledged.clear();
+    nextUnsentSegment = segmentCount;
     acknowledgementsReceivedFlag = true;
+    nextUnacknowledgedSegment = segmentCount;
     assert checkInvariants();
   }
 
