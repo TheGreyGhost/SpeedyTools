@@ -2,9 +2,20 @@ Multipart Packets are used to send large amounts of data, bigger than will fit i
 They are designed to be tolerant of network faults such as dropped packets, out-of-order packets, duplicate copies
   of the same packet, loss of connection, etc
 
-MultipartPacketHandler is the interface to the client and server code.
+Currently, the multipartpackets are organised using
+MultipartOneAtATimeReceiver and
+MultipartOneAtATimeSender.
+They are designed to only handle one of each type of multipartpacket at a time (eg Selection, MapData, etc).
 
-  MultipartPacket is the entire payload
+They are linked to the client and server code using "linkages".  This increases their flexibility because they aren't
+   directly coupled to the classes that use them.  The key concepts are:
+(1) when a packet is to be sent, the caller provides MultipartOneAtATimeSender with a "linkage", which the handler then
+    uses to pass information back to the caller.
+(2) when an incoming packet arrives at the receiver, it uses a LinkageFactory (provided by the caller) to create a linkage
+    which then communicates information to the caller.
+Each MultipartOneAtATime Handler can handle multiple different types of packets, once they are registered with it.
+
+MultipartPacket is the entire payload.  It is broken into segments which fit into a Packet250CustomPayload.
 
   Packet250CustomPayload:
   Comprised of a header with
@@ -12,7 +23,7 @@ MultipartPacketHandler is the interface to the client and server code.
   - int uniqueMultipartPacketID (in ascending order) - unique ID for the whole packet
   - byte command type (segment data, acknowledgement of segments, abort)
 
-  For abort packets, no more data.
+  For abort packets and "full acknowledgement" packets, no more data.
   For acknowledgement packets; the bitset showing which packets have been received
   For segment data packets:
   - short segmentNumber - the number of this segment
@@ -41,14 +52,16 @@ MultipartPacketHandler is the interface to the client and server code.
   registerMultipartPacketType - called by the handler; when incoming Packet250 are received, it will compare the packet
      data to the registered types, choose the appropriate class to instantiate, and append it to the container provided
 
-
-  MultipartPacketHandler
-  sendMultipartPacket - start transmission, provide a callback
+  MultipartPacketHandler (MultipartOneAtATimeSender and Receiver)
+  sendMultipartPacket - start transmission, provide a callback linkage
   registerMultipartPacketType - tells the handler what class to call for newPacketStarted for a given MultipartPacket type
   processIncomingPacket - called by PacketHandler, which then calls MultipartPacket methods as appropriate
   onTick - sends new segments; checks for timeouts, resends segments if necessary
 
-  keeps track of completed and aborted packets for a certain length of time
+  The receiver keeps track of completed and aborted packets for a certain length of time, to ensure that late packets still
+    trigger the correct response.
+
+  Communications Protocol:
   Sender sends all segments without waiting for acknowledgement, but if it doesn't get acknowledgement within a certain
     length of time, it will resend a single unacknowledged segment every timeout until it gets acknowledgement
     Once acknowledgement is received, it will send all remaining unacknowledged segments without waiting for each one
@@ -85,22 +98,22 @@ Usage:
 (1) Create MultipartPacketHandler, supply it with a suitable PacketSender (wraps a NetClientHandler or NetServerHandler)
 (1a) Set handler options - packet size, timeout auto-resend, max transmission bandwidth
 (1b) Set up the network packet handler to call MultipartPacketHandler.processIncomingPacket with any suitable incoming packets.
-(2) Define a class implementing the CallbackPacketReceiverFactory for the type of MultipartPacket you are interested in;
+(2) Define a class implementing the PacketReceiverLinkageFactory for the type of MultipartPacket you are interested in;
     Register it with MultipartPacketHandler.registerPacketReceiverFactory
     This object will be called whenever the first incoming segment of the specified MultipartPacket type arrives
-(3) Define a class implementing CallbackPacketReceiver.  This object will be created (by the factory) every time a new packet starts, and is used to
+(3) Define a class implementing PacketLinkage for the receiver.  This object will be created (by the factory) every time a new packet starts, and is used to
     communicate progress to the receiver and provide the assembled packet when transmission is complete
-(4) Define a class implementing CallbackSender.  This object is used to communicate the progress of the transmission back to the sender
+(4) Define a class implementing PacketLinkage for the sender.  This object is used to communicate the progress of the transmission back to the sender
 (5) To send a packet:
   (a) Create the MultipartPacket
-  (b) call MultipartPacketHandler.sendMultipartPacket, providing the packet and the CallbackSender
-  (c) Progress report and completion is pushed from the MultipartPacket using the CallbackSender
-  (d) To abort transmission, use CallbackSender.abort()
+  (b) call MultipartPacketHandler.sendMultipartPacket, providing the packet and the PacketLinkage
+  (c) Progress report and completion is pushed from the MultipartPacket using the PacketLinkage
+  (d) To abort transmission, use MultipartPacketHandler.abort()
 (6) To receive a packet:
-  (a) When the first part of the packet is received by MultipartPacketHandler, CallbackPacketReceiverFactory.newPacketStarted is called to create
-      a CallbackPacketReceiver.
-  (b) The CallbackPacketReceiver is used to keep the receiver informed of progress, and to provide the fully assembled packet when completed
-  (c) to abort transmission, use CallbackReceiver.abort()
+  (a) When the first part of the packet is received by MultipartPacketHandler, PacketReceiverLinkageFactory.newPacketStarted is called to create
+      a PacketLinkage.
+  (b) The PacketLinkage is used to keep the receiver informed of progress, and to provide the fully assembled packet when completed
+  (c) to abort transmission, use MultipartPacketHandler.abort()
 
 Handling of incoming packets:
 (1) packet arrives at MultipartHandler
@@ -108,7 +121,7 @@ Handling of incoming packets:
 (3) MultipartHandler looks up the uniqueID in its storage table to see if this packet already exists, if it has been aborted, or if it has been fully acknowledged
 (3a) If it exists, the packet is passed to MultipartPacket.processIncomingPacket
 (3b) If it doesn't exist, call the static method MultipartPacket.createFromPacket and add the MultipartPacket to the storage table.
-     Look up the CallbackReceiverFactory for that class, generate a CallbackReceiver, and add it to the storage table.
+     Look up the PacketReceiverLinkageFactory for that class, generate a PacketLinkage, and add it to the storage table.
 (3c) If it has been aborted by the Receiver, an abort packet is sent
 (3d) If it was completed, an acknowledgement packet is sent.
 

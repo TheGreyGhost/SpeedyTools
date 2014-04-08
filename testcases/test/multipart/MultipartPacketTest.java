@@ -97,6 +97,28 @@ public class MultipartPacketTest
     Assert.assertTrue(receiver.matchesTestData(TEST_DATA));
     Assert.assertTrue(receiver.getPacketTypeID() == PACKET_ID);
 
+    // test (1-a) - different data lengths
+    for (int datalen = 1; datalen < TEST_DATA.length; ++datalen) {
+      sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+      receiver = null;
+      byte[] testDataTrim = Arrays.copyOfRange(TEST_DATA, 0, datalen);
+      sender.setTestData(testDataTrim);
+      final int segmentCountTrim = (testDataTrim.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+      for (int i = 0; i < segmentCountTrim; ++i) {
+        Assert.assertFalse(sender.allSegmentsSent());
+        Assert.assertTrue(sender.getPercentComplete() == 100 * i / 2 / segmentCountTrim);
+        Packet250CustomPayload packet = sender.getNextUnsentSegment();
+        Assert.assertTrue(packet != null);
+        if (receiver == null) {
+          receiver = MultipartPacketTester.createReceiverPacket(packet);
+        } else {
+          result = receiver.processIncomingPacket(packet);
+          Assert.assertTrue(result);
+        }
+      }
+      Assert.assertTrue(receiver.matchesTestData(testDataTrim));
+    }
+
     // test (2)
     final int START_PACKET2 = 2;
     receiver = MultipartPacketTester.createReceiverPacket(savedPackets.get(START_PACKET2));
