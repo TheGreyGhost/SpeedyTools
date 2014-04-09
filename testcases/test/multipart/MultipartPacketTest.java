@@ -77,8 +77,6 @@ public class MultipartPacketTest
     Assert.assertTrue(sender.allSegmentsSent());
     Assert.assertTrue(null == sender.getNextUnsentSegment());
 
-    Assert.assertTrue(sender.getPacketTypeID() == PACKET_ID);
-
     MultipartPacketTester receiver = MultipartPacketTester.createReceiverPacket(savedPackets.get(0));
     Assert.assertTrue(receiver != null);
     boolean result;
@@ -95,7 +93,6 @@ public class MultipartPacketTest
     Assert.assertTrue(receiver.getSegmentsReceivedFlag());
     Assert.assertTrue(receiver.allSegmentsReceived());
     Assert.assertTrue(receiver.matchesTestData(TEST_DATA));
-    Assert.assertTrue(receiver.getPacketTypeID() == PACKET_ID);
 
     // test (1-a) - different data lengths
     for (int datalen = 1; datalen < TEST_DATA.length; ++datalen) {

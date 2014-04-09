@@ -72,7 +72,7 @@ public abstract class MultipartPacket
    * @param packet
    * @return the packetTypeID, or null if invalid
    */
-  public static Byte readPacketTypeID(Packet250CustomPayload packet)
+/*  public static Byte readPacketTypeID(Packet250CustomPayload packet)
   {
     try {
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
@@ -83,7 +83,7 @@ public abstract class MultipartPacket
     }
     return null;
   }
-
+*/
   /**
    * returns the unique ID for this packet
    * @return the packet's unique ID
@@ -93,7 +93,7 @@ public abstract class MultipartPacket
     return commonHeaderInfo.getUniqueID();
   }
 
-  public byte getPacketTypeID() {return commonHeaderInfo.packet250CustomPayloadID; }
+//  public byte getPacketTypeID() {return commonHeaderInfo.packet250CustomPayloadID; }
 
   /**
    * attempt to process the incoming packet
@@ -632,8 +632,9 @@ public abstract class MultipartPacket
     return true;
   }
 
-  public final int MAX_SEGMENT_COUNT = Short.MAX_VALUE;
-  public final int MAX_SEGMENT_SIZE = 30000;
+  public static final int MAX_SEGMENT_COUNT = Short.MAX_VALUE;
+  public static final int MAX_SEGMENT_SIZE = 30000;
+  public static final int NULL_PACKET_ID = -1;
 
   private String channel;
   private Side whichSideAmIOn;
