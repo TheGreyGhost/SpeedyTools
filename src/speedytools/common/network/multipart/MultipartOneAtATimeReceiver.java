@@ -97,7 +97,7 @@ public class MultipartOneAtATimeReceiver
     }
 
     MultipartPacket newPacket = packetCreatorRegistry.createNewPacket(packet);
-    PacketLinkage newLinkage = packetLinkageFactory.createNewLinkage();
+    PacketLinkage newLinkage = packetLinkageFactory.createNewLinkage(newPacket);
     if (newPacket == null || newLinkage == null) return false;
 
     PacketTransmissionInfo packetTransmissionInfo = new PacketTransmissionInfo();
@@ -195,7 +195,7 @@ public class MultipartOneAtATimeReceiver
    */
   public interface PacketReceiverLinkageFactory
   {
-    public PacketLinkage createNewLinkage();
+    public PacketLinkage createNewLinkage(MultipartPacket linkedPacket);
   }
 
   private static class PacketTransmissionInfo {

@@ -17,6 +17,7 @@ public class MultipartOneAtATimeSender
   {
     packetBeingSent = null;
     previousPacketID = MultipartPacket.NULL_PACKET_ID;
+    abortedPacketAcknowledgements = new TreeMap<Integer, Boolean>();
   }
 
   /**
@@ -229,7 +230,8 @@ public class MultipartOneAtATimeSender
     // must make a copy to avoid the transmission altering packetBeingSent while we're iterating through it
 
     if (packetBeingSent != null) {
-      doTransmission(packetBeingSent);
+      boolean retval = doTransmission(packetBeingSent);
+      if (retval) packetBeingSent.linkage.progressUpdate(packetBeingSent.packet.getPercentComplete());
     }
 
     while (abortedPacketAcknowledgements.size() > MAX_ABORTED_PACKET_COUNT) abortedPacketAcknowledgements.pollFirstEntry();
