@@ -41,16 +41,16 @@ import java.util.Queue;
  *      b) sends all the rest of the unack packets
  *  11) Start a transmission, start a second transmission and verify the first is aborted on both sides.
  *  12) Receiver: Verify that incoming packets for already-completed packets are handled correctly:
- *      abort packet sent if it was aborted
- *      full ACK packet sent if it was completed
+ *      12a) abort packet sent if it was aborted (verify sender aborts after tick)
+ *      12b)full ACK packet sent if it was completed (verify sender completes after tick)
  *
- *    Error checks sendMultipartPacket:
+ *  13) Error checks sendMultipartPacket:
  *    a) send a packet to completion, then send it again
- *    a) generate three, start (2), send (1)
- *    b) generate three, send (1) to completion, start (3), send (2)
- *    c) packet and linkage mismatch
+ *    b) generate three, start (2), send (1)
+ *    c) generate three, send (1) to completion, start (3), send (2)
+ *    d) packet and linkage mismatch
  *
- *    Error checks Sender.incomingPacket
+ *  14)  Error checks Sender.incomingPacket
  *    a) Incoming packetID > newest, during transmission
  *    b) Incoming packetID > newest, while IDLE
  *
@@ -402,23 +402,259 @@ public class MultipartHandlerTest
         lastDroppedPacket = senderSender.sentPackets.poll();
         ++packetCount;
       }
-    } while (packetCount < SEGMENT_COUNT - 1);
+    } while (packetCount < SEGMENT_COUNT);
     long timeTaken = System.nanoTime() - timeNow;
     mpReceiver.processIncomingPacket(lastDroppedPacket);
     while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
 
-    mpSender.onTick();
-    mpSender.onTick();
-    mpSender.onTick();
-    mpSender.onTick();
-    for (packetCount = 0; senderSender.sentPackets.poll() != null; ++packetCount) { };
-    Assert.assertTrue(packetCount == SEGMENT_COUNT - 2);
+    for (int i = 0; i < SEGMENT_COUNT; ++i ) {
+      mpSender.onTick();
+    }
+
+    packetCount = senderSender.sentPackets.size();
+    Assert.assertTrue(packetCount == SEGMENT_COUNT - 1);
     Assert.assertTrue(senderLinkage.completedCount == 0);
     Assert.assertTrue(receiverLinkage.completedCount == 0);
     while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
     while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
     Assert.assertTrue(senderLinkage.completedCount == 1);
     Assert.assertTrue(receiverLinkage.completedCount == 1);
+  }
+
+  @Test
+  public void testSendMultipartPacket11() throws Exception
+  {
+    // test (11)
+    MultipartPacketTest.MultipartPacketTester sender1 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    MultipartPacketTest.MultipartPacketTester sender2 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+
+    final byte[] TEST_DATA1 = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
+    final byte[] TEST_DATA2 = {53, 10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
+    final int SEGMENT_COUNT2 = (TEST_DATA2.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+
+    sender1.setTestData(TEST_DATA1);
+    sender2.setTestData(TEST_DATA2);
+
+    SenderLinkage senderLinkage1 = new SenderLinkage(sender1);
+    SenderLinkage senderLinkage2 = new SenderLinkage(sender2);
+    mpSender.sendMultipartPacket(senderLinkage1, sender1);
+    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+
+    ReceiverLinkage receiverLinkageBackup = receiverLinkage;
+    mpSender.onTick();
+    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+
+    mpSender.sendMultipartPacket(senderLinkage2, sender2);
+    Assert.assertTrue(senderLinkage1.abortedCount == 1);
+    Assert.assertTrue(senderLinkage2.abortedCount == 0);
+    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    Assert.assertTrue(receiverLinkageBackup.abortedCount == 1);
+    Assert.assertTrue(receiverLinkage.abortedCount == 0);
+
+    for (int i = 0; i < SEGMENT_COUNT2; ++i ) {
+      mpSender.onTick();
+      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    }
+    Assert.assertTrue(senderLinkage2.completedCount == 1);
+    Assert.assertTrue(receiverLinkage.completedCount == 1);
+    Assert.assertTrue(receivedPacket.matchesTestData(TEST_DATA2));
+  }
+
+  @Test
+  public void testSendMultipartPacket12a() throws Exception
+  {
+    // test (12a)
+    MultipartPacketTest.MultipartPacketTester sender = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+
+    final byte[] TEST_DATA = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
+    sender.setTestData(TEST_DATA);
+    final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+
+    senderLinkage = new SenderLinkage(sender);
+    mpSender.sendMultipartPacket(senderLinkage, sender);
+    Packet250CustomPayload droppedPacket;
+    for (int i= 1; i < SEGMENT_COUNT; ++i) {
+      mpSender.onTick();
+      if (i == 2) {
+        mpReceiver.abortPacket(receiverLinkage);
+      }
+      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    }
+    Assert.assertTrue(receiverLinkage.abortedCount == 1);
+    Assert.assertTrue(senderLinkage.abortedCount == 0);
+
+    while (null != receiverSender.sentPackets.poll());
+
+    final long WAIT_TIME_NS = 1500 * 1000 * 1000;
+    long startTime = System.nanoTime();
+    while (System.nanoTime() - startTime < WAIT_TIME_NS) {
+      mpSender.onTick();
+      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    }
+    Assert.assertTrue(receiverLinkage.abortedCount == 1);
+    Assert.assertTrue(senderLinkage.abortedCount == 1);
+  }
+
+  @Test
+  public void testSendMultipartPacket12b() throws Exception
+  {
+    // test (12b)
+    MultipartPacketTest.MultipartPacketTester sender = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+
+    final byte[] TEST_DATA = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
+    sender.setTestData(TEST_DATA);
+    final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+
+    senderLinkage = new SenderLinkage(sender);
+    mpSender.sendMultipartPacket(senderLinkage, sender);
+    Packet250CustomPayload droppedPacket;
+    for (int i= 1; i < SEGMENT_COUNT; ++i) {
+      mpSender.onTick();
+      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    }
+    Assert.assertTrue(receiverLinkage.completedCount == 1);
+    Assert.assertTrue(senderLinkage.completedCount == 0);
+
+    while (null != receiverSender.sentPackets.poll());
+
+    final long WAIT_TIME_NS = 1500 * 1000 * 1000;
+    long startTime = System.nanoTime();
+    while (System.nanoTime() - startTime < WAIT_TIME_NS) {
+      mpSender.onTick();
+      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    }
+    Assert.assertTrue(receiverLinkage.completedCount == 1);
+    Assert.assertTrue(senderLinkage.completedCount == 1);
+  }
+
+  @Test
+  public void testSendMultipartPacket13() throws Exception
+  {
+    // test (13)
+    MultipartPacketTest.MultipartPacketTester sender = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+
+    final byte[] TEST_DATA = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
+    sender.setTestData(TEST_DATA);
+    final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+
+    senderLinkage = new SenderLinkage(sender);
+    mpSender.sendMultipartPacket(senderLinkage, sender);
+    for (int i= 0; i < SEGMENT_COUNT; ++i) {
+      mpSender.onTick();
+      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    }
+    Assert.assertTrue(receiverLinkage.completedCount == 1);
+    Assert.assertTrue(senderLinkage.completedCount == 1);
+    senderLinkage = new SenderLinkage(sender);
+    boolean threw = false;
+    try {
+      mpSender.sendMultipartPacket(senderLinkage, sender);
+    } catch (IllegalArgumentException iae) {
+      threw = true;
+    }
+    Assert.assertTrue(threw);
+
+    //(13b)
+    MultipartPacketTest.MultipartPacketTester sender1 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    MultipartPacketTest.MultipartPacketTester sender2 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    MultipartPacketTest.MultipartPacketTester sender3 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    sender1.setTestData(TEST_DATA);
+    sender2.setTestData(TEST_DATA);
+    sender3.setTestData(TEST_DATA);
+
+    SenderLinkage senderLinkage1 = new SenderLinkage(sender1);
+    SenderLinkage senderLinkage2 = new SenderLinkage(sender2);
+    SenderLinkage senderLinkage3 = new SenderLinkage(sender3);
+    mpSender.sendMultipartPacket(senderLinkage2, sender2);
+    try {
+      threw = false;
+      mpSender.sendMultipartPacket(senderLinkage1, sender1);
+    } catch (IllegalArgumentException iae) {
+      threw = true;
+    }
+    Assert.assertTrue(threw);
+
+    // (13c)
+    sender1 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    sender2 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    sender3 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    sender1.setTestData(TEST_DATA);
+    sender2.setTestData(TEST_DATA);
+    sender3.setTestData(TEST_DATA);
+    senderLinkage1 = new SenderLinkage(sender1);
+    senderLinkage2 = new SenderLinkage(sender2);
+    senderLinkage3 = new SenderLinkage(sender3);
+
+    while (null != senderSender.sentPackets.poll());
+    while (null != receiverSender.sentPackets.poll());
+
+    mpSender.sendMultipartPacket(senderLinkage1, sender1);
+
+    for (int i= 0; i < SEGMENT_COUNT; ++i) {
+      mpSender.onTick();
+      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    }
+    mpSender.sendMultipartPacket(senderLinkage3, sender3);
+
+    try {
+      threw = false;
+      mpSender.sendMultipartPacket(senderLinkage2, sender2);
+    } catch (IllegalArgumentException iae) {
+      threw = true;
+    }
+    Assert.assertTrue(threw);
+
+    sender1 = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+    sender1.setTestData(TEST_DATA);
+
+    try {
+      threw = false;
+      mpSender.sendMultipartPacket(senderLinkage2, sender1);
+    } catch (IllegalArgumentException iae) {
+      threw = true;
+    }
+    Assert.assertTrue(threw);
+
+
+  }
+  @Test
+  public void testSendMultipartPacket14() throws Exception
+  {
+    // test (13)
+    MultipartPacketTest.MultipartPacketTester sender = MultipartPacketTest.MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
+
+    final byte[] TEST_DATA = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
+    sender.setTestData(TEST_DATA);
+    final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+
+    senderLinkage = new SenderLinkage(sender);
+    mpSender.sendMultipartPacket(senderLinkage, sender);
+    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    Packet250CustomPayload ackPacket;
+    ackPacket = receiverSender.sentPackets.poll();
+    Packet250CustomPayload badPacket;
+
+    final byte ARBITRARY_COMMAND = 2;
+    final int MUCH_HIGHER_UNIQUE_ID = 1353;
+    badPacket = MultipartPacketTest.MultipartPacketTester.corruptPacket(ackPacket, 0, PACKET_ID, MUCH_HIGHER_UNIQUE_ID, ARBITRARY_COMMAND);
+    boolean result = mpSender.processIncomingPacket(badPacket);
+    Assert.assertTrue(!result);
+
+    for (int i= 0; i < SEGMENT_COUNT; ++i) {
+      mpSender.onTick();
+      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    }
+    Assert.assertTrue(receiverLinkage.completedCount == 1);
+    Assert.assertTrue(senderLinkage.completedCount == 1);
+    result = mpSender.processIncomingPacket(badPacket);
+    Assert.assertTrue(!result);
   }
 
 
