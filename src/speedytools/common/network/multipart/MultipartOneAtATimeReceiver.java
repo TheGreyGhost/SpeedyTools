@@ -9,7 +9,23 @@ import java.util.*;
 /**
  * User: The Grey Ghost
  * Date: 31/03/14
- * CLASS IS NOT COMPLETED
+ * Multipart Packets are used to send large amounts of data, bigger than will fit into a single Packet250CustomPayload.
+ * They are designed to be tolerant of network faults such as dropped packets, out-of-order packets, duplicate copies
+ *  of the same packet, loss of connection, etc
+ *  See MultipartProtocols.txt and MultipartPacket.png
+ * The MultipartOneAtATimeReceiver and MultipartOneAtATimeSender are designed to only handle one of each
+ * type of multipartpacket at a time (eg Selection, MapData, etc).  If another packet is sent before the first is
+ * finished, the first packet is aborted.
+ * Usage:
+ * (1) Instantiate MultipartOneAtATimeReceiver
+ * (2) setPacketSender with the appropriate PacketSender (wrapper for either a NetClientHandler or NetServerHandler)
+ * (3) registerPacketCreator to register your PacketCreator.  The PacketCreator takes an incoming Packet250CustomPayload
+ *     and turns it into the appropriate MultipartPacket class.
+ * (4) registerLinkageFactory to register your LinkageFactory.  The LinkageFactory is used to create an appropriate
+ *     PacketLinkage, used to inform the receiving class about the progress of the transmission.
+ * (5) When incoming packets arrive, process them with processIncomingPacket
+ * (6) Periodically (eg once per second) call onTick() to handle timeouts
+ * (7) To abort an incoming packet, call abortPacket
  */
 public class MultipartOneAtATimeReceiver
 {
@@ -118,28 +134,30 @@ public class MultipartOneAtATimeReceiver
     boolean success = packetTransmissionInfo.packet.processIncomingPacket(packet);
 
     if (   packetTransmissionInfo.packet.hasBeenAborted()
-        || packetTransmissionInfo.packet.allSegmentsReceived()
-        || packetTransmissionInfo.packet.allSegmentsAcknowledged()) {
+        || packetTransmissionInfo.packet.allSegmentsReceived()) {
       int uniqueID = packetTransmissionInfo.packet.getUniqueID();
-      packetBeingReceived = null;
       if (packetTransmissionInfo.packet.hasBeenAborted()) {
         abortedPacketIDs.add(uniqueID);
         packetTransmissionInfo.linkage.packetAborted();
       } else {
         completedPacketIDs.add(uniqueID);
         packetTransmissionInfo.linkage.packetCompleted();
+        Packet250CustomPayload ackPacket = packetBeingReceived.packet.getAcknowledgementPacket();
+        packetSender.sendPacket(ackPacket);
       }
+      packetBeingReceived = null;
     } else {
       packetTransmissionInfo.linkage.progressUpdate(packetTransmissionInfo.packet.getPercentComplete());
+      Packet250CustomPayload ackPacket = packetBeingReceived.packet.getAcknowledgementPacket();
+      packetSender.sendPacket(ackPacket);
     }
     return success;
   }
 
   private static final long TIMEOUT_AGE_S = 120;           // discard "stale" packets older than this - also abort packets and completed receive packets
   private static final long NS_TO_S = 1000 * 1000 * 1000;
-  private final int MAX_ABORTED_PACKET_COUNT = 100;  // retain this many aborted packet IDs
-  private final int MAX_COMPLETED_PACKET_COUNT = 100;  // retain this many completed packet IDs
-
+  private static final int MAX_ABORTED_PACKET_COUNT = 100;  // retain this many aborted packet IDs
+  private static final int MAX_COMPLETED_PACKET_COUNT = 100;  // retain this many completed packet IDs
   /**
    * should be called frequently to handle packet maintenance tasks, especially timeouts
    */

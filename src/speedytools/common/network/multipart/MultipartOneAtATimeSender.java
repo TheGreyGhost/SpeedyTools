@@ -9,7 +9,21 @@ import java.util.*;
 /**
  * User: The Grey Ghost
  * Date: 31/03/14
- *
+ * Multipart Packets are used to send large amounts of data, bigger than will fit into a single Packet250CustomPayload.
+ * They are designed to be tolerant of network faults such as dropped packets, out-of-order packets, duplicate copies
+ *  of the same packet, loss of connection, etc
+ *  See MultipartProtocols.txt and MultipartPacket.png
+ * The MultipartOneAtATimeReceiver and MultipartOneAtATimeSender are designed to only handle one of each
+ * type of multipartpacket at a time (eg Selection, MapData, etc).  If another packet is sent before the first is
+ * finished, the first packet is aborted.
+ * Usage:
+ * (1) Instantiate MultipartOneAtATimeSender
+ * (2) setPacketSender with the appropriate PacketSender (wrapper for either a NetClientHandler or NetServerHandler)
+ * (3) sendMultipartPacket to send your MultipartPacket, with an appropriate PacketLinkage used to keep your class
+ *     informed of transmission progress.
+ * (4) When incoming packets arrive, process them with processIncomingPacket
+ * (5) Periodically (eg each tick) call onTick() to send next segment, handle timeouts, etc
+ * (6) To abort a packet, call abortPacket
  */
 public class MultipartOneAtATimeSender
 {
@@ -17,7 +31,8 @@ public class MultipartOneAtATimeSender
   {
     packetBeingSent = null;
     previousPacketID = MultipartPacket.NULL_PACKET_ID;
-    abortedPacketAcknowledgements = new TreeMap<Integer, Boolean>();
+    abortedPackets = new TreeSet<Integer>();
+    unacknowledgedAbortPackets = new TreeMap<Integer, Packet250CustomPayload>();
   }
 
   /**
@@ -80,7 +95,8 @@ public class MultipartOneAtATimeSender
     assert previousPacketID <= packetUniqueID;
     previousPacketID = packetUniqueID;
     packetBeingSent = null;
-    abortedPacketAcknowledgements.put(packetUniqueID, false);
+    abortedPackets.add(packetUniqueID);
+    unacknowledgedAbortPackets.put(packetUniqueID, abortPacket);
   }
 
   private static final int ACKNOWLEDGEMENT_WAIT_MS = 100;  // minimum ms elapsed between sending a packet and expecting an acknowledgement
@@ -154,7 +170,6 @@ public class MultipartOneAtATimeSender
         } else {
           sentSomethingFlag = packetSender.sendPacket(nextSegment);
           packetTransmissionInfo.timeOfLastAction = System.nanoTime();
-          packetTransmissionInfo.packet.resetToOldestUnacknowledgedSegment();
         }
         break;
       }
@@ -182,11 +197,11 @@ public class MultipartOneAtATimeSender
     // (2) if the receiver has previously replied with an abort, ignore it.  Otherwise,
     // (3) reply with abort - unless the incoming packet is also an abort packet, i.e. is an acknowledgement of our abort.
     if (packetUniqueID <= previousPacketID) {
-      if (!abortedPacketAcknowledgements.containsKey(packetUniqueID)) return false;
-      if (abortedPacketAcknowledgements.get(packetUniqueID)) return false;              // already received abort ACK
+      if (!abortedPackets.contains(packetUniqueID)) return false;
+      if (!unacknowledgedAbortPackets.containsKey(packetUniqueID)) return false;    // if not in map, already received abort ACK
       Packet250CustomPayload abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, false);
       if (abortPacket == null) {
-        abortedPacketAcknowledgements.put(packetUniqueID, true);
+        unacknowledgedAbortPackets.remove(packetUniqueID);
       } else {
         packetSender.sendPacket(abortPacket);
       }
@@ -214,6 +229,12 @@ public class MultipartOneAtATimeSender
         || packetTransmissionInfo.packet.allSegmentsAcknowledged()) {
       assert previousPacketID < packetTransmissionInfo.packet.getUniqueID();
       previousPacketID = packetTransmissionInfo.packet.getUniqueID();
+      if (packetTransmissionInfo.packet.hasBeenAborted()) {
+        packetBeingSent.linkage.packetAborted();
+        abortedPackets.add(packetTransmissionInfo.packet.getUniqueID());
+      } else {
+        packetBeingSent.linkage.packetCompleted();
+      }
       packetBeingSent = null;
     } else {
       packetTransmissionInfo.linkage.progressUpdate(packetTransmissionInfo.packet.getPercentComplete());
@@ -222,19 +243,28 @@ public class MultipartOneAtATimeSender
   }
 
   private final int MAX_ABORTED_PACKET_COUNT = 100;  // retain this many aborted packet IDs
+  private final long ABORT_RESEND_DELAY_NS = 1000 * 1000 * 1000;  // how often to resend abort packets if no response recvd.
   /**
    * should be called frequently to handle sending of segments within packet, etc
    */
   public void onTick()
   {
-    // must make a copy to avoid the transmission altering packetBeingSent while we're iterating through it
 
     if (packetBeingSent != null) {
       boolean retval = doTransmission(packetBeingSent);
       if (retval) packetBeingSent.linkage.progressUpdate(packetBeingSent.packet.getPercentComplete());
     }
 
-    while (abortedPacketAcknowledgements.size() > MAX_ABORTED_PACKET_COUNT) abortedPacketAcknowledgements.pollFirstEntry();
+      // any aborts which haven't been acknowledged - send again
+    long timeNow = System.nanoTime();
+    if (timeNow - timeLastAbortPacketSent > ABORT_RESEND_DELAY_NS) {
+      timeLastAbortPacketSent = timeNow;
+      for (Map.Entry<Integer, Packet250CustomPayload> entry : unacknowledgedAbortPackets.entrySet()) {
+        packetSender.sendPacket(entry.getValue());
+      }
+    }
+
+    while (abortedPackets.size() > MAX_ABORTED_PACKET_COUNT) abortedPackets.pollFirst();
   }
 
   // abort the packet associated with this linkage
@@ -266,7 +296,9 @@ public class MultipartOneAtATimeSender
 
   private PacketTransmissionInfo packetBeingSent;
   private int previousPacketID;
-  private TreeMap<Integer, Boolean> abortedPacketAcknowledgements;
+  private TreeSet<Integer> abortedPackets;
+  private TreeMap<Integer, Packet250CustomPayload> unacknowledgedAbortPackets;
+  private long timeLastAbortPacketSent = -1;
 
   private PacketSender packetSender;
 

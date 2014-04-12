@@ -1,6 +1,7 @@
 Multipart Packets are used to send large amounts of data, bigger than will fit into a single Packet250CustomPayload.
 They are designed to be tolerant of network faults such as dropped packets, out-of-order packets, duplicate copies
   of the same packet, loss of connection, etc
+See MultipartPacket.png
 
 Currently, the multipartpackets are organised using
 MultipartOneAtATimeReceiver and
@@ -60,6 +61,8 @@ MultipartPacket is the entire payload.  It is broken into segments which fit int
 
   The receiver keeps track of completed and aborted packets for a certain length of time, to ensure that late packets still
     trigger the correct response.
+  The Sender will wait for an acknowledgement of an abort packet; if it doesn't get one, it will resend at periodic intervals.
+  The Receiver only sends one abort packet.  If the Sender keeps sending segments, the receiver responds with aborts.
 
   Communications Protocol:
   Sender sends all segments without waiting for acknowledgement, but if it doesn't get acknowledgement within a certain
@@ -117,7 +120,7 @@ Usage:
 
 Handling of incoming packets:
 (1) packet arrives at MultipartHandler
-(2)
+(2) -deleted-
 (3) MultipartHandler looks up the uniqueID  to see if this packet already exists, if it has been aborted, or if it has been fully acknowledged
 (3a) If it exists, the packet is passed to MultipartPacket.processIncomingPacket
 (3b) If it doesn't exist, call the static method MultipartPacket.createFromPacket and add the MultipartPacket to the storage table.
