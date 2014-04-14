@@ -78,7 +78,7 @@ public class RenderEventHandler
       ItemSpeedyTool.setCurrentToolSelection(itemSpeedyTool, blockToPlace, selection);
 
       if (selection.isEmpty()) return;
-      itemSpeedyTool.renderSelection(player, partialTick);
+      //  itemSpeedyTool.renderSelection(player, partialTick);
     }
 
     if (cloneToolHeld) {

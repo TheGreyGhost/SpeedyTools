@@ -1,5 +1,6 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -7,6 +8,7 @@ import net.minecraft.util.*;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
+import speedytools.clientside.ClientSide;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemCloneTool;
 import speedytools.common.items.ItemSpeedyTool;
@@ -59,6 +61,7 @@ public class ItemEventHandler {
     if (!speedyToolHeld && !cloneToolHeld) return;
 
     if (speedyToolHeld) {
+      /*
       ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)currentItem.getItem();
 
       // the block to be placed is the one to the left of the tool in the hotbar
@@ -72,7 +75,12 @@ public class ItemEventHandler {
       ItemSpeedyTool.setCurrentToolSelection(itemSpeedyTool, blockToPlace, selection);
 
       if (selection.isEmpty()) return;
-      itemSpeedyTool.renderSelection(player, partialTick);
+      */
+      EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
+      ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
+      ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, partialTick);
+      //itemSpeedyTool.renderSelection(player, partialTick);
+
     }
 
     if (cloneToolHeld) {

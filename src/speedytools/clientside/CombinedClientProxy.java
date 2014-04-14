@@ -8,6 +8,7 @@ import speedytools.clientside.userinput.ClientTickHandler;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
+import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ClientStatus;
 
 /**
@@ -50,5 +51,7 @@ public class CombinedClientProxy extends CommonProxy {
     MinecraftForge.EVENT_BUS.register(new RenderEventHandler());
     TickRegistry.registerTickHandler(new ClientTickHandler(), Side.CLIENT);
     ClientSide.initialise();
+
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong, new SpeedyToolWandStrong(ClientSide.speedyToolRenderers));
   }
 }

@@ -78,44 +78,6 @@ public abstract class ItemSpeedyTool extends Item
     return retval;
   }
 
-  public final int SELECTION_BOX_STYLE = 0; //0 = cube, 1 = cube with cross on each side
-
-  public void renderSelection(EntityPlayer player, float partialTick)
-  {
-    GL11.glEnable(GL11.GL_BLEND);
-    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-    GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
-    GL11.glLineWidth(2.0F);
-    GL11.glDisable(GL11.GL_TEXTURE_2D);
-    GL11.glDepthMask(false);
-    double expandDistance = 0.002F;
-
-    double playerOriginX = player.lastTickPosX + (player.posX - player.lastTickPosX) * (double)partialTick;
-    double playerOriginY = player.lastTickPosY + (player.posY - player.lastTickPosY) * (double)partialTick;
-    double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
-
-    AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
-    for (ChunkCoordinates block : currentlySelectedBlocks) {
-      boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX+1, block.posY+1, block.posZ+1);
-      boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOriginX, -playerOriginY, -playerOriginZ);
-      switch (SELECTION_BOX_STYLE) {
-        case 0: {
-          SelectionBoxRenderer.drawCube(boundingBox);
-          break;
-        }
-        case 1: {
-          SelectionBoxRenderer.drawFilledCube(boundingBox);
-          break;
-        }
-      }
-    }
-
-    GL11.glDepthMask(true);
-    GL11.glEnable(GL11.GL_TEXTURE_2D);
-    GL11.glDisable(GL11.GL_BLEND);
-  }
-
-
   /**
   * Selects the a straight line of Blocks that will be affected by the tool when the player presses right-click
   * @param target the position of the cursor

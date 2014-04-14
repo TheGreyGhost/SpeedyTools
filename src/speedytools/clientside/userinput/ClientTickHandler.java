@@ -5,6 +5,7 @@ import cpw.mods.fml.common.TickType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
+import speedytools.clientside.ClientSide;
 import speedytools.common.items.ItemCloneTool;
 import speedytools.common.items.ItemSpeedyTool;
 
@@ -25,9 +26,11 @@ public class ClientTickHandler implements ITickHandler {
   {
     if (!type.contains(TickType.CLIENT)) return;
 
+
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player != null) {
       ItemStack heldItem = player.getHeldItem();
+      ClientSide.activeTool.setHeldItem(heldItem);
       boolean speedyOrCloneToolHeld = heldItem != null
                                && (   ItemSpeedyTool.isAspeedyTool(heldItem.itemID)
                                    || ItemCloneTool.isAcloneTool(heldItem.itemID)   );
