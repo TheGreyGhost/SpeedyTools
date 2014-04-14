@@ -1,5 +1,7 @@
 package speedytools.serverside;
 
+import cpw.mods.fml.relauncher.Side;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.Packet250CloneToolAcknowledge.Acknowledgement;
@@ -29,6 +31,9 @@ public class CloneToolsNetworkServer
 
     cloneToolServerActions = i_cloneToolServerActions;
     cloneToolServerActions.setCloneToolsNetworkServer(this);
+
+    packetHandlerCloneToolUse = this.new PacketHandlerCloneToolUse();
+    PacketHandler.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID(), packetHandlerCloneToolUse);
   }
 
   public void addPlayer(EntityPlayerMP newPlayer)
@@ -269,6 +274,16 @@ public class CloneToolsNetworkServer
     }
   }
 
+  public class PacketHandlerCloneToolUse implements PacketHandler.PacketHandlerMethod {
+    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
+    {
+      Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
+      if (toolUsePacket == null || toolUsePacket == null || !toolUsePacket.validForSide(Side.SERVER)) return false;
+      CloneToolsNetworkServer.this.handlePacket((EntityPlayerMP) player, toolUsePacket);
+      return true;
+    }
+  }
+
   private Map<EntityPlayerMP, ClientStatus> playerStatuses;
   private Map<EntityPlayerMP, Integer> lastAcknowledgedAction;
   private Map<EntityPlayerMP, Packet250CustomPayload> lastAcknowledgedActionPacket;
@@ -289,4 +304,5 @@ public class CloneToolsNetworkServer
   private byte serverPercentComplete = 0;
   private CloneToolServerActions cloneToolServerActions;
   private EntityPlayerMP playerBeingServiced;
+  private PacketHandlerCloneToolUse packetHandlerCloneToolUse;
 }

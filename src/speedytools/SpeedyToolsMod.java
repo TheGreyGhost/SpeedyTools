@@ -11,7 +11,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 
 
-@Mod(modid="speedytoolsmod", name="Build Faster Mod", version="1.0.0")
+@Mod(modid="speedytoolsmod", name="Build Faster Mod", version="2.0.0")
 @NetworkMod(clientSideRequired=true, serverSideRequired=true, channels={"speedytools"}, packetHandler = PacketHandler.class)
 public class SpeedyToolsMod {
 
@@ -20,7 +20,7 @@ public class SpeedyToolsMod {
   public static speedytools.SpeedyToolsMod instance;
 
   // Says where the client and server 'proxy' code is loaded.
-  @SidedProxy(clientSide="speedytools.clientonly.CombinedClientProxy", serverSide="speedytools.serveronly.DedicatedServerProxy")
+  @SidedProxy(clientSide="speedytools.clientside.CombinedClientProxy", serverSide="speedytools.serverside.DedicatedServerProxy")
   public static CommonProxy proxy;
 
   @EventHandler

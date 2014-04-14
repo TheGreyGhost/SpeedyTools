@@ -5,6 +5,7 @@ import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.INetworkManager;
 import net.minecraft.network.packet.Packet250CustomPayload;
@@ -88,9 +89,13 @@ public class PacketHandler implements IPacketHandler
             handlerMethod = serverSideHandlers.get(packetID);
           }
           if (handlerMethod != null) {
-           handlerMethod.handlePacket(packetID, packet);
+            boolean packetValid;
+            packetValid = handlerMethod.handlePacket((EntityPlayer)playerEntity, packet);
+            if (!packetValid) {
+              malformedPacketError(side, playerEntity, "Invalid packet received");
+            }
           } else {
-            malformedPacketError(side, playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID");
+            malformedPacketError(side, playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID " + packetID + " on side " + side);
           }
           return;
         }
@@ -99,8 +104,12 @@ public class PacketHandler implements IPacketHandler
     }
   }
 
+  /**
+   * The class used to handle the incoming packet
+   * handlePacket returns true if this was a valid packet, false otherwise
+   */
   public static interface PacketHandlerMethod {
-    public void handlePacket(byte packetID, Packet250CustomPayload packet);
+      public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet);
   }
 
   public static void registerHandlerMethod(Side side, byte packetID, PacketHandlerMethod handlerMethod)
