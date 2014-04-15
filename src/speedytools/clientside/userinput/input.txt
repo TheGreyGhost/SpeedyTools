@@ -1,0 +1,44 @@
+Input required by different tools:
+
+speedy tools
+left click undo
+right click place
+hold control for diagonal
+ctrl + mousewheel for change number
+
+selection
+right click place ends
+right click lock on to boundary / unlock from
+left click clear boundary
+
+clone tool
+right click to create selection
+
+right click lock on / unlock
+right hold place
+left hold unplace
+ctrl & scroll wheel rotate
+control & right flip L-R
+
+So the basic inputs are:
+(1) left quick click
+(2) right quick click
+(3) ctrl key down or up
+(4) mousewheel up/down (while holding ctrl)
+(5) left holding - keydown, keyup
+(6) right holding - keydown, keyup
+
+So; process input - if it is held & release for less than x ticks - pass as a click
+if longer -
+send keydown, keyup for L&R
+ctrl is status
+mousewheel up/down event
+
+have a processUserInput method with
+
+all are events except ctrl.
+L or R click (with/without ctrl)
+L or R holdstart (with/without ctrl)
+L or R holdfinish
+Mousewheel
+
