@@ -30,11 +30,17 @@ public class ClientTickHandler implements ITickHandler {
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player != null) {
       ItemStack heldItem = player.getHeldItem();
-      ClientSide.activeTool.setHeldItem(heldItem);
-      boolean speedyOrCloneToolHeld = heldItem != null
-                               && (   ItemSpeedyTool.isAspeedyTool(heldItem.itemID)
-                                   || ItemCloneTool.isAcloneTool(heldItem.itemID)   );
-      SpeedyToolControls.enableClickInterception(speedyOrCloneToolHeld);
+      boolean speedyToolHeld = ClientSide.activeTool.setHeldItem(heldItem);
+      if (speedyToolHeld) {
+        ClientSide.userInput.activate();
+        SpeedyToolControls.enableClickInterception(speedyToolHeld);
+      } else {
+        ClientSide.userInput.deactivate();
+        boolean speedyOrCloneToolHeld = heldItem != null
+                && (   ItemSpeedyTool.isAspeedyTool(heldItem.itemID)
+                || ItemCloneTool.isAcloneTool(heldItem.itemID)   );
+        SpeedyToolControls.enableClickInterception(speedyOrCloneToolHeld);
+      }
     }
   }
 
@@ -46,6 +52,11 @@ public class ClientTickHandler implements ITickHandler {
     ItemStack heldItem = player.getHeldItem();
     boolean speedyToolHeld = heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID);
     boolean cloneToolHeld = heldItem != null && ItemCloneTool.isAcloneTool(heldItem.itemID);
+
+    if (ClientSide.activeTool.toolIsActive()) {
+      ClientSide.userInput.
+      }
+    }
 
     if (SpeedyToolControls.attackButtonInterceptor.retrieveClick()) {
       if (speedyToolHeld) {

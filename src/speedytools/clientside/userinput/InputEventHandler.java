@@ -6,6 +6,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.event.ForgeSubscribe;
 import org.lwjgl.input.Keyboard;
+import speedytools.clientside.ClientSide;
 import speedytools.common.items.ItemCloneTool;
 import speedytools.common.items.ItemSpeedyTool;
 
@@ -18,6 +19,8 @@ public class InputEventHandler
   @ForgeSubscribe
   public void interceptMouseInput(MouseEvent event)
   {
+    boolean handled = ClientSide.userInput.handleMouseEvent(event);
+
     if (event.dwheel == 0) return;
     EntityPlayer player = Minecraft.getMinecraft().thePlayer;
     if (player == null) return;

@@ -18,18 +18,29 @@ public class ActiveTool
     toolTypeRegistry = new HashMap<Integer, SpeedyToolWandStrong>();
   }
 
-  public void setHeldItem(ItemStack heldItem)
+  /**
+   * sets the currently held item
+   * @param heldItem
+   * @return true if this is a speedy tool
+   */
+  public boolean setHeldItem(ItemStack heldItem)
   {
-    if (heldItem == null) return;
+    if (heldItem == null) return false;
     SpeedyToolWandStrong heldTool = toolTypeRegistry.get(heldItem.itemID);
-    if (heldTool == null) return;
     switchToTool(heldTool);
+    return (heldTool != null);
   }
+
+  /**
+   * return true if a speedy tool is currently active
+   * @return
+   */
+  public boolean toolIsActive() {return activeTool != null;}
 
   private void switchToTool(SpeedyToolWandStrong newTool)
   {
     if (activeTool != null) activeTool.deactivateTool();
-    newTool.activateTool();
+    if (newTool != null)  newTool.activateTool();
     activeTool = newTool;
   }
 

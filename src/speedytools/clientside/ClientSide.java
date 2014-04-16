@@ -2,6 +2,7 @@ package speedytools.clientside;
 
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.userinput.UserInput;
 
 /**
  * User: The Grey Ghost
@@ -15,6 +16,7 @@ public class ClientSide
     cloneToolsNetworkClient = new CloneToolsNetworkClient();
     speedyToolRenderers = new SpeedyToolRenderers();
     activeTool = new ActiveTool();
+    userInput = new UserInput();
   }
 
   public static void shutdown()
@@ -31,4 +33,6 @@ public class ClientSide
 
   public static SpeedyToolRenderers speedyToolRenderers;
   public static ActiveTool activeTool;
+  public static UserInput userInput;
+
 }

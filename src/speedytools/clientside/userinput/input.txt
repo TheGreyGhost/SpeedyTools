@@ -38,7 +38,7 @@ have a processUserInput method with
 
 all are events except ctrl.
 L or R click (with/without ctrl)
-L or R holdstart (with/without ctrl)
-L or R holdfinish
+L or R down (with/without ctrl)
+L or R up
 Mousewheel
 
