@@ -9,7 +9,6 @@ import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
 import speedytools.common.items.RegistryForItems;
-import speedytools.common.network.ClientStatus;
 
 /**
  * CombinedClientProxy is used to set up the mod and start it running when installed on a standalone client.
@@ -46,12 +45,17 @@ public class CombinedClientProxy extends CommonProxy {
     super.postInit();
     SpeedyToolControls.initialiseInterceptors();
     MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
-    MinecraftForge.EVENT_BUS.register(new CustomSoundsHandler());
+    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());
     MinecraftForge.EVENT_BUS.register(new InputEventHandler());
     MinecraftForge.EVENT_BUS.register(new RenderEventHandler());
     TickRegistry.registerTickHandler(new ClientTickHandler(), Side.CLIENT);
     ClientSide.initialise();
 
-    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong, new SpeedyToolWandStrong(ClientSide.speedyToolRenderers));
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong,
+                                           new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
+                                                                    ClientSide.speedyToolRenderers,
+                                                                    ClientSide.speedyToolSounds,
+                                                                    ClientSide.undoManagerClient
+                                                                   ));
   }
 }

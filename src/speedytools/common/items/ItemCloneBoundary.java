@@ -9,8 +9,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import speedytools.clientside.rendering.SoundsRegistry;
 import speedytools.clientside.selections.BlockMultiSelector;
-import speedytools.clientside.rendering.CustomSoundsHandler;
 import speedytools.common.utilities.UsefulConstants;
 import speedytools.common.utilities.UsefulFunctions;
 
@@ -101,7 +101,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
       boundaryCorner2.posY = (int)Math.round(newBoundaryField.maxY - 1);
       boundaryCorner2.posZ = (int)Math.round(newBoundaryField.maxZ - 1);
       boundaryGrabActivated = false;
-      playSound(CustomSoundsHandler.BOUNDARY_UNGRAB,
+      playSound(SoundsRegistry.BOUNDARY_UNGRAB,
               (float)playerPosition.xCoord, (float)playerPosition.yCoord, (float)playerPosition.zCoord);
     }
   }
@@ -150,18 +150,18 @@ public class ItemCloneBoundary extends ItemCloneTool {
       case 0: {
         boundaryCorner1 = null;
         boundaryCorner2 = null;
-        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
+        playSound(SoundsRegistry.BOUNDARY_UNPLACE, thePlayer);
         break;
       }
       case 1: {
         if (boundaryCorner1 == null) {
           if (currentlySelectedBlock == null) return;
           boundaryCorner1 = new ChunkCoordinates(currentlySelectedBlock);
-          playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
+          playSound(SoundsRegistry.BOUNDARY_PLACE_1ST, thePlayer);
         } else if (boundaryCorner2 == null) {
           if (currentlySelectedBlock == null) return;
           addCornerPointWithMaxSize(currentlySelectedBlock);
-          playSound(CustomSoundsHandler.BOUNDARY_PLACE_2ND, thePlayer);
+          playSound(SoundsRegistry.BOUNDARY_PLACE_2ND, thePlayer);
         } else {
           MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
           if (highlightedFace == null) return;
@@ -170,7 +170,7 @@ public class ItemCloneBoundary extends ItemCloneTool {
           boundaryGrabSide = highlightedFace.sideHit;
           Vec3 playerPosition = thePlayer.getPosition(1.0F);
           boundaryGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
-          playSound(CustomSoundsHandler.BOUNDARY_GRAB, thePlayer);
+          playSound(SoundsRegistry.BOUNDARY_GRAB, thePlayer);
         }
         break;
       }

@@ -2,6 +2,7 @@ package speedytools.clientside;
 
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.rendering.SpeedyToolSounds;
 import speedytools.clientside.userinput.UserInput;
 
 /**
@@ -17,6 +18,8 @@ public class ClientSide
     speedyToolRenderers = new SpeedyToolRenderers();
     activeTool = new ActiveTool();
     userInput = new UserInput();
+    speedyToolSounds = new SpeedyToolSounds();
+    undoManagerClient = new UndoManagerClient();
   }
 
   public static void shutdown()
@@ -34,5 +37,7 @@ public class ClientSide
   public static SpeedyToolRenderers speedyToolRenderers;
   public static ActiveTool activeTool;
   public static UserInput userInput;
+  public static UndoManagerClient undoManagerClient;
+  public static SpeedyToolSounds speedyToolSounds;
 
 }

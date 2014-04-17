@@ -31,7 +31,7 @@ public class SpeedyToolRenderers
    * @param renderPhase
    * @return
    */
-  public boolean doAnyRenderInThisPhase(RendererElement.RenderPhase renderPhase)
+  public boolean areAnyRendersInThisPhase(RendererElement.RenderPhase renderPhase)
   {
     for (RendererElement rendererElement : rendererElements) {
       if (rendererElement.renderInThisPhase(renderPhase)) return true;

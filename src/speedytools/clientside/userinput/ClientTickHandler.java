@@ -54,8 +54,8 @@ public class ClientTickHandler implements ITickHandler {
     boolean cloneToolHeld = heldItem != null && ItemCloneTool.isAcloneTool(heldItem.itemID);
 
     if (ClientSide.activeTool.toolIsActive()) {
-      ClientSide.userInput.
-      }
+      long timeNow = System.nanoTime();
+      ClientSide.userInput.updateButtonStates(SpeedyToolControls.attackButtonInterceptor.isKeyDown(), SpeedyToolControls.useItemButtonInterceptor.isKeyDown(), timeNow);
     }
 
     if (SpeedyToolControls.attackButtonInterceptor.retrieveClick()) {
@@ -77,6 +77,7 @@ public class ClientTickHandler implements ITickHandler {
     if (cloneToolHeld) {
       ((ItemCloneTool)heldItem.getItem()).tick(player.worldObj, SpeedyToolControls.useItemButtonInterceptor.isKeyDown());
     }
+
   }
 
 
