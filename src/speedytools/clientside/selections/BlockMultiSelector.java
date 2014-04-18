@@ -117,7 +117,7 @@ public class BlockMultiSelector
    * @return a list of the coordinates of all blocks in the selection, including the startingBlock.  May be zero length if the startingBlock is null
    */
   public static List<ChunkCoordinates> selectLine(ChunkCoordinates startingBlock, World world, Vec3 direction,
-                                                  int maxLineLength, boolean diagonalOK, boolean stopWhenCollide)
+                                                  int maxLineLength, boolean diagonalOK, CollisionOptions stopWhenCollide)
   {
     List<ChunkCoordinates> selection = new ArrayList<ChunkCoordinates>();
 
@@ -137,7 +137,7 @@ public class BlockMultiSelector
                          nextCoordinate.posZ + deltaPosition.posZ
                         );
       if (nextCoordinate.posY < 0 || nextCoordinate.posY >= 256) break;
-      if (stopWhenCollide && isBlockSolid(world, nextCoordinate)) {
+      if ((stopWhenCollide == CollisionOptions.STOP_WHEN_SOLID_BLOCK_REACHED) && isBlockSolid(world, nextCoordinate)) {
         if (blocksCount > 1) break;
         deltaPosition = deflectDirectionVector(world, startingBlock, direction, deltaPosition);
         nextCoordinate.set(startingBlock.posX + deltaPosition.posX, startingBlock.posY + deltaPosition.posY, startingBlock.posZ + deltaPosition.posZ);
@@ -585,7 +585,8 @@ public class BlockMultiSelector
     public int nextSearchDirection;
   }
 
-
-
+  public static enum CollisionOptions {
+    STOP_WHEN_SOLID_BLOCK_REACHED, CONTINUE_THROUGH_SOLID_BLOCKS
+  }
 
 }

@@ -3,6 +3,7 @@ package speedytools.clientside;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.userinput.UserInput;
 
 /**

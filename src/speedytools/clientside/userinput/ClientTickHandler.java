@@ -25,21 +25,15 @@ public class ClientTickHandler implements ITickHandler {
   public void tickStart(EnumSet<TickType> type, Object... tickData)
   {
     if (!type.contains(TickType.CLIENT)) return;
-
-
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player != null) {
       ItemStack heldItem = player.getHeldItem();
       boolean speedyToolHeld = ClientSide.activeTool.setHeldItem(heldItem);
+      SpeedyToolControls.enableClickInterception(speedyToolHeld);
       if (speedyToolHeld) {
         ClientSide.userInput.activate();
-        SpeedyToolControls.enableClickInterception(speedyToolHeld);
       } else {
         ClientSide.userInput.deactivate();
-        boolean speedyOrCloneToolHeld = heldItem != null
-                && (   ItemSpeedyTool.isAspeedyTool(heldItem.itemID)
-                || ItemCloneTool.isAcloneTool(heldItem.itemID)   );
-        SpeedyToolControls.enableClickInterception(speedyOrCloneToolHeld);
       }
     }
   }
@@ -49,35 +43,42 @@ public class ClientTickHandler implements ITickHandler {
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player == null) return;
 
-    ItemStack heldItem = player.getHeldItem();
-    boolean speedyToolHeld = heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID);
-    boolean cloneToolHeld = heldItem != null && ItemCloneTool.isAcloneTool(heldItem.itemID);
-
+    boolean inputUsed = false;
     if (ClientSide.activeTool.toolIsActive()) {
       long timeNow = System.nanoTime();
       ClientSide.userInput.updateButtonStates(SpeedyToolControls.attackButtonInterceptor.isKeyDown(), SpeedyToolControls.useItemButtonInterceptor.isKeyDown(), timeNow);
+      inputUsed = ClientSide.activeTool.processUserInput(player, 1.0F, ClientSide.userInput);
     }
 
-    if (SpeedyToolControls.attackButtonInterceptor.retrieveClick()) {
-      if (speedyToolHeld) {
-        ((ItemSpeedyTool)heldItem.getItem()).attackButtonClicked(player);
-      } else if (cloneToolHeld) {
-        ((ItemCloneTool)heldItem.getItem()).attackButtonClicked(player);
+    /*
+    ItemStack heldItem = player.getHeldItem();
+
+    boolean speedyToolHeld = heldItem != null && ItemSpeedyTool.isAspeedyTool(heldItem.itemID);
+    boolean cloneToolHeld = heldItem != null && ItemCloneTool.isAcloneTool(heldItem.itemID);
+
+    if (!inputUsed) {
+
+      if (SpeedyToolControls.attackButtonInterceptor.retrieveClick()) {
+        if (speedyToolHeld) {
+          ((ItemSpeedyTool) heldItem.getItem()).attackButtonClicked(player);
+        } else if (cloneToolHeld) {
+          ((ItemCloneTool) heldItem.getItem()).attackButtonClicked(player);
+        }
+      }
+
+      if (SpeedyToolControls.useItemButtonInterceptor.retrieveClick()) {
+        if (speedyToolHeld) {
+          ((ItemSpeedyTool) heldItem.getItem()).useButtonClicked(player);
+        } else if (cloneToolHeld) {
+          ((ItemCloneTool) heldItem.getItem()).useButtonClicked(player);
+        }
+      }
+
+      if (cloneToolHeld) {
+        ((ItemCloneTool) heldItem.getItem()).tick(player.worldObj, SpeedyToolControls.useItemButtonInterceptor.isKeyDown());
       }
     }
-
-    if (SpeedyToolControls.useItemButtonInterceptor.retrieveClick()) {
-      if (speedyToolHeld) {
-        ((ItemSpeedyTool)heldItem.getItem()).useButtonClicked(player);
-      } else if (cloneToolHeld) {
-        ((ItemCloneTool)heldItem.getItem()).useButtonClicked(player);
-      }
-    }
-
-    if (cloneToolHeld) {
-      ((ItemCloneTool)heldItem.getItem()).tick(player.worldObj, SpeedyToolControls.useItemButtonInterceptor.isKeyDown());
-    }
-
+    */
   }
 
 

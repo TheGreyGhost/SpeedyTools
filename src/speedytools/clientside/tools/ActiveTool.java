@@ -1,9 +1,11 @@
-package speedytools.clientside;
+package speedytools.clientside.tools;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
+import speedytools.clientside.tools.SpeedyTool;
+import speedytools.clientside.userinput.UserInput;
 
 import java.util.HashMap;
 
@@ -15,7 +17,7 @@ public class ActiveTool
 {
   public ActiveTool()
   {
-    toolTypeRegistry = new HashMap<Integer, SpeedyToolWandStrong>();
+    toolTypeRegistry = new HashMap<Integer, SpeedyTool>();
   }
 
   /**
@@ -26,7 +28,7 @@ public class ActiveTool
   public boolean setHeldItem(ItemStack heldItem)
   {
     if (heldItem == null) return false;
-    SpeedyToolWandStrong heldTool = toolTypeRegistry.get(heldItem.itemID);
+    SpeedyTool heldTool = toolTypeRegistry.get(heldItem.itemID);
     switchToTool(heldTool);
     return (heldTool != null);
   }
@@ -37,13 +39,22 @@ public class ActiveTool
    */
   public boolean toolIsActive() {return activeTool != null;}
 
-  private void switchToTool(SpeedyToolWandStrong newTool)
+  private void switchToTool(SpeedyTool newTool)
   {
+    if (newTool == activeTool) return;
     if (activeTool != null) activeTool.deactivateTool();
     if (newTool != null)  newTool.activateTool();
     activeTool = newTool;
   }
 
+  /**
+   * update the currently selected tool's state based on the player selected items; where the player is looking; etc
+   * No effect if not active.
+   * @param world
+   * @param player
+   * @param partialTick
+   * @return
+   */
   public boolean update(World world, EntityClientPlayerMP player, float partialTick)
   {
     if (activeTool != null) {
@@ -52,13 +63,22 @@ public class ActiveTool
     return true;
   }
 
-  public void registerToolType(Item item, SpeedyToolWandStrong speedyToolWandStrong)
+  public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput)
   {
-    if (toolTypeRegistry.containsKey(item.itemID)) throw new IllegalArgumentException("Duplicate itemID " + item.itemID + " in registerToolType");
-    toolTypeRegistry.put(item.itemID, speedyToolWandStrong);
+    boolean inputProcessed = false;
+    if (activeTool != null) {
+       inputProcessed = activeTool.processUserInput(player, partialTick, userInput);
+    }
+    return inputProcessed;
   }
 
-  SpeedyToolWandStrong activeTool;
+  public void registerToolType(Item item, SpeedyTool speedyTool)
+  {
+    if (toolTypeRegistry.containsKey(item.itemID)) throw new IllegalArgumentException("Duplicate itemID " + item.itemID + " in registerToolType");
+    toolTypeRegistry.put(item.itemID, speedyTool);
+  }
 
-  private HashMap<Integer, SpeedyToolWandStrong> toolTypeRegistry;
+  SpeedyTool activeTool;
+
+  private HashMap<Integer, SpeedyTool> toolTypeRegistry;
 }

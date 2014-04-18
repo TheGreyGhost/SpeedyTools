@@ -74,7 +74,7 @@ public class UserInput
     EntityPlayer player = Minecraft.getMinecraft().thePlayer;
     if (player == null) return false;
 
-    boolean controlKeyDown = controlKeyIsDown();
+    boolean controlKeyDown = readControlKeyIsDown();
     if (!controlKeyDown) return false;
 
     final int MOUSE_DELTA_PER_STEP = 120;
@@ -94,11 +94,12 @@ public class UserInput
   public void updateButtonStates(boolean newLeftButtonIsDown, boolean newRightButtonIsDown, long timeStampNS)
   {
     if (!active) return;
+    controlKeyIsDown = readControlKeyIsDown();
     if (leftButtonLastChangeTimeNS == 0) {
       leftButtonLastChangeTimeNS = timeStampNS;
     } else if (newLeftButtonIsDown != this.leftButtonIsDown) {
       inputEvents.add(new InputEvent(newLeftButtonIsDown ? InputEventType.LEFT_CLICK_DOWN : InputEventType.LEFT_CLICK_UP,
-                                     timeStampNS, controlKeyIsDown(), 1) );
+                                     timeStampNS, controlKeyIsDown, 1) );
       leftButtonLastChangeTimeNS = timeStampNS;
     }
     this.leftButtonIsDown = newLeftButtonIsDown;
@@ -107,7 +108,7 @@ public class UserInput
       rightButtonLastChangeTimeNS = timeStampNS;
     } else if (newRightButtonIsDown && !this.rightButtonIsDown) {
       inputEvents.add(new InputEvent(newRightButtonIsDown ? InputEventType.RIGHT_CLICK_DOWN : InputEventType.RIGHT_CLICK_UP,
-                                     timeStampNS, controlKeyIsDown(), 1) );
+                                     timeStampNS, controlKeyIsDown, 1) );
       rightButtonLastChangeTimeNS = timeStampNS;
     }
     this.rightButtonIsDown = newRightButtonIsDown;
@@ -153,6 +154,10 @@ public class UserInput
     return rightButtonIsDown ? holdDuration : -holdDuration;
   }
 
+  public boolean isControlKeyDown() {
+    return controlKeyIsDown;
+  }
+
   public enum InputEventType {
     LEFT_CLICK_DOWN, RIGHT_CLICK_DOWN, LEFT_CLICK_UP, RIGHT_CLICK_UP, WHEEL_MOVE;
   }
@@ -172,7 +177,7 @@ public class UserInput
     }
   }
 
-  private boolean controlKeyIsDown()
+  private boolean readControlKeyIsDown()
   {
     EntityPlayer player = Minecraft.getMinecraft().thePlayer;
     if (player == null) return false;
@@ -184,6 +189,8 @@ public class UserInput
   private Queue<InputEvent> inputEvents = new LinkedList<InputEvent>();
   private boolean leftButtonIsDown;
   private boolean rightButtonIsDown;
+
+  private boolean controlKeyIsDown;
   private long leftButtonLastChangeTimeNS;       // 0 means not valid (no entry received yet)
   private long rightButtonLastChangeTimeNS;      // 0 means not valid (no entry received yet)
 }

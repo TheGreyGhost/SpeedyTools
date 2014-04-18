@@ -28,6 +28,11 @@ public class ItemEventHandler {
   @ForgeSubscribe
   public void blockHighlightDecider(DrawBlockHighlightEvent event)
   {
+    if (ClientSide.activeTool.toolIsActive()) {
+      event.setCanceled(true);
+    }
+    return;
+    /*
     EntityPlayer player = event.player;
     ItemStack currentItem = player.inventory.getCurrentItem();
     boolean speedyToolHeld = currentItem != null && ItemSpeedyTool.isAspeedyTool(currentItem.itemID);
@@ -37,6 +42,7 @@ public class ItemEventHandler {
      event.setCanceled(true);
     }
     return;
+    */
   }
 
   /**
@@ -53,15 +59,22 @@ public class ItemEventHandler {
     assert(context.mc.renderViewEntity instanceof EntityPlayer);
     EntityPlayer player = (EntityPlayer)context.mc.renderViewEntity;
 
-    ItemStack currentItem = player.inventory.getCurrentItem();
+    //ItemStack currentItem = player.inventory.getCurrentItem();         //
     float partialTick = event.partialTicks;
+
+    EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
+    ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
+    ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, partialTick);
+
+    /*
 
     boolean speedyToolHeld = currentItem != null && ItemSpeedyTool.isAspeedyTool(currentItem.itemID);
     boolean cloneToolHeld = currentItem != null && ItemCloneTool.isAcloneTool(currentItem.itemID);
     if (!speedyToolHeld && !cloneToolHeld) return;
 
+
     if (speedyToolHeld) {
-      /*
+
       ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)currentItem.getItem();
 
       // the block to be placed is the one to the left of the tool in the hotbar
@@ -75,7 +88,7 @@ public class ItemEventHandler {
       ItemSpeedyTool.setCurrentToolSelection(itemSpeedyTool, blockToPlace, selection);
 
       if (selection.isEmpty()) return;
-      */
+
       EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
       ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
       ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, partialTick);
@@ -91,7 +104,7 @@ public class ItemEventHandler {
       itemCloneTool.renderBlockHighlight(player, partialTick);
       itemCloneTool.renderBoundaryField(player, partialTick);
     }
-
+    */
   }
 
 }

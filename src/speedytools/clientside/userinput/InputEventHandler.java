@@ -20,7 +20,10 @@ public class InputEventHandler
   public void interceptMouseInput(MouseEvent event)
   {
     boolean handled = ClientSide.userInput.handleMouseEvent(event);
+    if (handled) event.setCanceled(true);
+    return;
 
+    /*
     if (event.dwheel == 0) return;
     EntityPlayer player = Minecraft.getMinecraft().thePlayer;
     if (player == null) return;
@@ -40,6 +43,7 @@ public class InputEventHandler
       ItemCloneTool.mouseWheelMoved(event.dwheel);
     }
     return;
+    */
   }
 
 }

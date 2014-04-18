@@ -25,7 +25,7 @@ import java.util.*;
  * User: The Grey Ghost
  * Date: 2/11/13
  */
-public abstract class ItemCloneTool extends Item
+public abstract class ItemCloneTool extends ItemSpeedyTool
 {
   public ItemCloneTool(int id) {
     super(id);

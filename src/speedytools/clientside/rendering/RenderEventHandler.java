@@ -32,7 +32,6 @@ public class RenderEventHandler
     if (event.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
     EntityPlayer player = Minecraft.getMinecraft().thePlayer;
     ItemStack currentItem = player.inventory.getCurrentItem();
-    boolean speedyToolHeld = currentItem != null && ItemSpeedyTool.isAspeedyTool(currentItem.itemID);
     boolean cloneToolHeld = currentItem != null && ItemCloneTool.isAcloneTool(currentItem.itemID);
 
     if (cloneToolHeld) {
@@ -60,10 +59,10 @@ public class RenderEventHandler
     ItemStack currentItem = player.inventory.getCurrentItem();
     float partialTick = event.partialTicks;
 
-    boolean speedyToolHeld = currentItem != null && ItemSpeedyTool.isAspeedyTool(currentItem.itemID);
     boolean cloneToolHeld = currentItem != null && ItemCloneTool.isAcloneTool(currentItem.itemID);
-    if (!speedyToolHeld && !cloneToolHeld) return;
+    if (!cloneToolHeld) return;
 
+/*
     if (speedyToolHeld) {
       ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)currentItem.getItem();
 
@@ -80,6 +79,7 @@ public class RenderEventHandler
       if (selection.isEmpty()) return;
       //  itemSpeedyTool.renderSelection(player, partialTick);
     }
+*/
 
     if (cloneToolHeld) {
       ItemCloneTool itemCloneTool = (ItemCloneTool)currentItem.getItem();

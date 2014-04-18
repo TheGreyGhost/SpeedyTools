@@ -17,7 +17,7 @@ public class SoundsRegistry
     for (SpeedySoundTypes speedySound : SpeedySoundTypes.values()) {
       event.manager.addSound(speedySound.getFilename());
     }
-
+/*
     event.manager.addSound("speedytools:wandplace.ogg");
     event.manager.addSound("speedytools:wandunplace.ogg");
     event.manager.addSound("speedytools:orbplace.ogg");
@@ -29,6 +29,7 @@ public class SoundsRegistry
     event.manager.addSound(BOUNDARY_PLACE_1ST);
     event.manager.addSound(BOUNDARY_PLACE_2ND);
     event.manager.addSound(BOUNDARY_UNPLACE);
+*/
   }
 
 }
