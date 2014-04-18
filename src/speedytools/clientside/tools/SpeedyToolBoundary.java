@@ -1,12 +1,21 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.EnumMovingObjectType;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.rendering.*;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemCloneBoundary;
 import speedytools.common.items.ItemSpeedyTool;
+import speedytools.common.utilities.UsefulConstants;
+import speedytools.common.utilities.UsefulFunctions;
 
 import java.util.LinkedList;
 
@@ -25,25 +34,116 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
   @Override
   public boolean activateTool() {
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
+    rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
     iAmActive = true;
     return true;
   }
 
+  /** The user has unequipped this tool, deactivate it, stop any effects, etc
+   * @return
+   */
   @Override
   public boolean deactivateTool() {
-    return super.deactivateTool();
+    speedyToolRenderers.setRenderers(null);
+    iAmActive = false;
+    return true;
   }
 
   @Override
   public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput) {
-    return super.processUserInput(player, partialTick, userInput);
+    if (!iAmActive) return false;
+
+    controlKeyIsDown = userInput.isControlKeyDown();
+
+    UserInput.InputEvent nextEvent;
+    while (null != (nextEvent = userInput.poll())) {
+      switch (nextEvent.eventType) {
+        case LEFT_CLICK_DOWN: {
+          boundaryCorner1 = null;
+          boundaryCorner2 = null;
+          speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_UNPLACE, player.getPosition(partialTick));
+          break;
+        }
+        case RIGHT_CLICK_DOWN: {
+          doRightClick(player, partialTick);
+          break;
+        }
+      }
+    }
+    return true;
   }
 
+  protected void doRightClick(EntityClientPlayerMP player, float partialTick)
+  {
+    if (boundaryCorner1 == null) {
+      if (currentlySelectedBlock == null) return;
+      boundaryCorner1 = new ChunkCoordinates(currentlySelectedBlock);
+      speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_PLACE_1ST, player.getPosition(partialTick));
+    } else if (boundaryCorner2 == null) {
+      if (currentlySelectedBlock == null) return;
+      addCornerPointWithMaxSize(currentlySelectedBlock);
+      speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_PLACE_2ND, player.getPosition(partialTick));
+    } else {
+      MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player); //todo: is this needed: (Minecraft.getMinecraft().renderViewEntity);
+      if (highlightedFace == null) return;
+
+      boundaryGrabActivated = true;
+      boundaryGrabSide = highlightedFace.sideHit;
+      Vec3 playerPosition = player.getPosition(1.0F);
+      boundaryGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
+      speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_GRAB, playerPosition);
+
+    }
+  }
+  /**
+   * Update the selection or boundary field based on where the player is looking
+   * @param world
+   * @param player
+   * @param partialTick
+   * @return
+   */
   @Override
   public boolean update(World world, EntityClientPlayerMP player, float partialTick) {
-    return super.update(world, player, partialTick);
+    // if boundary field active: calculate the face where the cursor is
+    if (boundaryCorner1 != null  && boundaryCorner2 != null) {
+      MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
+      boundaryCursorSide = (highlightedFace != null) ? highlightedFace.sideHit : UsefulConstants.FACE_NONE;
+      return true;
+    }
+
+    // choose a starting block
+    currentlySelectedBlock = null;
+    MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
+    if (airSelectionIgnoringBlocks == null) return false;
+
+    MovingObjectPosition target = itemCloneBoundary.rayTraceLineOfSight(player.worldObj, player);
+
+    // we want to make sure that we only select a block at very short range.  So if we have hit a block beyond this range, shorten the target to eliminate it
+    if (target == null) {
+      target = airSelectionIgnoringBlocks;
+    } else if (target.typeOfHit == EnumMovingObjectType.TILE) {
+      if (target.hitVec.dotProduct(target.hitVec) > airSelectionIgnoringBlocks.hitVec.dotProduct(airSelectionIgnoringBlocks.hitVec)) {
+        target = airSelectionIgnoringBlocks;
+      }
+    }
+
+    currentlySelectedBlock = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+    return true;
+  }
+
+  /**
+   * add a new corner to the boundary (replace boundaryCorner2).  If the selection is too big, move boundaryCorner1.
+   * @param newCorner
+   */
+  private void addCornerPointWithMaxSize(ChunkCoordinates newCorner)
+  {
+    boundaryCorner2 = new ChunkCoordinates(newCorner);
+    boundaryCorner1.posX = UsefulFunctions.clipToRange(boundaryCorner1.posX, newCorner.posX - SELECTION_MAX_XSIZE + 1, newCorner.posX + SELECTION_MAX_XSIZE - 1);
+    boundaryCorner1.posY = UsefulFunctions.clipToRange(boundaryCorner1.posY, newCorner.posY - SELECTION_MAX_YSIZE + 1, newCorner.posY + SELECTION_MAX_YSIZE - 1);
+    boundaryCorner1.posZ = UsefulFunctions.clipToRange(boundaryCorner1.posZ, newCorner.posZ - SELECTION_MAX_ZSIZE + 1, newCorner.posZ + SELECTION_MAX_ZSIZE - 1);
+    sortBoundaryFieldCorners();
   }
 
   private ItemCloneBoundary itemCloneBoundary;

@@ -37,7 +37,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   public SpeedyToolSimple(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient)
   {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);
-    wireframeRendererUpdateLink = this.new WireframeRendererUpdateLink();
+    wireframeRendererUpdateLink = this.new SimpleWireframeRendererLink();
   }
 
   /**
@@ -137,7 +137,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * This class is used to provide information to the WireFrame Renderer when it needs it:
    * The Renderer calls refreshRenderInfo, which copies the relevant information from the tool.
    */
-  public class WireframeRendererUpdateLink implements RendererWireframeSelection.WireframeRenderInfoUpdateLink
+  public class SimpleWireframeRendererLink implements RendererWireframeSelection.WireframeRenderInfoUpdateLink
   {
     @Override
     public boolean refreshRenderInfo(RendererWireframeSelection.WireframeRenderInfo infoToUpdate)
@@ -318,6 +318,5 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   }
   protected List<ChunkCoordinates> currentlySelectedBlocks;
   protected BlockWithMetadata currentBlockToPlace;
-  protected WireframeRendererUpdateLink wireframeRendererUpdateLink;
 
 }

@@ -72,5 +72,6 @@ public abstract class SpeedyTool
   protected UndoManagerClient undoManagerClient;
   protected ItemSpeedyTool parentItem;
   protected boolean controlKeyIsDown;
+  protected RendererWireframeSelection.WireframeRenderInfoUpdateLink wireframeRendererUpdateLink;
 
 }

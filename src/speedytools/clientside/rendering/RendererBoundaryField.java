@@ -77,7 +77,7 @@ public class RendererBoundaryField implements RendererElement
 
   public static class BoundaryFieldRenderInfo
   {
-    AxisAlignedBB boundaryFieldAABB;
+    public AxisAlignedBB boundaryFieldAABB;
     public boolean boundaryGrabActivated;
     public int boundaryGrabSide;
     public int boundaryCursorSide;
