@@ -5,6 +5,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
+import speedytools.common.utilities.Colour;
 
 import java.util.Collection;
 
@@ -38,35 +39,38 @@ public class RendererWireframeSelection implements RendererElement
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
     if (!shouldIRender) return;
 
-    GL11.glEnable(GL11.GL_BLEND);
-    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-    GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
-    GL11.glLineWidth(2.0F);
-    GL11.glDisable(GL11.GL_TEXTURE_2D);
-    GL11.glDepthMask(false);
-    double expandDistance = 0.002F;
+    try {
+      GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+      GL11.glDepthMask(false);
 
-    Vec3 playerOrigin = player.getPosition(partialTick);
+      GL11.glEnable(GL11.GL_BLEND);
+      GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+      GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+      GL11.glLineWidth(2.0F);
+      GL11.glDisable(GL11.GL_TEXTURE_2D);
+      double expandDistance = 0.002F;
 
-    AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
-    for (ChunkCoordinates block : renderInfo.currentlySelectedBlocks) {
-      boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX+1, block.posY+1, block.posZ+1);
-      boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
-      switch (SELECTION_BOX_STYLE) {
-        case 0: {
-          SelectionBoxRenderer.drawCube(boundingBox);
-          break;
-        }
-        case 1: {
-          SelectionBoxRenderer.drawFilledCube(boundingBox);
-          break;
+      Vec3 playerOrigin = player.getPosition(partialTick);
+
+      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
+      for (ChunkCoordinates block : renderInfo.currentlySelectedBlocks) {
+        boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX + 1, block.posY + 1, block.posZ + 1);
+        boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).getOffsetBoundingBox(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
+        switch (SELECTION_BOX_STYLE) {
+          case 0: {
+            SelectionBoxRenderer.drawCube(boundingBox);
+            break;
+          }
+          case 1: {
+            SelectionBoxRenderer.drawFilledCube(boundingBox);
+            break;
+          }
         }
       }
+    } finally {
+      GL11.glDepthMask(true);
+      GL11.glPopAttrib();
     }
-
-    GL11.glDepthMask(true);
-    GL11.glEnable(GL11.GL_TEXTURE_2D);
-    GL11.glDisable(GL11.GL_BLEND);
   }
 
   /**  The WireframeRenderInfoUpdateLink and WireframeRenderInfo are used to retrieve the necessary information for rendering from the current tool

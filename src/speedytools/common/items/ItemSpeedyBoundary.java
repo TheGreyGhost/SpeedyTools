@@ -1,24 +1,16 @@
 package speedytools.common.items;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
-import net.minecraft.world.World;
-import speedytools.clientside.rendering.SoundsRegistry;
-import speedytools.clientside.selections.BlockMultiSelector;
-import speedytools.common.utilities.UsefulConstants;
-import speedytools.common.utilities.UsefulFunctions;
 
 import java.util.HashMap;
 import java.util.List;
 
-public class ItemCloneBoundary extends ItemCloneTool {
-  public ItemCloneBoundary(int id) {
+public class ItemSpeedyBoundary extends ItemSpeedyClonerBase
+{
+  public ItemSpeedyBoundary(int id) {
     super(id);
     setMaxStackSize(1);
     setUnlocalizedName("CloneBoundary");

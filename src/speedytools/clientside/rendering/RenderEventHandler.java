@@ -4,16 +4,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
-import speedytools.common.blocks.BlockWithMetadata;
-import speedytools.common.items.ItemCloneTool;
-import speedytools.common.items.ItemSpeedyTool;
-
-import java.util.List;
+import speedytools.common.items.ItemSpeedyClonerBase;
 
 /**
  Contains the custom Forge Event Handlers related to Rendering
@@ -32,10 +26,10 @@ public class RenderEventHandler
     if (event.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
     EntityPlayer player = Minecraft.getMinecraft().thePlayer;
     ItemStack currentItem = player.inventory.getCurrentItem();
-    boolean cloneToolHeld = currentItem != null && ItemCloneTool.isAcloneTool(currentItem.itemID);
+    boolean cloneToolHeld = currentItem != null && ItemSpeedyClonerBase.isAcloneTool(currentItem.itemID);
 
     if (cloneToolHeld) {
-      ItemCloneTool tool = (ItemCloneTool)currentItem.getItem();
+      ItemSpeedyClonerBase tool = (ItemSpeedyClonerBase)currentItem.getItem();
       boolean customRender = tool.renderCrossHairs(event.resolution, event.partialTicks);
       event.setCanceled(customRender);
     }
@@ -59,7 +53,7 @@ public class RenderEventHandler
     ItemStack currentItem = player.inventory.getCurrentItem();
     float partialTick = event.partialTicks;
 
-    boolean cloneToolHeld = currentItem != null && ItemCloneTool.isAcloneTool(currentItem.itemID);
+    boolean cloneToolHeld = currentItem != null && ItemSpeedyClonerBase.isAcloneTool(currentItem.itemID);
     if (!cloneToolHeld) return;
 
 /*

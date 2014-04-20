@@ -1,19 +1,18 @@
 package speedytools.clientside.tools;
 
-import net.minecraft.client.Minecraft;
+import cpw.mods.fml.common.FMLLog;
 import net.minecraft.client.entity.EntityClientPlayerMP;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.userinput.UserInput;
-import speedytools.common.items.ItemCloneBoundary;
-import speedytools.common.items.ItemSpeedyTool;
+import speedytools.common.items.ItemSpeedyBoundary;
 import speedytools.common.utilities.UsefulConstants;
 import speedytools.common.utilities.UsefulFunctions;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 /**
@@ -22,9 +21,10 @@ import java.util.LinkedList;
  */
 public class SpeedyToolBoundary extends SpeedyToolClonerBase
 {
-  public SpeedyToolBoundary(ItemCloneBoundary i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient) {
+  public SpeedyToolBoundary(ItemSpeedyBoundary i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);
-    itemCloneBoundary = i_parentItem;
+    itemSpeedyBoundary = i_parentItem;
+    wireframeRendererUpdateLink = this.new BoundaryToolWireframeRendererLink();
     boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
   }
 
@@ -122,20 +122,20 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
   public boolean update(World world, EntityClientPlayerMP player, float partialTick) {
     // update icon renderer
 
-    ItemCloneBoundary.IconNames itemIcon = ItemCloneBoundary.IconNames.BLANK;
+    ItemSpeedyBoundary.IconNames itemIcon = ItemSpeedyBoundary.IconNames.BLANK;
 
     if (boundaryCorner1 == null && boundaryCorner2 == null) {
-      itemIcon = ItemCloneBoundary.IconNames.NONE_PLACED;
+      itemIcon = ItemSpeedyBoundary.IconNames.NONE_PLACED;
     } else if (boundaryCorner1 == null || boundaryCorner2 == null) {
-      itemIcon = ItemCloneBoundary.IconNames.ONE_PLACED;
+      itemIcon = ItemSpeedyBoundary.IconNames.ONE_PLACED;
     } else {
       if (boundaryGrabActivated) {
-        itemIcon = ItemCloneBoundary.IconNames.GRABBING;
+        itemIcon = ItemSpeedyBoundary.IconNames.GRABBING;
       } else {
-        itemIcon = ItemCloneBoundary.IconNames.TWO_PLACED;
+        itemIcon = ItemSpeedyBoundary.IconNames.TWO_PLACED;
       }
     }
-    itemCloneBoundary.setCurrentIcon(itemIcon);
+    itemSpeedyBoundary.setCurrentIcon(itemIcon);
 
     // if boundary field active: calculate the face where the cursor is
     if (boundaryCorner1 != null  && boundaryCorner2 != null) {
@@ -149,7 +149,7 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
     MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
     if (airSelectionIgnoringBlocks == null) return false;
 
-    MovingObjectPosition target = itemCloneBoundary.rayTraceLineOfSight(player.worldObj, player);
+    MovingObjectPosition target = itemSpeedyBoundary.rayTraceLineOfSight(player.worldObj, player);
 
     // we want to make sure that we only select a block at very short range.  So if we have hit a block beyond this range, shorten the target to eliminate it
     if (target == null) {
@@ -165,6 +165,124 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
   }
 
   /**
+   * This class is used to provide information to the Boundary Field Renderer when it needs it:
+   * The Renderer calls refreshRenderInfo, which copies the relevant information from the tool.
+   */
+  public class BoundaryFieldRendererUpdateLink implements RendererBoundaryField.BoundaryFieldRenderInfoUpdateLink
+  {
+    @Override
+    public boolean refreshRenderInfo(RendererBoundaryField.BoundaryFieldRenderInfo infoToUpdate, Vec3 playerPosition)
+    {
+      if (boundaryCorner1 == null && boundaryCorner2 == null) return false;
+      infoToUpdate.boundaryCursorSide = boundaryCursorSide;
+      infoToUpdate.boundaryGrabActivated = boundaryGrabActivated;
+      infoToUpdate.boundaryGrabSide = boundaryGrabSide;
+      infoToUpdate.boundaryFieldAABB = getGrabDraggedBoundaryField(playerPosition);
+      return true;
+    }
+  }
+
+  /**
+   * This class is used to provide information to the WireFrame Renderer when it needs it:
+   * The Renderer calls refreshRenderInfo, which copies the relevant information from the tool.
+   * Draws a wireframe selection, provided that not both of the corners have been placed yet
+   */
+  public class BoundaryToolWireframeRendererLink implements RendererWireframeSelection.WireframeRenderInfoUpdateLink
+  {
+    @Override
+    public boolean refreshRenderInfo(RendererWireframeSelection.WireframeRenderInfo infoToUpdate)
+    {
+      if (boundaryCorner1 != null && boundaryCorner2 != null) return false;
+      infoToUpdate.currentlySelectedBlocks = new ArrayList<ChunkCoordinates>(1);
+      infoToUpdate.currentlySelectedBlocks.add(currentlySelectedBlock);
+      return true;
+    }
+  }
+
+  /**
+   * Calculate the current boundary field
+   * @return the new boundary field, null if a problem occurred.  The AABB must be used for only one tick because it
+   *         is allocated from a pool that is reused.
+   */
+  public AxisAlignedBB getBoundaryField()
+  {
+    sortBoundaryFieldCorners();
+
+    if (boundaryCorner1 == null) return null;
+    ChunkCoordinates cnrMin = boundaryCorner1;
+    ChunkCoordinates cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
+    double wXmin = cnrMin.posX;
+    double wYmin = cnrMin.posY;
+    double wZmin = cnrMin.posZ;
+    double wXmax = cnrMax.posX + 1;
+    double wYmax = cnrMax.posY + 1;
+    double wZmax = cnrMax.posZ + 1;
+
+    return AxisAlignedBB.getAABBPool().getAABB(wXmin, wYmin, wZmin, wXmax, wYmax, wZmax);
+  }
+
+  /**
+   * Calculate the new boundary field after being dragged to the current player position
+   *   Drags one side depending on which one the player grabbed, and how far they have moved
+   *   Won't drag the boundary field smaller than one block
+   * @param playerPosition
+   * @return the new boundary field, null if a problem occurred
+   */
+  private AxisAlignedBB getGrabDraggedBoundaryField(Vec3 playerPosition)
+  {
+    sortBoundaryFieldCorners();
+
+    if (boundaryCorner1 == null) return null;
+    ChunkCoordinates cnrMin = boundaryCorner1;
+    ChunkCoordinates cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
+    double wXmin = cnrMin.posX;
+    double wYmin = cnrMin.posY;
+    double wZmin = cnrMin.posZ;
+    double wXmax = cnrMax.posX + 1;
+    double wYmax = cnrMax.posY + 1;
+    double wZmax = cnrMax.posZ + 1;
+
+    if (boundaryGrabActivated) {
+      switch (boundaryGrabSide) {
+        case UsefulConstants.FACE_YNEG: {
+          wYmin += playerPosition.yCoord - boundaryGrabPoint.yCoord;
+          wYmin = UsefulFunctions.clipToRange(wYmin, wYmax - SELECTION_MAX_YSIZE, wYmax - 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_YPOS: {
+          wYmax += playerPosition.yCoord - boundaryGrabPoint.yCoord;
+          wYmax = UsefulFunctions.clipToRange(wYmax, wYmin + SELECTION_MAX_YSIZE, wYmin + 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_ZNEG: {
+          wZmin += playerPosition.zCoord - boundaryGrabPoint.zCoord;
+          wZmin = UsefulFunctions.clipToRange(wZmin, wZmax - SELECTION_MAX_ZSIZE, wZmax - 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_ZPOS: {
+          wZmax += playerPosition.zCoord - boundaryGrabPoint.zCoord;
+          wZmax = UsefulFunctions.clipToRange(wZmax, wZmin + SELECTION_MAX_ZSIZE, wZmin + 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_XNEG: {
+          wXmin += playerPosition.xCoord - boundaryGrabPoint.xCoord;
+          wXmin = UsefulFunctions.clipToRange(wXmin, wXmax - SELECTION_MAX_XSIZE, wXmax - 1.0);
+          break;
+        }
+        case UsefulConstants.FACE_XPOS: {
+          wXmax += playerPosition.xCoord - boundaryGrabPoint.xCoord;
+          wXmax = UsefulFunctions.clipToRange(wXmax, wXmin + SELECTION_MAX_XSIZE, wXmin + 1.0);
+          break;
+        }
+        default: {
+          FMLLog.warning("Invalid boundaryGrabSide (%d", boundaryGrabSide);
+        }
+      }
+    }
+    return AxisAlignedBB.getAABBPool().getAABB(wXmin, wYmin, wZmin, wXmax, wYmax, wZmax);
+  }
+
+  /**
    * add a new corner to the boundary (replace boundaryCorner2).  If the selection is too big, move boundaryCorner1.
    * @param newCorner
    */
@@ -177,5 +295,11 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
     sortBoundaryFieldCorners();
   }
 
-  private ItemCloneBoundary itemCloneBoundary;
+  private boolean boundaryGrabActivated = false;
+  private int boundaryGrabSide = -1;
+  private Vec3 boundaryGrabPoint = null;
+  protected int boundaryCursorSide = -1;
+
+
+  private ItemSpeedyBoundary itemSpeedyBoundary;
 }

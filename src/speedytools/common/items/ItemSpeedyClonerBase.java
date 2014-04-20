@@ -1,10 +1,7 @@
 package speedytools.common.items;
 
-import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
@@ -12,12 +9,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import org.lwjgl.opengl.GL11;
-import speedytools.clientside.rendering.SelectionBoxRenderer;
 import speedytools.clientside.selections.VoxelSelection;
-import speedytools.common.utilities.UsefulConstants;
-import speedytools.common.utilities.UsefulFunctions;
-import speedytools.common.network.Packet250CloneToolUse;
 
 import java.util.*;
 
@@ -25,9 +17,9 @@ import java.util.*;
  * User: The Grey Ghost
  * Date: 2/11/13
  */
-public abstract class ItemCloneTool extends ItemSpeedyTool
+public abstract class ItemSpeedyClonerBase extends ItemSpeedyTool
 {
-  public ItemCloneTool(int id) {
+  public ItemSpeedyClonerBase(int id) {
     super(id);
     setCreativeTab(CreativeTabs.tabTools);
     setMaxDamage(-1);                         // not damageable
@@ -35,7 +27,7 @@ public abstract class ItemCloneTool extends ItemSpeedyTool
 
   public static boolean isAcloneTool(int itemID)
   {
-    return (   itemID == RegistryForItems.itemCloneBoundary.itemID
+    return (   itemID == RegistryForItems.itemSpeedyBoundary.itemID
             || itemID == RegistryForItems.itemCloneCopy.itemID);
   }
 
@@ -103,7 +95,7 @@ public abstract class ItemCloneTool extends ItemSpeedyTool
     // these keep track of the currently selected block, for when the tool is used
   protected static ChunkCoordinates currentlySelectedBlock = null;
 //  protected static Item currentlySelectedTool = null;
-  protected static Deque<ItemCloneTool> undoSoundsHistory = new LinkedList<ItemCloneTool>();
+  protected static Deque<ItemSpeedyClonerBase> undoSoundsHistory = new LinkedList<ItemSpeedyClonerBase>();
 
   protected static ChunkCoordinates boundaryCorner1 = null;
   protected static ChunkCoordinates boundaryCorner2 = null;

@@ -1,14 +1,8 @@
 package speedytools.clientside.userinput;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.event.ForgeSubscribe;
-import org.lwjgl.input.Keyboard;
 import speedytools.clientside.ClientSide;
-import speedytools.common.items.ItemCloneTool;
-import speedytools.common.items.ItemSpeedyTool;
 
 /**
  Contains the custom Forge Event Handlers related to Input

@@ -76,8 +76,8 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerClient
             ));
-    ClientSide.activeTool.registerToolType(RegistryForItems.itemCloneBoundary,
-            new SpeedyToolBoundary(RegistryForItems.itemCloneBoundary,
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary,
+            new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
                     ClientSide.speedyToolRenderers,
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerClient

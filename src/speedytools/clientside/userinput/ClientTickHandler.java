@@ -6,8 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
 import speedytools.clientside.ClientSide;
-import speedytools.common.items.ItemCloneTool;
-import speedytools.common.items.ItemSpeedyTool;
 
 import java.util.EnumSet;
 

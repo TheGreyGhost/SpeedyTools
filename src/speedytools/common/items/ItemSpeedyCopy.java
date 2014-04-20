@@ -46,8 +46,9 @@ Selection creation and RenderList creation are both done in stages to avoid star
  */
 
 
-public class ItemCloneCopy extends ItemCloneTool {
-  public ItemCloneCopy(int id) {
+public class ItemSpeedyCopy extends ItemSpeedyClonerBase
+{
+  public ItemSpeedyCopy(int id) {
     super(id);
     setMaxStackSize(1);
     setUnlocalizedName("CloneCopy");
@@ -148,57 +149,27 @@ public class ItemCloneCopy extends ItemCloneTool {
 
   public void renderBlockHighlight(EntityPlayer player, float partialTick)
   {
-    final double THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID = 0.01;
-    checkInvariants();
 
-    Vec3 playerOrigin = player.getPosition(partialTick);
-    Vec3 playerLook = player.getLook(partialTick);
-
-    if (currentToolState.displaySelection) {
-      double dragSelectionOriginX = selectionOrigin.posX;
-      double dragSelectionOriginY = selectionOrigin.posY;
-      double dragSelectionOriginZ = selectionOrigin.posZ;
-      if (selectionGrabActivated) {
-        double currentSpeedSquared = player.motionX * player.motionX + player.motionY * player.motionY + player.motionZ * player.motionZ;
-        if (currentSpeedSquared >= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID) {
-          selectionMovedFastYet = true;
-        }
-        final boolean snapToGridWhileMoving = selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
-
-        Vec3 distanceMoved = selectionGrabPoint.subtract(playerOrigin);
-        dragSelectionOriginX += distanceMoved.xCoord;
-        dragSelectionOriginY += distanceMoved.yCoord;
-        dragSelectionOriginZ += distanceMoved.zCoord;
-        if (snapToGridWhileMoving) {
-          dragSelectionOriginX = Math.round(dragSelectionOriginX);
-          dragSelectionOriginY = Math.round(dragSelectionOriginY);
-          dragSelectionOriginZ = Math.round(dragSelectionOriginZ);
-        }
-      }
-      GL11.glTranslated(dragSelectionOriginX - playerOrigin.xCoord, dragSelectionOriginY - playerOrigin.yCoord, dragSelectionOriginZ - playerOrigin.zCoord);
-      Vec3 playerRelativeToSelectionOrigin = playerOrigin.addVector(-dragSelectionOriginX, -dragSelectionOriginY, -dragSelectionOriginZ);
-      voxelSelectionManager.renderSelection(playerRelativeToSelectionOrigin, playerLook);
-    }
 
     if (currentToolState.displayHighlight && highlightedBlocks != null) {
-      GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
-      GL11.glEnable(GL11.GL_BLEND);
-      GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-      GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
-      GL11.glLineWidth(2.0F);
-      GL11.glDisable(GL11.GL_TEXTURE_2D);
-      GL11.glDepthMask(false);
-      double EXPAND_DISTANCE = 0.002F;
-
-      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
-      for (ChunkCoordinates block : highlightedBlocks) {
-        boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX+1, block.posY+1, block.posZ+1);
-        boundingBox = boundingBox.expand(EXPAND_DISTANCE, EXPAND_DISTANCE, EXPAND_DISTANCE).getOffsetBoundingBox(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
-        SelectionBoxRenderer.drawCube(boundingBox);
-      }
-
-      GL11.glDepthMask(true);
-      GL11.glPopAttrib();
+//      GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+//      GL11.glEnable(GL11.GL_BLEND);
+//      GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+//      GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+//      GL11.glLineWidth(2.0F);
+//      GL11.glDisable(GL11.GL_TEXTURE_2D);
+//      GL11.glDepthMask(false);
+//      double EXPAND_DISTANCE = 0.002F;
+//
+//      AxisAlignedBB boundingBox = AxisAlignedBB.getAABBPool().getAABB(0, 0, 0, 0, 0, 0);
+//      for (ChunkCoordinates block : highlightedBlocks) {
+//        boundingBox.setBounds(block.posX, block.posY, block.posZ, block.posX+1, block.posY+1, block.posZ+1);
+//        boundingBox = boundingBox.expand(EXPAND_DISTANCE, EXPAND_DISTANCE, EXPAND_DISTANCE).getOffsetBoundingBox(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
+//        SelectionBoxRenderer.drawCube(boundingBox);
+//      }
+//
+//      GL11.glDepthMask(true);
+//      GL11.glPopAttrib();
     }
   }
 
