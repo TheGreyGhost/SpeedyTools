@@ -80,7 +80,7 @@ public class RenderEventHandler
       //  itemSpeedyTool.renderSelection(player, partialTick);
     }
 */
-
+/*
     if (cloneToolHeld) {
       ItemCloneTool itemCloneTool = (ItemCloneTool)currentItem.getItem();
 
@@ -89,7 +89,7 @@ public class RenderEventHandler
       itemCloneTool.renderBlockHighlight(player, partialTick);
       itemCloneTool.renderBoundaryField(player, partialTick);
     }
-
+*/
   }
 
 }

@@ -100,7 +100,7 @@ public class ItemCloneCopy extends ItemCloneTool {
       boolean playerIsInsideBoundaryField = false;
 
       if (boundaryCorner1 != null && boundaryCorner2 != null) {
-        sortBoundaryFieldCorners();
+//        sortBoundaryFieldCorners();
         if (   currentlySelectedBlock.posX >= boundaryCorner1.posX && currentlySelectedBlock.posX <= boundaryCorner2.posX
             && currentlySelectedBlock.posY >= boundaryCorner1.posY && currentlySelectedBlock.posY <= boundaryCorner2.posY
             && currentlySelectedBlock.posZ >= boundaryCorner1.posZ && currentlySelectedBlock.posZ <= boundaryCorner2.posZ ) {
@@ -136,16 +136,16 @@ public class ItemCloneCopy extends ItemCloneTool {
     currentHighlighting = SelectionType.FULL_BOX;
  }
 
-  @Override
+
   public void renderBoundaryField(EntityPlayer player, float partialTick)
   {
     checkInvariants();
     if (currentToolState.displayBoundaryField) {
-      super.renderBoundaryField(player, partialTick);
+//      super.renderBoundaryField(player, partialTick);
     }
   }
 
-    @Override
+
   public void renderBlockHighlight(EntityPlayer player, float partialTick)
   {
     final double THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID = 0.01;
@@ -220,7 +220,7 @@ public class ItemCloneCopy extends ItemCloneTool {
    * @param whichButton 0 = left (undo), 1 = right (use)
    */
   @SideOnly(Side.CLIENT)
-  @Override
+
   public void buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
   {
     final long DOUBLE_CLICK_SPEED_NS = SpeedyToolsOptions.getDoubleClickSpeedMS() * 1000 * 1000;
@@ -331,7 +331,7 @@ public class ItemCloneCopy extends ItemCloneTool {
       case FULL_BOX: {
         voxelSelectionManager = new BlockVoxelMultiSelector();
         voxelSelectionManager.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
-        sortBoundaryFieldCorners();
+//        sortBoundaryFieldCorners();
         selectionOrigin = new ChunkCoordinates(boundaryCorner1);
         currentToolState = ToolState.GENERATING_SELECTION;
 //            playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);

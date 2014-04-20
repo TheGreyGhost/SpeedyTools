@@ -3,10 +3,7 @@ package speedytools.clientside.tools;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.EnumMovingObjectType;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.*;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.rendering.*;
@@ -75,6 +72,11 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
     return true;
   }
 
+  /**
+   * place corner blocks; or if already both placed - grab / ungrab one of the faces.
+   * @param player
+   * @param partialTick
+   */
   protected void doRightClick(EntityClientPlayerMP player, float partialTick)
   {
     if (boundaryCorner1 == null) {
@@ -86,15 +88,27 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
       addCornerPointWithMaxSize(currentlySelectedBlock);
       speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_PLACE_2ND, player.getPosition(partialTick));
     } else {
-      MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player); //todo: is this needed: (Minecraft.getMinecraft().renderViewEntity);
-      if (highlightedFace == null) return;
+      if (boundaryGrabActivated) {  // ungrab
+        Vec3 playerPosition = player.getPosition(partialTick);
+        AxisAlignedBB newBoundaryField = getGrabDraggedBoundaryField(playerPosition);
+        boundaryCorner1.posX = (int)Math.round(newBoundaryField.minX);
+        boundaryCorner1.posY = (int)Math.round(newBoundaryField.minY);
+        boundaryCorner1.posZ = (int)Math.round(newBoundaryField.minZ);
+        boundaryCorner2.posX = (int)Math.round(newBoundaryField.maxX - 1);
+        boundaryCorner2.posY = (int)Math.round(newBoundaryField.maxY - 1);
+        boundaryCorner2.posZ = (int)Math.round(newBoundaryField.maxZ - 1);
+        boundaryGrabActivated = false;
+        speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_UNGRAB, playerPosition);
+      } else {
+        MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player); //todo: is this needed: (Minecraft.getMinecraft().renderViewEntity);
+        if (highlightedFace == null) return;
 
-      boundaryGrabActivated = true;
-      boundaryGrabSide = highlightedFace.sideHit;
-      Vec3 playerPosition = player.getPosition(1.0F);
-      boundaryGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
-      speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_GRAB, playerPosition);
-
+        boundaryGrabActivated = true;
+        boundaryGrabSide = highlightedFace.sideHit;
+        Vec3 playerPosition = player.getPosition(1.0F);
+        boundaryGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
+        speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_GRAB, playerPosition);
+      }
     }
   }
   /**
@@ -106,6 +120,23 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
    */
   @Override
   public boolean update(World world, EntityClientPlayerMP player, float partialTick) {
+    // update icon renderer
+
+    ItemCloneBoundary.IconNames itemIcon = ItemCloneBoundary.IconNames.BLANK;
+
+    if (boundaryCorner1 == null && boundaryCorner2 == null) {
+      itemIcon = ItemCloneBoundary.IconNames.NONE_PLACED;
+    } else if (boundaryCorner1 == null || boundaryCorner2 == null) {
+      itemIcon = ItemCloneBoundary.IconNames.ONE_PLACED;
+    } else {
+      if (boundaryGrabActivated) {
+        itemIcon = ItemCloneBoundary.IconNames.GRABBING;
+      } else {
+        itemIcon = ItemCloneBoundary.IconNames.TWO_PLACED;
+      }
+    }
+    itemCloneBoundary.setCurrentIcon(itemIcon);
+
     // if boundary field active: calculate the face where the cursor is
     if (boundaryCorner1 != null  && boundaryCorner2 != null) {
       MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);

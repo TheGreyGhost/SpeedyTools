@@ -95,6 +95,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   {
     if (!iAmActive) return false;
     ItemStack currentItem = player.inventory.getCurrentItem();
+    if (currentItem == null) return false;                      // can be null if the user has just moved the active tool out of hotbar
     int maxSelectionSize = currentItem.stackSize;
 
     // the block to be placed is the one to the left of the tool in the hotbar

@@ -22,6 +22,11 @@ public class ClientTickHandler implements ITickHandler {
     return EnumSet.of(TickType.CLIENT);
   }
 
+  /**
+   * Enable user input interception if the user is holding a speedy tool
+   * @param type
+   * @param tickData
+   */
   public void tickStart(EnumSet<TickType> type, Object... tickData)
   {
     if (!type.contains(TickType.CLIENT)) return;
@@ -38,6 +43,11 @@ public class ClientTickHandler implements ITickHandler {
     }
   }
 
+  /**
+   * process any user input
+   * @param type
+   * @param tickData
+   */
   public void tickEnd(EnumSet<TickType> type, Object... tickData)
   {
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;

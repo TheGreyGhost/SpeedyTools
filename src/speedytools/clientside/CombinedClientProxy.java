@@ -4,10 +4,7 @@ import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.clientside.rendering.*;
-import speedytools.clientside.tools.SpeedyToolOrb;
-import speedytools.clientside.tools.SpeedyToolSceptre;
-import speedytools.clientside.tools.SpeedyToolWandStrong;
-import speedytools.clientside.tools.SpeedyToolWandWeak;
+import speedytools.clientside.tools.*;
 import speedytools.clientside.userinput.ClientTickHandler;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
@@ -79,5 +76,12 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerClient
             ));
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemCloneBoundary,
+            new SpeedyToolBoundary(RegistryForItems.itemCloneBoundary,
+                    ClientSide.speedyToolRenderers,
+                    ClientSide.speedyToolSounds,
+                    ClientSide.undoManagerClient
+            ));
+
   }
 }
