@@ -10,9 +10,10 @@ import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyCopy;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 
 /**
  * User: The Grey Ghost
@@ -28,7 +29,7 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     speedyToolBoundary = i_speedyToolBoundary;
     boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
-    solidSelectionRenderInfoUpdateLink = this.new SolidSelectionRendererLink();
+    solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
   }
 
   @Override
@@ -36,6 +37,7 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
+    rendererElements.add(new RendererSolidSelection(solidSelectionRendererUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
     iAmActive = true;
     return true;
@@ -84,19 +86,95 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
   {
 
   }
+
   /**
-   * Update the selection or boundary field based on where the player is looking
-   * @param world
-   * @param player
-   * @param partialTick
-   * @return
+   * (1) Selects the first Block that will be affected by the tool when the player presses right-click,
+   * (2) Determines which algorithm will be used to select blocks (see below), and
+   * (3) creates a wireframe highlight showing up to MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS of the blocks that will be selected
+   * 1) no boundary field: cursor pointing at a block - floodfill (all non-air blocks, including diagonal fill) from block clicked up
+   * 2) boundary field: standing outside, cursor pointing at one of the boundaries - all solid blocks in the field
+   * 3) boundary field: standing inside - cursor pointing at a block - floodfill to boundary field
+   * So the selection algorithm is:
+   * a) if the player is pointing at a block, specify that, and also check if inside a boundary field; else
+   * b) check the player is pointing at a side of the boundary field (from outside)
+   *
+   * @param player the player
+   * @param partialTick partial tick time.
    */
+//  @Override
+//  public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
+
   @Override
-  public boolean update(World world, EntityClientPlayerMP player, float partialTick) {
-    // update icon renderer
+  public boolean update(World world, EntityClientPlayerMP player, float partialTick)
+  {
+    checkInvariants();
+    if (currentToolState != ToolState.NO_SELECTION) return false;
+    updateBoundaryCornersFromToolBoundary();
 
+    MovingObjectPosition target = itemSpeedyCopy.rayTraceLineOfSight(player.worldObj, player);
 
+    final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
+    blockUnderCursor = null;
+    highlightedBlocks = null;
+    currentHighlighting = SelectionType.NONE;
+
+    if (target != null && target.typeOfHit == EnumMovingObjectType.TILE) {
+      blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+      boolean selectedBlockIsInsideBoundaryField = false;
+
+      if (boundaryCorner1 != null && boundaryCorner2 != null) {
+        if (   blockUnderCursor.posX >= boundaryCorner1.posX && blockUnderCursor.posX <= boundaryCorner2.posX
+                && blockUnderCursor.posY >= boundaryCorner1.posY && blockUnderCursor.posY <= boundaryCorner2.posY
+                && blockUnderCursor.posZ >= boundaryCorner1.posZ && blockUnderCursor.posZ <= boundaryCorner2.posZ ) {
+          selectedBlockIsInsideBoundaryField = true;
+        }
+      }
+
+      if (selectedBlockIsInsideBoundaryField) {
+        currentHighlighting = SelectionType.BOUND_FILL;
+        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
+                boundaryCorner1.posX, boundaryCorner2.posX,
+                boundaryCorner1.posY, boundaryCorner2.posY,
+                boundaryCorner1.posZ, boundaryCorner2.posZ);
+      } else {
+        currentHighlighting = SelectionType.UNBOUND_FILL;
+        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
+                Integer.MIN_VALUE, Integer.MAX_VALUE,
+                blockUnderCursor.posY, 255,
+                Integer.MIN_VALUE, Integer.MAX_VALUE);
+      }
+      checkInvariants();
+      return true;
+    }
+
+    // if there is no block selected, check whether the player is pointing at the boundary field from outside.
+    if (boundaryCorner1 == null || boundaryCorner2 == null) return false;
+    Vec3 playerPosition = player.getPosition(1.0F);
+    if (   playerPosition.xCoord >= boundaryCorner1.posX && playerPosition.xCoord <= boundaryCorner2.posX +1
+            && playerPosition.yCoord >= boundaryCorner1.posY && playerPosition.yCoord <= boundaryCorner2.posY +1
+            && playerPosition.zCoord >= boundaryCorner1.posZ && playerPosition.zCoord <= boundaryCorner2.posZ +1) {
+      return false;
+    }
+    MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
+    if (highlightedFace == null) return false;
+    currentHighlighting = SelectionType.FULL_BOX;
+    checkInvariants();
     return true;
+  }
+
+  /**
+   * copies the boundary field coordinates from the boundary tool, if a boundary is defined
+   * @return true if a boundary field is defined, false otherwise
+   */
+  private boolean updateBoundaryCornersFromToolBoundary()
+  {
+    boundaryCorner1 = null;
+    boundaryCorner2 = null;
+
+    if (speedyToolBoundary == null) return false;
+
+    boolean hasABoundaryField = speedyToolBoundary.copyBoundaryCorners(boundaryCorner1, boundaryCorner2);
+    return hasABoundaryField;
   }
 
   /**
@@ -121,7 +199,8 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
   }
 
   /**
-   * This class is used to provide information to the WireFrame Renderer when it needs it:
+   * This class is used to provide information to the WireFrame Renderer for rendering the wireframe
+   *   of highlighted blocks.
    * The Renderer calls refreshRenderInfo, which copies the relevant information from the tool.
    * Draws a wireframe selection, provided that not both of the corners have been placed yet
    */
@@ -147,7 +226,7 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     public boolean refreshRenderInfo(RendererSolidSelection.SolidSelectionRenderInfo infoToUpdate, EntityPlayer player, float partialTick) {
       if (!currentToolState.displaySolidSelection) return false;
       final double THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID = 0.01;
-//      checkInvariants();
+      checkInvariants();
 
       Vec3 playerOrigin = player.getPosition(partialTick);
 
@@ -182,13 +261,23 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
 
   private ItemSpeedyCopy itemSpeedyCopy;
 
+  private void checkInvariants()
+  {
+    assert (    currentToolState != ToolState.GENERATING_SELECTION || voxelSelectionManager != null);
+    assert (   currentToolState != ToolState.DISPLAYING_SELECTION
+            || (voxelSelectionManager != null && selectionOrigin != null) );
+
+    assert (    selectionGrabActivated == false || selectionGrabPoint != null);
+  }
+
+
   // the Tool can be in several states as given by currentToolState:
   // 1) NO_SELECTION
   //    highlightBlocks() is used to update some variables, based on what the player is looking at
   //      a) highlightedBlocks (block wire outline)
   //      b) currentHighlighting (what type of highlighting depending on whether there is a boundary field, whether
   //         the player is looking at a block or at a side of the boundary field
-  //      c) currentlySelectedBlock (if looking at a block)
+  //      c) blockUnderCursor (if looking at a block)
   //      d) boundaryCursorSide (if looking at the boundary field)
   //    voxelSelectionManager is not valid
   // 2) GENERATING_SELECTION - user has clicked to generate a selection
@@ -238,6 +327,6 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     }
   }
 
-  private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRenderInfoUpdateLink;
+  private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
 
 }

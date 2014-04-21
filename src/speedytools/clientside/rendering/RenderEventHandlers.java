@@ -1,18 +1,21 @@
 package speedytools.clientside.rendering;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
+import speedytools.clientside.ClientSide;
 import speedytools.common.items.ItemSpeedyClonerBase;
 
 /**
  Contains the custom Forge Event Handlers related to Rendering
  */
-public class RenderEventHandler
+public class RenderEventHandlers
 {
 
   /**
@@ -36,8 +39,18 @@ public class RenderEventHandler
     return;
   }
 
+  @ForgeSubscribe
+  public void blockHighlightDecider(DrawBlockHighlightEvent event)
+  {
+    if (ClientSide.activeTool.toolIsActive()) {
+      event.setCanceled(true);
+    }
+    return;
+  }
+
+
   /**
-   * If a speedy tool is equipped, selects the appropriate blocks and stores the selection into SpeedyToolsMod.currentlySelectedBlock
+   * If a speedy tool is equipped, selects the appropriate blocks and stores the selection into SpeedyToolsMod.blockUnderCursor
    *    along with the substrate used by the tool (the block to be placed) which is the block in the hotbar immediately to the left of the tool
    * Also renders the selection over the top of the existing world
    *
@@ -50,11 +63,13 @@ public class RenderEventHandler
     assert(context.mc.renderViewEntity instanceof EntityPlayer);
     EntityPlayer player = (EntityPlayer)context.mc.renderViewEntity;
 
-    ItemStack currentItem = player.inventory.getCurrentItem();
+    //ItemStack currentItem = player.inventory.getCurrentItem();         //
     float partialTick = event.partialTicks;
 
-    boolean cloneToolHeld = currentItem != null && ItemSpeedyClonerBase.isAcloneTool(currentItem.itemID);
-    if (!cloneToolHeld) return;
+    EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
+    ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
+    ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, partialTick);
+
 
 /*
     if (speedyToolHeld) {

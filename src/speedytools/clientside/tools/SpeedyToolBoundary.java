@@ -80,12 +80,12 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
   protected void doRightClick(EntityClientPlayerMP player, float partialTick)
   {
     if (boundaryCorner1 == null) {
-      if (currentlySelectedBlock == null) return;
-      boundaryCorner1 = new ChunkCoordinates(currentlySelectedBlock);
+      if (blockUnderCursor == null) return;
+      boundaryCorner1 = new ChunkCoordinates(blockUnderCursor);
       speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_PLACE_1ST, player.getPosition(partialTick));
     } else if (boundaryCorner2 == null) {
-      if (currentlySelectedBlock == null) return;
-      addCornerPointWithMaxSize(currentlySelectedBlock);
+      if (blockUnderCursor == null) return;
+      addCornerPointWithMaxSize(blockUnderCursor);
       speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_PLACE_2ND, player.getPosition(partialTick));
     } else {
       if (boundaryGrabActivated) {  // ungrab
@@ -145,7 +145,7 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
     }
 
     // choose a starting block
-    currentlySelectedBlock = null;
+    blockUnderCursor = null;
     MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
     if (airSelectionIgnoringBlocks == null) return false;
 
@@ -160,7 +160,7 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
       }
     }
 
-    currentlySelectedBlock = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+    blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
     return true;
   }
 
@@ -194,7 +194,7 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
     {
       if (boundaryCorner1 != null && boundaryCorner2 != null) return false;
       infoToUpdate.currentlySelectedBlocks = new ArrayList<ChunkCoordinates>(1);
-      infoToUpdate.currentlySelectedBlocks.add(currentlySelectedBlock);
+      infoToUpdate.currentlySelectedBlocks.add(blockUnderCursor);
       return true;
     }
   }
@@ -219,6 +219,32 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
     double wZmax = cnrMax.posZ + 1;
 
     return AxisAlignedBB.getAABBPool().getAABB(wXmin, wYmin, wZmin, wXmax, wYmax, wZmax);
+  }
+
+  /**
+   * Copies the boundary field coordinates into the supplied min and max ChunkCoordinates
+   * @param minCoord the chunk coordinate to be filled with the minimum x, y, z corner
+   * @param maxCoord the chunk coordinate to be filled with the maximum x, y, z corner
+   * @return true if the boundary field is valid; false if there is no boundary field
+   */
+  public boolean copyBoundaryCorners(ChunkCoordinates minCoord, ChunkCoordinates maxCoord)
+  {
+    sortBoundaryFieldCorners();
+
+    if (boundaryCorner1 == null) {
+      minCoord = null;
+      maxCoord = null;
+      return false;
+    }
+    ChunkCoordinates cnrMin = boundaryCorner1;
+    ChunkCoordinates cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
+    minCoord.posX = cnrMin.posX;
+    minCoord.posY = cnrMin.posY;
+    minCoord.posZ = cnrMin.posZ;
+    maxCoord.posX = cnrMax.posX;
+    maxCoord.posY = cnrMax.posY;
+    maxCoord.posZ = cnrMax.posZ;
+    return true;
   }
 
   /**
@@ -296,9 +322,9 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
   }
 
   private boolean boundaryGrabActivated = false;
-  private int boundaryGrabSide = -1;
+  private int boundaryGrabSide = UsefulConstants.FACE_NONE;
   private Vec3 boundaryGrabPoint = null;
-  protected int boundaryCursorSide = -1;
+  protected int boundaryCursorSide = UsefulConstants.FACE_NONE;
 
 
   private ItemSpeedyBoundary itemSpeedyBoundary;

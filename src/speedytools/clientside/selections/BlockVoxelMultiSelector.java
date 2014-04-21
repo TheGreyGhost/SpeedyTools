@@ -16,7 +16,7 @@ import speedytools.common.utilities.Colour;
 public class BlockVoxelMultiSelector
 {
   private VoxelSelection selection;
-  private VoxelSelection shadow;
+//  private VoxelSelection shadow;
 
   private int smallestVoxelX;
   private int largestVoxelX;
@@ -92,7 +92,7 @@ public class BlockVoxelMultiSelector
           if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
           if (world.getBlockId(xpos + xOffset, ypos + yOffset, zpos + zOffset) != 0) {
             selection.setVoxel(xpos, ypos, zpos);
-            shadow.setVoxel(xpos, 1, zpos);
+//            shadow.setVoxel(xpos, 1, zpos);
             expandVoxelRange(xpos, ypos, zpos);
           }
         }
@@ -143,10 +143,10 @@ public class BlockVoxelMultiSelector
     zSize = 1 + Math.max(corner1.posZ, corner2.posZ) - zOffset;
     if (selection == null) {
       selection = new VoxelSelection(xSize, ySize, zSize);
-      shadow = new VoxelSelection(xSize, 1, zSize);
+//      shadow = new VoxelSelection(xSize, 1, zSize);
     } else {
       selection.clearAll(xSize, ySize, zSize);
-      shadow.clearAll(xSize, 1, zSize);
+//      shadow.clearAll(xSize, 1, zSize);
     }
   }
 

@@ -18,7 +18,7 @@ public class ItemEventHandler {
    * Otherwise, cancel the event so that the normal selection box is drawn.
    * @param event
    */
-  @ForgeSubscribe
+//  @ForgeSubscribe
   public void blockHighlightDecider(DrawBlockHighlightEvent event)
   {
     if (ClientSide.activeTool.toolIsActive()) {
@@ -44,7 +44,7 @@ public class ItemEventHandler {
    *
    * @param event
    */
-  @ForgeSubscribe
+//  @ForgeSubscribe
   public void drawSelectionBox(RenderWorldLastEvent event)
   {
     RenderGlobal context = event.context;

@@ -45,10 +45,10 @@ public class CombinedClientProxy extends CommonProxy {
   {
     super.postInit();
     SpeedyToolControls.initialiseInterceptors();
-    MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
+//    MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
     MinecraftForge.EVENT_BUS.register(new SoundsRegistry());
     MinecraftForge.EVENT_BUS.register(new InputEventHandler());
-    MinecraftForge.EVENT_BUS.register(new RenderEventHandler());
+    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());
     TickRegistry.registerTickHandler(new ClientTickHandler(), Side.CLIENT);
     ClientSide.initialise();
 

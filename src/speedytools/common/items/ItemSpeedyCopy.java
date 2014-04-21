@@ -387,7 +387,7 @@ public class ItemSpeedyCopy extends ItemSpeedyClonerBase
   //      a) highlightedBlocks (block wire outline)
   //      b) currentHighlighting (what type of highlighting depending on whether there is a boundary field, whether
   //         the player is looking at a block or at a side of the boundary field
-  //      c) currentlySelectedBlock (if looking at a block)
+  //      c) blockUnderCursor (if looking at a block)
   //      d) boundaryCursorSide (if looking at the boundary field)
   //    voxelSelectionManager is not valid
   // 2) GENERATING_SELECTION - user has clicked to generate a selection

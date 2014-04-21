@@ -91,7 +91,7 @@ public abstract class SpeedyToolClonerBase extends SpeedyTool
   }
 
 
-  protected static ChunkCoordinates currentlySelectedBlock = null;
+  protected static ChunkCoordinates blockUnderCursor = null;
   protected ChunkCoordinates boundaryCorner1 = null;
   protected ChunkCoordinates boundaryCorner2 = null;
 
