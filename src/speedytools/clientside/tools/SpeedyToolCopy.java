@@ -4,10 +4,12 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import org.lwjgl.input.Keyboard;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.userinput.UserInput;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.ItemSpeedyCopy;
 
 import java.util.LinkedList;
@@ -53,28 +55,172 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     return true;
   }
 
+  /**
+   * user inputs are:
+   * (1) long left hold = undo previous copy (if any)
+   * Also -
+   * While there is no selection:
+   * (1) short right click = create selection
+   * While there is a selection:
+   * (1) short left click = uncreate selection
+   * (2) short right click with CTRL = mirror selection left-right
+   * (3) short right click without CTRL = grab / ungrab selection to move it around
+   * (4) long right hold = copy the selection to the current position
+   * (5) long left hold = undo the previous copy
+   * (6) CTRL + mousewheel = rotate selection
+
+   * @param player
+   * @param partialTick
+   * @param userInput
+   * @return
+   */
+
   @Override
   public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput) {
     if (!iAmActive) return false;
 
+    final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for undo
+    final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptions.getShortClickMaxDurationNS();  // ,maximum length of time for a "short" click
+
+    checkInvariants();
+
     controlKeyIsDown = userInput.isControlKeyDown();
 
     UserInput.InputEvent nextEvent;
+
+    if (currentToolState.performingAction) {
+      userInput.reset();
+      return false;
+    }
+
+    // update button hold times - used for rendering display only; CLICK_UP is used for reacting to the event
+    long timeNow = System.nanoTime();
+    leftButtonHoldTime = userInput.leftButtonHoldTimeNS(timeNow);
+    rightButtonHoldTime = userInput.rightButtonHoldTimeNS(timeNow);
+
+    if (userInput.leftButtonHoldTimeNS(timeNow) >= MAX_SHORT_CLICK_DURATION_NS) {
+    }
+    if (!leftButtonBeingHeld && userInput.leftButtonHoldTimeNS(timeNow) >= MAX_SHORT_CLICK_DURATION_NS) { // user has started a new long left hold
+      leftButtonBeingHeld = true;
+
+    }
+    if (!rightButtonBeingHeld && ) >= MAX_SHORT_CLICK_DURATION_NS) { // user has started a new long right hold
+
+
     while (null != (nextEvent = userInput.poll())) {
-      switch (nextEvent.eventType) {
-        case LEFT_CLICK_DOWN: {
-          boundaryCorner1 = null;
-          boundaryCorner2 = null;
-          speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_UNPLACE, player.getPosition(partialTick));
-          break;
-        }
-        case RIGHT_CLICK_DOWN: {
-          doRightClick(player, partialTick);
-          break;
+      if (nextEvent.eventType == UserInput.InputEventType.LEFT_CLICK_UP &&
+              nextEvent.eventDuration >= MIN_UNDO_HOLD_DURATION_NS
+          ) {
+        undoAction(player);
+      } else {
+        switch (currentToolState) {
+          case NO_SELECTION: {
+            if (nextEvent.eventType == UserInput.InputEventType.RIGHT_CLICK_UP &&
+                    nextEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
+              initiateSelectionCreation(player);
+            }
+            break;
+          }
+          case GENERATING_SELECTION: {
+            userInput.reset(); // do nothing while selection generation in place
+            return false;
+          }
+          case DISPLAYING_SELECTION: {
+            processSelectionUserInput(player, partialTick, nextEvent);
+            break;
+          }
+          default:
+            assert false : "Illegal currentToolState: " + currentToolState;
         }
       }
     }
     return true;
+
+  }
+
+  /** processes user input received while there is a solid selection
+   * (1) short left click = uncreate selection
+   * (2) short right click with CTRL = mirror selection left-right
+   * (3) short right click without CTRL = grab / ungrab selection to move it around
+   * (4) long right hold = copy the selection to the current position
+   * (5) long left hold = undo the previous copy
+   * (6) CTRL + mousewheel = rotate selection
+   *
+   * @param player
+   * @param partialTick
+   * @param inputEvent
+   * @return
+   */
+  private boolean processSelectionUserInput(EntityClientPlayerMP player, float partialTick, UserInput.InputEvent inputEvent)
+  {
+    switch (inputEvent.eventType) {
+      case LEFT_CLICK_UP: {
+        break;
+      }
+      case RIGHT_CLICK_UP: {
+        break;
+      }
+      case
+
+
+    }
+  }
+
+  public void buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
+  {
+    final long DOUBLE_CLICK_SPEED_NS = SpeedyToolsOptions.getDoubleClickSpeedMS() * 1000 * 1000;
+    checkInvariants();
+
+    switch (whichButton) {
+      case 0: {
+        if (lastLeftClickTime == null) {
+          lastLeftClickTime = System.nanoTime();  // .tick() will act on this after the double click time has elapsed
+        } else {
+          long clickElapsedTime = System.nanoTime() - lastLeftClickTime;
+          lastLeftClickTime = null;
+          if (clickElapsedTime < DOUBLE_CLICK_SPEED_NS) {
+            undoAction(thePlayer);
+          } else {
+            undoSelection(thePlayer);    // the double-click time has elapsed before the second click but the tick() didn't occur yet
+          }
+        }
+        break;
+      }
+      case 1: {
+        if (currentToolState.performingAction) return;
+        switch (currentToolState) {
+          case NO_SELECTION: {
+
+            break;
+          }
+          case DISPLAYING_SELECTION: {
+            long clickElapsedTime = System.nanoTime() - lastRightClickTime;
+            lastRightClickTime = System.nanoTime();
+
+            boolean controlKeyDown =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+            if (controlKeyDown) {
+              flipSelection();
+            } else {
+              if (clickElapsedTime < DOUBLE_CLICK_SPEED_NS) {
+                placeSelection(thePlayer);
+              } else {
+                Vec3 playerPosition = thePlayer.getPosition(1.0F);  // beware, Vec3 is short-lived
+                selectionGrabActivated = true;
+                selectionMovedFastYet = false;
+                selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
+              }
+            }
+          }
+        }
+        break;
+      }
+      default: {     // should never happen- if it does, ignore it
+        break;
+      }
+    }
+
+    checkInvariants();
+    return;
   }
 
   /**
@@ -299,8 +445,10 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
   private Vec3    selectionGrabPoint = null;
   private boolean selectionMovedFastYet;
 
-  private long lastRightClickTime;                                            // used for double-click detection
-  private Long lastLeftClickTime = null;                                      // used for double-click detection
+  private boolean leftButtonBeingHeld = false;
+  private long    leftButtonHoldTime;
+  private boolean rightButtonBeingHeld = false;
+  private long    rightButtonHoldTime;
 
   private SpeedyToolBoundary speedyToolBoundary;   // used to retrieve the boundary field coordinates, if selected
 

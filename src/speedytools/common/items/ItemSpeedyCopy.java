@@ -86,55 +86,55 @@ public class ItemSpeedyCopy extends ItemSpeedyClonerBase
   @Override
   public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
   {
-    checkInvariants();
-    if (currentToolState != ToolState.NO_SELECTION) return;
-
-    final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
-    currentlySelectedBlock = null;
-    highlightedBlocks = null;
-    boundaryGrabActivated = false;
-    boundaryCursorSide = UsefulConstants.FACE_NONE;
-    currentHighlighting = SelectionType.NONE;
-
-    if (target != null && target.typeOfHit == EnumMovingObjectType.TILE) {
-      currentlySelectedBlock = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
-      boolean playerIsInsideBoundaryField = false;
-
-      if (boundaryCorner1 != null && boundaryCorner2 != null) {
-//        sortBoundaryFieldCorners();
-        if (   currentlySelectedBlock.posX >= boundaryCorner1.posX && currentlySelectedBlock.posX <= boundaryCorner2.posX
-            && currentlySelectedBlock.posY >= boundaryCorner1.posY && currentlySelectedBlock.posY <= boundaryCorner2.posY
-            && currentlySelectedBlock.posZ >= boundaryCorner1.posZ && currentlySelectedBlock.posZ <= boundaryCorner2.posZ ) {
-          playerIsInsideBoundaryField = true;
-        }
-      }
-
-      if (playerIsInsideBoundaryField) {
-        currentHighlighting = SelectionType.BOUND_FILL;
-        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
-                                       boundaryCorner1.posX, boundaryCorner2.posX,
-                                       boundaryCorner1.posY, boundaryCorner2.posY,
-                                       boundaryCorner1.posZ, boundaryCorner2.posZ);
-      } else {
-        currentHighlighting = SelectionType.UNBOUND_FILL;
-        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
-                                       Integer.MIN_VALUE, Integer.MAX_VALUE,
-                                       currentlySelectedBlock.posY, 255,
-                                       Integer.MIN_VALUE, Integer.MAX_VALUE);
-      }
-      return;
-    }
-
-    if (boundaryCorner1 == null || boundaryCorner2 == null) return;
-    Vec3 playerPosition = player.getPosition(1.0F);
-    if (   playerPosition.xCoord >= boundaryCorner1.posX && playerPosition.xCoord <= boundaryCorner2.posX +1
-        && playerPosition.yCoord >= boundaryCorner1.posY && playerPosition.yCoord <= boundaryCorner2.posY +1
-        && playerPosition.zCoord >= boundaryCorner1.posZ && playerPosition.zCoord <= boundaryCorner2.posZ +1) {
-      return;
-    }
-    MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
-    boundaryCursorSide = (highlightedFace != null) ? UsefulConstants.FACE_ALL : UsefulConstants.FACE_NONE;
-    currentHighlighting = SelectionType.FULL_BOX;
+//    checkInvariants();
+//    if (currentToolState != ToolState.NO_SELECTION) return;
+//
+//    final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
+//    currentlySelectedBlock = null;
+//    highlightedBlocks = null;
+//    boundaryGrabActivated = false;
+//    boundaryCursorSide = UsefulConstants.FACE_NONE;
+//    currentHighlighting = SelectionType.NONE;
+//
+//    if (target != null && target.typeOfHit == EnumMovingObjectType.TILE) {
+//      currentlySelectedBlock = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+//      boolean playerIsInsideBoundaryField = false;
+//
+//      if (boundaryCorner1 != null && boundaryCorner2 != null) {
+////        sortBoundaryFieldCorners();
+//        if (   currentlySelectedBlock.posX >= boundaryCorner1.posX && currentlySelectedBlock.posX <= boundaryCorner2.posX
+//            && currentlySelectedBlock.posY >= boundaryCorner1.posY && currentlySelectedBlock.posY <= boundaryCorner2.posY
+//            && currentlySelectedBlock.posZ >= boundaryCorner1.posZ && currentlySelectedBlock.posZ <= boundaryCorner2.posZ ) {
+//          playerIsInsideBoundaryField = true;
+//        }
+//      }
+//
+//      if (playerIsInsideBoundaryField) {
+//        currentHighlighting = SelectionType.BOUND_FILL;
+//        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
+//                                       boundaryCorner1.posX, boundaryCorner2.posX,
+//                                       boundaryCorner1.posY, boundaryCorner2.posY,
+//                                       boundaryCorner1.posZ, boundaryCorner2.posZ);
+//      } else {
+//        currentHighlighting = SelectionType.UNBOUND_FILL;
+//        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
+//                                       Integer.MIN_VALUE, Integer.MAX_VALUE,
+//                                       currentlySelectedBlock.posY, 255,
+//                                       Integer.MIN_VALUE, Integer.MAX_VALUE);
+//      }
+//      return;
+//    }
+//
+//    if (boundaryCorner1 == null || boundaryCorner2 == null) return;
+//    Vec3 playerPosition = player.getPosition(1.0F);
+//    if (   playerPosition.xCoord >= boundaryCorner1.posX && playerPosition.xCoord <= boundaryCorner2.posX +1
+//        && playerPosition.yCoord >= boundaryCorner1.posY && playerPosition.yCoord <= boundaryCorner2.posY +1
+//        && playerPosition.zCoord >= boundaryCorner1.posZ && playerPosition.zCoord <= boundaryCorner2.posZ +1) {
+//      return;
+//    }
+//    MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(Minecraft.getMinecraft().renderViewEntity);
+//    boundaryCursorSide = (highlightedFace != null) ? UsefulConstants.FACE_ALL : UsefulConstants.FACE_NONE;
+//    currentHighlighting = SelectionType.FULL_BOX;
  }
 
 

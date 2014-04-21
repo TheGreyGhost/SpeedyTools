@@ -81,7 +81,7 @@ public class UserInput
     int stepCount = event.dwheel / MOUSE_DELTA_PER_STEP;
     if (stepCount == 0) return false;
 
-    inputEvents.add(new InputEvent(InputEventType.WHEEL_MOVE, event.nanoseconds, controlKeyDown, stepCount));
+    inputEvents.add(new InputEvent(InputEventType.WHEEL_MOVE, event.nanoseconds, controlKeyDown, stepCount, 1));
     return true;
   }
 
@@ -99,7 +99,7 @@ public class UserInput
       leftButtonLastChangeTimeNS = timeStampNS;
     } else if (newLeftButtonIsDown != this.leftButtonIsDown) {
       inputEvents.add(new InputEvent(newLeftButtonIsDown ? InputEventType.LEFT_CLICK_DOWN : InputEventType.LEFT_CLICK_UP,
-                                     timeStampNS, controlKeyIsDown, 1) );
+                                     timeStampNS, controlKeyIsDown, 1, timeStampNS - leftButtonLastChangeTimeNS) );
       leftButtonLastChangeTimeNS = timeStampNS;
     }
     this.leftButtonIsDown = newLeftButtonIsDown;
@@ -108,7 +108,7 @@ public class UserInput
       rightButtonLastChangeTimeNS = timeStampNS;
     } else if (newRightButtonIsDown && !this.rightButtonIsDown) {
       inputEvents.add(new InputEvent(newRightButtonIsDown ? InputEventType.RIGHT_CLICK_DOWN : InputEventType.RIGHT_CLICK_UP,
-                                     timeStampNS, controlKeyIsDown, 1) );
+                                     timeStampNS, controlKeyIsDown, 1, timeStampNS - rightButtonLastChangeTimeNS) );
       rightButtonLastChangeTimeNS = timeStampNS;
     }
     this.rightButtonIsDown = newRightButtonIsDown;
@@ -168,12 +168,16 @@ public class UserInput
     public long eventTimeNS;        // nanoseconds timestamp
     public boolean controlKeyDown;
     public int count;               // might be negative for some eg mousewheel
+    public long eventDuration;      // nanoseconds that the previous state lasted for;
+                                    //  eg RIGHT_CLICK_UP with 200 ns means that the right button was held down for 200 ns.
+                                    //  0 means can't tell / undefined
 
-    public InputEvent(InputEventType i_inputEventType, long i_eventTimeNS, boolean i_controlKeyDown, int i_count) {
+    public InputEvent(InputEventType i_inputEventType, long i_eventTimeNS, boolean i_controlKeyDown, int i_count, long i_eventDuration) {
       eventType = i_inputEventType;
       eventTimeNS = i_eventTimeNS;
       controlKeyDown = i_controlKeyDown;
       count = i_count;
+      eventDuration = i_eventDuration;
     }
   }
 
