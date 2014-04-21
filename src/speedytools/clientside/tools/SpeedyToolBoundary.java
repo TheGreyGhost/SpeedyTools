@@ -232,8 +232,6 @@ public class SpeedyToolBoundary extends SpeedyToolClonerBase
     sortBoundaryFieldCorners();
 
     if (boundaryCorner1 == null) {
-      minCoord = null;
-      maxCoord = null;
       return false;
     }
     ChunkCoordinates cnrMin = boundaryCorner1;

@@ -4,8 +4,8 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import org.lwjgl.input.Keyboard;
 import speedytools.clientside.UndoManagerClient;
+import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.userinput.UserInput;
@@ -20,18 +20,30 @@ import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 /**
  * User: The Grey Ghost
  * Date: 18/04/2014
+ *
+ * The various renders for this tool are:
+ * 1) Wireframe highlight of the block(s) under the cursor when no selection made yet
+ * 2) The boundary field (if any)
+ * 3) The solid selection, when made
+ * 4) The various status indicators on the cursor:
+ *   a) When generating a selection - the "busy" cursor with progress
+ *   b) When a selection is made, the tool continually shows the server "ready" status
+ *   c) When a selection is made: the power up animation for the action or the undo
+ *   d) When an action is in progress: the progress meter
+ *   e) When an undo is in progress: the progress meter
+ *
  */
 public class SpeedyToolCopy extends SpeedyToolClonerBase
 {
   public SpeedyToolCopy(ItemSpeedyCopy i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
-                        SpeedyToolBoundary i_speedyToolBoundary
-                        ) {
+                        CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);
     itemSpeedyCopy = i_parentItem;
     speedyToolBoundary = i_speedyToolBoundary;
     boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
     solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
+    cloneToolsNetworkClient = i_cloneToolsNetworkClient;
   }
 
   @Override
@@ -45,29 +57,45 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     return true;
   }
 
-  /** The user has unequipped this tool, deactivate it, stop any effects, etc
-   * @return
+  /** The user has unequipped this tool:
+   * (1) if generating a selection, stop
+   * (2) ungrab if dragging a selection
+   * (3) if currently performing any actions or communications with the server, terminate them
+   * The tool will not deactivate itself until the server has acknowledged abort.
+   * @return true if deactivation complete, false if not yet ready to deactivate
    */
   @Override
   public boolean deactivateTool() {
+    if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
+        currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
+    }
+    if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING
+        && cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.COMPLETED  ) {
+      undoAction();
+    }
+    if (this.iAmBusy()) return false;
+
     speedyToolRenderers.setRenderers(null);
     iAmActive = false;
     return true;
   }
 
   /**
-   * user inputs are:
+   * the various valid user inputs are:
+   * While performing an action (eg selection creation, or selection copy):
+   * (1) any left click = abort action.
+   * Otherwise:
+   * If there is no selection:
    * (1) long left hold = undo previous copy (if any)
-   * Also -
-   * While there is no selection:
-   * (1) short right click = create selection
-   * While there is a selection:
-   * (1) short left click = uncreate selection
-   * (2) short right click with CTRL = mirror selection left-right
-   * (3) short right click without CTRL = grab / ungrab selection to move it around
-   * (4) long right hold = copy the selection to the current position
-   * (5) long left hold = undo the previous copy
-   * (6) CTRL + mousewheel = rotate selection
+   * (2) short right click = create selection
+   * If there is a selection:
+   * (1) long left hold = undo previous copy (if any)
+   * (2) short left click = uncreate selection
+   * (3) short right click with CTRL = mirror selection left-right
+   * (4) short right click without CTRL = grab / ungrab selection to move it around
+   * (5) long right hold = copy the selection to the current position
+   * (6) long left hold = undo the previous copy
+   * (7) CTRL + mousewheel = rotate selection
 
    * @param player
    * @param partialTick
@@ -80,40 +108,35 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     if (!iAmActive) return false;
 
     final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for undo
-    final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptions.getShortClickMaxDurationNS();  // ,maximum length of time for a "short" click
+    final long MIN_PLACE_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for action (place)
+    final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptions.getShortClickMaxDurationNS();  // maximum length of time for a "short" click
 
     checkInvariants();
 
-    controlKeyIsDown = userInput.isControlKeyDown();
-
     UserInput.InputEvent nextEvent;
-
-    if (currentToolState.performingAction) {
-      userInput.reset();
-      return false;
-    }
-
-    // update button hold times - used for rendering display only; CLICK_UP is used for reacting to the event
-    long timeNow = System.nanoTime();
-    leftButtonHoldTime = userInput.leftButtonHoldTimeNS(timeNow);
-    rightButtonHoldTime = userInput.rightButtonHoldTimeNS(timeNow);
-
-    if (userInput.leftButtonHoldTimeNS(timeNow) >= MAX_SHORT_CLICK_DURATION_NS) {
-    }
-    if (!leftButtonBeingHeld && userInput.leftButtonHoldTimeNS(timeNow) >= MAX_SHORT_CLICK_DURATION_NS) { // user has started a new long left hold
-      leftButtonBeingHeld = true;
-
-    }
-    if (!rightButtonBeingHeld && ) >= MAX_SHORT_CLICK_DURATION_NS) { // user has started a new long right hold
-
-
     while (null != (nextEvent = userInput.poll())) {
-      if (nextEvent.eventType == UserInput.InputEventType.LEFT_CLICK_UP &&
+      // if we are busy with an action - a short left click will abort current action
+      if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
+        if (nextEvent.eventType == UserInput.InputEventType.LEFT_CLICK_DOWN) {
+          if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING
+                  && cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+            undoAction();
+          }
+        }
+
+         // if we are busy with an undo - we can't interrupt
+      } else if (cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
+        // do nothing
+
+        // otherwise - is this an undo?
+      } else if (nextEvent.eventType == UserInput.InputEventType.LEFT_CLICK_UP &&
               nextEvent.eventDuration >= MIN_UNDO_HOLD_DURATION_NS
           ) {
-        undoAction(player);
+        undoAction();
+
+        // otherwise - split up according to whether we have a selection or not
       } else {
-        switch (currentToolState) {
+        switch (currentToolSelectionState) {
           case NO_SELECTION: {
             if (nextEvent.eventType == UserInput.InputEventType.RIGHT_CLICK_UP &&
                     nextEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
@@ -122,7 +145,9 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
             break;
           }
           case GENERATING_SELECTION: {
-            userInput.reset(); // do nothing while selection generation in place
+            if (nextEvent.eventType == UserInput.InputEventType.LEFT_CLICK_DOWN) {
+              undoSelectionCreation();
+            }
             return false;
           }
           case DISPLAYING_SELECTION: {
@@ -130,12 +155,75 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
             break;
           }
           default:
-            assert false : "Illegal currentToolState: " + currentToolState;
+            assert false : "Illegal currentToolState: " + currentToolSelectionState;
         }
       }
     }
-    return true;
 
+    // If we are in a receptive state for powerup, check if it should be started or status updated.  Otherwise stop it.
+    // used for rendering display only; CLICK_UP is used for reacting to the event
+
+    // undo action check
+    long timeNow = System.nanoTime();
+    if (this.iAmBusy()) {
+      if (!leftClickPowerup.isIdle()) {
+        leftClickPowerup.abort();
+      }
+    } else {
+      long leftButtonHoldTime = userInput.leftButtonHoldTimeNS(timeNow);
+
+      if (leftButtonHoldTime >= MAX_SHORT_CLICK_DURATION_NS) {
+        if (leftClickPowerup.isIdle()) {
+          leftClickPowerup.initiate(timeNow, timeNow + MIN_UNDO_HOLD_DURATION_NS, leftButtonHoldTime);
+        }
+        leftClickPowerup.updateHolddownTime(leftButtonHoldTime);
+      } else if (leftButtonHoldTime < 0) { // released button
+        if (!leftClickPowerup.isIdle()) {
+          long releaseTime = timeNow + leftButtonHoldTime;
+          leftClickPowerup.release(releaseTime);
+        }
+      }
+    }
+
+    if (this.iAmBusy() || currentToolSelectionState != ToolSelectionStates.DISPLAYING_SELECTION) {
+      if (!rightClickPowerup.isIdle()) {
+        rightClickPowerup.abort();
+      }
+    } else {
+      long rightButtonHoldTime = userInput.rightButtonHoldTimeNS(timeNow);
+      if (rightButtonHoldTime >= MAX_SHORT_CLICK_DURATION_NS) {
+        if (rightClickPowerup.isIdle()) {
+          rightClickPowerup.initiate(timeNow, timeNow + MIN_PLACE_HOLD_DURATION_NS, rightButtonHoldTime);
+        }
+        rightClickPowerup.updateHolddownTime(rightButtonHoldTime);
+      } else if (rightButtonHoldTime < 0) { // released button
+        if (!rightClickPowerup.isIdle()) {
+          long releaseTime = timeNow + rightButtonHoldTime;
+          rightClickPowerup.release(releaseTime);
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /** Is the tool currently busy with something?
+   * @return true if busy, false if not
+   */
+  private boolean iAmBusy()
+  {
+    if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
+      return true;
+    }
+    if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING
+        && cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+      return true;
+    }
+    if (cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING
+            && cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+      return true;
+    }
+    return false;
   }
 
   /** processes user input received while there is a solid selection
@@ -151,86 +239,48 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
    * @param inputEvent
    * @return
    */
-  private boolean processSelectionUserInput(EntityClientPlayerMP player, float partialTick, UserInput.InputEvent inputEvent)
-  {
+  private boolean processSelectionUserInput(EntityClientPlayerMP player, float partialTick, UserInput.InputEvent inputEvent) {
+    final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for undo
+    final long MIN_PLACE_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for action (place)
+    final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptions.getShortClickMaxDurationNS();  // maximum length of time for a "short" click
+
     switch (inputEvent.eventType) {
       case LEFT_CLICK_UP: {
+        if (inputEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
+          undoSelectionCreation();
+        } else if (inputEvent.eventDuration >= MIN_UNDO_HOLD_DURATION_NS) {
+          undoAction();
+        }
         break;
       }
       case RIGHT_CLICK_UP: {
-        break;
-      }
-      case
-
-
-    }
-  }
-
-  public void buttonClicked(EntityClientPlayerMP thePlayer, int whichButton)
-  {
-    final long DOUBLE_CLICK_SPEED_NS = SpeedyToolsOptions.getDoubleClickSpeedMS() * 1000 * 1000;
-    checkInvariants();
-
-    switch (whichButton) {
-      case 0: {
-        if (lastLeftClickTime == null) {
-          lastLeftClickTime = System.nanoTime();  // .tick() will act on this after the double click time has elapsed
-        } else {
-          long clickElapsedTime = System.nanoTime() - lastLeftClickTime;
-          lastLeftClickTime = null;
-          if (clickElapsedTime < DOUBLE_CLICK_SPEED_NS) {
-            undoAction(thePlayer);
-          } else {
-            undoSelection(thePlayer);    // the double-click time has elapsed before the second click but the tick() didn't occur yet
-          }
-        }
-        break;
-      }
-      case 1: {
-        if (currentToolState.performingAction) return;
-        switch (currentToolState) {
-          case NO_SELECTION: {
-
-            break;
-          }
-          case DISPLAYING_SELECTION: {
-            long clickElapsedTime = System.nanoTime() - lastRightClickTime;
-            lastRightClickTime = System.nanoTime();
-
-            boolean controlKeyDown =  Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-            if (controlKeyDown) {
-              flipSelection();
+        if (inputEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
+          if (inputEvent.controlKeyDown) {
+            flipSelection();
+          } else { // toggle selection grabbing
+            Vec3 playerPosition = player.getPosition(partialTick);  // beware, Vec3 is short-lived
+            selectionGrabActivated = !selectionGrabActivated;
+            if (selectionGrabActivated) {
+              selectionMovedFastYet = false;
+              selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
             } else {
-              if (clickElapsedTime < DOUBLE_CLICK_SPEED_NS) {
-                placeSelection(thePlayer);
-              } else {
-                Vec3 playerPosition = thePlayer.getPosition(1.0F);  // beware, Vec3 is short-lived
-                selectionGrabActivated = true;
-                selectionMovedFastYet = false;
-                selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
-              }
+              Vec3 distanceMoved = selectionGrabPoint.subtract(playerPosition);
+              selectionOrigin.posX += (int)Math.round(distanceMoved.xCoord);
+              selectionOrigin.posY += (int)Math.round(distanceMoved.yCoord);
+              selectionOrigin.posZ += (int)Math.round(distanceMoved.zCoord);
             }
           }
+        } else if (inputEvent.eventDuration >= MIN_PLACE_HOLD_DURATION_NS) {
+          placeSelection();
         }
         break;
       }
-      default: {     // should never happen- if it does, ignore it
+      case WHEEL_MOVE: {
+        rotateSelection();
         break;
       }
     }
-
-    checkInvariants();
-    return;
-  }
-
-  /**
-   * place corner blocks; or if already both placed - grab / ungrab one of the faces.
-   * @param player
-   * @param partialTick
-   */
-  protected void doRightClick(EntityClientPlayerMP player, float partialTick)
-  {
-
+    return true;
   }
 
   /**
@@ -254,7 +304,7 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
   public boolean update(World world, EntityClientPlayerMP player, float partialTick)
   {
     checkInvariants();
-    if (currentToolState != ToolState.NO_SELECTION) return false;
+    if (currentToolSelectionState != ToolSelectionStates.NO_SELECTION) return false;
     updateBoundaryCornersFromToolBoundary();
 
     MovingObjectPosition target = itemSpeedyCopy.rayTraceLineOfSight(player.worldObj, player);
@@ -309,6 +359,104 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
   }
 
   /**
+   * If there is a current selection, destroy it.  No effect if waiting for the server to do something.
+   */
+  private void undoSelectionCreation()
+  {
+    if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING
+        || cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING    ) {
+      return;
+    }
+    currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
+  }
+
+  /**
+   * if the player has previously performed an action, undo it.
+   */
+  private void undoAction()
+  {
+    checkInvariants();
+    boolean success = cloneToolsNetworkClient.performToolUndo();
+
+//        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
+  }
+
+  /**
+   * don't call if an action is already pending
+   */
+  private void placeSelection()
+  {
+    checkInvariants();
+    boolean success = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
+            selectionOrigin.posX, selectionOrigin.posY, selectionOrigin.posZ,
+            (byte) 0, false); // todo: implement rotation and flipped
+  }
+
+  private void flipSelection()
+  {
+    // todo: do something here!
+  }
+
+  private void rotateSelection()
+  {
+    // todo: do something here!
+  }
+
+  private void initiateSelectionCreation(EntityClientPlayerMP thePlayer)
+  {
+    switch (currentHighlighting) {
+      case NONE: {
+        return;
+      }
+      case FULL_BOX: {
+        voxelSelectionManager = new BlockVoxelMultiSelector();
+        voxelSelectionManager.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
+//        sortBoundaryFieldCorners();
+        selectionOrigin = new ChunkCoordinates(boundaryCorner1);
+        currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
+//            playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
+        break;
+      }
+      case UNBOUND_FILL: {
+        break;
+      }
+      case BOUND_FILL: {
+        break;
+      }
+    }
+    cloneToolsNetworkClient.informSelectionMade();
+  }
+
+  /** called once per tick on the client side while the user is holding an ItemCloneTool
+   * used to:
+   * (1) background generation of a selection, if it has been initiated
+   * (2) update the client status to the server
+   */
+  @Override
+  public void performTick(World world)
+  {
+    checkInvariants();
+    final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
+    if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
+      System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);                                     //todo: remove
+      actionPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
+      System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);                                           //todo: remove
+
+      if (actionPercentComplete < 0.0F) {
+        if (voxelSelectionManager.isEmpty()) {
+          currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
+        } else {
+          voxelSelectionManager.createRenderList(world);
+          currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
+        }
+      }
+    }
+
+    checkInvariants();
+  }
+
+
+  /**
    * copies the boundary field coordinates from the boundary tool, if a boundary is defined
    * @return true if a boundary field is defined, false otherwise
    */
@@ -318,8 +466,14 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     boundaryCorner2 = null;
 
     if (speedyToolBoundary == null) return false;
+    ChunkCoordinates cnrMin = new ChunkCoordinates();
+    ChunkCoordinates cnrMax = new ChunkCoordinates();
 
-    boolean hasABoundaryField = speedyToolBoundary.copyBoundaryCorners(boundaryCorner1, boundaryCorner2);
+    boolean hasABoundaryField = speedyToolBoundary.copyBoundaryCorners(cnrMin, cnrMax);
+    if (hasABoundaryField) {
+      boundaryCorner1 = cnrMin;
+      boundaryCorner2 = cnrMax;
+    }
     return hasABoundaryField;
   }
 
@@ -332,7 +486,7 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     @Override
     public boolean refreshRenderInfo(RendererBoundaryField.BoundaryFieldRenderInfo infoToUpdate, Vec3 playerPosition)
     {
-      if (!currentToolState.displayBoundaryField) return false;
+      if (!currentToolSelectionState.displayBoundaryField) return false;
       if (speedyToolBoundary == null) return false;
       AxisAlignedBB boundaryFieldAABB = speedyToolBoundary.getBoundaryField();
       if (boundaryFieldAABB == null) return false;
@@ -355,7 +509,10 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     @Override
     public boolean refreshRenderInfo(RendererWireframeSelection.WireframeRenderInfo infoToUpdate)
     {
-      if (!currentToolState.displayWireframeHighlight) return false;
+      if (   !currentToolSelectionState.displayWireframeHighlight
+          || highlightedBlocks == null) {
+        return false;
+      }
       infoToUpdate.currentlySelectedBlocks = highlightedBlocks;
       return true;
     }
@@ -370,7 +527,7 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
   {
     @Override
     public boolean refreshRenderInfo(RendererSolidSelection.SolidSelectionRenderInfo infoToUpdate, EntityPlayer player, float partialTick) {
-      if (!currentToolState.displaySolidSelection) return false;
+      if (!currentToolSelectionState.displaySolidSelection) return false;
       final double THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID = 0.01;
       checkInvariants();
 
@@ -409,15 +566,15 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
 
   private void checkInvariants()
   {
-    assert (    currentToolState != ToolState.GENERATING_SELECTION || voxelSelectionManager != null);
-    assert (   currentToolState != ToolState.DISPLAYING_SELECTION
+    assert (    currentToolSelectionState != ToolSelectionStates.GENERATING_SELECTION || voxelSelectionManager != null);
+    assert (   currentToolSelectionState != ToolSelectionStates.DISPLAYING_SELECTION
             || (voxelSelectionManager != null && selectionOrigin != null) );
 
     assert (    selectionGrabActivated == false || selectionGrabPoint != null);
   }
 
 
-  // the Tool can be in several states as given by currentToolState:
+  // the Tool Selection can be in several states as given by currentToolState:
   // 1) NO_SELECTION
   //    highlightBlocks() is used to update some variables, based on what the player is looking at
   //      a) highlightedBlocks (block wire outline)
@@ -432,12 +589,16 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
   //    c) every tick, the voxelSelectionManager is updated further until complete
   // 3) DISPLAYING_SELECTION - selection is being displayed and/or moved
   //    voxelSelectionManager is valid and has a renderlist
+  // combined with this are the various other actions that the tool can perform:
+  //  1) transmitting selection to server
+  //  2) performing an action / waiting for server
+  //  3) performing an undo / waiting for server
 
   private SelectionType currentHighlighting = SelectionType.NONE;
   private List<ChunkCoordinates> highlightedBlocks;
 
   private float actionPercentComplete;
-  private ToolState currentToolState = ToolState.NO_SELECTION;
+  private ToolSelectionStates currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
 
   private BlockVoxelMultiSelector voxelSelectionManager;
   private ChunkCoordinates selectionOrigin;
@@ -445,10 +606,7 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
   private Vec3    selectionGrabPoint = null;
   private boolean selectionMovedFastYet;
 
-  private boolean leftButtonBeingHeld = false;
-  private long    leftButtonHoldTime;
-  private boolean rightButtonBeingHeld = false;
-  private long    rightButtonHoldTime;
+  private CloneToolsNetworkClient cloneToolsNetworkClient;
 
   private SpeedyToolBoundary speedyToolBoundary;   // used to retrieve the boundary field coordinates, if selected
 
@@ -456,17 +614,18 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
     NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL
   }
 
-  private enum ToolState {
+  private enum ToolSelectionStates  {
             NO_SELECTION( true, false,  true, false),
     GENERATING_SELECTION(false, false,  true,  true),
-    DISPLAYING_SELECTION(false,  true, false, false);
+    DISPLAYING_SELECTION(false,  true, false, false),
+    ;
 
     public final boolean displayWireframeHighlight;
     public final boolean        displaySolidSelection;
     public final boolean               displayBoundaryField;
     public final boolean                      performingAction;
 
-    private ToolState(boolean init_displayHighlight, boolean init_displaySelection, boolean init_displayBoundaryField, boolean init_performingAction)
+    private ToolSelectionStates(boolean init_displayHighlight, boolean init_displaySelection, boolean init_displayBoundaryField, boolean init_performingAction)
     {
       displayWireframeHighlight = init_displayHighlight;
       displaySolidSelection = init_displaySelection;
@@ -477,35 +636,136 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
 
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
 
+  private PowerUpEffect leftClickPowerup = new PowerUpEffect();
+  private PowerUpEffect rightClickPowerup = new PowerUpEffect();
 
   /**
    * Manages the state of a "Power up" object (eg for animation purposes)
-   * - start of charging up, progress of charge, release of
+   * - start of charging up, progress of charge, release of charge
+   * Usage:
+   * (1) initiate() to begin the powerup; supply the current time and the duration of the powerup
+   *     The first call to pollState() will return INITIATING, subsequent calls return POWERINGUP
+   * (2) updateHolddownTime periodically, to inform as the charge builds up
+   *     The first call to pollState() will return RELEASING, subsequent calls return IDLE
+   * (3) release() to stop the powerup
+   * The state of the powerup can be read:
+   * (1) The current state is available using peekState or pollState.
+   * (2) The current time in a state from getTimeSpentInThisState
+   * (3) the percentage completion (0 - 100) from getPercentComplete
    */
+
   private static class PowerUpEffect {
-     public enum State {
-        IDLE, INITIATING, POWERINGUP, RELEASED
+    public enum State {
+        IDLE, INITIATING, POWERINGUP, RELEASING     // INITIATING and RELEASING are transient, to inform the caller that the state has changed.
      }
 
-    public void initiate(long new_initiationTime, long new_completionTime) {
+    /** start the powerup
+     * @param new_initiationTime the time (in ns) when the powerup started
+     * @param new_completionTime the time (in ns) when the powerup will be complete
+     * @param new_initialHoldDuration the length of time (in ns) that the button had been held down, when the powerup started
+     */
+    public void initiate(long new_initiationTime, long new_completionTime, long new_initialHoldDuration) {
       initiationTime = new_initiationTime;
       expectedCompletionTime = new_completionTime;
+      assert (expectedCompletionTime > initiationTime);
+      assert (initialHoldDuration >= 0);
+      initialHoldDuration = new_initialHoldDuration;
+      currentHoldDuration = 0;
+      state = State.INITIATING;
     }
 
-    public void release(long releaseTime) {
-
+    public void release(long new_releaseTime) {
+      releaseTime = new_releaseTime;
+      state = State.RELEASING;
+    }
+    public void abort() {
+      releaseTime = initiationTime;
+      state = State.RELEASING;
     }
 
-    public void updateHoldTime(long lengthOfHold) {
-
+    public void updateHolddownTime(long lengthOfHold) {
+      if (state != State.INITIATING && state != State.POWERINGUP) return;
+      if (lengthOfHold < initialHoldDuration) {
+        initialHoldDuration = currentHoldDuration;  // just in case we miss a fast click
+      }
+      currentHoldDuration = lengthOfHold - initialHoldDuration;
     }
 
-    public State getState() {return state;}
+    /** returns the current state without affecting it
+     * @return
+     */
+    public State peekState() {return state;}
+
+    /** returns the current state and advances to the next state as appropriate
+     * @return
+     */
+    public State pollState() {
+      State retval = state;
+      if (state == State.INITIATING) state = State.POWERINGUP;
+      if (state == State.RELEASING) state = State.IDLE;
+      return retval;
+    }
+
+    public boolean isIdle(){return (state == State.IDLE || state == State.RELEASING);}
+
+    /** returns the time spent in this state
+      * @param timeNow the current time in ns
+     * @return duration in ns, or 0 if not available.
+     */
+    public long getTimeSpentInThisState(long timeNow) {
+      switch (state) {
+        case RELEASING:
+        case IDLE: {
+          if (releaseTime == 0) return 0;
+          assert (timeNow > releaseTime);
+          return (timeNow - releaseTime);
+        }
+        case INITIATING:
+        case POWERINGUP: {
+          assert (initiationTime != 0 && timeNow > initiationTime);
+
+          return (timeNow - initiationTime);
+        }
+        default: assert false: "Invalid state:" + state;
+      }
+      return 0;
+    }
+
+    /**
+     * returns the percentage of the powerup completed; either the current one (if currently powering up) or the most-recently-completed one.
+     * @return
+     */
+    public double getPercentCompleted() {
+      switch (state) {
+        case RELEASING:
+        case IDLE: {
+          if (releaseTime == 0) return 0;
+          double fraction = (releaseTime - initiationTime);
+          fraction /= (expectedCompletionTime - initiationTime);
+          fraction *= 100.0;
+          assert (fraction >= 0.0 && fraction <= 100.0);
+          return fraction;
+        }
+        case INITIATING:
+        case POWERINGUP: {
+          if (currentHoldDuration == 0) return 0;
+          double fraction = currentHoldDuration - initialHoldDuration;
+          fraction /= (expectedCompletionTime - initiationTime);
+          fraction *= 100.0;
+          assert (fraction >= 0.0 && fraction <= 100.0);
+          return fraction;
+        }
+        default: assert false: "Invalid state:" + state;
+      }
+      return 0.0;
+    }
 
     private State state;
-    private long initiationTime;
-    private long expectedCompletionTime;
-    private long releaseTime;
+    private long initiationTime = 0;
+    private long initialHoldDuration = 0;
+    private long currentHoldDuration = 0;
+    private long expectedCompletionTime = 0;
+    private long releaseTime = 0;
   }
 
 

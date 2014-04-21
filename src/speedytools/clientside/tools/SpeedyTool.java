@@ -74,4 +74,6 @@ public abstract class SpeedyTool
   protected boolean controlKeyIsDown;
   protected RendererWireframeSelection.WireframeRenderInfoUpdateLink wireframeRendererUpdateLink;
 
+  public void performTick(World world) {}
+
 }

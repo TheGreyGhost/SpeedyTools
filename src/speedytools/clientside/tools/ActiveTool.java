@@ -39,11 +39,18 @@ public class ActiveTool
    */
   public boolean toolIsActive() {return activeTool != null;}
 
+  /** attempt to switch to the new tool
+   *    (may fail if the tool is not ready to be deactivated)
+   * @param newTool
+   */
   private void switchToTool(SpeedyTool newTool)
   {
     if (newTool == activeTool) return;
-    if (activeTool != null) activeTool.deactivateTool();
-    if (newTool != null)  newTool.activateTool();
+    if (activeTool != null) {
+      boolean deactivationComplete = activeTool.deactivateTool();
+      if (!deactivationComplete) return;
+    }
+    if (newTool != null) newTool.activateTool();
     activeTool = newTool;
   }
 

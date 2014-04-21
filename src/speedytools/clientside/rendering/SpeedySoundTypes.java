@@ -21,6 +21,7 @@ public enum SpeedySoundTypes
   SCEPTRE_UNPLACE("speedytools:sceptreunplace.ogg"),
   SCEPTRE_PLACE("speedytools:sceptreplace.ogg");
 
+
   public final String getFilename() {return filename;}
 
   private SpeedySoundTypes(String i_filename) {

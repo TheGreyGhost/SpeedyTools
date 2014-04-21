@@ -6,6 +6,11 @@ import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
 
+
+TO DO
+
+rewrite CloneToolsNetworkCLient and Server to use FMLNetworkHandler - network handler instead of player.
+
 /**
  * User: The Grey Ghost
  * Date: 8/03/14

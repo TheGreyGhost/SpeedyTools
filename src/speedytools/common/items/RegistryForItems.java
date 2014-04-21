@@ -16,7 +16,7 @@ public class RegistryForItems
   public static ItemSpeedyTool itemSpeedySceptre;
   public static ItemSpeedyTool itemSpeedyOrb;
   public static ItemSpeedyBoundary itemSpeedyBoundary;
-  public static ItemSpeedyClonerBase itemCloneCopy;
+  public static ItemSpeedyCopy itemCloneCopy;
 
   public static void initialise()
   {
