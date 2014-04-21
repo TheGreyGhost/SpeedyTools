@@ -477,4 +477,36 @@ public class SpeedyToolCopy extends SpeedyToolClonerBase
 
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
 
+
+  /**
+   * Manages the state of a "Power up" object (eg for animation purposes)
+   * - start of charging up, progress of charge, release of
+   */
+  private static class PowerUpEffect {
+     public enum State {
+        IDLE, INITIATING, POWERINGUP, RELEASED
+     }
+
+    public void initiate(long new_initiationTime, long new_completionTime) {
+      initiationTime = new_initiationTime;
+      expectedCompletionTime = new_completionTime;
+    }
+
+    public void release(long releaseTime) {
+
+    }
+
+    public void updateHoldTime(long lengthOfHold) {
+
+    }
+
+    public State getState() {return state;}
+
+    private State state;
+    private long initiationTime;
+    private long expectedCompletionTime;
+    private long releaseTime;
+  }
+
+
 }
