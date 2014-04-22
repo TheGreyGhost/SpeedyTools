@@ -64,7 +64,7 @@ public class Packet250CloneToolUse
     try {
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      outputStream.writeByte(PacketHandler.PACKET250_CLONE_TOOL_USE_ID);
+      outputStream.writeByte(Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID());
       outputStream.writeByte(commandToByte(command));
       outputStream.writeInt(toolID);
       outputStream.writeInt(sequenceNumber);
@@ -94,7 +94,7 @@ public class Packet250CloneToolUse
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(sourcePacket250.data));
 
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_CLONE_TOOL_USE_ID) return null;
+      if (packetID != Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID()) return null;
 
       byte commandValue = inputStream.readByte();
       Command command = byteToCommand(commandValue);

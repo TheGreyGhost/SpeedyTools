@@ -44,43 +44,32 @@ public class PacketHandler implements IPacketHandler
                                           toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
           break;
         }
-        case PACKET250_CLONE_TOOL_USE_ID: {
-          Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
-          if (toolUsePacket != null && toolUsePacket != null && toolUsePacket.validForSide(side)) {
-            if (side == Side.SERVER) {
-              ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
-            }
-          } else {
-            malformedPacketError(side, playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
-            return;
-          }
-          break;
-        }
-        case PACKET250_TOOL_STATUS_ID: {
-          Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
-          if (toolStatusPacket != null && toolStatusPacket.validForSide(side)) {
-            if (side == Side.SERVER) {
-              ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolStatusPacket);
-            } else {
-              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityClientPlayerMP)playerEntity, toolStatusPacket);
-            }
-          } else {
-            malformedPacketError(side, playerEntity, "PACKET250_TOOL_STATUS_ID received on wrong side");
-            return;
-          }
-          break;
-        }
-        case PACKET250_TOOL_ACKNOWLEDGE_ID: {
-          Packet250CloneToolAcknowledge toolAcknowledgePacket = Packet250CloneToolAcknowledge.createPacket250CloneToolAcknowledge(packet);
-          if (toolAcknowledgePacket != null && toolAcknowledgePacket.validForSide(side)) {
-            if (side == Side.CLIENT) {
-              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityClientPlayerMP)playerEntity, toolAcknowledgePacket);
-            }
-          } else {
-            malformedPacketError(side, playerEntity, "PACKET250_TOOL_ACKNOWLEDGE_ID received on wrong side");
-            return;
-          }
-        }
+//        case PACKET250_CLONE_TOOL_USE_ID: {
+//          Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
+//          if (toolUsePacket != null && toolUsePacket != null && toolUsePacket.validForSide(side)) {
+//            if (side == Side.SERVER) {
+//              ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
+//            }
+//          } else {
+//            malformedPacketError(side, playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
+//            return;
+//          }
+//          break;
+//        }
+//        case PACKET250_TOOL_STATUS_ID: {
+//          Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
+//          if (toolStatusPacket != null && toolStatusPacket.validForSide(side)) {
+//            if (side == Side.SERVER) {
+//              ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolStatusPacket);
+//            } else {
+////              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityClientPlayerMP)playerEntity, toolStatusPacket);
+//            }
+//          } else {
+//            malformedPacketError(side, playerEntity, "PACKET250_TOOL_STATUS_ID received on wrong side");
+//            return;
+//          }
+//          break;
+//        }
         default: {
           PacketHandlerMethod handlerMethod;
           if (side == Side.CLIENT) {

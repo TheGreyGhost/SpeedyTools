@@ -1,13 +1,21 @@
 package speedytools.serverside;
 
 import cpw.mods.fml.common.network.Player;
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.block.Block;
+import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.network.Packet250CloneToolAcknowledge;
+import speedytools.common.network.Packet250SpeedyToolUse;
+import speedytools.common.network.Packet250Types;
+import speedytools.common.network.PacketHandler;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 
 import java.util.*;
@@ -22,19 +30,23 @@ public class SpeedyToolWorldManipulator
 {
   private static final int MAXIMUM_UNDO_COUNT = 5;
 
+  public SpeedyToolWorldManipulator()
+  {
+    packetHandlerSpeedyToolUse = this.new PacketHandlerSpeedyToolUse();
+    PacketHandler.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID(), packetHandlerSpeedyToolUse);
+  }
+
   /**
    * Performs a server Speedy Tools action in response to an incoming packet from the client: either place or undo
-   * @param player the user sending the packet
+   * @param entityPlayerMP the user sending the packet
    * @param toolItemID the ID of the tool performing this action
    * @param buttonClicked 0 = left (undo), 1 = right (place)
    * @param blockToPlace the Block and metadata to fill the selection with (buttonClicked = 1 only)
    * @param blockSelection the blocks in the selection to be filled (buttonClicked = 1 only)
    */
-  public void performServerAction(Player player, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void performServerAction(EntityPlayerMP entityPlayerMP, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
 //    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
-    assert player instanceof EntityPlayerMP;
-    EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
 
     switch (buttonClicked) {
       case 0: {
@@ -153,6 +165,19 @@ public class SpeedyToolWorldManipulator
     }
     return retval;
   }
+
+  public class PacketHandlerSpeedyToolUse implements PacketHandler.PacketHandlerMethod {
+    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
+    {
+      Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
+      if (toolUsePacket == null) return false;
+      SpeedyToolWorldManipulator.this.performServerAction((EntityPlayerMP) player, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
+              toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
+      return true;
+    }
+  }
+
+  private PacketHandlerSpeedyToolUse packetHandlerSpeedyToolUse;
 
   // undo information about a single block
   protected static class UndoBlock

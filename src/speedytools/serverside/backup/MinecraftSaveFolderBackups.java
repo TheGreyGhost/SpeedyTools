@@ -16,7 +16,7 @@ import java.util.Calendar;
  * Created by TheGreyGhost on 24/02/14.
  * MinecraftSaveFolderBackups is used to maintain a series of backups in case the cloning tools cause severe damage to the world
  * The intended operation is:
- * (1) whenever the clone tool is about to be used (but no more frequently than every 5 minutes = MINIMUM_TIME_BETWEEN_BACKUPS_MILLIS), the current save folder
+ * (1) whenever the clone tool is about to be used (but no more frequently than every 5 minutes = MINIMUM_TIME_BETWEEN_BACKUPS_MS), the current save folder
  *     is copied to a new folder
  * (2) as each new backup is created, one of the older backups may be deleted.  The deletion is performed to
  *     keep a series of backups with increasing spacing as they get older
@@ -57,14 +57,14 @@ public class MinecraftSaveFolderBackups
   }
 
   private static final String BACKUP_LISTING_FILENAME = "backuplisting.dat";
-  private static final long MINIMUM_TIME_BETWEEN_BACKUPS_MILLIS = 5 * 60 * 1000;  // 5 minutes
+  private static final long MINIMUM_TIME_BETWEEN_BACKUPS_MS = 5 * 60 * 1000;  // 5 minutes
 
   public boolean backupWorld()
   {
     if (sourceSaveFolder == null) return false;
     Calendar now = Calendar.getInstance();
 
-    if (now.getTimeInMillis() - lastSaveTimeInMillis < MINIMUM_TIME_BETWEEN_BACKUPS_MILLIS) return false;
+    if (now.getTimeInMillis() - lastSaveTimeInMillis < MINIMUM_TIME_BETWEEN_BACKUPS_MS) return false;
 
     boolean success = false;
     MinecraftServer minecraftServer = MinecraftServer.getServer();

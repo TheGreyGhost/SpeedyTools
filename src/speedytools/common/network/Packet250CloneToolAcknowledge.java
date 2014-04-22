@@ -28,7 +28,7 @@ public class Packet250CloneToolAcknowledge
     try {
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      outputStream.writeByte(PacketHandler.PACKET250_TOOL_ACKNOWLEDGE_ID);
+      outputStream.writeByte(Packet250Types.PACKET250_TOOL_ACKNOWLEDGE_ID.getPacketTypeID());
       outputStream.writeByte(acknowledgementToByte(actionAcknowledgement));
       outputStream.writeInt(actionSequenceNumber);
       outputStream.writeByte(acknowledgementToByte(undoAcknowledgement));
@@ -53,7 +53,7 @@ public class Packet250CloneToolAcknowledge
       DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(sourcePacket250.data));
 
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_TOOL_ACKNOWLEDGE_ID) return null;
+      if (packetID != Packet250Types.PACKET250_TOOL_ACKNOWLEDGE_ID.getPacketTypeID()) return null;
       Packet250CloneToolAcknowledge newPacket = new Packet250CloneToolAcknowledge();
       newPacket.actionAcknowledgement = byteToAcknowledgement(inputStream.readByte());
       newPacket.actionSequenceNumber = inputStream.readInt();

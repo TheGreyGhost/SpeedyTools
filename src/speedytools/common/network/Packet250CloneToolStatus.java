@@ -33,7 +33,7 @@ public class Packet250CloneToolStatus
     try {
       ByteArrayOutputStream bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      outputStream.writeByte(PacketHandler.PACKET250_TOOL_STATUS_ID);
+      outputStream.writeByte(Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID());
       outputStream.writeByte(clientStatusToByte(clientStatus));
       outputStream.writeByte(serverStatusToByte(serverStatus));
       outputStream.writeByte(completionPercentage);
@@ -57,7 +57,7 @@ public class Packet250CloneToolStatus
 
     try {
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_TOOL_STATUS_ID) return null;
+      if (packetID != Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID()) return null;
 
       newPacket.clientStatus = byteToClientStatus(inputStream.readByte());
       newPacket.serverStatus = byteToServerStatus(inputStream.readByte());

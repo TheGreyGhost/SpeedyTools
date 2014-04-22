@@ -52,7 +52,7 @@ public class Packet250SpeedyToolUse
 
     ByteArrayOutputStream bos = new ByteArrayOutputStream(1+ 4*5 + 12 * currentlySelectedBlocks.size());
     DataOutputStream outputStream = new DataOutputStream(bos);
-    outputStream.writeByte(PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID);
+    outputStream.writeByte(Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID());
     outputStream.writeInt(toolItemID);
     outputStream.writeInt(button);
     outputStream.writeInt(blockID);
@@ -84,7 +84,7 @@ public class Packet250SpeedyToolUse
 
     try {
       byte packetID = inputStream.readByte();
-      if (packetID != PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID) return null;
+      if (packetID != Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID()) return null;
 
       newPacket.toolItemID = inputStream.readInt();
       newPacket.button = inputStream.readInt();

@@ -34,6 +34,8 @@ public class CloneToolsNetworkServer
 
     packetHandlerCloneToolUse = this.new PacketHandlerCloneToolUse();
     PacketHandler.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID(), packetHandlerCloneToolUse);
+    packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
+    PacketHandler.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
   }
 
   public void addPlayer(EntityPlayerMP newPlayer)
@@ -278,11 +280,22 @@ public class CloneToolsNetworkServer
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
     {
       Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
-      if (toolUsePacket == null || toolUsePacket == null || !toolUsePacket.validForSide(Side.SERVER)) return false;
+      if (toolUsePacket == null || !toolUsePacket.validForSide(Side.SERVER)) return false;
       CloneToolsNetworkServer.this.handlePacket((EntityPlayerMP) player, toolUsePacket);
       return true;
     }
   }
+
+  public class PacketHandlerCloneToolStatus implements PacketHandler.PacketHandlerMethod {
+    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
+    {
+      Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
+      if (toolStatusPacket == null || !toolStatusPacket.validForSide(Side.SERVER)) return false;
+      CloneToolsNetworkServer.this.handlePacket((EntityPlayerMP) player, toolStatusPacket);
+      return true;
+    }
+  }
+
 
   private Map<EntityPlayerMP, ClientStatus> playerStatuses;
   private Map<EntityPlayerMP, Integer> lastAcknowledgedAction;
@@ -305,4 +318,6 @@ public class CloneToolsNetworkServer
   private CloneToolServerActions cloneToolServerActions;
   private EntityPlayerMP playerBeingServiced;
   private PacketHandlerCloneToolUse packetHandlerCloneToolUse;
+  private PacketHandlerCloneToolStatus packetHandlerCloneToolStatus;
+
 }

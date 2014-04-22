@@ -1,15 +1,14 @@
 package speedytools.clientside.network;
 
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
+import speedytools.clientside.ClientSide;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
-
-
-TO DO
-
-rewrite CloneToolsNetworkCLient and Server to use FMLNetworkHandler - network handler instead of player.
+import speedytools.serverside.ServerSide;
 
 /**
  * User: The Grey Ghost
@@ -31,12 +30,21 @@ rewrite CloneToolsNetworkCLient and Server to use FMLNetworkHandler - network ha
  */
 public class CloneToolsNetworkClient
 {
-  public CloneToolsNetworkClient()
+  public CloneToolsNetworkClient(PacketSender i_packetSender)
   {
     clientStatus = ClientStatus.IDLE;
     serverStatus = ServerStatus.IDLE;
+    lastActionStatus = ActionStatus.NONE_PENDING;
+    lastUndoStatus = ActionStatus.NONE_PENDING;
+    packetSender = i_packetSender;
+
+    packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
+    PacketHandler.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
+    packetHandlerCloneToolAcknowledge = this.new PacketHandlerCloneToolAcknowledge();
+    PacketHandler.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_TOOL_ACKNOWLEDGE_ID.getPacketTypeID(), packetHandlerCloneToolAcknowledge);
   }
 
+  /*
   public void connectedToServer(EntityClientPlayerMP newPlayer)
   {
     player = newPlayer;
@@ -50,18 +58,18 @@ public class CloneToolsNetworkClient
   {
     player = null;
   }
-
+*/
   /**
    * Informs the server of the new client status
    */
   public void changeClientStatus(ClientStatus newClientStatus)
   {
-    assert player != null;
+//    assert player != null;
     clientStatus = newClientStatus;
     Packet250CloneToolStatus packet = Packet250CloneToolStatus.clientStatusChange(newClientStatus);
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 != null) {
-      player.sendQueue.addToSendQueue(packet250);
+      packetSender.sendPacket(packet250);
       lastServerStatusUpdateTime = System.nanoTime();
     }
   }
@@ -75,7 +83,7 @@ public class CloneToolsNetworkClient
     Packet250CloneToolUse packet = Packet250CloneToolUse.informSelectionMade();
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 != null) {
-      player.sendQueue.addToSendQueue(packet250);
+      packetSender.sendPacket(packet250);
       return true;
     }
 
@@ -101,7 +109,7 @@ public class CloneToolsNetworkClient
     Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, rotationCount, flipped);
     lastActionPacket = packet.getPacket250CustomPayload();
     if (lastActionPacket != null) {
-      player.sendQueue.addToSendQueue(lastActionPacket);
+      packetSender.sendPacket(lastActionPacket);
       lastActionStatus = ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT;
       lastActionSentTime = System.nanoTime();
       return true;
@@ -127,7 +135,7 @@ public class CloneToolsNetworkClient
     }
     lastUndoPacket = packet.getPacket250CustomPayload();
     if (lastUndoPacket != null) {
-      player.sendQueue.addToSendQueue(lastUndoPacket);
+      packetSender.sendPacket(lastUndoPacket);
       lastUndoStatus = ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT;
       lastUndoSentTime = System.nanoTime();
       return true;
@@ -227,17 +235,17 @@ public class CloneToolsNetworkClient
    */
   public void tick()
   {
-    if (player == null) return;
+//    if (player == null) return;
     long timenow = System.nanoTime();
     if (lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT || lastActionStatus == ActionStatus.PROCESSING) {
       if (timenow - lastActionSentTime > RESPONSE_TIMEOUT_MS * 1000 * 1000) {
-        player.sendQueue.addToSendQueue(lastActionPacket);
+        packetSender.sendPacket(lastActionPacket);
         lastActionSentTime = timenow;
       }
     }
     if (lastUndoStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT || lastUndoStatus == ActionStatus.PROCESSING) {
       if (timenow - lastUndoSentTime > RESPONSE_TIMEOUT_MS * 1000 * 1000) {
-        player.sendQueue.addToSendQueue(lastUndoPacket);
+        packetSender.sendPacket(lastUndoPacket);
         lastUndoSentTime = timenow;
       }
     }
@@ -245,7 +253,7 @@ public class CloneToolsNetworkClient
       Packet250CloneToolStatus packet = Packet250CloneToolStatus.clientStatusChange(clientStatus);
       Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
       if (packet250 != null) {
-        player.sendQueue.addToSendQueue(packet250);
+        packetSender.sendPacket(packet250);
         lastServerStatusUpdateTime = timenow;
       }
     }
@@ -299,7 +307,30 @@ public class CloneToolsNetworkClient
     return lastUndoStatus;
   }
 
-  private EntityClientPlayerMP player;
+  public class PacketHandlerCloneToolStatus implements PacketHandler.PacketHandlerMethod {
+    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
+    {
+      Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
+      if (toolStatusPacket == null || !toolStatusPacket.validForSide(Side.CLIENT)) return false;
+      CloneToolsNetworkClient.this.handlePacket((EntityClientPlayerMP)player, toolStatusPacket);
+      return true;
+    }
+  }
+  public class PacketHandlerCloneToolAcknowledge implements PacketHandler.PacketHandlerMethod {
+    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
+    {
+      Packet250CloneToolAcknowledge toolAcknowledgePacket = Packet250CloneToolAcknowledge.createPacket250CloneToolAcknowledge(packet);
+      if (toolAcknowledgePacket == null || !toolAcknowledgePacket.validForSide(Side.CLIENT)) return false;
+      CloneToolsNetworkClient.this.handlePacket((EntityClientPlayerMP)player, toolAcknowledgePacket);
+      return true;
+    }
+  }
+
+  private PacketHandlerCloneToolStatus packetHandlerCloneToolStatus;
+  private PacketHandlerCloneToolAcknowledge packetHandlerCloneToolAcknowledge;
+
+  //  private EntityClientPlayerMP player;
+  private PacketSender packetSender;
 
   private ClientStatus clientStatus;
   private ServerStatus serverStatus;
@@ -325,4 +356,5 @@ public class CloneToolsNetworkClient
     NONE_PENDING, WAITING_FOR_ACKNOWLEDGEMENT, REJECTED, PROCESSING, COMPLETED;
     public static final ActionStatus[] allValues = {NONE_PENDING, WAITING_FOR_ACKNOWLEDGEMENT, REJECTED, PROCESSING, COMPLETED};
   }
+
 }
