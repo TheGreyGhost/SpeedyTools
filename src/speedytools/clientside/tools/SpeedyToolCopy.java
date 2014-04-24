@@ -33,7 +33,7 @@ import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
  *   e) When an undo is in progress: the progress meter
  *
  */
-public class SpeedyToolCopy extends SpeedyToolClonerBase
+public class SpeedyToolCopy extends SpeedyToolComplexBase
 {
   public SpeedyToolCopy(ItemSpeedyCopy i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
                         CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary) {

@@ -1,9 +1,7 @@
 package speedytools.serverside;
 
-import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.block.Block;
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
@@ -12,11 +10,9 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import speedytools.common.blocks.BlockWithMetadata;
-import speedytools.common.network.Packet250CloneToolAcknowledge;
 import speedytools.common.network.Packet250SpeedyToolUse;
 import speedytools.common.network.Packet250Types;
-import speedytools.common.network.PacketHandler;
-import speedytools.serverside.backup.MinecraftSaveFolderBackups;
+import speedytools.common.network.PacketHandlerRegistry;
 
 import java.util.*;
 
@@ -30,10 +26,10 @@ public class SpeedyToolWorldManipulator
 {
   private static final int MAXIMUM_UNDO_COUNT = 5;
 
-  public SpeedyToolWorldManipulator()
+  public SpeedyToolWorldManipulator(PacketHandlerRegistry packetHandlerRegistry)
   {
     packetHandlerSpeedyToolUse = this.new PacketHandlerSpeedyToolUse();
-    PacketHandler.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID(), packetHandlerSpeedyToolUse);
+    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID(), packetHandlerSpeedyToolUse);
   }
 
   /**
@@ -166,7 +162,7 @@ public class SpeedyToolWorldManipulator
     return retval;
   }
 
-  public class PacketHandlerSpeedyToolUse implements PacketHandler.PacketHandlerMethod {
+  public class PacketHandlerSpeedyToolUse implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
     {
       Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);

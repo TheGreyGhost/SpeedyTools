@@ -16,34 +16,62 @@ import speedytools.serverside.SpeedyToolWorldManipulator;
 
 import java.util.HashMap;
 
-public class PacketHandler implements IPacketHandler
+public class PacketHandlerRegistry implements IPacketHandler
 {
   public static final String CHANNEL_NAME = "speedytools";
-  public static final byte PACKET250_SPEEDY_TOOL_USE_ID = 0;
-  public static final byte PACKET250_CLONE_TOOL_USE_ID = 1;
-  public static final byte PACKET250_TOOL_STATUS_ID = 2;
-  public static final byte PACKET250_TOOL_ACKNOWLEDGE_ID = 3;
-  public static final byte PACKET250_SELECTION_PACKET = 4;
+
+  // Forge constructs the packet handler using the default constructor;
+  //  set up to use the static registries in this case
+  public PacketHandlerRegistry() {
+    clientSideHandlers = staticClientSideHandlers;
+    serverSideHandlers = staticServerSideHandlers;
+  }
+
+  // change this registry to non-static, i.e. to hold its own independent set of handlers
+  //   used primarily for testing
+  public void changeToNonStatic()
+  {
+    clientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+    serverSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+  }
 
   @Override
-  public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity)
-  {
+  public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity) {
     if (packet.channel.equals(CHANNEL_NAME)) {
       Side side = (playerEntity instanceof EntityPlayerMP) ? Side.SERVER : Side.CLIENT;
       byte packetID = packet.data[0];
-      switch (packetID) {
-        case PACKET250_SPEEDY_TOOL_USE_ID: {
-          if (side != Side.SERVER) {
-            malformedPacketError(side, playerEntity, "PACKET250_SPEEDY_TOOL_USE_ID received on wrong side");
-            return;
-          }
-          Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
-          if (toolUsePacket == null) return;
-          SpeedyToolWorldManipulator manipulator = ServerSide.getSpeedyToolWorldManipulator();
-          manipulator.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
-                                          toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
-          break;
+      PacketHandlerMethod handlerMethod;
+      if (side == Side.CLIENT) {
+        handlerMethod = clientSideHandlers.get(packetID);
+      } else {
+        handlerMethod = serverSideHandlers.get(packetID);
+      }
+      if (handlerMethod != null) {
+        boolean packetValid;
+        packetValid = handlerMethod.handlePacket((EntityPlayer) playerEntity, packet);
+        if (!packetValid) {
+          malformedPacketError(side, playerEntity, "Invalid packet received (ID == " + packetID + ")");
         }
+      } else {
+        malformedPacketError(side, playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID " + packetID + " on side " + side);
+      }
+      return;
+    }
+  }
+
+//      switch (packetID) {
+//        case PACKET250_SPEEDY_TOOL_USE_ID: {
+//          if (side != Side.SERVER) {
+//            malformedPacketError(side, playerEntity, "PACKET250_SPEEDY_TOOL_USE_ID received on wrong side");
+//            return;
+//          }
+//          Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
+//          if (toolUsePacket == null) return;
+//          SpeedyToolWorldManipulator manipulator = ServerSide.getSpeedyToolWorldManipulator();
+//          manipulator.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
+//                                          toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
+//          break;
+//        }
 //        case PACKET250_CLONE_TOOL_USE_ID: {
 //          Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
 //          if (toolUsePacket != null && toolUsePacket != null && toolUsePacket.validForSide(side)) {
@@ -70,28 +98,8 @@ public class PacketHandler implements IPacketHandler
 //          }
 //          break;
 //        }
-        default: {
-          PacketHandlerMethod handlerMethod;
-          if (side == Side.CLIENT) {
-            handlerMethod = clientSideHandlers.get(packetID);
-          } else {
-            handlerMethod = serverSideHandlers.get(packetID);
-          }
-          if (handlerMethod != null) {
-            boolean packetValid;
-            packetValid = handlerMethod.handlePacket((EntityPlayer)playerEntity, packet);
-            if (!packetValid) {
-              malformedPacketError(side, playerEntity, "Invalid packet received");
-            }
-          } else {
-            malformedPacketError(side, playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID " + packetID + " on side " + side);
-          }
-          return;
-        }
+//        default: {
 
-      }
-    }
-  }
 
   /**
    * The class used to handle the incoming packet
@@ -101,7 +109,7 @@ public class PacketHandler implements IPacketHandler
       public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet);
   }
 
-  public static void registerHandlerMethod(Side side, byte packetID, PacketHandlerMethod handlerMethod)
+  public void registerHandlerMethod(Side side, byte packetID, PacketHandlerMethod handlerMethod)
   {
     switch (side) {
       case CLIENT: {
@@ -130,6 +138,12 @@ public class PacketHandler implements IPacketHandler
     }
   }
 
+  public void clearAll()
+  {
+    clientSideHandlers.clear();
+    serverSideHandlers.clear();
+  }
+
   private void malformedPacketError(Side side, Player player, String message) {
     switch (side) {
       case CLIENT: {
@@ -145,7 +159,11 @@ public class PacketHandler implements IPacketHandler
     }
   }
 
-  private static HashMap<Byte, PacketHandlerMethod> clientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
-  private static HashMap<Byte, PacketHandlerMethod> serverSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+  // these handlers are usually set to refer to the static handlers
+  private HashMap<Byte, PacketHandlerMethod> clientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+  private HashMap<Byte, PacketHandlerMethod> serverSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+
+  private static HashMap<Byte, PacketHandlerMethod> staticClientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+  private static HashMap<Byte, PacketHandlerMethod> staticServerSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
 }
 

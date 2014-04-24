@@ -1,5 +1,7 @@
 package speedytools.serverside;
 
+import speedytools.common.network.PacketHandlerRegistry;
+
 /**
  * User: The Grey Ghost
  * Date: 10/03/14
@@ -9,9 +11,10 @@ public class ServerSide
 {
   public static void initialise()
   {
+    packetHandlerRegistry = new PacketHandlerRegistry() ;
     cloneToolServerActions = new CloneToolServerActions();
-    cloneToolsNetworkServer = new CloneToolsNetworkServer(cloneToolServerActions);
-    speedyToolWorldManipulator = new SpeedyToolWorldManipulator();
+    cloneToolsNetworkServer = new CloneToolsNetworkServer(packetHandlerRegistry, cloneToolServerActions);
+    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry);
   }
 
   public static void shutdown()
@@ -34,7 +37,5 @@ public class ServerSide
   private static CloneToolsNetworkServer cloneToolsNetworkServer;
   private static CloneToolServerActions cloneToolServerActions;
   private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
-
-
-
+  private static PacketHandlerRegistry packetHandlerRegistry;
 }

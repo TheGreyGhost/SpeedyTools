@@ -11,6 +11,10 @@ import java.util.LinkedList;
  */
 public class UndoManagerClient
 {
+  UndoManagerClient(int i_MAX_UNDO_COUNT) {
+    MAXIMUM_UNDO_COUNT = i_MAX_UNDO_COUNT;
+  }
+
   public void performUndo(Vec3 playerPosition)
   {
     UndoCallback undoCallback = undoHistory.peekLast();
@@ -31,7 +35,7 @@ public class UndoManagerClient
     public boolean performUndo(Vec3 playerPosition);
   }
 
-  private static final int MAXIMUM_UNDO_COUNT = 5;
+  private final int MAXIMUM_UNDO_COUNT;
 
   protected static Deque<UndoCallback> undoHistory = new LinkedList<UndoCallback>();
 

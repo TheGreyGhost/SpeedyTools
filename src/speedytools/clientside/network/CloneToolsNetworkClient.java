@@ -3,12 +3,9 @@ package speedytools.clientside.network;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.clientside.ClientSide;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
-import speedytools.serverside.ServerSide;
 
 /**
  * User: The Grey Ghost
@@ -30,7 +27,7 @@ import speedytools.serverside.ServerSide;
  */
 public class CloneToolsNetworkClient
 {
-  public CloneToolsNetworkClient(PacketSender i_packetSender)
+  public CloneToolsNetworkClient(PacketHandlerRegistry packetHandlerRegistry, PacketSender i_packetSender)
   {
     clientStatus = ClientStatus.IDLE;
     serverStatus = ServerStatus.IDLE;
@@ -39,9 +36,9 @@ public class CloneToolsNetworkClient
     packetSender = i_packetSender;
 
     packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
-    PacketHandler.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
+    packetHandlerRegistry.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
     packetHandlerCloneToolAcknowledge = this.new PacketHandlerCloneToolAcknowledge();
-    PacketHandler.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_TOOL_ACKNOWLEDGE_ID.getPacketTypeID(), packetHandlerCloneToolAcknowledge);
+    packetHandlerRegistry.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_TOOL_ACKNOWLEDGE_ID.getPacketTypeID(), packetHandlerCloneToolAcknowledge);
   }
 
   /*
@@ -307,7 +304,7 @@ public class CloneToolsNetworkClient
     return lastUndoStatus;
   }
 
-  public class PacketHandlerCloneToolStatus implements PacketHandler.PacketHandlerMethod {
+  public class PacketHandlerCloneToolStatus implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
     {
       Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
@@ -316,7 +313,7 @@ public class CloneToolsNetworkClient
       return true;
     }
   }
-  public class PacketHandlerCloneToolAcknowledge implements PacketHandler.PacketHandlerMethod {
+  public class PacketHandlerCloneToolAcknowledge implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
     {
       Packet250CloneToolAcknowledge toolAcknowledgePacket = Packet250CloneToolAcknowledge.createPacket250CloneToolAcknowledge(packet);

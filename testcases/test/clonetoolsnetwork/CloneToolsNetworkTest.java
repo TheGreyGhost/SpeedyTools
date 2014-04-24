@@ -1,9 +1,7 @@
 package test.clonetoolsnetwork;
 
 import cpw.mods.fml.common.network.Player;
-import cpw.mods.fml.relauncher.Side;
 import junit.framework.Assert;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.multiplayer.NetClientHandler;
 import net.minecraft.entity.player.EntityPlayer;
@@ -11,7 +9,6 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.NetServerHandler;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import net.minecraft.server.MinecraftServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,16 +79,21 @@ public class CloneToolsNetworkTest
 {
   // objects on client side (one per machine)
   public static Map<String, StubEntityClientPlayerMP> stubEntityClientPlayerMP = new HashMap<String, StubEntityClientPlayerMP>();
-  public static Map<String, StubNetClientHandler> stubNetClientHandler = new HashMap<String, StubNetClientHandler>();
+  public static Map<String, StubNetClientHandler> stubNetClientHandlers = new HashMap<String, StubNetClientHandler>();
   public static Map<String, CloneToolsNetworkClient> networkClients = new HashMap<String, CloneToolsNetworkClient>();
+  public static Map<String, PacketHandlerRegistry> packetHandlerClients = new HashMap<String, PacketHandlerRegistry>();
+  public static Map<String, PacketSender> packetSenderClients = new HashMap<String, PacketSender>();
+  public static Map<String, PacketSender> packetSenderServers = new HashMap<String, PacketSender>();
+  public static StubPacketHandlerClient stubPacketHandlerClient;
 
   // objects on server side (all on the same server machine)
   public static Map<String, StubNetServerHandler> stubNetServerHandler = new HashMap<String, StubNetServerHandler>();
   public static Map<String, StubEntityPlayerMP> stubEntityPlayerMP = new HashMap<String, StubEntityPlayerMP>();
   public static StubCloneToolServerActions stubCloneToolServerActions;
   public static CloneToolsNetworkServer networkServer;
-  public static StubPacketHandler stubPacketHandler;
+  public static StubPacketHandlerServer stubPacketHandlerServer;
   public static ArrayList<String> names = new ArrayList<String>();
+  public static PacketHandlerRegistry packetHandlerRegistryServer;
 
   public static final int NUMBER_OF_CLIENTS = 5;
 
@@ -99,40 +101,50 @@ public class CloneToolsNetworkTest
   public void setUp() throws Exception {
     Objenesis objenesis = new ObjenesisStd();
 
+    packetHandlerRegistryServer = new PacketHandlerRegistry();
+    packetHandlerRegistryServer.changeToNonStatic();
+
     stubCloneToolServerActions = new StubCloneToolServerActions();
-    networkServer = new CloneToolsNetworkServer(stubCloneToolServerActions);
+    networkServer = new CloneToolsNetworkServer(packetHandlerRegistryServer, stubCloneToolServerActions);
     stubCloneToolServerActions.setupStub(networkServer);
-    stubPacketHandler = new StubPacketHandler();
+    stubPacketHandlerServer = new StubPacketHandlerServer();
+    stubPacketHandlerClient = new StubPacketHandlerClient();
+    names.clear();
 
     for (int i = 0; i < NUMBER_OF_CLIENTS; ++i) {
-      String name = "Player"+i;
+      String name = "Player" + i;
       names.add(name);
-      stubNetServerHandler.put(name, (StubNetServerHandler)objenesis.newInstance(StubNetServerHandler.class));
-      stubNetClientHandler.put(name, (StubNetClientHandler)objenesis.newInstance(StubNetClientHandler.class));
+      PacketHandlerRegistry newPacketHandlerRegistry = new PacketHandlerRegistry();
+      newPacketHandlerRegistry.changeToNonStatic();
+      packetHandlerClients.put(name, newPacketHandlerRegistry);
+
+      stubNetServerHandler.put(name, (StubNetServerHandler) objenesis.newInstance(StubNetServerHandler.class));
+      stubNetClientHandlers.put(name, (StubNetClientHandler) objenesis.newInstance(StubNetClientHandler.class));
 
       stubEntityClientPlayerMP.put(name, (StubEntityClientPlayerMP) objenesis.newInstance(StubEntityClientPlayerMP.class));
-      stubEntityPlayerMP.put(name, (StubEntityPlayerMP)objenesis.newInstance(StubEntityPlayerMP.class));
+      stubEntityPlayerMP.put(name, (StubEntityPlayerMP) objenesis.newInstance(StubEntityPlayerMP.class));
 
-      stubNetClientHandler.get(name).setupStub(name, stubEntityClientPlayerMP.get(name));
+      stubNetClientHandlers.get(name).setupStub(name, stubEntityClientPlayerMP.get(name));
       stubNetServerHandler.get(name).setupStub(name, stubEntityPlayerMP.get(name));
-      stubEntityClientPlayerMP.get(name).setupStub(name, stubNetClientHandler.get(name));
+      stubEntityClientPlayerMP.get(name).setupStub(name, stubNetClientHandlers.get(name));
       stubEntityPlayerMP.get(name).setupStub(name, stubNetServerHandler.get(name));
+      packetSenderClients.put(name, new StubPacketSenderClient(stubNetClientHandlers.get(name)));
+      packetSenderServers.put(name, new StubPacketSenderServer(stubNetServerHandler.get(name)));
     }
   }
 
   @After
   public void tearDown() throws Exception {
-     stubEntityClientPlayerMP.clear();
-     stubNetClientHandler.clear();
-     networkClients.clear();
+    stubEntityClientPlayerMP.clear();
+    stubNetClientHandlers.clear();
+    networkClients.clear();
     stubNetServerHandler.clear();
-     stubEntityPlayerMP.clear();
+    stubEntityPlayerMP.clear();
     stubCloneToolServerActions = null;
-     networkServer = null;
+    networkServer = null;
   }
 
-  public void runTests() throws  Exception
-  {
+  public void runTests() throws Exception {
     testStatus();
     tearDown();
     setUp();
@@ -143,8 +155,8 @@ public class CloneToolsNetworkTest
   public void testStatus() throws Exception {
     boolean result;
     for (String name : names) {
-      networkClients.put(name, new CloneToolsNetworkClient());
-      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
+      networkClients.put(name, new CloneToolsNetworkClient(packetHandlerClients.get(name), packetSenderClients.get(name)));
+//      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
 
       networkServer.addPlayer(stubEntityPlayerMP.get(name));
     }
@@ -202,8 +214,8 @@ public class CloneToolsNetworkTest
         Assert.assertTrue("Test client updated to BUSY_WITH_OTHER_PLAYER", client.getServerStatus() == ServerStatus.BUSY_WITH_OTHER_PLAYER);
         Assert.assertTrue("Test client correct progress", client.getServerPercentComplete() == TEST_PROGRESS2);
       } else if (client == testClient2) {
-          Assert.assertTrue("Test client2 updated to PERFORMING_YOUR_ACTION", client.getServerStatus() == ServerStatus.PERFORMING_YOUR_ACTION);
-          Assert.assertTrue("Test client2 correct progress", client.getServerPercentComplete() == TEST_PROGRESS2);
+        Assert.assertTrue("Test client2 updated to PERFORMING_YOUR_ACTION", client.getServerStatus() == ServerStatus.PERFORMING_YOUR_ACTION);
+        Assert.assertTrue("Test client2 correct progress", client.getServerPercentComplete() == TEST_PROGRESS2);
       } else {
         Assert.assertTrue("All non-test clients not updated", client.getServerStatus() == ServerStatus.IDLE);
       }
@@ -249,7 +261,7 @@ public class CloneToolsNetworkTest
 
     // test for client automatic request for status updates if packets late
     testClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
-    while (processAllServers());
+    while (processAllServers()) ;
     finishTime = System.nanoTime() + MAX_TIMEOUT_MS * 1000 * 1000;
 
     countReceived = 0;
@@ -267,8 +279,8 @@ public class CloneToolsNetworkTest
   public void testSelectionMade() throws Exception {
     boolean result;
     for (String name : names) {
-      networkClients.put(name, new CloneToolsNetworkClient());
-      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
+      networkClients.put(name, new CloneToolsNetworkClient(packetHandlerClients.get(name), packetSenderClients.get(name)));
+//      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
 
       networkServer.addPlayer(stubEntityPlayerMP.get(name));
     }
@@ -304,20 +316,20 @@ public class CloneToolsNetworkTest
   public void testPerformToolActions() throws Exception {
     boolean result;
     for (String name : names) {
-      networkClients.put(name, new CloneToolsNetworkClient());
-      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
+      networkClients.put(name, new CloneToolsNetworkClient(packetHandlerClients.get(name), packetSenderClients.get(name)));
+      //     networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
 
       networkServer.addPlayer(stubEntityPlayerMP.get(name));
     }
     CloneToolsNetworkClient testClient0 = networkClients.get(names.get(0));
 
     // test (1)
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte)3, false);
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
     result = (stubCloneToolServerActions.lastToolID == 1361) && (stubCloneToolServerActions.lastXpos == -12345) && (stubCloneToolServerActions.lastYpos == 35135) && (stubCloneToolServerActions.lastZpos == 0)
-             && (stubCloneToolServerActions.lastRotationCount == 3) && (stubCloneToolServerActions.lastFlipped == false);
+            && (stubCloneToolServerActions.lastRotationCount == 3) && (stubCloneToolServerActions.lastFlipped == false);
     Assert.assertTrue("Action Data correct", result);
     Assert.assertTrue(testClient0.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(testClient0.peekCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
@@ -344,10 +356,10 @@ public class CloneToolsNetworkTest
 
     // send packet to a different player, verify received and other player not affected
     CloneToolsNetworkClient testClient3 = networkClients.get(names.get(3));
-    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
     result = processAllClients();
 
-    result = testClient3.performToolAction(161, 12345, -35135, 230, (byte)0, true);
+    result = testClient3.performToolAction(161, 12345, -35135, 230, (byte) 0, true);
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
@@ -371,7 +383,7 @@ public class CloneToolsNetworkTest
 
     // test (2)
     CloneToolsNetworkClient testClient2 = networkClients.get(names.get(2));
-    networkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte)0);  // not communicated to client2
+    networkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);  // not communicated to client2
     result = processAllClients();
     result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
@@ -381,7 +393,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(testClient2.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
     Assert.assertTrue(testClient2.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
 
-    networkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(0)), (byte)0);
+    networkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(0)), (byte) 0);
     result = processAllClients();
     result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
@@ -390,7 +402,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(processAllClients());
     Assert.assertTrue(testClient2.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
 
-    networkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(0)), (byte)0);
+    networkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(0)), (byte) 0);
     result = processAllClients();
     result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
@@ -399,7 +411,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(processAllClients());
     Assert.assertTrue(testClient2.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
 
-    networkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(2)), (byte)0);
+    networkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(2)), (byte) 0);
     result = processAllClients();
     result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
@@ -408,7 +420,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(processAllClients());
     Assert.assertTrue(testClient2.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
 
-    networkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(2)), (byte)0);
+    networkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(2)), (byte) 0);
     result = processAllClients();
     result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
@@ -418,14 +430,14 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(testClient2.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
 
     // test (3)
-    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte)3, false);
+    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
 
-    result = testClient0.performToolAction(136, -12345, 3513, 0, (byte)2, false);
+    result = testClient0.performToolAction(136, -12345, 3513, 0, (byte) 2, false);
     Assert.assertFalse(result);
     result = processAllServers();
     Assert.assertFalse(result);
@@ -433,7 +445,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.PROCESSING);
 
-    result = testClient0.performToolAction(136, -12345, 3513, 0, (byte)2, false);
+    result = testClient0.performToolAction(136, -12345, 3513, 0, (byte) 2, false);
     Assert.assertFalse(result);
     Assert.assertFalse(processAllServers());
 
@@ -446,16 +458,16 @@ public class CloneToolsNetworkTest
     // verify that the client.tick() sends periodic repeats of the packet
     // Test code loops for 2.5 s, so assumes that the delay is no more than approx 2 seconds.
     // If more than 10 updates are sent, it assumes there is a problem with too-frequent updates.
-    networkServer.changeServerStatus(ServerStatus.IDLE, stubEntityPlayerMP.get(names.get(0)), (byte)0);
-    while (processAllClients());
+    networkServer.changeServerStatus(ServerStatus.IDLE, stubEntityPlayerMP.get(names.get(0)), (byte) 0);
+    while (processAllClients()) ;
     final int DISABLE_SENDING = -2;
     stubNetServerHandler.get(names.get(0)).setSequenceNumber(DISABLE_SENDING);
-    while (processAllServers());
-    result = testClient0.performToolAction(13, -145, 355, 5, (byte)1, true);
+    while (processAllServers()) ;
+    result = testClient0.performToolAction(13, -145, 355, 5, (byte) 1, true);
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
-    Packet250CustomPayload initialPacket = stubPacketHandler.lastpacketreceived;
+    Packet250CustomPayload initialPacket = lastpacketreceived;
 
     final long MAX_TIMEOUT_MS = 2500;
     long finishTime = System.nanoTime() + MAX_TIMEOUT_MS * 1000 * 1000;
@@ -465,13 +477,13 @@ public class CloneToolsNetworkTest
       testClient0.tick();
       if (processAllServers()) {
         ++countReceived;
-        Assert.assertTrue(Arrays.equals(initialPacket.data, stubPacketHandler.lastpacketreceived.data));
+        Assert.assertTrue(Arrays.equals(initialPacket.data, lastpacketreceived.data));
       }
       Thread.sleep(50);
     }
     Assert.assertTrue("Received at least one update", countReceived > 0);
     Assert.assertTrue("Received not too many updates", countReceived < 10);
-    while (processAllClients());
+    while (processAllClients()) ;
     stubNetServerHandler.get(names.get(0)).setSequenceNumber(0);
 
     // now advance to PROCESSING and try again
@@ -481,12 +493,13 @@ public class CloneToolsNetworkTest
       processAllServers();
       processAllClients();
       Thread.sleep(50);
-    } while (System.nanoTime() < finishTime && testClient0.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.PROCESSING);
+    }
+    while (System.nanoTime() < finishTime && testClient0.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.PROCESSING);
     Assert.assertTrue(testClient0.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.PROCESSING);
 
     stubNetServerHandler.get(names.get(0)).setSequenceNumber(DISABLE_SENDING);
-    while (processAllServers());
-    while (processAllClients());
+    while (processAllServers()) ;
+    while (processAllClients()) ;
 
     finishTime = System.nanoTime() + MAX_TIMEOUT_MS * 1000 * 1000;
 
@@ -495,7 +508,7 @@ public class CloneToolsNetworkTest
       testClient0.tick();
       if (processAllServers()) {
         ++countReceived;
-        Assert.assertTrue(Arrays.equals(initialPacket.data, stubPacketHandler.lastpacketreceived.data));
+        Assert.assertTrue(Arrays.equals(initialPacket.data, lastpacketreceived.data));
       }
       Thread.sleep(50);
     }
@@ -509,40 +522,40 @@ public class CloneToolsNetworkTest
 
     boolean result;
     for (String name : names) {
-      networkClients.put(name, new CloneToolsNetworkClient());
-      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
+      networkClients.put(name, new CloneToolsNetworkClient(packetHandlerClients.get(name), packetSenderClients.get(name)));
+//      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
 
       networkServer.addPlayer(stubEntityPlayerMP.get(name));
     }
     CloneToolsNetworkClient testClient0 = networkClients.get(names.get(0));
 
-    networkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte)0);
-    while (processAllClients());
-    Assert.assertTrue(testClient0.performToolAction(0, 1, 2, 3, (byte)2, false));
+    networkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
+    while (processAllClients()) ;
+    Assert.assertTrue(testClient0.performToolAction(0, 1, 2, 3, (byte) 2, false));
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
-    Packet250CustomPayload test7OldClientPacket = stubPacketHandler.lastpacketreceived;
+    Packet250CustomPayload test7OldClientPacket = lastpacketreceived;
     Assert.assertTrue(processAllClients());
-    Packet250CustomPayload oldPacket = stubPacketHandler.lastpacketreceived;
+    Packet250CustomPayload oldPacket = lastpacketreceived;
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
 
-    Assert.assertTrue(testClient0.performToolAction(0, 1, 2, 3, (byte)2, false));
+    Assert.assertTrue(testClient0.performToolAction(0, 1, 2, 3, (byte) 2, false));
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
-    Packet250CustomPayload test6clientAction = stubPacketHandler.lastpacketreceived;
-    stubPacketHandler.onPacketData(names.get(0), oldPacket, stubEntityClientPlayerMP.get(names.get(0)));   // inject old packet to client
+    Packet250CustomPayload test6clientAction = lastpacketreceived;
+    stubPacketHandlerClient.onPacketData(names.get(0), oldPacket, stubEntityClientPlayerMP.get(names.get(0)));   // inject old packet to client
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllClients());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
 
     // test (6) - check server sends same ack packet again
-    Packet250CustomPayload rejectAcknowledgement = stubPacketHandler.lastpacketreceived;
-    stubPacketHandler.onPacketData(names.get(0), test6clientAction, stubEntityPlayerMP.get(names.get(0)));  // inject same packet again to server
+    Packet250CustomPayload rejectAcknowledgement = lastpacketreceived;
+    stubPacketHandlerServer.onPacketData(names.get(0), test6clientAction, stubEntityPlayerMP.get(names.get(0)));  // inject same packet again to server
     Assert.assertTrue(processAllClients());
-    Assert.assertTrue(Arrays.equals(rejectAcknowledgement.data, stubPacketHandler.lastpacketreceived.data));
+    Assert.assertTrue(Arrays.equals(rejectAcknowledgement.data, lastpacketreceived.data));
 
     // test (7) - server ignores an old packet
-    stubPacketHandler.onPacketData(names.get(0), test7OldClientPacket, stubEntityPlayerMP.get(names.get(0)));  // inject same packet again to server
+    stubPacketHandlerServer.onPacketData(names.get(0), test7OldClientPacket, stubEntityPlayerMP.get(names.get(0)));  // inject same packet again to server
     Assert.assertFalse(processAllClients());
   }
 
@@ -550,16 +563,16 @@ public class CloneToolsNetworkTest
   public void testPerformUndo() throws Exception {
     boolean result;
     for (String name : names) {
-      networkClients.put(name, new CloneToolsNetworkClient());
-      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
+      networkClients.put(name, new CloneToolsNetworkClient(packetHandlerClients.get(name), packetSenderClients.get(name)));
+//      networkClients.get(name).connectedToServer(stubEntityClientPlayerMP.get(name));
 
       networkServer.addPlayer(stubEntityPlayerMP.get(name));
     }
     CloneToolsNetworkClient testClient0 = networkClients.get(names.get(0));
-    StubNetClientHandler testNCH0 = stubNetClientHandler.get(names.get(0));
+    StubNetClientHandler testNCH0 = stubNetClientHandlers.get(names.get(0));
 
     // test (1)
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte)3, false);
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
     Assert.assertTrue(processAllServers());
     Assert.assertTrue(testClient0.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
@@ -575,7 +588,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(processAllServers());
     Assert.assertTrue(stubCloneToolServerActions.countPerformUndoOfCurrentAction == 1);
     Assert.assertTrue(stubCloneToolServerActions.lastActionSequenceNumber == savedActionSequenceNumber);
-    Assert.assertTrue(stubCloneToolServerActions.lastPlayer == stubEntityPlayerMP.get(names.get(0)));
+    Assert.assertTrue(stubCloneToolServerActions.lastPlayer.myName.equals(names.get(0)));
     int savedUndoSeqNumber = stubCloneToolServerActions.lastUndoSequenceNumber;
     Assert.assertTrue(processAllClients());
     Assert.assertTrue(processAllClients());
@@ -589,8 +602,8 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.COMPLETED);
 
     // test (2)
-    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte)3, false);
+    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
     Assert.assertTrue(processAllServers());
     Assert.assertTrue(processAllClients());
@@ -600,7 +613,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(processAllClients());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.COMPLETED);
 
-    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
     Assert.assertTrue(testClient0.performToolUndo());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
@@ -618,13 +631,13 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(stubCloneToolServerActions.lastPlayer == stubEntityPlayerMP.get(names.get(0)));
 
     // test (3)
-    networkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte)0);
-    while (processAllClients());
+    networkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
+    while (processAllClients()) ;
     Assert.assertTrue(testClient0.performToolUndo());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
-    Packet250CustomPayload test5OldUndo = stubPacketHandler.lastpacketreceived;
+    Packet250CustomPayload test5OldUndo = lastpacketreceived;
     Assert.assertTrue(stubCloneToolServerActions.countPerformUndoOfLastAction == 1);
     Assert.assertTrue(stubCloneToolServerActions.countPerformUndoOfCurrentAction == 1);
     Assert.assertTrue(processAllClients());
@@ -632,16 +645,16 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
 
     // test (4)  - action received after the corresponding undo
-    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
     testNCH0.setSequenceNumber(1000);
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte)3, false);
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     testNCH0.setSequenceNumber(100);
     Assert.assertTrue(testClient0.performToolUndo());
 
     Assert.assertTrue(processAllServers());
-    Packet250CustomPayload actionPacket = stubPacketHandler.lastpacketreceived;
+    Packet250CustomPayload actionPacket = lastpacketreceived;
     Assert.assertTrue(processAllClients());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.COMPLETED);
@@ -650,19 +663,19 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(processAllClients());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
-    Packet250CustomPayload rejectPacket = stubPacketHandler.lastpacketreceived;
+    Packet250CustomPayload rejectPacket = lastpacketreceived;
 
     //     send the same action again, verify it receives "reject" packet again but client ignores it
     Assert.assertFalse(processAllClients());
-    stubPacketHandler.onPacketData(names.get(0), actionPacket, stubEntityPlayerMP.get(names.get(0)));  // inject same packet again to server
+    stubPacketHandlerServer.onPacketData(names.get(0), actionPacket, stubEntityPlayerMP.get(names.get(0)));  // inject same packet again to server
     Assert.assertTrue(processAllClients());
-    Assert.assertTrue(Arrays.equals(rejectPacket.data, stubPacketHandler.lastpacketreceived.data));
+    Assert.assertTrue(Arrays.equals(rejectPacket.data, lastpacketreceived.data));
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
 
     // test (5) - old undo request
-    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte)3, false);
+    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false);
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
@@ -670,7 +683,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.PROCESSING);
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);
     int snap = stubCloneToolServerActions.countPerformUndoOfCurrentAction + stubCloneToolServerActions.countPerformUndoOfLastAction;
-    stubPacketHandler.onPacketData(names.get(0), test5OldUndo, stubEntityPlayerMP.get(names.get(0)));  // inject same packet again to server
+    stubPacketHandlerServer.onPacketData(names.get(0), test5OldUndo, stubEntityPlayerMP.get(names.get(0)));  // inject same packet again to server
     Assert.assertTrue(snap == stubCloneToolServerActions.countPerformUndoOfCurrentAction + stubCloneToolServerActions.countPerformUndoOfLastAction);
     Assert.assertFalse(processAllClients());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.PROCESSING);
@@ -679,20 +692,20 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(processAllClients());
 
     // test (6) - client timeout on response to undo packet - sends request again
-    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
     final long MAX_TIMEOUT_MS = 2500;
     long finishTime = System.nanoTime() + MAX_TIMEOUT_MS * 1000 * 1000;
     Assert.assertFalse(processAllServers());
     Assert.assertTrue(testClient0.performToolUndo());
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
-    Packet250CustomPayload initialPacket = stubPacketHandler.lastpacketreceived;
+    Packet250CustomPayload initialPacket = lastpacketreceived;
     int countReceived = 0;
     while (countReceived < 10 && System.nanoTime() < finishTime) {
       testClient0.tick();
       if (processAllServers()) {
         ++countReceived;
-        Assert.assertTrue(Arrays.equals(initialPacket.data, stubPacketHandler.lastpacketreceived.data));
+        Assert.assertTrue(Arrays.equals(initialPacket.data, lastpacketreceived.data));
       }
       Thread.sleep(50);
     }
@@ -701,7 +714,7 @@ public class CloneToolsNetworkTest
     // advance to PROCESSING, try again
 
     Assert.assertTrue(processAllClients());
-    while(processAllClients());
+    while (processAllClients()) ;
     finishTime = System.nanoTime() + MAX_TIMEOUT_MS * 1000 * 1000;
     Assert.assertTrue(testClient0.getCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.PROCESSING);
     countReceived = 0;
@@ -709,7 +722,7 @@ public class CloneToolsNetworkTest
       testClient0.tick();
       if (processAllServers()) {
         ++countReceived;
-        Assert.assertTrue(Arrays.equals(initialPacket.data, stubPacketHandler.lastpacketreceived.data));
+        Assert.assertTrue(Arrays.equals(initialPacket.data, lastpacketreceived.data));
       }
       Thread.sleep(50);
     }
@@ -718,8 +731,7 @@ public class CloneToolsNetworkTest
 
   }
 
-  public boolean processAllServers()
-  {
+  public boolean processAllServers() {
     boolean atLeastOne = false;
     for (StubNetServerHandler handler : stubNetServerHandler.values()) {
       if (handler.processPacket())
@@ -728,10 +740,9 @@ public class CloneToolsNetworkTest
     return atLeastOne;
   }
 
-  public boolean processAllClients()
-  {
+  public boolean processAllClients() {
     boolean atLeastOne = false;
-    for (StubNetClientHandler handler : stubNetClientHandler.values()) {
+    for (StubNetClientHandler handler : stubNetClientHandlers.values()) {
       if (handler.processPacket())
         atLeastOne = true;
     }
@@ -740,87 +751,121 @@ public class CloneToolsNetworkTest
 
   public static class StubEntityClientPlayerMP extends EntityClientPlayerMP implements Player
   {
-    public StubEntityClientPlayerMP()
-    {
+    public StubEntityClientPlayerMP() {
       super(null, null, null, null);
     }
 
-    public void setupStub(String init_name, StubNetClientHandler newStubNetClientHandler)
-    {
+    public void setupStub(String init_name, StubNetClientHandler newStubNetClientHandler) {
       myName = init_name;
       sendQueue = newStubNetClientHandler;
-      entityId =  ++myNextID;
+      entityId = ++myNextID;
     }
-    String myName;
+
+    public String myName;
     static int myNextID = 0;
   }
 
   public static class StubEntityPlayerMP extends EntityPlayerMP implements Player
   {
-    public StubEntityPlayerMP()
-    {
+    public StubEntityPlayerMP() {
       super(null, null, null, null);
     }
 
-    public void setupStub(String init_name, StubNetServerHandler newStubNewServerHandler)
-    {
+    public void setupStub(String init_name, StubNetServerHandler newStubNewServerHandler) {
       myName = init_name;
       playerNetServerHandler = newStubNewServerHandler;
-      entityId =  ++myNextID;
+      entityId = ++myNextID;
     }
-    String myName;
+
+    public String myName;
     static int myNextID = 0;
   }
 
+  public static class StubPacketSenderServer implements PacketSender
+  {
+    public StubPacketSenderServer(NetServerHandler i_netHandler)
+    {
+      netHandler = i_netHandler;
+    }
+    /**
+     * Send a packet to the recipient
+     * @param packet
+     * @return true if packet could be queued for sending, false if not (eg network overloaded)
+     */
+    public boolean sendPacket(Packet250CustomPayload packet) {
+      netHandler.sendPacketToPlayer(packet);
+      return true;
+    }
+
+    public boolean readyForAnotherPacket() {return true;}
+    private NetServerHandler netHandler;
+  }
+
+  public static class StubPacketSenderClient implements PacketSender
+  {
+    public StubPacketSenderClient(NetClientHandler i_netHandler)
+    {
+      netHandler = i_netHandler;
+    }
+    /**
+     * Send a packet to the recipient
+     * @param packet
+     * @return true if packet could be queued for sending, false if not (eg network overloaded)
+     */
+    public boolean sendPacket(Packet250CustomPayload packet) {
+      netHandler.addToSendQueue(packet);
+      return true;
+    }
+
+    public boolean readyForAnotherPacket() {return true;}
+    private NetClientHandler netHandler;
+  }
+
+
   /**
    * The client and server stubs send packets to each other directly, with a sequence number to allow for packets
-   *   to be received out of order.
-   *   Usage:
-   *   (1) Create class.
-   *   (2) .setupStub
-   *   (3) optionally: setSequenceNumber
-   *   (4)   addToSendQueue gets called by the test code, optionally multiple times, setSequenceNumber can be changed between calls
-   *   (5) call processPacket on the receiving class, multiple times until return false (no more packets received).
+   * to be received out of order.
+   * Usage:
+   * (1) Create class.
+   * (2) .setupStub
+   * (3) optionally: setSequenceNumber
+   * (4)   addToSendQueue gets called by the test code, optionally multiple times, setSequenceNumber can be changed between calls
+   * (5) call processPacket on the receiving class, multiple times until return false (no more packets received).
    */
   public static class StubNetClientHandler extends NetClientHandler
   {
-    public StubNetClientHandler()  throws IOException
-    {
+    public StubNetClientHandler() throws IOException {
       super(null, null, 0);
     }
-    public void setupStub(String init_name, StubEntityClientPlayerMP newStubEntityClientPlayerMP)
-    {
+
+    public void setupStub(String init_name, StubEntityClientPlayerMP newStubEntityClientPlayerMP) {
       myName = init_name;
       myPlayer = newStubEntityClientPlayerMP;
       receivedPackets = new TreeMap<Integer, Packet>();
     }
 
-    public void addToSendQueue(Packet par1Packet)
-    {
+    public void addToSendQueue(Packet par1Packet) {
       if (sequenceNumber < 0) return;
 
       stubNetServerHandler.get(myName).addReceivedPacket(sequenceNumber, par1Packet);
       sequenceNumber += 100;
     }
 
-    public void addReceivedPacket(int packetSequenceNumber, Packet packet)
-    {
+    public void addReceivedPacket(int packetSequenceNumber, Packet packet) {
       receivedPackets.put(packetSequenceNumber, packet);
     }
 
     // duplicates the packet with the given sequence number;
-    public boolean duplicatePacket(int packetSequenceNumber, int increment)
-    {
+    public boolean duplicatePacket(int packetSequenceNumber, int increment) {
       if (!receivedPackets.containsKey(packetSequenceNumber)) return false;
       receivedPackets.put(packetSequenceNumber + increment, receivedPackets.get(packetSequenceNumber));
       return true;
     }
 
-    public boolean processPacket()
-    {
+    public boolean processPacket() {
       if (receivedPackets.isEmpty()) return false;
       Map.Entry<Integer, Packet> nextPacket = receivedPackets.pollFirstEntry();
-      stubPacketHandler.onPacketData(myName, (Packet250CustomPayload)nextPacket.getValue(), stubEntityClientPlayerMP.get(myName));
+      stubPacketHandlerClient.onPacketData(myName, (Packet250CustomPayload) nextPacket.getValue(), stubEntityClientPlayerMP.get(myName));
       return true;
     }
 
@@ -839,42 +884,37 @@ public class CloneToolsNetworkTest
 
   public static class StubNetServerHandler extends NetServerHandler
   {
-    public StubNetServerHandler()  throws IOException
-    {
+    public StubNetServerHandler() throws IOException {
       super(null, null, null);
     }
-    public void setupStub(String init_name, StubEntityPlayerMP newStubEntityPlayerMP)
-    {
+
+    public void setupStub(String init_name, StubEntityPlayerMP newStubEntityPlayerMP) {
       myName = init_name;
       myPlayer = newStubEntityPlayerMP;
       receivedPackets = new TreeMap<Integer, Packet>();
     }
 
-    public void sendPacketToPlayer(Packet par1Packet)
-    {
+    public void sendPacketToPlayer(Packet par1Packet) {
       if (sequenceNumber < 0) return;
-      stubNetClientHandler.get(myName).addReceivedPacket(sequenceNumber, par1Packet);
+      stubNetClientHandlers.get(myName).addReceivedPacket(sequenceNumber, par1Packet);
       sequenceNumber += 100;
     }
 
     // duplicates the packet with the given sequence number;
-    public boolean duplicatePacket(int packetSequenceNumber, int increment)
-    {
+    public boolean duplicatePacket(int packetSequenceNumber, int increment) {
       if (!receivedPackets.containsKey(packetSequenceNumber)) return false;
       receivedPackets.put(packetSequenceNumber + increment, receivedPackets.get(packetSequenceNumber));
       return true;
     }
 
-    public void addReceivedPacket(int packetSequenceNumber, Packet packet)
-    {
+    public void addReceivedPacket(int packetSequenceNumber, Packet packet) {
       receivedPackets.put(packetSequenceNumber, packet);
     }
 
-    public boolean processPacket()
-    {
+    public boolean processPacket() {
       if (receivedPackets.isEmpty()) return false;
       Map.Entry<Integer, Packet> nextPacket = receivedPackets.pollFirstEntry();
-      stubPacketHandler.onPacketData(myName, (Packet250CustomPayload)nextPacket.getValue(), stubEntityPlayerMP.get(myName));
+      stubPacketHandlerServer.onPacketData(myName, (Packet250CustomPayload) nextPacket.getValue(), stubEntityPlayerMP.get(myName));
       return true;
     }
 
@@ -888,27 +928,24 @@ public class CloneToolsNetworkTest
     private int sequenceNumber = 0;
     private TreeMap<Integer, Packet> receivedPackets;
     StubEntityPlayerMP myPlayer;
-    String myName;
+    public String myName;
   }
 
   public static class StubCloneToolServerActions extends CloneToolServerActions
   {
-    public void setupStub(CloneToolsNetworkServer newNetworkServer)
-    {
+    public void setupStub(CloneToolsNetworkServer newNetworkServer) {
       cloneToolsNetworkServer = newNetworkServer;
     }
 
-    public boolean prepareForToolAction(EntityPlayerMP player)
-    {
+    public boolean prepareForToolAction(EntityPlayerMP player) {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+      cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
       ++countPrepareForToolAction;
       return true;
     }
 
-    public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
-    {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
+    public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped) {
+      cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte) 0);
       lastActionSequenceNumber = sequenceNumber;
       lastToolID = toolID;
       lastXpos = xpos;
@@ -920,28 +957,28 @@ public class CloneToolsNetworkTest
 //      System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
       return true;
     }
-    public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
-    {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+
+    public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber) {
+      cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
       cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
 
       lastActionSequenceNumber = actionSequenceNumber;
       lastUndoSequenceNumber = undoSequenceNumber;
-      lastPlayer = player;
+      lastPlayer = (StubEntityPlayerMP)player;
       ++countPerformUndoOfCurrentAction;
 //      System.out.println("Server: Tool Undo Current Action received: sequenceNumber " + actionSequenceNumber);
       return true;
     }
 
-    public boolean performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
-    {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-      lastPlayer = player;
+    public boolean performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber) {
+      cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
+      lastPlayer = (StubEntityPlayerMP)player;
       lastUndoSequenceNumber = undoSequenceNumber;
       ++countPerformUndoOfLastAction;
 //      System.out.println("Server: Tool Undo Last Completed Action received ");
       return true;
     }
+
     private CloneToolsNetworkServer cloneToolsNetworkServer;
     public int countPerformUndoOfLastAction = 0;
     public int countPerformUndoOfCurrentAction = 0;
@@ -955,18 +992,41 @@ public class CloneToolsNetworkTest
     public int lastZpos = 0;
     public Byte lastRotationCount = null;
     public Boolean lastFlipped = null;
-    public EntityPlayer lastPlayer = null;
+    public StubEntityPlayerMP lastPlayer = null;
   }
 
-  public static class StubPacketHandler {
-    public void onPacketData(String playerName, Packet250CustomPayload packet, Player playerEntity)
-    {
+  public static class StubPacketHandlerClient
+  {
+    public void onPacketData(String playerName, Packet250CustomPayload packet, Player playerEntity) {
       if (packet.channel.equals("speedytools")) {
-        Side side = (playerEntity instanceof EntityPlayerMP) ? Side.SERVER : Side.CLIENT;
 
         lastpacketreceived = packet;
-        switch (packet.data[0]) {
-/*
+        PacketHandlerRegistry packetHandlerRegistry = packetHandlerClients.get(playerName);
+        packetHandlerRegistry.onPacketData(null, packet, playerEntity);
+
+      }
+    }
+//    public Packet250CustomPayload lastpacketreceived = null;
+  }
+
+  public static class StubPacketHandlerServer
+  {
+    public void onPacketData(String playerName, Packet250CustomPayload packet, Player playerEntity) {
+      if (packet.channel.equals("speedytools")) {
+
+        lastpacketreceived = packet;
+        packetHandlerRegistryServer.onPacketData(null, packet, playerEntity);
+
+      }
+    }
+//    static public Packet250CustomPayload lastpacketreceived = null;
+  }
+
+  static public Packet250CustomPayload lastpacketreceived = null;
+
+}
+/*        switch (packet.data[0]) {
+
           case PacketHandler.PACKET250_SPEEDY_TOOL_USE_ID: {
             if (side != Side.SERVER) {
               malformedPacketError(side, playerEntity, "PACKET250_SPEEDY_TOOL_USE_ID received on wrong side");
@@ -979,8 +1039,8 @@ public class CloneToolsNetworkTest
                     toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
             break;
           }
-          */
-          case PacketHandler.PACKET250_CLONE_TOOL_USE_ID: {
+
+          case Packet250Types.PACKET250_CLONE_TOOL_USE_ID.packetTypeID: {
             Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
             if (toolUsePacket != null && toolUsePacket.validForSide(side)) {
               if (side == Side.SERVER) {
@@ -1027,7 +1087,8 @@ public class CloneToolsNetworkTest
         }
       }
     }
-
+*/
+/*
     private void malformedPacketError(Side side, Player player, String message) {
       switch (side) {
         case CLIENT: {
@@ -1042,7 +1103,8 @@ public class CloneToolsNetworkTest
           assert false: "invalid Side";
       }
     }
-    public Packet250CustomPayload lastpacketreceived = null;
-  }
 
-}
+  }
+*/
+
+

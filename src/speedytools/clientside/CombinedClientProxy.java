@@ -56,30 +56,30 @@ public class CombinedClientProxy extends CommonProxy {
                                            new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
                                                                     ClientSide.speedyToolRenderers,
                                                                     ClientSide.speedyToolSounds,
-                                                                    ClientSide.undoManagerClient
+                                                                    ClientSide.undoManagerSimple
                                                                    ));
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandWeak,
                                             new SpeedyToolWandWeak(RegistryForItems.itemSpeedyWandWeak,
                                                                     ClientSide.speedyToolRenderers,
                                                                     ClientSide.speedyToolSounds,
-                                                                    ClientSide.undoManagerClient
+                                                                    ClientSide.undoManagerSimple
                                                                   ));
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyOrb,
             new SpeedyToolOrb(RegistryForItems.itemSpeedyOrb,
                     ClientSide.speedyToolRenderers,
                     ClientSide.speedyToolSounds,
-                    ClientSide.undoManagerClient
+                    ClientSide.undoManagerSimple
             ));
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre,
             new SpeedyToolSceptre(RegistryForItems.itemSpeedySceptre,
                     ClientSide.speedyToolRenderers,
                     ClientSide.speedyToolSounds,
-                    ClientSide.undoManagerClient
+                    ClientSide.undoManagerSimple
             ));
     SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
             ClientSide.speedyToolRenderers,
             ClientSide.speedyToolSounds,
-            ClientSide.undoManagerClient);
+            ClientSide.undoManagerSimple);
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
 
@@ -87,7 +87,7 @@ public class CombinedClientProxy extends CommonProxy {
             new SpeedyToolCopy(RegistryForItems.itemCloneCopy,
                     ClientSide.speedyToolRenderers,
                     ClientSide.speedyToolSounds,
-                    ClientSide.undoManagerClient,
+                    ClientSide.undoManagerComplex,
                     ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary
             )
             );

@@ -2,13 +2,11 @@ package speedytools.common.network.multipart;
 
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.common.network.PacketHandler;
 import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
 
 /**
  * User: The Grey Ghost

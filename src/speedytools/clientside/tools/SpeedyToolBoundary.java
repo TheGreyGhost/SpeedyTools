@@ -19,7 +19,7 @@ import java.util.LinkedList;
  * User: The Grey Ghost
  * Date: 18/04/2014
  */
-public class SpeedyToolBoundary extends SpeedyToolClonerBase
+public class SpeedyToolBoundary extends SpeedyToolComplexBase
 {
   public SpeedyToolBoundary(ItemSpeedyBoundary i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);

@@ -9,7 +9,6 @@ import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
 
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +18,7 @@ import java.util.Map;
  */
 public class CloneToolsNetworkServer
 {
-  public CloneToolsNetworkServer(CloneToolServerActions i_cloneToolServerActions)
+  public CloneToolsNetworkServer(PacketHandlerRegistry packetHandlerRegistry,  CloneToolServerActions i_cloneToolServerActions)
   {
     playerStatuses = new HashMap<EntityPlayerMP, ClientStatus>();
     lastAcknowledgedAction = new HashMap<EntityPlayerMP, Integer>();
@@ -33,9 +32,9 @@ public class CloneToolsNetworkServer
     cloneToolServerActions.setCloneToolsNetworkServer(this);
 
     packetHandlerCloneToolUse = this.new PacketHandlerCloneToolUse();
-    PacketHandler.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID(), packetHandlerCloneToolUse);
+    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID(), packetHandlerCloneToolUse);
     packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
-    PacketHandler.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
+    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
   }
 
   public void addPlayer(EntityPlayerMP newPlayer)
@@ -276,7 +275,7 @@ public class CloneToolsNetworkServer
     }
   }
 
-  public class PacketHandlerCloneToolUse implements PacketHandler.PacketHandlerMethod {
+  public class PacketHandlerCloneToolUse implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
     {
       Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
@@ -286,7 +285,7 @@ public class CloneToolsNetworkServer
     }
   }
 
-  public class PacketHandlerCloneToolStatus implements PacketHandler.PacketHandlerMethod {
+  public class PacketHandlerCloneToolStatus implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
     {
       Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
