@@ -1,10 +1,14 @@
 package speedytools.common;
 
+import cpw.mods.fml.common.network.NetworkRegistry;
+import cpw.mods.fml.common.registry.TickRegistry;
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet;
+import net.minecraftforge.common.MinecraftForge;
+import speedytools.clientside.ClientTickHandler;
+import speedytools.clientside.rendering.SoundsRegistry;
 import speedytools.common.items.RegistryForItems;
-import speedytools.serverside.CloneToolServerActions;
-import speedytools.serverside.CloneToolsNetworkServer;
-import speedytools.serverside.ServerSide;
+import speedytools.serverside.*;
 
 /**
  * CommonProxy is used to set up the mod and start it running.  It contains all the code that should run on both the
@@ -34,6 +38,7 @@ public class CommonProxy {
   public void postInit()
   {
     ServerSide.initialise();
+    MinecraftForge.EVENT_BUS.register(new ServerEventHandler());
+    TickRegistry.registerTickHandler(new ServerTickHandler(), Side.SERVER);
   }
-
 }

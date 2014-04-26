@@ -138,6 +138,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       } else {
         switch (currentToolSelectionState) {
           case NO_SELECTION: {
+            System.out.println("TEST:" + nextEvent.eventType + " : " + nextEvent.eventDuration);
             if (nextEvent.eventType == UserInput.InputEventType.RIGHT_CLICK_UP &&
                     nextEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
               initiateSelectionCreation(player);
@@ -430,7 +431,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   /** called once per tick on the client side while the user is holding an ItemCloneTool
    * used to:
    * (1) background generation of a selection, if it has been initiated
-   * (2) update the client status to the server
+   * (2) acknowledge (get) the action and undo statuses
    */
   @Override
   public void performTick(World world)
@@ -451,6 +452,9 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         }
       }
     }
+
+    cloneToolsNetworkClient.getCurrentActionStatus();
+    cloneToolsNetworkClient.getCurrentUndoStatus();
 
     checkInvariants();
   }

@@ -26,7 +26,7 @@ public class PacketSenderServer implements PacketSender
     return true;
   }
 
-  private final int MAXIMUM_KB_PER_SECOND = 50;  // won't queue more than this many packets per second.  Later on, might implement better congestion control, but not yet
+  private final int MAXIMUM_KB_PER_SECOND = 50;  // won't queue more than this many kb of packets per second.  Later on, might implement better congestion control, but not yet
 
   @Override
   public boolean readyForAnotherPacket()

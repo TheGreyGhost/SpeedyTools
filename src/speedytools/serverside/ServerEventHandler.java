@@ -12,14 +12,14 @@ public class ServerEventHandler
   @ForgeSubscribe
   public void worldLoad(WorldEvent.Load event)
   {
-    assert (event.world instanceof WorldServer);
+    if (!(event.world instanceof WorldServer)) return;
     CloneToolServerActions.worldLoadEvent(event.world);
   }
 
   @ForgeSubscribe
   public void worldUnload(WorldEvent.Unload event)
   {
-    assert (event.world instanceof WorldServer);
+    if (!(event.world instanceof WorldServer)) return;
     CloneToolServerActions.worldUnloadEvent(event.world);
   }
 }

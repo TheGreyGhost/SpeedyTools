@@ -5,6 +5,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import speedytools.common.network.Packet250CloneToolUse;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.UsefulFunctions;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 
 import java.nio.file.Path;
@@ -48,10 +49,17 @@ public class CloneToolServerActions
    * @param flipped
    * @return true if the action has been successfully started
    */
+
+  public static final long ONE_SECOND_AS_NS = 1000 * 1000 * 1000;
+
   public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
   {
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
+    getTestDoSomethingStartTime = System.nanoTime();
+    testDoSomethingTime = getTestDoSomethingStartTime + 20 * ONE_SECOND_AS_NS;
+    testActionSequenceNumber = sequenceNumber;
+    testPlayer = player;
     return true;
   }
 
@@ -59,17 +67,61 @@ public class CloneToolServerActions
   {
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
-    System.out.println("Server: Tool Undo Current Action received: sequenceNumber " + actionSequenceNumber);
+    System.out.println("Server: Tool Undo Current Action received: action sequenceNumber " + actionSequenceNumber + ", undo seq number " + undoSequenceNumber);
+    getTestDoSomethingStartTime = System.nanoTime();
+
+    testDoSomethingTime = getTestDoSomethingStartTime + 3 * ONE_SECOND_AS_NS;
+    testUndoSequenceNumber = undoSequenceNumber;
+    testPlayer = player;
     return true;
   }
 
   public boolean performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
   {
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-    System.out.println("Server: Tool Undo Last Completed Action received ");
+    System.out.println("Server: Tool Undo Last Completed Action received, undo seq number " + undoSequenceNumber);
+    getTestDoSomethingStartTime = System.nanoTime();
+    testDoSomethingTime = getTestDoSomethingStartTime + 7 * ONE_SECOND_AS_NS;
+    testUndoSequenceNumber = undoSequenceNumber;
+    testPlayer = player;
     return true;
   }
 
+  public void tick() {
+
+    if (System.nanoTime() >= testDoSomethingTime) {
+      testDoSomethingTime = Long.MAX_VALUE;
+      if (testActionSequenceNumber >= 0) {
+        cloneToolsNetworkServer.actionCompleted(testPlayer, testActionSequenceNumber);
+        System.out.println("Server: actionCompleted # " + testActionSequenceNumber);
+        testActionSequenceNumber = -1;
+        cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+      }
+      if (testUndoSequenceNumber >= 0) {
+        cloneToolsNetworkServer.undoCompleted(testPlayer, testUndoSequenceNumber);
+        System.out.println("Server: undoCompleted # " + testUndoSequenceNumber);
+        testUndoSequenceNumber = -1;
+      }
+    }
+
+    double progress = (System.nanoTime() - getTestDoSomethingStartTime);
+    progress /= (testDoSomethingTime - getTestDoSomethingStartTime);
+    progress = UsefulFunctions.clipToRange(progress, 0.0, 100.0);
+    if (testActionSequenceNumber >= 0) {
+      cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, testPlayer, (byte)progress);
+    } else if (testUndoSequenceNumber >= 0) {
+      cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, testPlayer, (byte)progress);
+    } else {
+      cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    }
+
+  }
+
+  int testUndoSequenceNumber = -1;
+  int testActionSequenceNumber = -1;
+  long testDoSomethingTime = Long.MAX_VALUE;
+  long getTestDoSomethingStartTime = 0;
+  EntityPlayerMP testPlayer;
 
   /**
    * ensure that the save folder backups are initialised

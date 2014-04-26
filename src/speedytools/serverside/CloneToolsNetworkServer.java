@@ -1,5 +1,7 @@
 package speedytools.serverside;
 
+import cpw.mods.fml.common.IPlayerTracker;
+import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -7,8 +9,6 @@ import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.Packet250CloneToolAcknowledge.Acknowledgement;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
-
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +35,8 @@ public class CloneToolsNetworkServer
     packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID(), packetHandlerCloneToolUse);
     packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
     packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
+    playerTracker = this.new PlayerTracker();
+    GameRegistry.registerPlayerTracker(playerTracker);
   }
 
   public void addPlayer(EntityPlayerMP newPlayer)
@@ -176,6 +178,8 @@ public class CloneToolsNetworkServer
         cloneToolServerActions.prepareForToolAction(player);
         break;
       }
+
+      // check against previous actions before we implement this action
       case PERFORM_TOOL_ACTION: {
         int sequenceNumber = packet.getSequenceNumber();
         if (sequenceNumber == lastAcknowledgedAction.get(player)) {
@@ -295,6 +299,23 @@ public class CloneToolsNetworkServer
     }
   }
 
+  private class PlayerTracker implements IPlayerTracker
+  {
+    public void onPlayerLogin(EntityPlayer player)
+    {
+      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+      CloneToolsNetworkServer.this.addPlayer(entityPlayerMP);
+    }
+    public void onPlayerLogout(EntityPlayer player)
+    {
+      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+      CloneToolsNetworkServer.this.removePlayer(entityPlayerMP);
+    }
+    public void onPlayerChangedDimension(EntityPlayer player) {}
+    public void onPlayerRespawn(EntityPlayer player) {}
+  }
+
+  private PlayerTracker playerTracker;
 
   private Map<EntityPlayerMP, ClientStatus> playerStatuses;
   private Map<EntityPlayerMP, Integer> lastAcknowledgedAction;

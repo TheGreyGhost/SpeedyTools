@@ -1,5 +1,7 @@
 package speedytools.serverside;
 
+import net.minecraftforge.common.MinecraftForge;
+import speedytools.clientside.rendering.SoundsRegistry;
 import speedytools.common.network.PacketHandlerRegistry;
 
 /**

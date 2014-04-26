@@ -27,8 +27,7 @@ public class ActiveTool
    */
   public boolean setHeldItem(ItemStack heldItem)
   {
-    if (heldItem == null) return false;
-    SpeedyTool heldTool = toolTypeRegistry.get(heldItem.itemID);
+    SpeedyTool heldTool = (heldItem == null) ? null : toolTypeRegistry.get(heldItem.itemID);
     switchToTool(heldTool);
     return (heldTool != null);
   }
@@ -69,6 +68,18 @@ public class ActiveTool
     }
     return true;
   }
+
+  /**
+   * tick the active tool
+   * @param world
+   */
+  public void performTick(World world)
+  {
+    if (activeTool != null) {
+      activeTool.performTick(world);
+    }
+  }
+
 
   public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput)
   {

@@ -104,9 +104,10 @@ public class UserInput
     }
     this.leftButtonIsDown = newLeftButtonIsDown;
 
+//    System.out.println("UserInput:" + rightButtonLastChangeTimeNS + " : " + newRightButtonIsDown + " : " + this.rightButtonIsDown);
     if (rightButtonLastChangeTimeNS == 0) {
       rightButtonLastChangeTimeNS = timeStampNS;
-    } else if (newRightButtonIsDown && !this.rightButtonIsDown) {
+    } else if (newRightButtonIsDown != this.rightButtonIsDown) {
       inputEvents.add(new InputEvent(newRightButtonIsDown ? InputEventType.RIGHT_CLICK_DOWN : InputEventType.RIGHT_CLICK_UP,
                                      timeStampNS, controlKeyIsDown, 1, timeStampNS - rightButtonLastChangeTimeNS) );
       rightButtonLastChangeTimeNS = timeStampNS;

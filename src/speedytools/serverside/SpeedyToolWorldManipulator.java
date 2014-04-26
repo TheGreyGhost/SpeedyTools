@@ -1,5 +1,7 @@
 package speedytools.serverside;
 
+import cpw.mods.fml.common.IPlayerTracker;
+import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
@@ -10,6 +12,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.network.ClientStatus;
 import speedytools.common.network.Packet250SpeedyToolUse;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
@@ -30,6 +33,18 @@ public class SpeedyToolWorldManipulator
   {
     packetHandlerSpeedyToolUse = this.new PacketHandlerSpeedyToolUse();
     packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID(), packetHandlerSpeedyToolUse);
+    playerTracker = new PlayerTracker();
+    GameRegistry.registerPlayerTracker(playerTracker);
+  }
+
+  public void addPlayer(EntityPlayerMP newPlayer)
+  {
+    undoHistories.put(newPlayer, new UndoHistory());
+  }
+
+  public void removePlayer(EntityPlayerMP whichPlayer)
+  {
+    undoHistories.remove(whichPlayer);
   }
 
   /**
@@ -56,10 +71,6 @@ public class SpeedyToolWorldManipulator
         UndoEntry undoEntry = fillBlockSelection(entityPlayerMP, blockToPlace, blockSelection);
         if (undoEntry == null) return;
         UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
-        if (undoHistory == null) {
-          undoHistory = new UndoHistory();
-          undoHistories.put(entityPlayerMP.username, undoHistory);
-        }
         undoHistory.undoEntries.addLast(undoEntry);
         if (undoHistory.undoEntries.size() > MAXIMUM_UNDO_COUNT) {
           undoHistory.undoEntries.removeFirst();
@@ -71,23 +82,6 @@ public class SpeedyToolWorldManipulator
       }
 
     }
-  }
-
-  /**
-   * Should be called periodically (every few minutes?) to free up any undo data being stored for players who are no longer logged in to the server
-   * @param currentPlayers list of all players currently on the server
-   */
-  public void freeUnusedPlayerHistories(List<EntityPlayerMP> currentPlayers)
-  {
-      // copy the undo histories of all players in currentPlayers to a new map, then overwrite the old history with the new one.
-    Map<String, UndoHistory> newUndoHistory = new HashMap<String, UndoHistory>();
-
-    for (EntityPlayerMP entityPlayerMP : currentPlayers) {
-      if (undoHistories.containsKey(entityPlayerMP.username)) {
-        newUndoHistory.put(entityPlayerMP.username, undoHistories.get(entityPlayerMP.username));
-      }
-    }
-    undoHistories = newUndoHistory;
   }
 
   /**
@@ -197,6 +191,23 @@ public class SpeedyToolWorldManipulator
   }
 
   // the undo history for all players
-  protected Map<String, UndoHistory> undoHistories = new HashMap<String, UndoHistory>();
+  protected Map<EntityPlayerMP, UndoHistory> undoHistories = new HashMap<EntityPlayerMP, UndoHistory>();
+
+  PlayerTracker playerTracker;
+  private class PlayerTracker implements IPlayerTracker
+  {
+    public void onPlayerLogin(EntityPlayer player)
+    {
+      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+      SpeedyToolWorldManipulator.this.addPlayer(entityPlayerMP);
+    }
+    public void onPlayerLogout(EntityPlayer player)
+    {
+      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+      SpeedyToolWorldManipulator.this.removePlayer(entityPlayerMP);
+    }
+    public void onPlayerChangedDimension(EntityPlayer player) {}
+    public void onPlayerRespawn(EntityPlayer player) {}
+  }
 
 }

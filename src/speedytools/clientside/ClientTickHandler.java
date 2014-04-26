@@ -1,4 +1,4 @@
-package speedytools.clientside.userinput;
+package speedytools.clientside;
 
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.TickType;
@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
 import speedytools.clientside.ClientSide;
+import speedytools.clientside.userinput.SpeedyToolControls;
 
 import java.util.EnumSet;
 
@@ -43,6 +44,7 @@ public class ClientTickHandler implements ITickHandler {
 
   /**
    * process any user input
+   * tick any other objects which need it
    * @param type
    * @param tickData
    */
@@ -57,6 +59,9 @@ public class ClientTickHandler implements ITickHandler {
       ClientSide.userInput.updateButtonStates(SpeedyToolControls.attackButtonInterceptor.isKeyDown(), SpeedyToolControls.useItemButtonInterceptor.isKeyDown(), timeNow);
       inputUsed = ClientSide.activeTool.processUserInput(player, 1.0F, ClientSide.userInput);
     }
+
+    ClientSide.getCloneToolsNetworkClient().tick();
+    ClientSide.activeTool.performTick(player.getEntityWorld());
 
     /*
     ItemStack heldItem = player.getHeldItem();

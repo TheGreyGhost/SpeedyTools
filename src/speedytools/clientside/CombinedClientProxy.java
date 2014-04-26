@@ -5,7 +5,6 @@ import cpw.mods.fml.relauncher.Side;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.tools.*;
-import speedytools.clientside.userinput.ClientTickHandler;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
