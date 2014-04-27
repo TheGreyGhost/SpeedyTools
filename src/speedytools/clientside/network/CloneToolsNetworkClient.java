@@ -10,10 +10,9 @@ import speedytools.common.utilities.ErrorLog;
 /**
  * User: The Grey Ghost
  * Date: 8/03/14
- * Used to send commands to the server, received status updates from the server
+ * Used to send commands to the server, receive status updates from the server
  * When issued with a command, keeps trying to contact the server until it receives acknowledgement
  * Usage:
- * (1) connectedToServer when player joins
  * (2) changeClientStatus when the client is interested in whether the server is busy
  * (3) informSelectionMade
  *     performToolAction
@@ -22,7 +21,6 @@ import speedytools.common.utilities.ErrorLog;
  *     progress can be followed by calls to getCurrentActionStatus, getCurrentUndoStatus
  *     These will progress from WAITING to REJECTED, or to PROCESSING and then to COMPLETED
  * (4) The current busy status of the server can be read using getServerStatus and getPercentComplete
- * (5) disconnect when player leaves
  * NB tick() must be called at frequent intervals to check for timeouts - at least once per second
  */
 public class CloneToolsNetworkClient

@@ -73,6 +73,7 @@ public class CloneToolServerActions
     testDoSomethingTime = getTestDoSomethingStartTime + 3 * ONE_SECOND_AS_NS;
     testUndoSequenceNumber = undoSequenceNumber;
     testPlayer = player;
+    testActionSequenceNumber = -1;
     return true;
   }
 

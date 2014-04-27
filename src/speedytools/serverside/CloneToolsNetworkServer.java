@@ -15,7 +15,26 @@ import java.util.Map;
 /**
  * User: The Grey Ghost
  * Date: 8/03/14
+ * Used to receive commands from the client and send status messages back.  See networkprotocols.txt
+ * Usage:
+ * (1) addPlayer when player joins, removePlayer when player leaves
+ * (2) changeServerStatus to let all interested clients know what the server is doing (busy or not)
+ * (3) handlePacket should be called to process incoming packets from the client
+ * (4) in response to an incoming ToolAction, will call CloneToolServerActions.performToolAction.
+ *     performToolAction must:
+ *       a) return true/false depending on whether the action is accepted or not
+ *       b) update changeServerStatus
+ *       c) when the action is finished, call actionCompleted and update changeServerStatus
+ * (5) in response to an incoming Undo, will call CloneToolServerActions.performUndoOfLastAction (if the client is undoing
+ *        an action that has been completed and acknowledged), or .performUndoOfCurrentAction (if the client is undoing the
+ *          action currently being performed, i.e. hasn't received a completed acknowledgement yet)
+ *        The CloneToolServerActions must:
+ *       a) return true/false depending on whether the undo is accepted or not
+ *       b) update changeServerStatus
+ *       c) when the undo is finished, call undoCompleted.  actionCompleted should have been sent first.
+ * (6) tick() must be called at frequent intervals to check for timeouts - at least once per second
  */
+
 public class CloneToolsNetworkServer
 {
   public CloneToolsNetworkServer(PacketHandlerRegistry packetHandlerRegistry,  CloneToolServerActions i_cloneToolServerActions)
@@ -148,6 +167,7 @@ public class CloneToolsNetworkServer
       player.playerNetServerHandler.sendPacketToPlayer(packet250);
     }
 
+    // verify that our packets don't contradict anything we have sent earlier
     if (actionAcknowledgement != Acknowledgement.NOUPDATE) {
       assert (lastAcknowledgedAction.get(player) < actionSequenceNumber ||
               (lastAcknowledgedAction.get(player) == actionSequenceNumber
@@ -182,13 +202,13 @@ public class CloneToolsNetworkServer
       // check against previous actions before we implement this action
       case PERFORM_TOOL_ACTION: {
         int sequenceNumber = packet.getSequenceNumber();
-        if (sequenceNumber == lastAcknowledgedAction.get(player)) {
+        if (sequenceNumber == lastAcknowledgedAction.get(player)) {    // same as the action we've already acknowledged; send ack again
           Packet250CustomPayload packet250 = lastAcknowledgedActionPacket.get(player);
           if (packet250 != null) {
             player.playerNetServerHandler.sendPacketToPlayer(packet250);
           }
           break;
-        } else if (sequenceNumber < lastAcknowledgedAction.get(player)) {
+        } else if (sequenceNumber < lastAcknowledgedAction.get(player)) { // old packet, ignore
           break; // do nothing, just ignore it
         } else {
 //          boolean foundundo = false;
@@ -210,13 +230,13 @@ public class CloneToolsNetworkServer
       }
       case PERFORM_TOOL_UNDO: {
         int sequenceNumber = packet.getSequenceNumber();
-        if (sequenceNumber == lastAcknowledgedUndo.get(player)) {
+        if (sequenceNumber == lastAcknowledgedUndo.get(player)) {                         // if same as last undo sent, just resend again
           Packet250CustomPayload packet250 = lastAcknowledgedUndoPacket.get(player);
           if (packet250 != null) {
             player.playerNetServerHandler.sendPacketToPlayer(packet250);
           }
           break;
-        } else if (sequenceNumber < lastAcknowledgedUndo.get(player)) {
+        } else if (sequenceNumber < lastAcknowledgedUndo.get(player)) {     // old packet
           break; // do nothing, just ignore it
         } else {
           boolean success = false;
@@ -230,7 +250,7 @@ public class CloneToolsNetworkServer
             sendAcknowledgement(player, Acknowledgement.REJECTED, packet.getActionToBeUndoneSequenceNumber(),
                                         Acknowledgement.COMPLETED, packet.getSequenceNumber()                   );
             break;
-          } else if (packet.getActionToBeUndoneSequenceNumber() == lastAcknowledgedAction.get(player)) {
+          } else if (packet.getActionToBeUndoneSequenceNumber() == lastAcknowledgedAction.get(player)) {    // undo for a specific action we have acknowledged as starting
             success = cloneToolServerActions.performUndoOfCurrentAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
             sendAcknowledgement(player, Acknowledgement.NOUPDATE, 0, (success ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber);
           }
