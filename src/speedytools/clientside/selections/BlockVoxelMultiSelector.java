@@ -9,6 +9,8 @@ import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.utilities.Colour;
 
+import java.io.ByteArrayOutputStream;
+
 /**
  * User: The Grey Ghost
  * Date: 17/02/14
@@ -109,6 +111,15 @@ public class BlockVoxelMultiSelector
   public boolean isEmpty()
   {
     return empty;
+  }
+
+  /**
+   * write the current selection in serialised form to a ByteArray
+   * @return the byte array, or null for failure
+   */
+  public ByteArrayOutputStream writeToBytes()
+  {
+    return selection.writeToBytes();
   }
 
   private void initialiseVoxelRange()

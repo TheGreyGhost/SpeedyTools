@@ -1,7 +1,11 @@
 package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
+import speedytools.common.network.Packet250Types;
+import speedytools.common.network.multipart.MultipartPacket;
+import speedytools.common.utilities.ErrorLog;
 
+import java.io.*;
 import java.util.BitSet;
 
 /**
@@ -37,7 +41,7 @@ public class VoxelSelection
         || z < 0 || z >= zsize) {
       return;
     }
-   voxels.set(x + xsize *(y + ysize * z) );
+   voxels.set(x + xsize * (y + ysize * z));
   }
 
   /**
@@ -92,6 +96,61 @@ public class VoxelSelection
     } else {
       voxels.clear();
     }
+  }
+
+  /** serialise the VoxelSelection to a byte array
+   * @return the serialised VoxelSelection, or null for failure
+   */
+  public ByteArrayOutputStream writeToBytes()
+  {
+    ByteArrayOutputStream bos = null;
+    try {
+      bos = new ByteArrayOutputStream();
+      DataOutputStream outputStream = new DataOutputStream(bos);
+      outputStream.writeByte(xsize);
+      outputStream.writeInt(ysize);
+      outputStream.writeInt(zsize);
+
+      ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+      objectOutputStream.writeObject(voxels);
+      objectOutputStream.close();
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Exception while converting VoxelSelection toDataArray:" + ioe);
+      bos = null;
+    }
+    return bos;
+  }
+
+  /** fill this VoxelSelection using the serialised VoxelSelection byte array
+   * @param byteArrayInputStream the bytearray containing the serialised VoxelSelection
+   * @return true for success, false for failure (leaves selection untouched)
+   */
+  public boolean readFromBytes(ByteArrayInputStream byteArrayInputStream) {
+    try {
+      DataInputStream inputStream = new DataInputStream(byteArrayInputStream);
+
+      int newXsize = inputStream.readInt();
+      int newYsize = inputStream.readInt();
+      int newZsize = inputStream.readInt();
+      if (newXsize < 1 || newXsize > MAX_X_SIZE || newYsize < 1 || newYsize > MAX_Y_SIZE || newZsize < 1 || newZsize > MAX_Z_SIZE) {
+        return false;
+      }
+
+      ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+      Object newVoxels = objectInputStream.readObject();
+      if (! (newVoxels instanceof BitSet)) return false;
+      xsize = newXsize;
+      ysize = newYsize;
+      zsize = newZsize;
+      voxels = (BitSet)newVoxels;
+    } catch (ClassNotFoundException cnfe) {
+      ErrorLog.defaultLog().warning("Exception while VoxelSelection.readFromDataArray: " + cnfe);
+      return false;
+    } catch (IOException ioe) {
+      ErrorLog.defaultLog().warning("Exception while VoxelSelection.readFromDataArray: " + ioe);
+      return false;
+    }
+    return true;
   }
 
   private BitSet voxels;
