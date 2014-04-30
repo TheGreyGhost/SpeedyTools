@@ -4,6 +4,7 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import speedytools.clientside.ClientSide;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.rendering.*;
@@ -11,6 +12,9 @@ import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.ItemSpeedyCopy;
+import speedytools.common.network.PacketSender;
+import speedytools.common.network.ServerStatus;
+import speedytools.common.network.multipart.SelectionPacket;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -36,7 +40,7 @@ import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 public class SpeedyToolCopy extends SpeedyToolComplexBase
 {
   public SpeedyToolCopy(ItemSpeedyCopy i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
-                        CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary) {
+                        CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary, PacketSender packetSender) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);
     itemSpeedyCopy = i_parentItem;
     speedyToolBoundary = i_speedyToolBoundary;
@@ -44,6 +48,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
     solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
+    selectionPacketSender = new SelectionPacketSender(packetSender);
   }
 
   @Override
@@ -53,6 +58,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     rendererElements.add(new RendererSolidSelection(solidSelectionRendererUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
+    selectionPacketSender.reset();
     iAmActive = true;
     return true;
   }
@@ -72,6 +78,9 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING
         && cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.COMPLETED  ) {
       undoAction();
+    }
+    if (selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.SENDING) {
+      selectionPacketSender.abortSending();
     }
     if (this.iAmBusy()) return false;
 
@@ -224,6 +233,10 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
             && cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.COMPLETED) {
       return true;
     }
+    if (selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.SENDING) {
+      return true;
+    }
+
     return false;
   }
 
@@ -388,6 +401,13 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private void placeSelection()
   {
     checkInvariants();
+    if (selectionPacketSender.getCurrentPacketProgress() != SelectionPacketSender.PacketProgress.COMPLETED) {
+      return;
+    }
+    if (cloneToolsNetworkClient.getServerStatus() != ServerStatus.IDLE) {
+      return;
+    }
+
     boolean success = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
             selectionOrigin.posX, selectionOrigin.posY, selectionOrigin.posZ,
             (byte) 0, false); // todo: implement rotation and flipped
@@ -431,7 +451,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   /** called once per tick on the client side while the user is holding an ItemCloneTool
    * used to:
    * (1) background generation of a selection, if it has been initiated
-   * (2) acknowledge (get) the action and undo statuses
+   * (2) start transmission of the selection, if it has just been completed
+   * (3) acknowledge (get) the action and undo statuses
    */
   @Override
   public void performTick(World world)
@@ -439,11 +460,12 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     checkInvariants();
     final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
-      System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);                                     //todo: remove
+//      System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);
       actionPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
-      System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);                                           //todo: remove
+//      System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);
 
       if (actionPercentComplete < 0.0F) {
+        selectionPacketSender.reset();
         if (voxelSelectionManager.isEmpty()) {
           currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
         } else {
@@ -452,6 +474,17 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         }
       }
     }
+
+    if (currentToolSelectionState == ToolSelectionStates.NO_SELECTION) {
+      selectionPacketSender.reset();
+    }
+
+    // if the selection has been freshly generated, keep trying to transmit it until we successfullly start transmission
+    if (currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION
+        && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.IDLE) {
+      selectionPacketSender.startSendingSelection(voxelSelectionManager);
+    }
+    selectionPacketSender.tick();
 
     cloneToolsNetworkClient.getCurrentActionStatus();
     cloneToolsNetworkClient.getCurrentUndoStatus();
@@ -611,6 +644,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private boolean selectionMovedFastYet;
 
   private CloneToolsNetworkClient cloneToolsNetworkClient;
+  private SelectionPacketSender selectionPacketSender;
 
   private SpeedyToolBoundary speedyToolBoundary;   // used to retrieve the boundary field coordinates, if selected
 

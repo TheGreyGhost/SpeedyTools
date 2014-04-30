@@ -21,6 +21,7 @@ import java.io.*;
  * (1) createSenderPacket to create a SelectionPacket from the voxel selection
  * (2) Transmit the SelectionPacket as per MultipartPacket
  * On the server side (the receiver)
+ * (1) give SelectionPacketCreator to the MultipartPacket factory
  * (1) createReceiverPacket to create the packet from the incoming Packet250
  * (2) continue receiving the SelectionPacket as per MultipartPacket
  * (3) once complete, retrieveVoxelSelection to extract the VoxelSelection
@@ -81,7 +82,8 @@ public class SelectionPacket extends MultipartPacket
     super(i_channel, whichSideAmIOn, i_packet250CustomPayloadID, i_segmentSize);
   }
 
-  // derived classes should implement this interface so that other wishing to create a new MultipartPacket (in response to an incoming packet) can pass this object to the packet handler which will invoke it.
+  // derived classes should implement this interface so that callers wishing to create a new MultipartPacket (in response to an incoming packet)
+  //    can pass this object to the packet handler, which will invoke it to create the SelectionPacket
   public static class SelectionPacketCreator implements MultipartPacketCreator
   {
     public MultipartPacket createNewPacket(Packet250CustomPayload packet)
