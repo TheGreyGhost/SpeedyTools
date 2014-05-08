@@ -9,6 +9,13 @@ short right click = create selection; toggle "grab" selection
 during long hold, make the cursor indicator swell or change
 
 various cursor indicators:
+Selection generation in progress: spin clockwise, and rotating completion
+Charge up:
+  octagon spins out to moderate radius: clockwise or anticlockwise.  colour depends on tool
+  keeps spinning during progress; each sweep sweeps out more progress bar at the periphery
+  if release, spins in, if undo stops spinning and goes backwards
+  if fail - give error message
+  if server busy - glow less brightly?  slow?  ring goes to outside?  starts at inner, expands to outer
 
 charge up or place & undo - allow to cancel if release early
 grab
