@@ -2,11 +2,8 @@ package speedytools.clientside.rendering;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
-
-import java.util.Collection;
 
 /**
  * User: The Grey Ghost
@@ -34,10 +31,11 @@ public class RendererBoundaryField implements RendererElement
   /**
    * render the boundary field if there is one selected
    * @param player
+   * @param animationTickCount
    * @param partialTick
    */
   @Override
-  public void render(RenderPhase renderPhase, EntityPlayer player, float partialTick)
+  public void render(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
   {
     Vec3 playerPosition = player.getPosition(partialTick);
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, playerPosition);

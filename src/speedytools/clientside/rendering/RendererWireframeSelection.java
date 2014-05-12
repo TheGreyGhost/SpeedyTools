@@ -34,7 +34,7 @@ public class RendererWireframeSelection implements RendererElement
   }
 
   @Override
-  public void render(RenderPhase renderPhase, EntityPlayer player, float partialTick)
+  public void render(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
   {
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
     if (!shouldIRender) return;

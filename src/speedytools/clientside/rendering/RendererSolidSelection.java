@@ -1,8 +1,6 @@
 package speedytools.clientside.rendering;
 
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
@@ -33,10 +31,11 @@ public class RendererSolidSelection implements RendererElement
   /**
    * render the boundary field if there is one selected
    * @param player
+   * @param animationTickCount
    * @param partialTick
    */
   @Override
-  public void render(RenderPhase renderPhase, EntityPlayer player, float partialTick)
+  public void render(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
   {
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, player, partialTick);
     if (!shouldIRender) return;

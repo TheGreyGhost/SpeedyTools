@@ -8,11 +8,11 @@ import net.minecraft.entity.player.EntityPlayer;
  */
 public interface RendererElement
 {
-  public void render(RenderPhase renderPhase, EntityPlayer player, float partialTick);
+  public void render(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick);
   public boolean renderInThisPhase(RenderPhase renderPhase);
 
   public enum RenderPhase {
-    CROSSHAIR, WORLD,
+    CROSSHAIRS, WORLD,
   }
 
 }
