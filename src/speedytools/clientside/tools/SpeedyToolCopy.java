@@ -599,6 +599,33 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     }
   }
 
+  /**
+   * This class is used to provide information to the Boundary Field Renderer when it needs it:
+   * The Renderer calls refreshRenderInfo, which copies the relevant information from the tool.
+   */
+  public class CursorRenderInfoLink implements RenderCursorStatus.CursorRenderInfoUpdateLink
+  {
+    @Override
+    public boolean refreshRenderInfo(RenderCursorStatus.CursorRenderInfo infoToUpdate)
+    {
+      if (boundaryCorner1 == null && boundaryCorner2 == null) return false;
+      infoToUpdate.boundaryCursorSide = boundaryCursorSide;
+      infoToUpdate.boundaryGrabActivated = boundaryGrabActivated;
+      infoToUpdate.boundaryGrabSide = boundaryGrabSide;
+      infoToUpdate.boundaryFieldAABB = getGrabDraggedBoundaryField(playerPosition);
+      return true;
+    }
+    public boolean idle;                  // if true - the cursor is either idle or is returning to idle
+    public boolean isAnAction;            // true if the charging is for an action, false for an undo
+    public boolean fullyChargedAndReady;  // if true - fully charged and ready to act as soon as user releases
+    public float chargePercent;           // degree of charge up; 0.0 (min) - 100.0 (max)
+    public float readinessPercent;        // completion percentage if waiting for another task to complete on server; 0.0 (min) - 100.0 (max)
+    public CursorType cursorType;         // the cursor appearance
+    public enum CursorType {
+      COPY, MOVE, DELETE
+    }
+  }
+
   private ItemSpeedyCopy itemSpeedyCopy;
 
   private void checkInvariants()

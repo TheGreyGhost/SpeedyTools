@@ -10,6 +10,12 @@ import speedytools.common.utilities.Colour;
 
 /**
  * Created by TheGreyGhost on 9/05/14.
+ *  This class is used to render the cursor showing the "power up" status for cloning a selection
+ * Usage:
+ * (1) Call the constructor, providing a CursorRenderInfoUpdateLink:
+ *     This interface is used to fill the supplied CursorRenderInfo with the requested information for a render.
+ * (2) When ready to render, call .render.
+
  */
 public class RenderCursorStatus implements RendererElement
 {
@@ -128,8 +134,8 @@ public class RenderCursorStatus implements RendererElement
           starSize = (animationCounter - sizeOffsetTick) / SPIN_DOWN_DURATION_TICKS;
           starColourIntensity = RING_COLOUR_MIN_INTENSITY;
           ringColourIntensity = STAR_COLOUR_MIN_INTENSITY;
+          // uses the saved value of ringSize
           break;
-          // ringSize saved
         }
         default: assert false : "illegal animationState:" + animationState; return;
       }
