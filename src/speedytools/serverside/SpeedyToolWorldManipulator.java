@@ -39,7 +39,7 @@ public class SpeedyToolWorldManipulator
 
   public void addPlayer(EntityPlayerMP newPlayer)
   {
-    undoHistories.put(newPlayer, new UndoHistory());
+    undoHistories.put(newPlayer.username, new UndoHistory());
   }
 
   public void removePlayer(EntityPlayerMP whichPlayer)
@@ -58,7 +58,6 @@ public class SpeedyToolWorldManipulator
   public void performServerAction(EntityPlayerMP entityPlayerMP, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
 //    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
-
     switch (buttonClicked) {
       case 0: {
         UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
@@ -71,6 +70,8 @@ public class SpeedyToolWorldManipulator
         UndoEntry undoEntry = fillBlockSelection(entityPlayerMP, blockToPlace, blockSelection);
         if (undoEntry == null) return;
         UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
+        assert undoHistory != null;
+
         undoHistory.undoEntries.addLast(undoEntry);
         if (undoHistory.undoEntries.size() > MAXIMUM_UNDO_COUNT) {
           undoHistory.undoEntries.removeFirst();
@@ -191,7 +192,7 @@ public class SpeedyToolWorldManipulator
   }
 
   // the undo history for all players
-  protected Map<EntityPlayerMP, UndoHistory> undoHistories = new HashMap<EntityPlayerMP, UndoHistory>();
+  protected Map<String, UndoHistory> undoHistories = new HashMap<String, UndoHistory>();
 
   PlayerTracker playerTracker;
   private class PlayerTracker implements IPlayerTracker

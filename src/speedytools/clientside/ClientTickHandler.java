@@ -50,6 +50,7 @@ public class ClientTickHandler implements ITickHandler {
    */
   public void tickEnd(EnumSet<TickType> type, Object... tickData)
   {
+    ClientSide.tick();
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player == null) return;
 

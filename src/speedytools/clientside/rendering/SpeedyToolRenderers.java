@@ -1,6 +1,7 @@
 package speedytools.clientside.rendering;
 
 import net.minecraft.entity.player.EntityPlayer;
+import speedytools.clientside.ClientSide;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -45,10 +46,10 @@ public class SpeedyToolRenderers
    * @param player
    * @param partialTick
    */
-  public void render(RendererElement.RenderPhase renderPhase, EntityPlayer player, float partialTick)
+  public void render(RendererElement.RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
   {
     for (RendererElement rendererElement : rendererElements) {
-      rendererElement.render(renderPhase, player, , partialTick);
+      rendererElement.render(renderPhase, player, animationTickCount, partialTick);
     }
   }
 

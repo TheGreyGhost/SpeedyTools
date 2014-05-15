@@ -68,7 +68,7 @@ public class RenderEventHandlers
 
     EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
     ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
-    ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, partialTick);
+    ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
 
 
 /*

@@ -36,7 +36,7 @@ public class PacketSenderClient implements PacketSender
     if (lastTime != null) {
       assert now >= lastTime;
       float kilobytesElapsed = (now - lastTime) / NS_PER_S * MAXIMUM_KB_PER_SECOND;
-      bytesSentBacklog = (kilobytesElapsed < bytesSentBacklog) ? 0 : bytesSentBacklog - Math.round(kilobytesElapsed);
+      bytesSentBacklog = (Math.round(kilobytesElapsed) > bytesSentBacklog) ? 0 : (bytesSentBacklog - Math.round(kilobytesElapsed));
     }
     assert bytesSentBacklog >= 0;
     lastTime = now;

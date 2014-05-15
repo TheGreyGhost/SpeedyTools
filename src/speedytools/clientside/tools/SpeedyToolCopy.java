@@ -608,21 +608,20 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     @Override
     public boolean refreshRenderInfo(RenderCursorStatus.CursorRenderInfo infoToUpdate)
     {
-      if (boundaryCorner1 == null && boundaryCorner2 == null) return false;
-      infoToUpdate.boundaryCursorSide = boundaryCursorSide;
-      infoToUpdate.boundaryGrabActivated = boundaryGrabActivated;
-      infoToUpdate.boundaryGrabSide = boundaryGrabSide;
-      infoToUpdate.boundaryFieldAABB = getGrabDraggedBoundaryField(playerPosition);
+      PowerUpEffect activePowerUp;
+      if (!leftClickPowerup.isIdle()) {
+        activePowerUp = leftClickPowerup;
+        infoToUpdate.isAnAction = false;
+      } else {
+        activePowerUp = rightClickPowerup;
+        infoToUpdate.isAnAction = true;
+      }
+      infoToUpdate.idle = activePowerUp.isIdle();
+      infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999 && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE);
+      infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
+      infoToUpdate.readinessPercent = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
+      infoToUpdate.cursorType = RenderCursorStatus.CursorRenderInfo.CursorType.COPY;
       return true;
-    }
-    public boolean idle;                  // if true - the cursor is either idle or is returning to idle
-    public boolean isAnAction;            // true if the charging is for an action, false for an undo
-    public boolean fullyChargedAndReady;  // if true - fully charged and ready to act as soon as user releases
-    public float chargePercent;           // degree of charge up; 0.0 (min) - 100.0 (max)
-    public float readinessPercent;        // completion percentage if waiting for another task to complete on server; 0.0 (min) - 100.0 (max)
-    public CursorType cursorType;         // the cursor appearance
-    public enum CursorType {
-      COPY, MOVE, DELETE
     }
   }
 

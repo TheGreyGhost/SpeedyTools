@@ -28,7 +28,7 @@ import java.io.*;
  */
 public class SelectionPacket extends MultipartPacket
 {
-  public static final int SEGMENT_SIZE = 32000;
+  public static final int SEGMENT_SIZE = 30000;
 
   /**
    * Creates a new SelectionPacket for the supplied selection

@@ -50,4 +50,12 @@ public class ClientSide
   public static PacketSenderClient packetSenderClient;
   public static PacketHandlerRegistry packetHandlerRegistry;
 
+  public static int getGlobalTickCount() {
+    return globalTickCount;
+  }
+
+  public static void tick() { ++globalTickCount;}
+
+  private static int globalTickCount = 0;
+
 }
