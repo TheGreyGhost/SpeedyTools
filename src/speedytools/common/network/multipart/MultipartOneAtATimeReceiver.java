@@ -113,7 +113,11 @@ public class MultipartOneAtATimeReceiver
     }
 
     MultipartPacket newPacket = packetCreatorRegistry.createNewPacket(packet);
-    if (newPacket == null) return false;
+    if (newPacket == null) { // something wrong! send abort packet back
+      Packet250CustomPayload abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, true);
+      packetSender.sendPacket(abortPacket);
+      return false;
+    }
     PacketLinkage newLinkage = packetLinkageFactory.createNewLinkage(newPacket);
     if (newLinkage == null) return false;
 

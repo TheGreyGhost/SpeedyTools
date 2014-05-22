@@ -88,6 +88,7 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerComplex,
                     ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
+                    ClientSide.packetHandlerRegistry,
                     ClientSide.packetSenderClient
             )
             );

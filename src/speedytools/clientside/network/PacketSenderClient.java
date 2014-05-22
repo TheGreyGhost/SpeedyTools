@@ -20,6 +20,7 @@ public class PacketSenderClient implements PacketSender
   @Override
   public boolean sendPacket(Packet250CustomPayload packet)
   {
+    System.out.println("PacketSenderClient sendPacket");      //todo remove
     PacketDispatcher.sendPacketToServer(packet);
     bytesSentBacklog += packet.length;
     return true;
@@ -35,8 +36,8 @@ public class PacketSenderClient implements PacketSender
     long now = System.nanoTime();
     if (lastTime != null) {
       assert now >= lastTime;
-      float kilobytesElapsed = (now - lastTime) / NS_PER_S * MAXIMUM_KB_PER_SECOND;
-      bytesSentBacklog = (Math.round(kilobytesElapsed) > bytesSentBacklog) ? 0 : (bytesSentBacklog - Math.round(kilobytesElapsed));
+      float bytesElapsed = (now - lastTime) / NS_PER_S * MAXIMUM_KB_PER_SECOND * 1000;
+      bytesSentBacklog = (Math.round(bytesElapsed) > bytesSentBacklog) ? 0 : (bytesSentBacklog - Math.round(bytesElapsed));
     }
     assert bytesSentBacklog >= 0;
     lastTime = now;

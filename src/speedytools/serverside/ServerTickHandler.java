@@ -36,6 +36,7 @@ public class ServerTickHandler implements ITickHandler {
   {
     ServerSide.getCloneToolsNetworkServer().tick();
     ServerSide.getCloneToolServerActions().tick();
+    ServerSide.getServerVoxelSelections().tick();
   }
 
 

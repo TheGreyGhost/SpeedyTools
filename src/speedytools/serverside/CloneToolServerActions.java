@@ -3,8 +3,10 @@ package speedytools.serverside;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
+import speedytools.clientside.selections.VoxelSelection;
 import speedytools.common.network.Packet250CloneToolUse;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.network.multipart.SelectionPacket;
 import speedytools.common.utilities.UsefulFunctions;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 
@@ -62,6 +64,17 @@ public class CloneToolServerActions
     testPlayer = player;
     return true;
   }
+
+//  /**
+//   * sets the current selection for the given player
+//   * @param player
+//   * @return true if accepted
+//   */
+//
+//  public boolean setCurrentSelection(EntityPlayerMP player, VoxelSelection newSelection)
+//  {
+//    return true;
+//  }
 
   public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {

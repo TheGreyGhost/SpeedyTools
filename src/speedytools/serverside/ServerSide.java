@@ -17,12 +17,16 @@ public class ServerSide
     cloneToolServerActions = new CloneToolServerActions();
     cloneToolsNetworkServer = new CloneToolsNetworkServer(packetHandlerRegistry, cloneToolServerActions);
     speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry);
+    serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistry);
   }
 
   public static void shutdown()
   {
+    packetHandlerRegistry = null;
     cloneToolServerActions = null;
     cloneToolsNetworkServer = null;
+    speedyToolWorldManipulator = null;
+    serverVoxelSelections = null;
   }
 
   public static CloneToolsNetworkServer getCloneToolsNetworkServer() {
@@ -37,6 +41,12 @@ public class ServerSide
 
 
   private static CloneToolsNetworkServer cloneToolsNetworkServer;
+
+  public static ServerVoxelSelections getServerVoxelSelections() {
+    return serverVoxelSelections;
+  }
+
+  private static ServerVoxelSelections serverVoxelSelections;
   private static CloneToolServerActions cloneToolServerActions;
   private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
   private static PacketHandlerRegistry packetHandlerRegistry;

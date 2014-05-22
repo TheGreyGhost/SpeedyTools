@@ -1,12 +1,17 @@
 package speedytools.clientside.tools;
 
 import cpw.mods.fml.relauncher.Side;
+import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.multipart.MultipartOneAtATimeSender;
 import speedytools.common.network.multipart.SelectionPacket;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,12 +34,13 @@ import java.io.IOException;
  */
 public class SelectionPacketSender
 {
-  public SelectionPacketSender(PacketSender packetSender)
+  public SelectionPacketSender(PacketHandlerRegistry packetHandlerRegistry, PacketSender packetSender)
   {
     multipartOneAtATimeSender = new MultipartOneAtATimeSender();
     multipartOneAtATimeSender.setPacketSender(packetSender);
     currentPacketProgress = PacketProgress.IDLE;
     packetLinkage = null;
+    packetHandlerRegistry.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_SELECTION_PACKET.getPacketTypeID(), packetHandlerVoxel);
   }
 
   public void reset()
@@ -102,6 +108,15 @@ public class SelectionPacketSender
   public PacketProgress getCurrentPacketProgress() {
     return currentPacketProgress;
   }
+
+  public class PacketHandlerVoxel implements PacketHandlerRegistry.PacketHandlerMethod {
+    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
+    {
+      System.out.println("SelectionPacketSender packet received");      //todo remove
+      return multipartOneAtATimeSender.processIncomingPacket(packet);
+    }
+  }
+  private PacketHandlerVoxel packetHandlerVoxel = new PacketHandlerVoxel();
 
   private int currentPacketPercentComplete;
   public enum PacketProgress {IDLE, SENDING, COMPLETED, ABORTED};

@@ -12,6 +12,7 @@ import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.ItemSpeedyCopy;
+import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.network.multipart.SelectionPacket;
@@ -40,7 +41,9 @@ import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 public class SpeedyToolCopy extends SpeedyToolComplexBase
 {
   public SpeedyToolCopy(ItemSpeedyCopy i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
-                        CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary, PacketSender packetSender) {
+                        CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary,
+                        PacketHandlerRegistry packetHandlerRegistry,
+                        PacketSender packetSender) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);
     itemSpeedyCopy = i_parentItem;
     speedyToolBoundary = i_speedyToolBoundary;
@@ -48,7 +51,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
     solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
-    selectionPacketSender = new SelectionPacketSender(packetSender);
+    selectionPacketSender = new SelectionPacketSender(packetHandlerRegistry, packetSender);
   }
 
   @Override

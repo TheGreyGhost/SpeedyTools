@@ -2,6 +2,7 @@ package speedytools.serverside;
 
 import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.common.network.Player;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.PacketSender;
 
@@ -11,9 +12,9 @@ import speedytools.common.network.PacketSender;
  */
 public class PacketSenderServer implements PacketSender
 {
-  public PacketSenderServer(Player player)
+  public PacketSenderServer(EntityPlayerMP player)
   {
-    thePlayer = player;
+    thePlayer = (Player)player;
     bytesSentBacklog = 0;
     lastTime = null;
   }
@@ -21,6 +22,7 @@ public class PacketSenderServer implements PacketSender
   @Override
   public boolean sendPacket(Packet250CustomPayload packet)
   {
+    System.out.println("PacketSenderServer sendPacket");      //todo remove
     PacketDispatcher.sendPacketToPlayer(packet, thePlayer);
     bytesSentBacklog += packet.length;
     return true;
