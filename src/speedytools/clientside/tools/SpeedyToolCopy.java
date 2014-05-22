@@ -50,6 +50,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
     solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
+    cursorRenderInfoUpdateLink = this.new CursorRenderInfoLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
     selectionPacketSender = new SelectionPacketSender(packetHandlerRegistry, packetSender);
   }
@@ -60,6 +61,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     rendererElements.add(new RendererSolidSelection(solidSelectionRendererUpdateLink));
+    rendererElements.add(new RenderCursorStatus(cursorRenderInfoUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
     selectionPacketSender.reset();
     iAmActive = true;
@@ -603,7 +605,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   }
 
   /**
-   * This class is used to provide information to the Boundary Field Renderer when it needs it:
+   * This class is used to provide information to the Cursor Status indicator when it needs it:
    * The Renderer calls refreshRenderInfo, which copies the relevant information from the tool.
    */
   public class CursorRenderInfoLink implements RenderCursorStatus.CursorRenderInfoUpdateLink
@@ -702,6 +704,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   }
 
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
+  private RenderCursorStatus.CursorRenderInfoUpdateLink cursorRenderInfoUpdateLink;
 
   private PowerUpEffect leftClickPowerup = new PowerUpEffect();
   private PowerUpEffect rightClickPowerup = new PowerUpEffect();
