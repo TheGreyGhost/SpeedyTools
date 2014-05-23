@@ -90,7 +90,7 @@ public class ServerVoxelSelections
         ErrorLog.defaultLog().warning("ServerVoxelSelections:: Packet received from player not in playerMOATreceivers");
         return false;
       }
-      System.out.println("ServerVoxelSelections packet received");  //todo remove
+//      System.out.println("ServerVoxelSelections packet received");
       return playerMOATreceivers.get(player).processIncomingPacket(packet);
     }
   }
@@ -121,6 +121,7 @@ public class ServerVoxelSelections
   public class VoxelPacketLinkage implements MultipartOneAtATimeReceiver.PacketLinkage
   {
     public VoxelPacketLinkage(EntityPlayerMP player, SelectionPacket linkedPacket) {
+//      System.out.println("VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID());
       myLinkedPacket = linkedPacket;
       myPlayer = player;
     }
@@ -128,6 +129,7 @@ public class ServerVoxelSelections
     public void progressUpdate(int percentComplete) {}
     @Override
     public void packetCompleted() {
+//      System.out.println("VoxelPacketLinkage - completed packet ID " + myLinkedPacket.getUniqueID());
       if (myPlayer == null || myLinkedPacket == null) return;
       playerSelections.put(myPlayer, myLinkedPacket.retrieveVoxelSelection());
     }

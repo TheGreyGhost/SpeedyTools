@@ -1,5 +1,6 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
@@ -22,10 +23,16 @@ public class RendererSolidSelection implements RendererElement
     infoProvider = i_infoProvider;
     renderInfo = new SolidSelectionRenderInfo();
   }
-
+  @Override
   public boolean renderInThisPhase(RenderPhase renderPhase)
   {
     return (renderPhase == RenderPhase.WORLD);
+  }
+
+  @Override
+  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
+  {
+    assert false : "invalid render phase: " + renderPhase;
   }
 
   /**
@@ -35,7 +42,7 @@ public class RendererSolidSelection implements RendererElement
    * @param partialTick
    */
   @Override
-  public void render(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
   {
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, player, partialTick);
     if (!shouldIRender) return;

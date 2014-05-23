@@ -113,7 +113,7 @@ public class MultipartOneAtATimeSender
     // see multipartprotocols.txt for more information on the transmission behaviour
     assert !packetTransmissionInfo.packet.hasBeenAborted();   // packet should have been removed from transmission list
 
-    System.out.println("MultipartOneAtATimeSender doTransmission");      //todo remove
+//    System.out.println("MultipartOneAtATimeSender doTransmission");
 
     if (!packetSender.readyForAnotherPacket()) return false;
 

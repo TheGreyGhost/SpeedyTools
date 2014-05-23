@@ -1,5 +1,6 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
@@ -23,9 +24,16 @@ public class RendererBoundaryField implements RendererElement
     renderInfo = new BoundaryFieldRenderInfo();
   }
 
+  @Override
   public boolean renderInThisPhase(RenderPhase renderPhase)
   {
     return (renderPhase == RenderPhase.WORLD);
+  }
+
+  @Override
+  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
+  {
+    assert false : "invalid render phase: " + renderPhase;
   }
 
   /**
@@ -35,7 +43,7 @@ public class RendererBoundaryField implements RendererElement
    * @param partialTick
    */
   @Override
-  public void render(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
   {
     Vec3 playerPosition = player.getPosition(partialTick);
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, playerPosition);

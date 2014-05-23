@@ -7,6 +7,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.UsefulFunctions;
 
 /**
  * Created by TheGreyGhost on 9/05/14.
@@ -26,20 +27,28 @@ public class RenderCursorStatus implements RendererElement
     renderInfo = new CursorRenderInfo();
   }
 
+  @Override
   public boolean renderInThisPhase(RenderPhase renderPhase)
   {
     return (renderPhase == RenderPhase.CROSSHAIRS);
   }
 
+  @Override
+  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+  {
+    assert false : "invalid render phase: " + renderPhase;
+  }
+
   /**
    * renders the 'power up' cursor.  See CursorRenderInfo for the various controls
-   * @param player
+   * @param scaledResolution
    * @param animationTickCount
    * @param partialTick
    */
   @Override
-  public void render(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
   {
+    if (renderPhase != RenderPhase.CROSSHAIRS) return;
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
     if (!shouldIRender) return;
 
@@ -57,26 +66,26 @@ public class RenderCursorStatus implements RendererElement
       case IDLE: {
         if (renderInfo.idle) return;
         animationState = AnimationState.SPIN_UP;
-        spinOffsetTick = animationCounter;
+        spinStartTick = animationCounter;
         break;
       }
       case SPIN_UP: {
         if (renderInfo.idle) {
           animationState = AnimationState.SPIN_DOWN;
-          sizeOffsetTick = animationCounter - SPIN_DOWN_DURATION_TICKS * (1 - starSize);
+          spindownCompletionTickCount = animationCounter + SPIN_DOWN_DURATION_TICKS * starSize;
         }
         break;
       }
       case SPINNING: {
         if (renderInfo.idle) {
           animationState = AnimationState.SPIN_DOWN;
-          sizeOffsetTick = animationCounter;
+          spindownCompletionTickCount = animationCounter + SPIN_DOWN_DURATION_TICKS;
         }
         break;
       }
       case SPIN_DOWN: {
         if (renderInfo.idle) {
-          if (animationCounter - sizeOffsetTick >= SPIN_DOWN_DURATION_TICKS) {
+          if (animationCounter >= spindownCompletionTickCount) {
             animationState = AnimationState.IDLE;
           }
         } else {
@@ -93,8 +102,6 @@ public class RenderCursorStatus implements RendererElement
     final double CROSSHAIR_X_OFFSET = -CROSSHAIR_ICON_WIDTH / 2.0;
     final double CROSSHAIR_Y_OFFSET = -CROSSHAIR_ICON_HEIGHT / 2.0;
 
-    Minecraft mc = Minecraft.getMinecraft();
-    ScaledResolution scaledResolution = new ScaledResolution(mc.gameSettings, mc.displayWidth, mc.displayHeight);
     int width = scaledResolution.getScaledWidth();
     int height = scaledResolution.getScaledHeight();
 
@@ -121,6 +128,7 @@ public class RenderCursorStatus implements RendererElement
           ringSize = MIN_RING_SIZE + (MAX_RING_SIZE - MIN_RING_SIZE) * renderInfo.readinessPercent / 100.0;
           starColourIntensity = STAR_COLOUR_MIN_INTENSITY;
           ringColourIntensity = RING_COLOUR_MAX_INTENSITY;
+          clockwiseRotation = renderInfo.isAnAction;
           break;
         }
         case SPINNING: {
@@ -128,20 +136,22 @@ public class RenderCursorStatus implements RendererElement
           ringSize = MIN_RING_SIZE + (MAX_RING_SIZE - MIN_RING_SIZE) * renderInfo.readinessPercent / 100.0;
           starColourIntensity = renderInfo.fullyChargedAndReady ? STAR_COLOUR_MAX_INTENSITY : STAR_COLOUR_MIN_INTENSITY;
           ringColourIntensity = RING_COLOUR_MAX_INTENSITY;
+          clockwiseRotation = renderInfo.isAnAction;
           break;
         }
         case SPIN_DOWN: {
-          starSize = (animationCounter - sizeOffsetTick) / SPIN_DOWN_DURATION_TICKS;
+          starSize = (spindownCompletionTickCount - animationCounter) / SPIN_DOWN_DURATION_TICKS;
+          starSize = UsefulFunctions.clipToRange(starSize, 0.0, 1.0);
           starColourIntensity = RING_COLOUR_MIN_INTENSITY;
           ringColourIntensity = STAR_COLOUR_MIN_INTENSITY;
-          // uses the saved value of ringSize
+          // uses the saved value of ringSize and of clockwiseRotation
           break;
         }
         default: assert false : "illegal animationState:" + animationState; return;
       }
 
-      double degreesOfRotation = (animationCounter - spinOffsetTick) * SPIN_DEGREES_PER_TICK;
-      if (!renderInfo.isAnAction) degreesOfRotation = - degreesOfRotation;
+      double degreesOfRotation = (animationCounter - spinStartTick) * SPIN_DEGREES_PER_TICK;
+      if (!clockwiseRotation) degreesOfRotation = - degreesOfRotation;
 
       Colour lineColour = Colour.BLACK_40;
       switch (renderInfo.cursorType) {
@@ -152,15 +162,17 @@ public class RenderCursorStatus implements RendererElement
       }
 
       GL11.glColor3d(lineColour.R * ringColourIntensity, lineColour.G * ringColourIntensity, lineColour.B * ringColourIntensity);
-      mc.renderEngine.bindTexture(ringTexture);
+
+      Minecraft.getMinecraft().renderEngine.bindTexture(ringTexture);
       GL11.glPushMatrix();
       GL11.glTranslatef(width / 2, height / 2, Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
       drawTexturedRectangle(CROSSHAIR_X_OFFSET * starSize * ringSize, CROSSHAIR_Y_OFFSET * starSize * ringSize, Z_LEVEL_FROM_GUI_IN_GAME_FORGE,
                             CROSSHAIR_ICON_WIDTH * starSize * ringSize, CROSSHAIR_ICON_HEIGHT * starSize * ringSize);
       GL11.glPopMatrix();
 
+      System.out.println("starColourIntensity:" + starColourIntensity);      //todo remove
       GL11.glColor3d(lineColour.R * starColourIntensity, lineColour.G * starColourIntensity, lineColour.B * starColourIntensity);
-      mc.renderEngine.bindTexture(octoStarTexture);
+      Minecraft.getMinecraft().renderEngine.bindTexture(octoStarTexture);
       GL11.glPushMatrix();
       GL11.glTranslatef(width / 2, height / 2, Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
       GL11.glRotated(degreesOfRotation, 0, 0, 1.0F);
@@ -195,11 +207,12 @@ public class RenderCursorStatus implements RendererElement
 
   private CursorRenderInfoUpdateLink infoProvider;
   private CursorRenderInfo renderInfo = new CursorRenderInfo();
-  private AnimationState animationState;
-  private double spinOffsetTick;
-  private double sizeOffsetTick;
+  private AnimationState animationState = AnimationState.IDLE;
+  private double spinStartTick;
+  private double spindownCompletionTickCount;
   private double starSize;
   private double ringSize;
+  private boolean clockwiseRotation;
 
   private enum AnimationState {
     IDLE, SPIN_UP, SPINNING, SPIN_DOWN
@@ -274,8 +287,6 @@ public class RenderCursorStatus implements RendererElement
   }
 
 
-  private final ResourceLocation octoStarTexture = new ResourceLocation("testitemrendering", "textures/other/octostar.png");
-  private final ResourceLocation ringTexture = new ResourceLocation("testitemrendering", "textures/other/octoring.png");
-
-
+  private final ResourceLocation octoStarTexture = new ResourceLocation("speedytools", "textures/other/octostar.png");
+  private final ResourceLocation ringTexture = new ResourceLocation("speedytools", "textures/other/octoring.png");
 }

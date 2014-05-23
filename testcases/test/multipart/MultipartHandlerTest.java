@@ -1,7 +1,7 @@
 package test.multipart;
 
 import cpw.mods.fml.relauncher.Side;
-import junit.framework.Assert;
+import org.junit.Assert;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +31,7 @@ import java.util.Queue;
  *     a) sender and receiver both get packetAborted calls
  *  4) Verify that packet transmission stops when sender isn't ready
  *     - abort packets are transmitted even when sender isn't ready
+ *     - verify that receiver correctly responds to an abort packet even if it hasn't received any segments for it yet
  *  5) Start transmission, drop one of the packets, verify that ticking completes it
  *  6) Start transmission, abort the receiver but drop the abort packet, verify that ticking resolves the problem
  *  7) Start transmission, abort the server but drop the abort packet, verify that ticking resolves the problem
@@ -186,15 +187,15 @@ public class MultipartHandlerTest
     final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
 
     senderLinkage = new SenderLinkage(sender);
+    senderSender.ready = false;
     mpSender.sendMultipartPacket(senderLinkage, sender);
 
-    senderSender.ready = false;
     for (int i = 0; i < 100; ++i) {
       mpSender.onTick();
       while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
       while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
       Assert.assertTrue(senderLinkage.completedCount == 0);
-      Assert.assertTrue(receiverLinkage.completedCount == 0);
+      Assert.assertTrue(receiverLinkage == null || receiverLinkage.completedCount == 0);
     }
     mpSender.abortPacket(senderLinkage);
     for (int i = 0; i < 100; ++i) {
@@ -202,11 +203,11 @@ public class MultipartHandlerTest
       while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
       while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
       Assert.assertTrue(senderLinkage.completedCount == 0);
-      Assert.assertTrue(receiverLinkage.completedCount == 0);
+      Assert.assertTrue(receiverLinkage == null || receiverLinkage.completedCount == 0);
     }
 
     Assert.assertTrue(senderLinkage.abortedCount == 1);
-    Assert.assertTrue(receiverLinkage.abortedCount == 1);
+    Assert.assertTrue(receiverLinkage == null || receiverLinkage.abortedCount == 1);
   }
 
   @Test

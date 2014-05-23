@@ -3,6 +3,7 @@ package speedytools.clientside.network;
 import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.common.network.Player;
 import net.minecraft.network.packet.Packet250CustomPayload;
+import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketSender;
 
 /**
@@ -20,7 +21,12 @@ public class PacketSenderClient implements PacketSender
   @Override
   public boolean sendPacket(Packet250CustomPayload packet)
   {
-    System.out.println("PacketSenderClient sendPacket");      //todo remove
+//    System.out.print("PacketSenderClient sendPacket [" + packet.data[0] + "]");
+//    if (packet.data[0] == Packet250Types.PACKET250_SELECTION_PACKET.getPacketTypeID()) {
+//      System.out.println(" cmd:" + packet.data[5]);
+//    } else {
+//      System.out.println();
+//    }
     PacketDispatcher.sendPacketToServer(packet);
     bytesSentBacklog += packet.length;
     return true;

@@ -37,6 +37,14 @@ public class PacketHandlerRegistry implements IPacketHandler
 
   @Override
   public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity) {
+
+//    System.out.print("PacketHandlerRegistry.onPacketData " + ((playerEntity instanceof EntityPlayerMP) ? "Server " : "Client ") + "[" + packet.data[0] + "]");
+//    if (packet.data[0] == Packet250Types.PACKET250_SELECTION_PACKET.packetTypeID) {
+//      System.out.println(" cmd:" + packet.data[5]);
+//    } else {
+//      System.out.println();
+//    }
+
     if (packet.channel.equals(CHANNEL_NAME)) {
       Side side = (playerEntity instanceof EntityPlayerMP) ? Side.SERVER : Side.CLIENT;
       byte packetID = packet.data[0];
@@ -50,7 +58,7 @@ public class PacketHandlerRegistry implements IPacketHandler
         boolean packetValid;
         packetValid = handlerMethod.handlePacket((EntityPlayer) playerEntity, packet);
         if (!packetValid) {
-          malformedPacketError(side, playerEntity, "Invalid packet received (ID == " + packetID + ")");
+          malformedPacketError(side, playerEntity, "Packet received but was redundant or invalid (ID == " + packetID + ")");
         }
       } else {
         malformedPacketError(side, playerEntity, "Malformed Packet250SpeedyTools:Invalid packet type ID " + packetID + " on side " + side);

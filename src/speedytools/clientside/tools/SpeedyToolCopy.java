@@ -152,7 +152,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       } else {
         switch (currentToolSelectionState) {
           case NO_SELECTION: {
-            System.out.println("TEST:" + nextEvent.eventType + " : " + nextEvent.eventDuration);
+//            System.out.println("TEST:" + nextEvent.eventType + " : " + nextEvent.eventDuration);
             if (nextEvent.eventType == UserInput.InputEventType.RIGHT_CLICK_UP &&
                     nextEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
               initiateSelectionCreation(player);
@@ -175,16 +175,16 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       }
     }
 
-    // If we are in a receptive state for powerup, check if it should be started or status updated.  Otherwise stop it.
+    // update the powerup for action or undo action
     // used for rendering display only; CLICK_UP is used for reacting to the event
 
     // undo action check
     long timeNow = System.nanoTime();
-    if (this.iAmBusy()) {
-      if (!leftClickPowerup.isIdle()) {
-        leftClickPowerup.abort();
-      }
-    } else {
+//    if (this.iAmBusy()) {
+//      if (!leftClickPowerup.isIdle()) {
+//        leftClickPowerup.abort();
+//      }
+//    } else {
       long leftButtonHoldTime = userInput.leftButtonHoldTimeNS(timeNow);
 
       if (leftButtonHoldTime >= MAX_SHORT_CLICK_DURATION_NS) {
@@ -198,25 +198,32 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           leftClickPowerup.release(releaseTime);
         }
       }
-    }
+//    }
 
-    if (this.iAmBusy() || currentToolSelectionState != ToolSelectionStates.DISPLAYING_SELECTION) {
+    if (currentToolSelectionState != ToolSelectionStates.DISPLAYING_SELECTION) {
       if (!rightClickPowerup.isIdle()) {
         rightClickPowerup.abort();
       }
     } else {
       long rightButtonHoldTime = userInput.rightButtonHoldTimeNS(timeNow);
+//      System.out.print("SpeedyToolCopy rightButtonHoldTime= " + rightButtonHoldTime);
+
       if (rightButtonHoldTime >= MAX_SHORT_CLICK_DURATION_NS) {
+//        System.out.print("hold time greater than MAX_SHORT_CLICK_DURATION_NS");
         if (rightClickPowerup.isIdle()) {
           rightClickPowerup.initiate(timeNow, timeNow + MIN_PLACE_HOLD_DURATION_NS, rightButtonHoldTime);
+//          System.out.print("initiate rightClickPowerUp");
         }
         rightClickPowerup.updateHolddownTime(rightButtonHoldTime);
       } else if (rightButtonHoldTime < 0) { // released button
+//        System.out.print("released ");
         if (!rightClickPowerup.isIdle()) {
           long releaseTime = timeNow + rightButtonHoldTime;
           rightClickPowerup.release(releaseTime);
+//          System.out.print("Powerup release");
         }
       }
+//      System.out.println();
     }
 
     return true;
@@ -626,6 +633,12 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
       infoToUpdate.readinessPercent = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
       infoToUpdate.cursorType = RenderCursorStatus.CursorRenderInfo.CursorType.COPY;
+//      System.out.println("CurserRenderInfoLink - refresh.  Idle=" + infoToUpdate.idle +
+//                         "; isAnAction=" + infoToUpdate.isAnAction +
+//                         "; chargePercent= " + infoToUpdate.chargePercent +
+//                         "; chargedAndReady=" + infoToUpdate.fullyChargedAndReady
+//                        );
+
       return true;
     }
   }
@@ -716,8 +729,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
    * (1) initiate() to begin the powerup; supply the current time and the duration of the powerup
    *     The first call to pollState() will return INITIATING, subsequent calls return POWERINGUP
    * (2) updateHolddownTime periodically, to inform as the charge builds up
-   *     The first call to pollState() will return RELEASING, subsequent calls return IDLE
    * (3) release() to stop the powerup
+   *     The first call to pollState() will return RELEASING, subsequent calls return IDLE
    * The state of the powerup can be read:
    * (1) The current state is available using peekState or pollState.
    * (2) The current time in a state from getTimeSpentInThisState
@@ -753,12 +766,16 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       state = State.RELEASING;
     }
 
+    /**
+     * update the duration of the hold
+     * @param lengthOfHold total time in ns that the button has been held down
+     */
     public void updateHolddownTime(long lengthOfHold) {
       if (state != State.INITIATING && state != State.POWERINGUP) return;
-      if (lengthOfHold < initialHoldDuration) {
-        initialHoldDuration = currentHoldDuration;  // just in case we miss a fast click
+      if (lengthOfHold < initialHoldDuration) {     // the hold time is shorter than the start value, so presumably there was a fast click_up and then click_down again
+        initialHoldDuration = lengthOfHold; //   in this case - reset the initial hold duration to be now.
       }
-      currentHoldDuration = lengthOfHold - initialHoldDuration;
+      currentHoldDuration = lengthOfHold;
     }
 
     /** returns the current state without affecting it
@@ -813,6 +830,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           double fraction = (releaseTime - initiationTime);
           fraction /= (expectedCompletionTime - initiationTime);
           fraction *= 100.0;
+          fraction = Math.min(100.0, fraction);
           assert (fraction >= 0.0 && fraction <= 100.0);
           return fraction;
         }
@@ -822,6 +840,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           double fraction = currentHoldDuration - initialHoldDuration;
           fraction /= (expectedCompletionTime - initiationTime);
           fraction *= 100.0;
+          fraction = Math.min(100.0, fraction);
           assert (fraction >= 0.0 && fraction <= 100.0);
           return fraction;
         }
@@ -832,8 +851,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
 
     private State state;
     private long initiationTime = 0;
-    private long initialHoldDuration = 0;
-    private long currentHoldDuration = 0;
+    private long initialHoldDuration = 0;    // the duration the button had been held down when powerup started
+    private long currentHoldDuration = 0;    // the duration the button had currently been held down
     private long expectedCompletionTime = 0;
     private long releaseTime = 0;
   }

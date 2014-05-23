@@ -5,7 +5,6 @@ import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
-import net.minecraftforge.event.ForgeSubscribe;
 import speedytools.clientside.ClientSide;
 
 /**
@@ -56,7 +55,7 @@ public class ItemEventHandler {
 
     EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
     ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
-    ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
+    ClientSide.speedyToolRenderers.renderWorld(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
 
     /*
 

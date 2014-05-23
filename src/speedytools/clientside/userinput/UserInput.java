@@ -93,6 +93,8 @@ public class UserInput
    */
   public void updateButtonStates(boolean newLeftButtonIsDown, boolean newRightButtonIsDown, long timeStampNS)
   {
+//    System.out.println("UserInput.updateButtonStates L = " + newLeftButtonIsDown + "; R = " + newRightButtonIsDown);
+
     if (!active) return;
     controlKeyIsDown = readControlKeyIsDown();
     if (leftButtonLastChangeTimeNS == 0) {
@@ -149,6 +151,7 @@ public class UserInput
    */
   public long rightButtonHoldTimeNS(long timeNow)
   {
+//    System.out.println("UserInput.rightButtonHoldTimeNS rBLCTNS= " + rightButtonLastChangeTimeNS + "; rBID= " + rightButtonIsDown); //
     if (rightButtonLastChangeTimeNS == 0) return 0;
     long holdDuration = timeNow - rightButtonLastChangeTimeNS;
     assert holdDuration >= 0;
@@ -179,6 +182,7 @@ public class UserInput
       controlKeyDown = i_controlKeyDown;
       count = i_count;
       eventDuration = i_eventDuration;
+//      System.out.println("InputEvent created: " + eventType.toString() + "; duration= " + eventDuration);  //
     }
   }
 

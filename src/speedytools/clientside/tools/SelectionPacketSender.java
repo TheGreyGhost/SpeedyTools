@@ -112,7 +112,7 @@ public class SelectionPacketSender
   public class PacketHandlerVoxel implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
     {
-      System.out.println("SelectionPacketSender packet received");      //todo remove
+//      System.out.println("SelectionPacketSender packet received");
       return multipartOneAtATimeSender.processIncomingPacket(packet);
     }
   }

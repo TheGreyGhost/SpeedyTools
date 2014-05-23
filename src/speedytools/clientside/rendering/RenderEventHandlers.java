@@ -1,16 +1,13 @@
 package speedytools.clientside.rendering;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.ForgeSubscribe;
 import speedytools.clientside.ClientSide;
-import speedytools.common.items.ItemSpeedyClonerBase;
 
 /**
  Contains the custom Forge Event Handlers related to Rendering
@@ -24,20 +21,34 @@ public class RenderEventHandlers
    * @param event
    */
   @ForgeSubscribe
-  public void renderOverlayPre(RenderGameOverlayEvent.Pre event)
-  {
+  public void renderOverlayPre(RenderGameOverlayEvent.Pre event) {
     if (event.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
-    EntityPlayer player = Minecraft.getMinecraft().thePlayer;
-    ItemStack currentItem = player.inventory.getCurrentItem();
-    boolean cloneToolHeld = currentItem != null && ItemSpeedyClonerBase.isAcloneTool(currentItem.itemID);
-
-    if (cloneToolHeld) {
-      ItemSpeedyClonerBase tool = (ItemSpeedyClonerBase)currentItem.getItem();
-      boolean customRender = tool.renderCrossHairs(event.resolution, event.partialTicks);
-      event.setCanceled(customRender);
+    if (!ClientSide.activeTool.toolIsActive()) {
+      event.setCanceled(true);
+      return;
     }
+    if (!ClientSide.speedyToolRenderers.areAnyRendersInThisPhase(RendererElement.RenderPhase.CROSSHAIRS)) {
+      event.setCanceled(true);
+      return;
+    }
+
+    float partialTick = event.partialTicks;
+    ClientSide.speedyToolRenderers.renderOverlay(RendererElement.RenderPhase.CROSSHAIRS, event.resolution, ClientSide.getGlobalTickCount(), partialTick);
+
     return;
   }
+
+//    EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+//    ItemStack currentItem = player.inventory.getCurrentItem();
+//    boolean cloneToolHeld = currentItem != null && ItemSpeedyClonerBase.isAcloneTool(currentItem.itemID);
+//
+//    if (cloneToolHeld) {
+//      ItemSpeedyClonerBase tool = (ItemSpeedyClonerBase)currentItem.getItem();
+//      boolean customRender = tool.renderCrossHairs(event.resolution, event.partialTicks);
+//      event.setCanceled(customRender);
+//    }
+//    return;
+//  }
 
   @ForgeSubscribe
   public void blockHighlightDecider(DrawBlockHighlightEvent event)
@@ -57,7 +68,7 @@ public class RenderEventHandlers
    * @param event
    */
   @ForgeSubscribe
-  public void drawSelectionBox(RenderWorldLastEvent event)
+  public void worldRender(RenderWorldLastEvent event)
   {
     RenderGlobal context = event.context;
     assert(context.mc.renderViewEntity instanceof EntityPlayer);
@@ -68,7 +79,7 @@ public class RenderEventHandlers
 
     EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
     ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
-    ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
+    ClientSide.speedyToolRenderers.renderWorld(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
 
 
 /*

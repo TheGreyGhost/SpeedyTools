@@ -1,5 +1,6 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
@@ -28,13 +29,20 @@ public class RendererWireframeSelection implements RendererElement
 
   public final int SELECTION_BOX_STYLE = 0; //0 = cube, 1 = cube with cross on each side
 
+  @Override
   public boolean renderInThisPhase(RenderPhase renderPhase)
   {
     return (renderPhase == RenderPhase.WORLD);
   }
 
   @Override
-  public void render(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
+  {
+    assert false : "invalid render phase: " + renderPhase;
+  }
+
+  @Override
+  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
   {
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
     if (!shouldIRender) return;

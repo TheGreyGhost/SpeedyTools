@@ -1,7 +1,7 @@
 package test.clonetoolsnetwork;
 
 import cpw.mods.fml.common.network.Player;
-import junit.framework.Assert;
+import org.junit.Assert;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.multiplayer.NetClientHandler;
 import net.minecraft.entity.player.EntityPlayer;

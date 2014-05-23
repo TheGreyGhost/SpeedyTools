@@ -107,7 +107,7 @@ public class VoxelSelection
     try {
       bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      outputStream.writeByte(xsize);
+      outputStream.writeInt(xsize);
       outputStream.writeInt(ysize);
       outputStream.writeInt(zsize);
 

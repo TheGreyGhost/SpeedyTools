@@ -151,6 +151,7 @@ public class MultipartOneAtATimeReceiver
         packetSender.sendPacket(ackPacket);
       }
       packetBeingReceived = null;
+      newestOldPacketID = uniqueID;
     } else {
       packetTransmissionInfo.linkage.progressUpdate(packetTransmissionInfo.packet.getPercentComplete());
       Packet250CustomPayload ackPacket = packetBeingReceived.packet.getAcknowledgementPacket();

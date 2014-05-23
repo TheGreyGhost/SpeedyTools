@@ -1,7 +1,7 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
-import speedytools.clientside.ClientSide;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -46,10 +46,27 @@ public class SpeedyToolRenderers
    * @param player
    * @param partialTick
    */
-  public void render(RendererElement.RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+  public void renderWorld(RendererElement.RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
   {
     for (RendererElement rendererElement : rendererElements) {
-      rendererElement.render(renderPhase, player, animationTickCount, partialTick);
+      if (rendererElement.renderInThisPhase(renderPhase)) {
+        rendererElement.renderWorld(renderPhase, player, animationTickCount, partialTick);
+      }
+    }
+  }
+
+  /**
+   * Render all elements which draw something in this phase
+   * @param renderPhase
+   * @param scaledResolution
+   * @param partialTick
+   */
+  public void renderOverlay(RendererElement.RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
+  {
+    for (RendererElement rendererElement : rendererElements) {
+      if (rendererElement.renderInThisPhase(renderPhase)) {
+        rendererElement.renderOverlay(renderPhase, scaledResolution, animationTickCount, partialTick);
+      }
     }
   }
 
