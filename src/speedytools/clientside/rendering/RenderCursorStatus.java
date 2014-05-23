@@ -126,7 +126,7 @@ public class RenderCursorStatus implements RendererElement
         case SPIN_UP: {
           starSize = renderInfo.chargePercent / 100.0;
           ringSize = MIN_RING_SIZE + (MAX_RING_SIZE - MIN_RING_SIZE) * renderInfo.readinessPercent / 100.0;
-          starColourIntensity = STAR_COLOUR_MIN_INTENSITY;
+          starColourIntensity = renderInfo.fullyChargedAndReady ? STAR_COLOUR_MAX_INTENSITY : STAR_COLOUR_MIN_INTENSITY;
           ringColourIntensity = RING_COLOUR_MAX_INTENSITY;
           clockwiseRotation = renderInfo.isAnAction;
           break;
@@ -170,7 +170,6 @@ public class RenderCursorStatus implements RendererElement
                             CROSSHAIR_ICON_WIDTH * starSize * ringSize, CROSSHAIR_ICON_HEIGHT * starSize * ringSize);
       GL11.glPopMatrix();
 
-      System.out.println("starColourIntensity:" + starColourIntensity);      //todo remove
       GL11.glColor3d(lineColour.R * starColourIntensity, lineColour.G * starColourIntensity, lineColour.B * starColourIntensity);
       Minecraft.getMinecraft().renderEngine.bindTexture(octoStarTexture);
       GL11.glPushMatrix();
