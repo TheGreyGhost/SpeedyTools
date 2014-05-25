@@ -24,16 +24,13 @@ public class RenderEventHandlers
   public void renderOverlayPre(RenderGameOverlayEvent.Pre event) {
     if (event.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
     if (!ClientSide.activeTool.toolIsActive()) {
-      event.setCanceled(true);
       return;
     }
-    if (!ClientSide.speedyToolRenderers.areAnyRendersInThisPhase(RendererElement.RenderPhase.CROSSHAIRS)) {
+    if (ClientSide.speedyToolRenderers.areAnyRendersInThisPhase(RendererElement.RenderPhase.CROSSHAIRS)) {
+      float partialTick = event.partialTicks;
+      ClientSide.speedyToolRenderers.renderOverlay(RendererElement.RenderPhase.CROSSHAIRS, event.resolution, ClientSide.getGlobalTickCount(), partialTick);
       event.setCanceled(true);
-      return;
     }
-
-    float partialTick = event.partialTicks;
-    ClientSide.speedyToolRenderers.renderOverlay(RendererElement.RenderPhase.CROSSHAIRS, event.resolution, ClientSide.getGlobalTickCount(), partialTick);
 
     return;
   }

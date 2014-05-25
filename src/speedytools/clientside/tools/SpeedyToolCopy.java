@@ -4,7 +4,6 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import speedytools.clientside.ClientSide;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.rendering.*;
@@ -12,10 +11,10 @@ import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.ItemSpeedyCopy;
+import speedytools.common.network.ClientStatus;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
-import speedytools.common.network.multipart.SelectionPacket;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -65,6 +64,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     speedyToolRenderers.setRenderers(rendererElements);
     selectionPacketSender.reset();
     iAmActive = true;
+    cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     return true;
   }
 
@@ -91,6 +91,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
 
     speedyToolRenderers.setRenderers(null);
     iAmActive = false;
+    cloneToolsNetworkClient.changeClientStatus(ClientStatus.IDLE);
     return true;
   }
 
@@ -403,7 +404,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   {
     checkInvariants();
     boolean success = cloneToolsNetworkClient.performToolUndo();
-
+    cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
 //        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
   }
 
@@ -423,6 +424,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     boolean success = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
             selectionOrigin.posX, selectionOrigin.posY, selectionOrigin.posZ,
             (byte) 0, false); // todo: implement rotation and flipped
+    cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
   }
 
   private void flipSelection()
@@ -473,10 +475,10 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
 //      System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);
-      actionPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
+      selectionGenerationPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
 //      System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);
 
-      if (actionPercentComplete < 0.0F) {
+      if (selectionGenerationPercentComplete < 0.0F) {
         selectionPacketSender.reset();
         if (voxelSelectionManager.isEmpty()) {
           currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
@@ -491,15 +493,32 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       selectionPacketSender.reset();
     }
 
-    // if the selection has been freshly generated, keep trying to transmit it until we successfullly start transmission
+    // if the selection has been freshly generated, keep trying to transmit it until we successfully start transmission
     if (currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION
         && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.IDLE) {
       selectionPacketSender.startSendingSelection(voxelSelectionManager);
     }
     selectionPacketSender.tick();
 
-    cloneToolsNetworkClient.getCurrentActionStatus();
-    cloneToolsNetworkClient.getCurrentUndoStatus();
+    CloneToolsNetworkClient.ActionStatus actionStatus = cloneToolsNetworkClient.getCurrentActionStatus();
+    if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+      lastActionWasRejected = false;
+      cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    }
+    if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
+      lastActionWasRejected = true;
+      cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    }
+
+    actionStatus = cloneToolsNetworkClient.getCurrentUndoStatus();
+    if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+      lastActionWasRejected = false;
+      cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    }
+    if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
+      lastActionWasRejected = true;
+      cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    }
 
     checkInvariants();
   }
@@ -620,21 +639,41 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     @Override
     public boolean refreshRenderInfo(RenderCursorStatus.CursorRenderInfo infoToUpdate)
     {
-      PowerUpEffect activePowerUp;
-      if (!leftClickPowerup.isIdle()) {
-        activePowerUp = leftClickPowerup;
-        infoToUpdate.isAnAction = false;
+      if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
+        infoToUpdate.vanillaCursorSpin = true;
+        infoToUpdate.cursorSpinProgress = selectionGenerationPercentComplete;
       } else {
-        activePowerUp = rightClickPowerup;
-        infoToUpdate.isAnAction = true;
+        infoToUpdate.vanillaCursorSpin = false;
       }
-      infoToUpdate.idle = activePowerUp.isIdle();
-      infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999 && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE);
-      infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
+
+      PowerUpEffect activePowerUp;
+      if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
+        infoToUpdate.performingTask = true;
+        infoToUpdate.clockwise = true;
+      } else if (cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
+        infoToUpdate.performingTask = true;
+        infoToUpdate.clockwise = false;
+      } else {
+        infoToUpdate.performingTask = false;
+        if (!leftClickPowerup.isIdle()) {
+          activePowerUp = leftClickPowerup;
+          infoToUpdate.clockwise = false;
+        } else {
+          activePowerUp = rightClickPowerup;
+          infoToUpdate.clockwise = true;
+        }
+        infoToUpdate.idle = activePowerUp.isIdle();
+        infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999 && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE);
+        infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
+      }
+
       infoToUpdate.readinessPercent = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
       infoToUpdate.cursorType = RenderCursorStatus.CursorRenderInfo.CursorType.COPY;
+
+      infoToUpdate.taskAborted = lastActionWasRejected;
+      infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
 //      System.out.println("CurserRenderInfoLink - refresh.  Idle=" + infoToUpdate.idle +
-//                         "; isAnAction=" + infoToUpdate.isAnAction +
+//                         "; clockwise=" + infoToUpdate.clockwise +
 //                         "; chargePercent= " + infoToUpdate.chargePercent +
 //                         "; chargedAndReady=" + infoToUpdate.fullyChargedAndReady
 //                        );
@@ -678,7 +717,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private SelectionType currentHighlighting = SelectionType.NONE;
   private List<ChunkCoordinates> highlightedBlocks;
 
-  private float actionPercentComplete;
+  private float selectionGenerationPercentComplete;
+  private boolean lastActionWasRejected;
   private ToolSelectionStates currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
 
   private BlockVoxelMultiSelector voxelSelectionManager;

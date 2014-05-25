@@ -102,7 +102,6 @@ public class CloneToolServerActions
   }
 
   public void tick() {
-
     if (System.nanoTime() >= testDoSomethingTime) {
       testDoSomethingTime = Long.MAX_VALUE;
       if (testActionSequenceNumber >= 0) {
@@ -120,6 +119,7 @@ public class CloneToolServerActions
 
     double progress = (System.nanoTime() - getTestDoSomethingStartTime);
     progress /= (testDoSomethingTime - getTestDoSomethingStartTime);
+    progress *= 100.0;
     progress = UsefulFunctions.clipToRange(progress, 0.0, 100.0);
     if (testActionSequenceNumber >= 0) {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, testPlayer, (byte)progress);
@@ -135,6 +135,8 @@ public class CloneToolServerActions
   int testActionSequenceNumber = -1;
   long testDoSomethingTime = Long.MAX_VALUE;
   long getTestDoSomethingStartTime = 0;
+  boolean iAmBusy = false;
+
   EntityPlayerMP testPlayer;
 
   /**
