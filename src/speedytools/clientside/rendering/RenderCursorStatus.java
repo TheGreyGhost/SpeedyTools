@@ -210,7 +210,7 @@ public class RenderCursorStatus implements RendererElement
                             CROSSHAIR_ICON_WIDTH * starSize, CROSSHAIR_ICON_HEIGHT * starSize);
       GL11.glPopMatrix();
 
-      final float ARC_LINE_WIDTH = 8.0F;
+      final float ARC_LINE_WIDTH = 4.0F;
 
       if (drawTaskCompletionRing) {
         double progressBarIntensity = RING_COLOUR_MAX_INTENSITY;
