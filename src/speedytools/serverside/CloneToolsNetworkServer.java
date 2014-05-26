@@ -54,6 +54,7 @@ public class CloneToolsNetworkServer
     packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID(), packetHandlerCloneToolUse);
     packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
     packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
+
     playerTracker = this.new PlayerTracker();
     GameRegistry.registerPlayerTracker(playerTracker);
   }

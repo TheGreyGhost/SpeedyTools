@@ -1,8 +1,7 @@
 package speedytools.serverside;
 
-import net.minecraftforge.common.MinecraftForge;
-import speedytools.clientside.rendering.SoundsRegistry;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.serverside.ingametester.InGameTester;
 
 /**
  * User: The Grey Ghost
@@ -18,6 +17,7 @@ public class ServerSide
     cloneToolsNetworkServer = new CloneToolsNetworkServer(packetHandlerRegistry, cloneToolServerActions);
     speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry);
     serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistry);
+    inGameTester = new InGameTester(packetHandlerRegistry);
   }
 
   public static void shutdown()
@@ -50,4 +50,5 @@ public class ServerSide
   private static CloneToolServerActions cloneToolServerActions;
   private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
   private static PacketHandlerRegistry packetHandlerRegistry;
+  private static InGameTester inGameTester;
 }

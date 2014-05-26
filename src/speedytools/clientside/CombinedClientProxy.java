@@ -8,6 +8,7 @@ import speedytools.clientside.tools.*;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
 
 /**
@@ -92,5 +93,15 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.packetSenderClient
             )
             );
+    if (SpeedyToolsOptions.getTesterToolsEnabled()) {
+      ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyTester,
+              new SpeedyToolTester(RegistryForItems.itemSpeedyTester,
+                                  ClientSide.speedyToolRenderers,
+                                  ClientSide.speedyToolSounds,
+                                  ClientSide.undoManagerSimple
+              ));
+
+    }
+
   }
 }

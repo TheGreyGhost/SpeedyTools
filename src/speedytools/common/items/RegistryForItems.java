@@ -2,6 +2,7 @@ package speedytools.common.items;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.common.registry.LanguageRegistry;
+import speedytools.common.SpeedyToolsOptions;
 
 /**
  * creates and contains the instances of all of this mod's custom Items
@@ -17,6 +18,8 @@ public class RegistryForItems
   public static ItemSpeedyTool itemSpeedyOrb;
   public static ItemSpeedyBoundary itemSpeedyBoundary;
   public static ItemSpeedyCopy itemCloneCopy;
+
+  public static ItemSpeedyTester itemSpeedyTester;
 
   public static void initialise()
   {
@@ -41,5 +44,11 @@ public class RegistryForItems
     LanguageRegistry.addName(itemSpeedyOrb, "Orb of Transmutation");
     LanguageRegistry.addName(itemSpeedyBoundary, "Sorcerous Claw of Boundary Creation");
     LanguageRegistry.addName(itemCloneCopy, "Staff of Duplication");
+
+    if (SpeedyToolsOptions.getTesterToolsEnabled()) {
+      itemSpeedyTester = new ItemSpeedyTester(START_ITEM+6);
+      GameRegistry.registerItem(itemSpeedyTester, itemSpeedyTester.getUnlocalizedName());
+      LanguageRegistry.addName(itemSpeedyTester, "In-game tester");
+    }
   }
 }
