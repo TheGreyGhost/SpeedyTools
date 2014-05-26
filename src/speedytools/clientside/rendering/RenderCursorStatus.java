@@ -100,8 +100,8 @@ public class RenderCursorStatus implements RendererElement
     }
 
     final float Z_LEVEL_FROM_GUI_IN_GAME_FORGE = -90.0F;            // taken from GuiInGameForge.renderCrossHairs
-    final double CROSSHAIR_ICON_WIDTH = 80;
-    final double CROSSHAIR_ICON_HEIGHT = 80;
+    final double CROSSHAIR_ICON_WIDTH = 88;
+    final double CROSSHAIR_ICON_HEIGHT = 88;
     final double CROSSHAIR_ICON_RADIUS = 40;
     final double CROSSHAIR_X_OFFSET = -CROSSHAIR_ICON_WIDTH / 2.0;
     final double CROSSHAIR_Y_OFFSET = -CROSSHAIR_ICON_HEIGHT / 2.0;
@@ -210,7 +210,7 @@ public class RenderCursorStatus implements RendererElement
                             CROSSHAIR_ICON_WIDTH * starSize, CROSSHAIR_ICON_HEIGHT * starSize);
       GL11.glPopMatrix();
 
-      final float ARC_LINE_WIDTH = 8.0F;
+      final float ARC_LINE_WIDTH = 4.0F;
 
       if (drawTaskCompletionRing) {
         double progressBarIntensity = RING_COLOUR_MAX_INTENSITY;
