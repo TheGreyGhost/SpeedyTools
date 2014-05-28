@@ -30,18 +30,34 @@ public class InGameTester
    */
   public void performTest(int testNumber)
   {
-    System.out.println("Test number " + testNumber + "started");
+    final int TEST_ALL = 64;
+
+    int firsttest = testNumber;
+    int lasttest =testNumber;
+    if (testNumber == TEST_ALL) {
+      firsttest = 1;
+      lasttest = 64;
+    }
+
+    for (int i = firsttest; i <= lasttest; ++i) {
+      boolean success = true;
+      System.out.print("Test number " + i + " started");
+      switch (i) {
+        case 1: success = performTest1(); break;
+      }
+
+      System.out.println("; finished with success == " + success);
+    }
   }
 
   public boolean performTest1()
   {
     final int XORIGIN = 1;
-    final int YORIGIN = 1;
+    final int YORIGIN = 4;
     final int ZORIGIN = 1;
     final int XSIZE = 8;
     final int YSIZE = 8;
     final int ZSIZE = 8;
-
 
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
     BlockStore blockStore = new BlockStore(XSIZE, YSIZE, ZSIZE);
@@ -65,10 +81,7 @@ public class InGameTester
         }
       }
     }
-
-
-
-
+    return true;
   }
 
 
