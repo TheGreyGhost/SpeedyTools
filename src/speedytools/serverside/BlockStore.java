@@ -125,6 +125,18 @@ public class BlockStore
     }
   }
 
+  public int getXcount() {
+    return xcount;
+  }
+
+  public int getYcount() {
+    return ycount;
+  }
+
+  public int getZcount() {
+    return zcount;
+  }
+
   private int xcount;
   private int ycount;
   private int zcount;
