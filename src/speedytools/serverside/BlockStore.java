@@ -16,6 +16,12 @@ public class BlockStore
   public static final int MAX_Y_SIZE = 256;
   public static final int MAX_Z_SIZE = 256;
 
+  /** the Blockstore is initially filled with air
+   *
+   * @param i_xcount
+   * @param i_ycount
+   * @param i_zcount
+   */
   public BlockStore(int i_xcount, int i_ycount, int i_zcount)
   {
     assert (i_xcount >= 0 && i_xcount <= MAX_X_SIZE);

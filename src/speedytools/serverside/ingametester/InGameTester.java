@@ -6,7 +6,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.network.packet.Packet51MapChunk;
-import net.minecraft.network.packet.Packet52MultiBlockChange;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PlayerInstance;
 import net.minecraft.server.management.PlayerManager;
@@ -18,8 +17,6 @@ import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.serverside.BlockStore;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * User: The Grey Ghost
@@ -49,10 +46,11 @@ public class InGameTester
     }
 
     for (int i = firsttest; i <= lasttest; ++i) {
-      boolean success = true;
+      boolean success = false;
       System.out.print("Test number " + i + " started");
       switch (i) {
         case 1: success = performTest1(); break;
+        case 2: success = performTest2(); break;
       }
 
       System.out.println("; finished with success == " + success);
@@ -61,9 +59,9 @@ public class InGameTester
 
   public boolean performTest1()
   {
-    final int XORIGIN = 11;
+    final int XORIGIN = 1;
     final int YORIGIN = 4;
-    final int ZORIGIN = 1;
+    final int ZORIGIN = 11;
     final int XSIZE = 8;
     final int YSIZE = 8;
     final int ZSIZE = 8;
@@ -73,9 +71,15 @@ public class InGameTester
     final int ZDEST = 21;
 
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    BlockStore blockStoreBlank = new BlockStore(XSIZE, YSIZE, ZSIZE);
+    setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStoreBlank);
+
     BlockStore blockStore = makeBlockStore(worldServer, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
     setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStore);
-    return true;
+
+    BlockStore blockStore2 = makeBlockStore(worldServer, XDEST, YDEST, ZDEST, XSIZE, YSIZE, ZSIZE);
+    return areBlockStoresEqual(blockStore, blockStore2);
   }
 
   public boolean performTest2()
@@ -87,9 +91,20 @@ public class InGameTester
     final int YSIZE = 8;
     final int ZSIZE = 8;
 
+    final int XDEST = 1;
+    final int YDEST = 4;
+    final int ZDEST = 21;
+
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    BlockStore blockStoreBlank = new BlockStore(XSIZE, YSIZE, ZSIZE);
+    setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStoreBlank);
+
     BlockStore blockStore = makeBlockStore(worldServer, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
-    return true;
+    setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStore);
+
+    BlockStore blockStore2 = makeBlockStore(worldServer, XDEST, YDEST, ZDEST, XSIZE, YSIZE, ZSIZE);
+    return areBlockStoresEqual(blockStore, blockStore2);
   }
 
 
@@ -283,8 +298,42 @@ public class InGameTester
     return true;
   }
 
-
-
+  /**
+   * compares the contents of the two blockstores
+   * @param blockStore1
+   * @param blockStore2
+   * @return true if the contents are exactly the same
+   */
+  public boolean areBlockStoresEqual(BlockStore blockStore1, BlockStore blockStore2)
+  {
+    if (blockStore1.getXcount() != blockStore2.getXcount()
+        || blockStore1.getYcount() != blockStore2.getYcount()
+        || blockStore1.getZcount() != blockStore2.getZcount()) {
+      return false;
+    }
+    for (int x = 0; x < blockStore1.getXcount(); ++x ) {
+      for (int y = 0; y < blockStore1.getYcount(); ++y) {
+        for (int z = 0; z < blockStore1.getZcount(); ++z) {
+          if (blockStore1.getBlockID(x, y, z) != blockStore2.getBlockID(x, y, z)
+              || blockStore1.getMetadata(x, y, z) != blockStore2.getMetadata(x, y, z) ) {
+            return false;
+          }
+          if (blockStore1.getTileEntityData(x, y, z) == null) {
+            if (blockStore2.getTileEntityData(x, y, z) != null) {
+              return false;
+            }
+          } else {
+            if (0 != blockStore1.getTileEntityData(x, y, z).toString().compareTo(
+                     blockStore2.getTileEntityData(x, y, z).toString()
+                      )) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
 
   public class PacketHandlerSpeedyIngameTester implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
