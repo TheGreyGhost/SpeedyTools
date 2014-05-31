@@ -4,7 +4,6 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
-import speedytools.clientside.tools.SpeedyTool;
 import speedytools.clientside.userinput.UserInput;
 
 import java.util.HashMap;
@@ -12,6 +11,7 @@ import java.util.HashMap;
 /**
  * User: The Grey Ghost
  * Date: 14/04/14
+ * TODO: when the player logs out of a world and loads another, reset the tools (selection, boundary field, etc)
  */
 public class ActiveTool
 {

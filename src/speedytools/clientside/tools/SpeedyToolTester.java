@@ -38,12 +38,20 @@ public class SpeedyToolTester extends SpeedyTool
     while (null != (nextEvent = userInput.poll())) {
       switch (nextEvent.eventType) {
         case LEFT_CLICK_DOWN: {
+          Packet250SpeedyIngameTester packet;
+          try {
+            packet = new Packet250SpeedyIngameTester(player.getHeldItem().stackSize, false);
+          } catch (IOException e) {
+            Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyIngameTester for itemID " + parentItem.itemID);
+            return false;
+          }
+          PacketDispatcher.sendPacketToServer(packet.getPacket250CustomPayload());
           break;
         }
         case RIGHT_CLICK_DOWN: {
           Packet250SpeedyIngameTester packet;
           try {
-            packet = new Packet250SpeedyIngameTester(player.getHeldItem().stackSize);
+            packet = new Packet250SpeedyIngameTester(player.getHeldItem().stackSize, true);
           } catch (IOException e) {
             Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyIngameTester for itemID " + parentItem.itemID);
             return false;
