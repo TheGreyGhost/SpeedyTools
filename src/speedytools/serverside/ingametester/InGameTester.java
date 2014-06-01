@@ -2,15 +2,22 @@ package speedytools.serverside.ingametester;
 
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityHanging;
+import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagDouble;
 import net.minecraft.nbt.NBTTagInt;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.network.packet.Packet51MapChunk;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PlayerInstance;
 import net.minecraft.server.management.PlayerManager;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
@@ -19,6 +26,9 @@ import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.serverside.BlockStore;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * User: The Grey Ghost
@@ -55,6 +65,7 @@ public class InGameTester
         case 1: success = performTest1(performTest); break;
         case 2: success = performTest2(performTest); break;
         case 3: success = performTest3(performTest); break;
+        case 4: success = performTest4(performTest); break;
       }
 
       System.out.println("; finished with success == " + success);
@@ -63,86 +74,55 @@ public class InGameTester
 
   public boolean performTest1(boolean performTest)
   {
-    final int XORIGIN = 1;
-    final int YORIGIN = 4;
-    final int ZORIGIN = 10;
-    final int XSIZE = 8;
-    final int YSIZE = 8;
-    final int ZSIZE = 8;
-
-    final int XDEST = 21;
-    final int YDEST = 4;
-    final int ZDEST = 10;
-
-    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
-
-    if (!performTest) {
-      BlockStore blockStoreBlank = new BlockStore(XSIZE, YSIZE, ZSIZE);
-      setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStoreBlank);
-      return true;
-    } else {
-      BlockStore blockStore = makeBlockStore(worldServer, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
-      setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStore);
-
-      BlockStore blockStore2 = makeBlockStore(worldServer, XDEST, YDEST, ZDEST, XSIZE, YSIZE, ZSIZE);
-      return areBlockStoresEqual(blockStore, blockStore2);
-    }
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = 10;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    final int XDEST = 11; final int YDEST = 4; final int ZDEST = 10;
+    return copyAndTestRegion(performTest,  XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, XDEST, YDEST, ZDEST);
   }
 
   public boolean performTest2(boolean performTest)
   {
-    final int XORIGIN = 1;
-    final int YORIGIN = 4;
-    final int ZORIGIN = 1;
-    final int XSIZE = 8;
-    final int YSIZE = 8;
-    final int ZSIZE = 8;
-
-    final int XDEST = 21;
-    final int YDEST = 4;
-    final int ZDEST = 1;
-
-    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
-
-    if (!performTest) {
-      BlockStore blockStoreBlank = new BlockStore(XSIZE, YSIZE, ZSIZE);
-      setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStoreBlank);
-      return true;
-    } else {
-      BlockStore blockStore = makeBlockStore(worldServer, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
-      setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStore);
-
-      BlockStore blockStore2 = makeBlockStore(worldServer, XDEST, YDEST, ZDEST, XSIZE, YSIZE, ZSIZE);
-      return areBlockStoresEqual(blockStore, blockStore2);
-    }
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = 1;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    final int XDEST = 11; final int YDEST = 4; final int ZDEST = 1;
+    return copyAndTestRegion(performTest,  XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, XDEST, YDEST, ZDEST);
   }
 
   public boolean performTest3(boolean performTest)
   {
-    final int XORIGIN = 1;
-    final int YORIGIN = 4;
-    final int ZORIGIN = 19;
-    final int XSIZE = 8;
-    final int YSIZE = 8;
-    final int ZSIZE = 200;
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = 19;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 200;
+    final int XDEST = 11; final int YDEST = 4; final int ZDEST = 19;
+    return copyAndTestRegion(performTest,  XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, XDEST, YDEST, ZDEST);
+  }
 
-    final int XDEST = 11;
-    final int YDEST = 4;
-    final int ZDEST = 19;
+  public boolean performTest4(boolean performTest)
+  {
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -8;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    final int XDEST = 11; final int YDEST = 4; final int ZDEST = -8;
+    return copyAndTestRegion(performTest,  XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, XDEST, YDEST, ZDEST);
+  }
 
+  public boolean copyAndTestRegion(boolean performTest,
+                                    int wOriginX, int wOriginY, int wOriginZ,
+                                    int xSize, int ySize, int zSize,
+                                    int wDestX, int wDestY, int wDestZ)
+  {
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
 
     if (!performTest) {
-      BlockStore blockStoreBlank = new BlockStore(XSIZE, YSIZE, ZSIZE);
-      setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStoreBlank);
+      BlockStore blockStoreBlank = new BlockStore(xSize, ySize, zSize);
+      setBlocks(worldServer, wDestX, wDestY, wDestZ, blockStoreBlank);
       return true;
     } else {
-      BlockStore blockStore = makeBlockStore(worldServer, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
-      setBlocks(worldServer, XDEST, YDEST, ZDEST, blockStore);
+      BlockStore blockStore = makeBlockStore(worldServer, wOriginX, wOriginY, wOriginZ, xSize, ySize, zSize);
+      setBlocks(worldServer, wDestX, wDestY, wDestZ, blockStore);
 
-      BlockStore blockStore2 = makeBlockStore(worldServer, XDEST, YDEST, ZDEST, XSIZE, YSIZE, ZSIZE);
+      BlockStore blockStore2 = makeBlockStore(worldServer, wDestX, wDestY, wDestZ, xSize, ySize, zSize);
       return areBlockStoresEqual(blockStore, blockStore2);
     }
+
   }
 
   public BlockStore makeBlockStore(WorldServer worldServer, int xOrigin, int yOrigin, int zOrigin, int xCount, int yCount, int zCount)
@@ -157,17 +137,28 @@ public class InGameTester
           int id = worldServer.getBlockId(wx, wy, wz);
           int data = worldServer.getBlockMetadata(wx, wy, wz);
           TileEntity tileEntity = worldServer.getBlockTileEntity(wx, wy, wz);
-          NBTTagCompound tag = null;
+          NBTTagCompound tileEntityTag = null;
           if (tileEntity != null) {
-            tag = new NBTTagCompound();
-            tileEntity.writeToNBT(tag);
+            tileEntityTag = new NBTTagCompound();
+            tileEntity.writeToNBT(tileEntityTag);
           }
           blockStore.setBlockID(x, y, z, id);
           blockStore.setMetadata(x, y, z, data);
-          blockStore.setTileEntityData(x, y, z, tag);
+          blockStore.setTileEntityData(x, y, z, tileEntityTag);
         }
       }
     }
+
+    AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(xOrigin, yOrigin, zOrigin,
+                                                               xOrigin + xCount, yOrigin + yCount, zOrigin + zCount);
+    List<Entity> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
+
+    for (Entity entity : allHangingEntities) {
+      NBTTagCompound tag = new NBTTagCompound();
+      entity.writeToNBTOptional(tag);
+      blockStore.addEntity(entity.posX - xOrigin, entity.posY - yOrigin, entity.posZ - zOrigin, tag);
+    }
+
     return blockStore;
   }
 
@@ -201,11 +192,10 @@ public class InGameTester
 
           Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
 
-          chunk.removeChunkBlockTileEntity(wx, wy, wz);
+          chunk.removeChunkBlockTileEntity(wx & 0x0f, wy, wz & 0x0f);
           boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
           if (successful && tileEntityNBT != null) {
             setTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
-
           }
         }
       }
@@ -259,8 +249,49 @@ public class InGameTester
           Packet51MapChunk packet51MapChunk = new Packet51MapChunk(chunk, false, cyFlags);
           playerinstance.sendToAllPlayersWatchingChunk(packet51MapChunk);
         }
+
+        int xmin = Math.max(cx << 4, xOrigin);
+        int ymin = yOrigin;
+        int zmin = Math.max(cz << 4, zOrigin);
+        int xmax = Math.min((cx << 4) | 0x0f, xOrigin + xCount - 1);
+        int ymax = yOrigin + yCount - 1;
+        int zmax = Math.min((cz << 4) | 0x0f, zOrigin + zCount - 1);
+
+        for (int x = xmin; x <= xmax; ++x) {
+          for (int y = ymin; y <= ymax; ++y) {
+            for (int z = zmin; z <= zmax; ++z) {
+              TileEntity tileEntity = worldServer.getBlockTileEntity(x, y, z);
+              if (tileEntity != null) {
+                Packet tilePacket = tileEntity.getDescriptionPacket();
+                if (tilePacket != null) {
+                  playerinstance.sendToAllPlayersWatchingChunk(tilePacket);
+                }
+              }
+              LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = blockStore.getEntitiesAtBlock(x - xOrigin, y - yOrigin, z - zOrigin);
+              if (listOfEntitiesAtThisBlock != null) {
+                for (NBTTagCompound nbtTagCompound : listOfEntitiesAtThisBlock) {
+                  changeHangingEntityNBTposition(nbtTagCompound, x, y, z);
+                  Entity newEntity = EntityList.createEntityFromNBT(nbtTagCompound, worldServer);
+                  if (newEntity != null) {
+                    worldServer.spawnEntityInWorld(newEntity);
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
+
+    //      j = this.chunkLocation.chunkXPos * 16 + (this.locationOfBlockChange[i] >> 12 & 15);
+//      k = this.locationOfBlockChange[i] & 255;
+//      l = this.chunkLocation.chunkZPos * 16 + (this.locationOfBlockChange[i] >> 8 & 15);
+//
+//      if (PlayerManager.getWorldServer(this.thePlayerManager).blockHasTileEntity(j, k, l))
+//      {
+//        this.sendTileToAllPlayersWatchingChunk(PlayerManager.getWorldServer(this.thePlayerManager).getBlockTileEntity(j, k, l));
+//      }
+
 
     for (int y = 0; y < yCount; ++y) {
       for (int z = 0; z < zCount; ++z) {
@@ -329,12 +360,46 @@ public class InGameTester
    * @param nbtTagCompound the NBT
    * @return the updated NBT
    */
-  public NBTTagCompound changeNBTposition(NBTTagCompound nbtTagCompound, int wx, int wy, int wz)
+  public NBTTagCompound changeTileEntityNBTposition(NBTTagCompound nbtTagCompound, int wx, int wy, int wz)
   {
-
     nbtTagCompound.setTag("x", new NBTTagInt("x", wx));
     nbtTagCompound.setTag("y", new NBTTagInt("y", wy));
     nbtTagCompound.setTag("z", new NBTTagInt("z", wz));
+    return nbtTagCompound;
+  }
+
+  /**
+   * Update the position information of the given HangingEntityNBT.  The integer position is changed; the fractional component is unchanged.
+   * @param nbtTagCompound the NBT
+   * @return the updated NBT
+   */
+  public NBTTagCompound changeHangingEntityNBTposition(NBTTagCompound nbtTagCompound, int wx, int wy, int wz)
+  {
+    NBTTagList nbttaglist = nbtTagCompound.getTagList("Pos");
+    double oldX = ((NBTTagDouble)nbttaglist.tagAt(0)).data;
+    double oldY = ((NBTTagDouble)nbttaglist.tagAt(1)).data;
+    double oldZ = ((NBTTagDouble)nbttaglist.tagAt(2)).data;
+
+    double newX = wx + (oldX - Math.floor(oldX));
+    double newY = wy + (oldY - Math.floor(oldY));
+    double newZ = wz + (oldZ - Math.floor(oldZ));
+
+    NBTTagList newPositionNBT = new NBTTagList();
+    newPositionNBT.appendTag(new NBTTagDouble((String) null, newX));
+    newPositionNBT.appendTag(new NBTTagDouble((String) null, newY));
+    newPositionNBT.appendTag(new NBTTagDouble((String) null, newZ));
+    nbtTagCompound.setTag("Pos", newPositionNBT);
+
+    int oldPosX = nbtTagCompound.getInteger("TileX");
+    int oldPosY = nbtTagCompound.getInteger("TileY");
+    int oldPosZ = nbtTagCompound.getInteger("TileZ");
+    long newPosX = oldPosX + Math.round(newX - oldX);
+    long newPosY = oldPosY + Math.round(newY - oldY);
+    long newPosZ = oldPosZ + Math.round(newZ - oldZ);
+
+    nbtTagCompound.setInteger("TileX", (int)newPosX);
+    nbtTagCompound.setInteger("TileY", (int)newPosY);
+    nbtTagCompound.setInteger("TileZ", (int)newPosZ);
 
     return nbtTagCompound;
   }
@@ -346,7 +411,7 @@ public class InGameTester
    */
   public void setTileEntity(World world, int wx, int wy, int wz, NBTTagCompound nbtTagCompound) {
     if (nbtTagCompound != null) {
-      changeNBTposition(nbtTagCompound, wx, wy, wz);
+      changeTileEntityNBTposition(nbtTagCompound, wx, wy, wz);
       TileEntity tileEntity = TileEntity.createAndLoadEntity(nbtTagCompound);
       if (tileEntity != null) {
         world.setBlockTileEntity(wx, wy, wz, tileEntity);
@@ -401,9 +466,9 @@ public class InGameTester
             }
           } else {
             NBTTagCompound nbt1 = blockStore1.getTileEntityData(x, y, z);
-            changeNBTposition(nbt1, 0, 0, 0);
+            changeTileEntityNBTposition(nbt1, 0, 0, 0);
             NBTTagCompound nbt2 = blockStore2.getTileEntityData(x, y, z);
-            changeNBTposition(nbt2, 0, 0, 0);
+            changeTileEntityNBTposition(nbt2, 0, 0, 0);
             if (0 != nbt1.toString().compareTo(nbt2.toString()) ) {
               return false;
             }

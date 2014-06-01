@@ -1,9 +1,9 @@
 package speedytools.serverside;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.Vec3;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 
 /**
  * User: The Grey Ghost
@@ -35,7 +35,7 @@ public class BlockStore
     blockIDbits0to7 = new byte[numberOfBlocks];
     blockIDbits8to11andmetaData = new byte[numberOfBlocks];
     tileEntityData = new HashMap<Integer, NBTTagCompound>();
-    entityData = new HashMap<Vec3, NBTTagCompound>();
+    entityData = new HashMap<Integer, LinkedList<NBTTagCompound>>();
   }
 
   /**
@@ -102,6 +102,46 @@ public class BlockStore
   }
 
   /**
+   * Adds an entity to the block store, at the given position
+   * @param x  entity position relative to the block origin [0, 0, 0]
+   * @param nbtData NBT data of the entity
+   */
+  public void addEntity(double x, double y, double z, NBTTagCompound nbtData)
+  {
+    assert (x >= 0 && x < xcount);
+    assert (y >= 0 && y < ycount);
+    assert (z >= 0 && z < zcount);
+    assert (nbtData != null);
+
+    long wx = Math.round(Math.floor(x));
+    long wy = Math.round(Math.floor(y));
+    long wz = Math.round(Math.floor(z));
+    final int offset =   (int)wy * xcount * zcount
+                       + (int)wz * xcount
+                       + (int)wx;
+    LinkedList<NBTTagCompound> entitiesAtThisBlock;
+    entitiesAtThisBlock = entityData.get(offset);
+    if (entitiesAtThisBlock == null) {
+      entitiesAtThisBlock = new LinkedList<NBTTagCompound>();
+      entityData.put(offset, entitiesAtThisBlock);
+    }
+    entitiesAtThisBlock.add(nbtData);
+  }
+
+  /**
+   * Returns a list of all entities whose [x,y,z] lies within the given block
+   * @param x x position relative to the block origin [0,0,0]
+   * @param y y position relative to the block origin [0,0,0]
+   * @param z z position relative to the block origin [0,0,0]
+   * @return
+   */
+  public LinkedList<NBTTagCompound> getEntitiesAtBlock(int x, int y, int z)
+  {
+    final int offset = y * xcount * zcount + z * xcount + x;
+    return entityData.get(offset);
+  }
+
+  /**
    * returns the NBT data for the TileEntity at the given location, or null if no TileEntity there
    * @param x x position relative to the block origin [0,0,0]
    * @param y y position relative to the block origin [0,0,0]
@@ -150,5 +190,5 @@ public class BlockStore
   private byte blockIDbits0to7[];
   private byte blockIDbits8to11andmetaData[];
   private HashMap<Integer, NBTTagCompound> tileEntityData;
-  private HashMap<Vec3, NBTTagCompound> entityData;
+  private HashMap<Integer, LinkedList<NBTTagCompound>> entityData;
 }
