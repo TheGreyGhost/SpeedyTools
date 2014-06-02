@@ -153,8 +153,69 @@ public class VoxelSelection
     return true;
   }
 
+  /**
+   * Creates a copy of this VoxelSelection, adding a border of blank voxels on all faces.
+   * For example - if the VoxelSelection has size 5x6x7, and borderWidth is 2, the resulting VoxelSelection is 9x10x11 in size
+   * And (eg) if the initial VoxelSelection is all set, the new selection will be all clear except from the box from [2,2,2] to [6,7,8] inclusive which will be all set
+   * @param borderWidth the number of voxels in the border added to all faces
+   * @return the new VoxelSelection
+   */
+
+  public VoxelSelection makeCopyWithBorder(int borderWidth)
+  {
+    VoxelSelection copy = new VoxelSelection(xsize + 2 * borderWidth, ysize + 2 * borderWidth, zsize + 2 * borderWidth);
+    for (int x = 0; x < xsize; ++x) {
+      for (int y = 0; y < ysize; ++y) {
+        for (int z = 0; z < zsize; ++z) {
+          if (getVoxel(x,y,z)) {
+            setVoxel(x + borderWidth, y + borderWidth, z + borderWidth);
+          }
+        }
+      }
+    }
+    return copy;
+  }
+
+  /** For the given VoxelSelection, make a "BorderMask" copy where all the empty voxels adjacent to a set voxel are marked as set.
+   *  i.e. for a given [x,y,z]:
+   *  1) if the voxel is set, the BorderMask voxel is clear
+   *  2) if all of the six adjacent voxels are clear, the BorderMask voxel is clear
+   *  3) otherwise, the BorderMask voxel is set.
+   *
+   * @return
+   */
+  public VoxelSelection generateBorderMask()
+  {
+    VoxelSelection copy = new VoxelSelection(xsize, ysize, zsize);
+    for (int x = 0; x < xsize; ++x) {
+      for (int y = 0; y < ysize; ++y) {
+        for (int z = 0; z < zsize; ++z) {
+          if (!getVoxel(x, y, z)) {
+            if (getVoxel(x-1, y, z) || getVoxel(x+1, y, z) || getVoxel(x, y-1, z) || getVoxel(x, y+1, z) || getVoxel(x, y, z-1) || getVoxel(x, y, z+1)) {
+              copy.setVoxel(x, y, z);
+            }
+          }
+        }
+      }
+    }
+    return copy;
+  }
+
   private BitSet voxels;
-  private int xsize;
-  private int ysize;
-  private int zsize;
+
+  public int getXsize() {
+    return xsize;
+  }
+
+  public int getYsize() {
+    return ysize;
+  }
+
+  public int getZsize() {
+    return zsize;
+  }
+
+  protected int xsize;
+  protected int ysize;
+  protected int zsize;
 }
