@@ -27,7 +27,13 @@ import java.util.List;
 /**
  * User: The Grey Ghost
  * Date: 27/05/2014
- * stores the block ID, metadata, NBT (TileEntity) data, and Entity data for a cuboid region
+ * Stores the block ID, metadata, NBT (TileEntity) data, and Entity data for a voxel selection, as well as for "border" voxels
+ *   which are not in the selection but which are potentially affected by it (i.e. adjacent to a selection voxel)
+ * Typical usage:
+ * (1) Create a block store, either cuboid (x,y,z) or from a VoxelSelection (with borderwidth typically 1)
+ * (2)  readFromWorld() to read the blockStore from the world
+ * (3) various get() and set() to manipulate the blockStore contents
+ * (4) writeToWorld() to write the blockStore into the world
  */
 public class BlockStore
 {
@@ -218,6 +224,7 @@ public class BlockStore
 
   /**
    * Read a section of the world into the BlockStore.
+   * If the voxel selection and bordermaskSelection are defined, only reads those voxels, otherwise reads the entire block
    * @param worldServer
    * @param wxOrigin the world x coordinate of the [0,0,0] corner of the BlockStore
    * @param wyOrigin the world y coordinate of the [0,0,0] corner of the BlockStore
@@ -225,10 +232,23 @@ public class BlockStore
    */
   public void readFromWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin)
   {
+    VoxelSelection selection, border;
+
+    if (voxelSelection == null) {
+      assert borderMaskSelection == null;
+      selection = new VoxelSelection(xCount, yCount, zCount);
+      selection.setAll();
+      border = new VoxelSelection(xCount, yCount, zCount);
+    } else {
+      assert borderMaskSelection != null;
+      selection = voxelSelection;
+      border = borderMaskSelection;
+    }
+
     for (int y = 0; y < yCount; ++y) {
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
-          if (voxelSelection.getVoxel(x, y, z) || borderMaskSelection.getVoxel(x, y, z)) {
+          if (selection.getVoxel(x, y, z) || border.getVoxel(x, y, z)) {
             int wx = x + wxOrigin;
             int wy = y + wyOrigin;
             int wz = z + wzOrigin;
@@ -248,16 +268,23 @@ public class BlockStore
       }
     }
 
-    up to here, adapting to voxelSelection
-
+    final double EXPAND = 3;
     AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxOrigin, wyOrigin, wzOrigin,
-            wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount);
-    List<Entity> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
+                                                               wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount)
+                                               .expand(EXPAND, EXPAND, EXPAND);
 
-    for (Entity entity : allHangingEntities) {
-      NBTTagCompound tag = new NBTTagCompound();
-      entity.writeToNBTOptional(tag);
-      addEntity(entity.posX - wxOrigin, entity.posY - wyOrigin, entity.posZ - wzOrigin, tag);
+    List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
+
+    for (EntityHanging entity : allHangingEntities) {
+      int x = entity.xPosition;
+      int y = entity.yPosition;
+      int z = entity.zPosition;
+
+      if (selection.getVoxel(x, y, z) || border.getVoxel(x, y, z)) {
+        NBTTagCompound tag = new NBTTagCompound();
+        entity.writeToNBTOptional(tag);
+        addEntity(entity.posX - wxOrigin, entity.posY - wyOrigin, entity.posZ - wzOrigin, tag);
+      }
     }
 
     return;
@@ -265,14 +292,18 @@ public class BlockStore
 
   /**
    * Write the blockstore to the world
+   * If the voxel selection and bordermaskSelection are defined, only reads those voxels, otherwise reads the entire block
    * @param worldServer
    * @param wxOrigin the world x coordinate corresponding to the [0,0,0] corner of the BlockStore
    * @param wyOrigin the world y coordinate corresponding to the [0,0,0] corner of the BlockStore
    * @param wzOrigin the world z coordinate corresponding to the [0,0,0] corner of the BlockStore
+   * @retun a BlockStore which can be used to undo the changes
    */
-  public void writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin)
+  public BlockStore writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin)
   {
     /* the steps are
+
+    5: create a backup BlockStore
 
     10: delete TileEntityData and EntityHanging to stop resource leaks / items popping out
     20: copy ID and metadata to chunk directly (chunk setBlockIDwithMetadata without the updating)
@@ -543,6 +574,6 @@ public class BlockStore
   private byte blockIDbits8to11andmetaData[];
   private HashMap<Integer, NBTTagCompound> tileEntityData;
   private HashMap<Integer, LinkedList<NBTTagCompound>> entityData;
-  private VoxelSelection voxelSelection;
-  private VoxelSelection borderMaskSelection;
+  private VoxelSelection voxelSelection;                            // each set pixel corresponds to a valid block location in the store
+  private VoxelSelection borderMaskSelection;                       // each set pixel corresponds to a block which is not in the voxelselection but is potentially affected by it.
 }

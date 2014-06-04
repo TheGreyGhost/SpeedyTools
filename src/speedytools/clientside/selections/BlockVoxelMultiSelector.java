@@ -156,7 +156,7 @@ public class BlockVoxelMultiSelector
       selection = new VoxelSelection(xSize, ySize, zSize);
 //      shadow = new VoxelSelection(xSize, 1, zSize);
     } else {
-      selection.clearAll(xSize, ySize, zSize);
+      selection.resizeAndClear(xSize, ySize, zSize);
 //      shadow.clearAll(xSize, 1, zSize);
     }
   }

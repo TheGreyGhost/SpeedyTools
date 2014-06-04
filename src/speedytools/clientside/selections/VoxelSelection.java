@@ -23,9 +23,19 @@ public class VoxelSelection
     resize(x, y, z);
   }
 
-  public void clearAll(int x, int y, int z)
+  public void clearAll()
+  {
+    voxels.clear();
+  }
+
+  public void resizeAndClear(int x, int y, int z)
   {
     resize(x, y, z);
+  }
+
+  public void setAll()
+  {
+    voxels.set(0, xsize * ysize * zsize);
   }
 
   /**
