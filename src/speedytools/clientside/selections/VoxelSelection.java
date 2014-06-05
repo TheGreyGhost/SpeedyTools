@@ -171,7 +171,7 @@ public class VoxelSelection
    * @return the new VoxelSelection
    */
 
-  public VoxelSelection makeCopyWithBorder(int borderWidth)
+  public VoxelSelection makeCopyWithEmptyBorder(int borderWidth)
   {
     VoxelSelection copy = new VoxelSelection(xsize + 2 * borderWidth, ysize + 2 * borderWidth, zsize + 2 * borderWidth);
     for (int x = 0; x < xsize; ++x) {

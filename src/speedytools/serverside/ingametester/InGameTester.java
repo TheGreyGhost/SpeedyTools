@@ -1,34 +1,14 @@
 package speedytools.serverside.ingametester;
 
 import cpw.mods.fml.relauncher.Side;
-import net.minecraft.block.Block;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityHanging;
-import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagDouble;
-import net.minecraft.nbt.NBTTagInt;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import net.minecraft.network.packet.Packet51MapChunk;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.management.PlayerInstance;
-import net.minecraft.server.management.PlayerManager;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
-import speedytools.serverside.BlockStore;
-
-import java.util.LinkedList;
-import java.util.List;
+import speedytools.serverside.WorldFragment;
 
 /**
  * User: The Grey Ghost
@@ -112,17 +92,17 @@ public class InGameTester
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
 
     if (!performTest) {
-      BlockStore blockStoreBlank = new BlockStore(xSize, ySize, zSize);
-      blockStoreBlank.writeToWorld(worldServer, wDestX, wDestY, wDestZ);
+      WorldFragment worldFragmentBlank = new WorldFragment(xSize, ySize, zSize);
+      worldFragmentBlank.writeToWorld(worldServer, wDestX, wDestY, wDestZ);
       return true;
     } else {
-      BlockStore blockStore = new BlockStore(xSize, ySize, zSize);
-      blockStore.readFromWorld(worldServer, wOriginX, wOriginY, wOriginZ);
-      blockStore.writeToWorld(worldServer, wDestX, wDestY, wDestZ);
+      WorldFragment worldFragment = new WorldFragment(xSize, ySize, zSize);
+      worldFragment.readFromWorld(worldServer, wOriginX, wOriginY, wOriginZ);
+      worldFragment.writeToWorld(worldServer, wDestX, wDestY, wDestZ);
 
-      BlockStore blockStore2 = new BlockStore(xSize, ySize, zSize);
-      blockStore2.readFromWorld(worldServer, wDestX, wDestY, wDestZ);
-      return BlockStore.areBlockStoresEqual(blockStore, blockStore2);
+      WorldFragment worldFragment2 = new WorldFragment(xSize, ySize, zSize);
+      worldFragment2.readFromWorld(worldServer, wDestX, wDestY, wDestZ);
+      return WorldFragment.areBlockStoresEqual(worldFragment, worldFragment2);
     }
 
   }
