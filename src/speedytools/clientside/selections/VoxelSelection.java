@@ -1,8 +1,6 @@
 package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
-import speedytools.common.network.Packet250Types;
-import speedytools.common.network.multipart.MultipartPacket;
 import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
@@ -209,6 +207,33 @@ public class VoxelSelection
       }
     }
     return copy;
+  }
+
+  /** checks whether all of the set voxels in voxelSelection are also set in this VoxelSelection
+   * @param voxelSelection the voxels to test against.  must be the same size as 'this'.
+   * @return true if all of the set voxels in voxelSelection are also set in this VoxelSelection
+   */
+  public boolean containsAllOfThisMask(VoxelSelection voxelSelection)
+  {
+    assert(voxelSelection.xsize == this.xsize && voxelSelection.ysize == this.ysize && voxelSelection.zsize == this.zsize);
+    try {
+      BitSet maskBitsNotInThis = (BitSet) voxelSelection.clone();
+      maskBitsNotInThis.andNot(this.voxels);
+      return maskBitsNotInThis.size() == 0;
+    } catch (CloneNotSupportedException e) {
+      assert false : "Bitset wouldn't clone";
+      return false;
+    }
+  }
+
+  /**
+   * updates this to include all set Voxels in both this and in voxelSelection
+   * @param voxelSelection the voxels to be set.  Must be the same size as 'this'.
+   */
+  public void union(VoxelSelection voxelSelection)
+  {
+    assert(voxelSelection.xsize == this.xsize && voxelSelection.ysize == this.ysize && voxelSelection.zsize == this.zsize);
+    voxels.or(voxelSelection.voxels);
   }
 
   private BitSet voxels;

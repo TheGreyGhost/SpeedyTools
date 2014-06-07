@@ -1,6 +1,7 @@
 package speedytools.serverside;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.WorldServer;
 import speedytools.clientside.selections.VoxelSelection;
 
 import java.util.HashMap;
@@ -17,16 +18,16 @@ WHAT I STILL NEED TO DO
  * Date: 27/05/2014
  * Stores the block ID, metadata, NBT (TileEntity) data, and Entity data for a voxel selection
  * Typical usage:
- * (1) Create a world store, either cuboid (x,y,z) or from a VoxelSelection (with borderwidth typically 1)
+ * (1) Create a WorldSelectionCopy, either cuboid (x,y,z) or from a VoxelSelection (with borderwidth typically 1)
  * (2)  readFromWorld() to read the blockStore from the world
  * (3) various get() and set() to manipulate the blockStore contents
  * (4) writeToWorld() to write the blockStore into the world and return a WorldSelectionUndo
  */
 public class WorldSelectionCopy
 {
-  public static final int MAX_X_SIZE = 256;
-  public static final int MAX_Y_SIZE = 256;
-  public static final int MAX_Z_SIZE = 256;
+//  public static final int MAX_X_SIZE = 256;
+//  public static final int MAX_Y_SIZE = 256;
+//  public static final int MAX_Z_SIZE = 256;
 
   /** the WorldFragment is initially filled with air
    *
@@ -36,18 +37,13 @@ public class WorldSelectionCopy
    */
   public WorldSelectionCopy(int i_xcount, int i_ycount, int i_zcount)
   {
-    assert (i_xcount >= 0 && i_xcount <= MAX_X_SIZE);
-    assert (i_ycount >= 0 && i_ycount <= MAX_Y_SIZE);
-    assert (i_zcount >= 0 && i_zcount <= MAX_Z_SIZE);
+    worldFragment = new WorldFragment(i_xcount, i_ycount, i_zcount);
+//    assert (i_xcount >= 0 && i_xcount <= MAX_X_SIZE);
+//    assert (i_ycount >= 0 && i_ycount <= MAX_Y_SIZE);
+//    assert (i_zcount >= 0 && i_zcount <= MAX_Z_SIZE);
     xCount = i_xcount;
     yCount = i_ycount;
     zCount = i_zcount;
-
-    int numberOfBlocks = xCount * yCount * zCount;
-    blockIDbits0to7 = new byte[numberOfBlocks];
-    blockIDbits8to11andmetaData = new byte[numberOfBlocks];
-    tileEntityData = new HashMap<Integer, NBTTagCompound>();
-    entityData = new HashMap<Integer, LinkedList<NBTTagCompound>>();
   }
 
   /** Create a WorldFragment based on the given VoxelSelection
@@ -60,6 +56,30 @@ public class WorldSelectionCopy
     copyMask = i_voxelSelection;
   }
 
+  /**
+   * Read a section of the world into the WorldSelectionCopy
+   * @param worldServer
+   * @param wxOrigin the world x coordinate of the [0,0,0] corner of the WorldFragment
+   * @param wyOrigin the world y coordinate of the [0,0,0] corner of the WorldFragment
+   * @param wzOrigin the world z coordinate of the [0,0,0] corner of the WorldFragment
+   */
+  public void readFromWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin)
+  {
+    worldFragment.readFromWorld(worldServer, wxOrigin, wyOrigin, wzOrigin, copyMask);
+  }
+
+  /**
+   * Write the WorldFragment to the world
+   * @param worldServer
+   * @param wxOrigin the world x coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @param wyOrigin the world y coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @param wzOrigin the world z coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @return a WorldSelectionUndo which can be used to undo the changes
+   */
+  public WorldSelectionUndo writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin)
+  {
+    return worldFragment.writeToWorld(worldServer, wxOrigin, wyOrigin, wzOrigin, copyMask);
+  }
 
   /**
    * compares the contents of the two WorldSelectionCopies
@@ -100,7 +120,7 @@ public class WorldSelectionCopy
     return true;
   }
 
-  WorldFragment worldFragment;
+  private WorldFragment worldFragment;
   private VoxelSelection copyMask;                            // each set voxel corresponds to a valid block location in the store
   private int xCount;
   private int yCount;

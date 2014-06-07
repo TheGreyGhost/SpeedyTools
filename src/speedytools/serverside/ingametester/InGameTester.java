@@ -102,7 +102,7 @@ public class InGameTester
 
       WorldFragment worldFragment2 = new WorldFragment(xSize, ySize, zSize);
       worldFragment2.readFromWorld(worldServer, wDestX, wDestY, wDestZ);
-      return WorldFragment.areBlockStoresEqual(worldFragment, worldFragment2);
+      return WorldFragment.areFragmentsEqual(worldFragment, worldFragment2);
     }
 
   }

@@ -29,10 +29,12 @@ import java.util.List;
  * Date: 27/05/2014
  * Stores the block ID, metadata, NBT (TileEntity) data, and Entity data for a voxel selection
  * Typical usage:
- * (1) Create a world store, either cuboid (x,y,z) or from a VoxelSelection (with borderwidth typically 1)
- * (2)  readFromWorld() to read the blockStore from the world
- * (3) various get() and set() to manipulate the blockStore contents
- * (4) writeToWorld() to write the blockStore into the world and return a WorldSelectionUndo
+ * (1) Create an empty world fragment
+ * (2a) readFromWorld(VoxelSelection) to read the WorldFragment from the world for all voxels in the given VoxelSelection
+ *   or
+ * (2b) various set() to manipulate the fragment's contents
+ * (3) various get() to retrieve the fragment's contents
+ * (4) writeToWorld() to write the fragment into the world.
  */
 public class WorldFragment
 {
@@ -40,7 +42,7 @@ public class WorldFragment
   public static final int MAX_Y_SIZE = 256;
   public static final int MAX_Z_SIZE = 256;
 
-  /** the WorldFragment is initially filled with air
+  /** creates a WorldFragment, initially empty
    *
    * @param i_xcount
    * @param i_ycount
@@ -60,10 +62,12 @@ public class WorldFragment
     blockIDbits8to11andmetaData = new byte[numberOfBlocks];
     tileEntityData = new HashMap<Integer, NBTTagCompound>();
     entityData = new HashMap<Integer, LinkedList<NBTTagCompound>>();
+    voxelsWithStoredData = new VoxelSelection(i_xcount, i_ycount, i_zcount);
   }
 
   /**
-   * gets the blockID at a particular location
+   * gets the blockID at a particular location.
+   * error if the location is not stored in this fragment
    * @param x x position relative to the block origin [0,0,0]
    * @param y y position relative to the block origin [0,0,0]
    * @param z z position relative to the block origin [0,0,0]
@@ -73,6 +77,7 @@ public class WorldFragment
     assert (x >= 0 && x < xCount);
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
     final int offset = y * xCount * zCount + z * xCount + x;
     return (blockIDbits0to7[offset] & 0xff) | ( (blockIDbits8to11andmetaData[offset] & 0x0f) << 4);
   }
@@ -92,10 +97,12 @@ public class WorldFragment
     final int offset = y * xCount * zCount + z * xCount + x;
     blockIDbits0to7[offset] = (byte)(blockID & 0xff);
     blockIDbits8to11andmetaData[offset] = (byte)((blockIDbits8to11andmetaData[offset] & 0xf0) | (blockID >> 8) );
+    voxelsWithStoredData.setVoxel(x, y, z);
   }
 
   /**
    * gets the metadata at a particular location
+   * error if the location is not stored in this fragment
    * @param x x position relative to the block origin [0,0,0]
    * @param y y position relative to the block origin [0,0,0]
    * @param z z position relative to the block origin [0,0,0]
@@ -105,6 +112,7 @@ public class WorldFragment
     assert (x >= 0 && x < xCount);
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
     final int offset = y * xCount * zCount + z * xCount + x;
     return (blockIDbits8to11andmetaData[offset] & 0xf0) >> 4;
   }
@@ -123,26 +131,26 @@ public class WorldFragment
     assert (metadata >= 0 && metadata <= 0x0f);
     final int offset = y * xCount * zCount + z * xCount + x;
     blockIDbits8to11andmetaData[offset] = (byte)((blockIDbits8to11andmetaData[offset] & 0x0f) | (metadata << 4) );
+    voxelsWithStoredData.setVoxel(x, y, z);
   }
 
   /**
-   * Adds an entity to the block store, at the given position
-   * @param x  entity position relative to the block origin [0, 0, 0]
+   * Adds an entity to the block store, at the given position.
+   * error if the location is not stored in this fragment
+   * @param x  entity position relative to the block origin [0, 0, 0].
    * @param nbtData NBT data of the entity
    */
-  public void addEntity(double x, double y, double z, NBTTagCompound nbtData)
+  public void addEntity(int x, int y, int z, NBTTagCompound nbtData)
   {
     assert (x >= 0 && x < xCount);
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
     assert (nbtData != null);
 
-    long wx = Math.round(Math.floor(x));
-    long wy = Math.round(Math.floor(y));
-    long wz = Math.round(Math.floor(z));
-    final int offset =   (int)wy * xCount * zCount
-                       + (int)wz * xCount
-                       + (int)wx;
+    final int offset =   y * xCount * zCount
+                       + z * xCount
+                       + x;
     LinkedList<NBTTagCompound> entitiesAtThisBlock;
     entitiesAtThisBlock = entityData.get(offset);
     if (entitiesAtThisBlock == null) {
@@ -161,12 +169,18 @@ public class WorldFragment
    */
   public LinkedList<NBTTagCompound> getEntitiesAtBlock(int x, int y, int z)
   {
+    assert (x >= 0 && x < xCount);
+    assert (y >= 0 && y < yCount);
+    assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
+
     final int offset = y * xCount * zCount + z * xCount + x;
     return entityData.get(offset);
   }
 
   /**
    * returns the NBT data for the TileEntity at the given location, or null if no TileEntity there
+   * error if this location is not in the fragment
    * @param x x position relative to the block origin [0,0,0]
    * @param y y position relative to the block origin [0,0,0]
    * @param z z position relative to the block origin [0,0,0]
@@ -174,19 +188,28 @@ public class WorldFragment
    */
   public NBTTagCompound getTileEntityData(int x, int y, int z)
   {
+    assert (x >= 0 && x < xCount);
+    assert (y >= 0 && y < yCount);
+    assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
+
     final int offset = y * xCount * zCount + z * xCount + x;
     return tileEntityData.get(offset);
   }
 
   /**
-   * returns the NBT data for the TileEntity at the given location, or null if no TileEntity there
+   * sets the NBT data for the TileEntity at the given location
    * @param x x position relative to the block origin [0,0,0]
    * @param y y position relative to the block origin [0,0,0]
    * @param z z position relative to the block origin [0,0,0]
-   * @return the TileEntity NBT, or null if no TileEntity here
    */
   public void setTileEntityData(int x, int y, int z, NBTTagCompound nbtData)
   {
+    assert (x >= 0 && x < xCount);
+    assert (y >= 0 && y < yCount);
+    assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
+
     final int offset = y * xCount * zCount + z * xCount + x;
     if (nbtData == null) {
       tileEntityData.remove(offset);
@@ -207,6 +230,10 @@ public class WorldFragment
     return zCount;
   }
 
+  public VoxelSelection getVoxelsWithStoredData() {
+    return voxelsWithStoredData;
+  }
+
   /**
    * Read a section of the world into the WorldFragment.
    * If the voxel selection is defined, only reads those voxels, otherwise reads the entire block
@@ -224,6 +251,7 @@ public class WorldFragment
       selection = new VoxelSelection(xCount, yCount, zCount);
       selection.setAll();
     }
+    voxelsWithStoredData = new VoxelSelection(xCount, yCount, zCount);   // starts empty, the setBlockID will fill it
 
     for (int y = 0; y < yCount; ++y) {
       for (int z = 0; z < zCount; ++z) {
@@ -256,14 +284,14 @@ public class WorldFragment
     List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
     for (EntityHanging entity : allHangingEntities) {
-      int x = entity.xPosition;
-      int y = entity.yPosition;
-      int z = entity.zPosition;
+      int x = entity.xPosition - wxOrigin;
+      int y = entity.yPosition - wyOrigin;
+      int z = entity.zPosition - wzOrigin;
 
       if (selection.getVoxel(x, y, z)) {
         NBTTagCompound tag = new NBTTagCompound();
         entity.writeToNBTOptional(tag);
-        addEntity(entity.posX - wxOrigin, entity.posY - wyOrigin, entity.posZ - wzOrigin, tag);
+        addEntity(x, y, z, tag);
       }
     }
 
@@ -271,19 +299,18 @@ public class WorldFragment
   }
 
   /**
-   * Write the blockstore to the world
+   * Write the WorldFragment to the world
    * If the voxel selection and bordermaskSelection are defined, only reads those voxels, otherwise reads the entire block
    * @param worldServer
    * @param wxOrigin the world x coordinate corresponding to the [0,0,0] corner of the WorldFragment
    * @param wyOrigin the world y coordinate corresponding to the [0,0,0] corner of the WorldFragment
    * @param wzOrigin the world z coordinate corresponding to the [0,0,0] corner of the WorldFragment
-   * @param voxelSelection the blocks to be written; or if null - the entire cuboid
-   * @return a WorldSelectionUndo which can be used to undo the changes
+   * @param writeMask the blocks to be written; or if null - all valid voxels in the fragment
    */
-  public WorldSelectionUndo writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
+  public void writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin,
+                           VoxelSelection writeMask)
   {
     /* the steps are
-    5: create a backup WorldSelectionUndo
     10: delete TileEntityData and EntityHanging to stop resource leaks / items popping out
     20: copy ID and metadata to chunk directly (chunk setBlockIDwithMetadata without the updating)
     30: create & update TileEntities - setChunkBlockTileEntity, World.addTileEntity
@@ -294,16 +321,12 @@ public class WorldFragment
     60: updateTick for all blocks to restart updating (causes Dispensers to dispense, but leave for now)
      */
 
-    VoxelSelection selection = voxelSelection;
+    VoxelSelection selection = voxelsWithStoredData;
 
-    if (selection == null) {
-      selection = new VoxelSelection(xCount, yCount, zCount);
-      selection.setAll();
+    if (writeMask != null) {
+      assert voxelsWithStoredData.containsAllOfThisMask(writeMask);
+      selection = writeMask;
     }
-
-    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo(voxelSelection, wxOrigin, wyOrigin, wzOrigin);
-    worldSelectionUndo.
-
 
     final double EXPAND = 3;
     AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxOrigin, wyOrigin, wzOrigin,
@@ -313,15 +336,14 @@ public class WorldFragment
     List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
     for (EntityHanging entity : allHangingEntities) {
-      int x = entity.xPosition;
-      int y = entity.yPosition;
-      int z = entity.zPosition;
+      int x = entity.xPosition - wxOrigin;
+      int y = entity.yPosition - wyOrigin;
+      int z = entity.zPosition - wzOrigin;
 
       if (selection.getVoxel(x, y, z)) {
         entity.setDead();
       }
     }
-
 
     for (int y = 0; y < yCount; ++y) {
       for (int z = 0; z < zCount; ++z) {
@@ -378,7 +400,7 @@ public class WorldFragment
           worldServer.notifyBlockOfNeighborChange(  wx, wy-1,   wz, blockID);
           worldServer.notifyBlockOfNeighborChange(  wx, wy+1,   wz, blockID);
           worldServer.notifyBlockOfNeighborChange(  wx,   wy, wz-1, blockID);
-          worldServer.notifyBlockOfNeighborChange(  wx,   wy, wz+1, blockID);
+          worldServer.notifyBlockOfNeighborChange(wx, wy, wz + 1, blockID);
         }
       }
     }
@@ -439,7 +461,6 @@ public class WorldFragment
         }
       }
     }
-    return;
   }
 
   /**
@@ -528,12 +549,42 @@ public class WorldFragment
   }
 
   /**
-   * compares the contents of the two blockstores
+   * Are the contents of this voxel identical in both fragments? (excluding EntityHanging)
+   * @param worldFragmentToMatch  the fragment to compare against
+   * @param x  x position to compare, for both fragments
+   * @param y
+   * @param z
+   * @return true if they match exactly
+   */
+  public boolean doesVoxelMatch(WorldFragment worldFragmentToMatch, int x, int y, int z)
+  {
+    if (this.getBlockID(x, y, z) != worldFragmentToMatch.getBlockID(x, y, z)
+            || this.getMetadata(x, y, z) != worldFragmentToMatch.getMetadata(x, y, z) ) {
+      return false;
+    }
+    if (this.getTileEntityData(x, y, z) == null) {
+      if (worldFragmentToMatch.getTileEntityData(x, y, z) != null) {
+        return false;
+      }
+    } else {
+      NBTTagCompound nbt1 = this.getTileEntityData(x, y, z);
+      changeTileEntityNBTposition(nbt1, 0, 0, 0);
+      NBTTagCompound nbt2 = worldFragmentToMatch.getTileEntityData(x, y, z);
+      changeTileEntityNBTposition(nbt2, 0, 0, 0);
+      if (0 != nbt1.toString().compareTo(nbt2.toString()) ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * compares the contents of the two WorldFragments, excluding EntityHanging
    * @param worldFragment1
    * @param worldFragment2
    * @return true if the contents are exactly the same
    */
-  public static boolean areBlockStoresEqual(WorldFragment worldFragment1, WorldFragment worldFragment2)
+  public static boolean areFragmentsEqual(WorldFragment worldFragment1, WorldFragment worldFragment2)
   {
     if (worldFragment1.getxCount() != worldFragment2.getxCount()
             || worldFragment1.getyCount() != worldFragment2.getyCount()
@@ -563,18 +614,20 @@ public class WorldFragment
         }
       }
     }
+
     return true;
   }
 
   private int xCount;
   private int yCount;
   private int zCount;
-//  private int borderWidth = 0;
 
   private byte blockIDbits0to7[];
   private byte blockIDbits8to11andmetaData[];
   private HashMap<Integer, NBTTagCompound> tileEntityData;
   private HashMap<Integer, LinkedList<NBTTagCompound>> entityData;
+
+  private VoxelSelection voxelsWithStoredData;                        // each set voxel corresponds to a block with valid data.
 //  private VoxelSelection selectedRegion;                            // each set voxel corresponds to a valid block location in the store
 //  private VoxelSelection borderMaskSelection;                       // each set voxel corresponds to a block which is not in the voxelselection but is potentially affected by it.
 //  private VoxelSelection affectedNeighbours;                        // each set voxel corresponds to a block in the borderMask which was affected by the placement.
