@@ -3,6 +3,9 @@ package speedytools.serverside;
 import net.minecraft.world.WorldServer;
 import speedytools.clientside.selections.VoxelSelection;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * User: The Grey Ghost
  * Date: 27/05/2014
@@ -66,26 +69,57 @@ public class WorldSelectionUndo
       }
     }
     changedBlocksMask = expandedSelection;
-
   }
 
-
-  /**
-   * Read a section of the world into the WorldSelectionUndo.
-   * If the voxel selection is defined, only reads those voxels, otherwise reads the entire block
-   * @param worldServer
-   */
-  public void readFromWorld(WorldServer worldServer)
+  public void undoChanges(WorldServer worldServer, List<WorldSelectionUndo> undoLayers)
   {
+    /* algorithm is:
+       1) remove undoLayers which don't overlap the undoWorldFragment at all (quick cull on x,y,z extents)
+       2) for each voxel in the undoWorldFragment, check if any subsequent undo layers overwrite it.
+          if yes: change that undo layer voxel
+          if no: set that voxel in the write mask
+       3) write the undo data to the world using the write mask (of voxels not overlapped by any other layers.)
+     */
+    LinkedList<WorldSelectionUndo> culledUndoLayers = new LinkedList<WorldSelectionUndo>();
 
-    undoWorldFragment.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, );
+    for (WorldSelectionUndo undoLayer : undoLayers) {
+      if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
+          && wyOfOrigin <= undoLayer.wyOfOrigin + undoLayer.undoWorldFragment.getyCount()
+          && wzOfOrigin <= undoLayer.wzOfOrigin + undoLayer.undoWorldFragment.getzCount()
+          && wxOfOrigin + undoWorldFragment.getxCount() >= undoLayer.wxOfOrigin
+          && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
+          && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
+         ) {
+        culledUndoLayers.add(undoLayer);
+      }
+    }
+
+    VoxelSelection worldWriteMask = new VoxelSelection(undoWorldFragment.getxCount(), undoWorldFragment.getyCount(), undoWorldFragment.getzCount());
+
+    for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
+      for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
+        for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
+           boolean writeVoxelToWorld = true;
+           for (WorldSelectionUndo undoLayer : culledUndoLayers) {
+             if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                                                      y + wyOfOrigin - undoLayer.wyOfOrigin,
+                                                      z + wzOfOrigin - undoLayer.wzOfOrigin)) {
+               writeVoxelToWorld = false;
+               undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                                                             y + wyOfOrigin - undoLayer.wyOfOrigin,
+                                                             z + wzOfOrigin - undoLayer.wzOfOrigin,
+                                                             this.undoWorldFragment, x, y, z);
+               break;
+             }
+           }
+           if (writeVoxelToWorld) {
+             worldWriteMask.setVoxel(x, y, z);
+           }
+        }
+      }
+    }
+    undoWorldFragment.writeToWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, worldWriteMask);
   }
-
-  public void checkNeighboursForChanges(int wx, int wy, int wz)
-  {
-
-  }
-
 
   private WorldFragment undoWorldFragment;
 //  private VoxelSelection borderMask;

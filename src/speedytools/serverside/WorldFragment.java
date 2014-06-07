@@ -234,6 +234,11 @@ public class WorldFragment
     return voxelsWithStoredData;
   }
 
+  public boolean getVoxel(int x, int y, int z)
+  {
+    return voxelsWithStoredData.getVoxel(x, y, z);
+  }
+
   /**
    * Read a section of the world into the WorldFragment.
    * If the voxel selection is defined, only reads those voxels, otherwise reads the entire block
@@ -360,7 +365,7 @@ public class WorldFragment
           chunk.removeChunkBlockTileEntity(wx & 0x0f, wy, wz & 0x0f);
           boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
           if (successful && tileEntityNBT != null) {
-            setTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
+            setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
           }
         }
       }
@@ -517,7 +522,7 @@ public class WorldFragment
    * @param world the world
    * @param nbtTagCompound the NBT for the tile entity (if null - do nothing)
    */
-  private void setTileEntity(World world, int wx, int wy, int wz, NBTTagCompound nbtTagCompound) {
+  private void setWorldTileEntity(World world, int wx, int wy, int wz, NBTTagCompound nbtTagCompound) {
     if (nbtTagCompound != null) {
       changeTileEntityNBTposition(nbtTagCompound, wx, wy, wz);
       TileEntity tileEntity = TileEntity.createAndLoadEntity(nbtTagCompound);
@@ -576,6 +581,30 @@ public class WorldFragment
       }
     }
     return true;
+  }
+
+  /**
+   * copy the contents of the source voxel into this fragment, at the indicated destination
+   * @param xDest
+   * @param yDest
+   * @param zDest
+   * @param sourceFragment
+   * @param xSrc
+   * @param ySrc
+   * @param zSrc
+   */
+  public void copyVoxelContents(int xDest, int yDest, int zDest,
+                                WorldFragment sourceFragment, int xSrc, int ySrc, int zSrc)
+  {
+    this.setBlockID(xDest, yDest, zDest, sourceFragment.getBlockID(xSrc, ySrc, zSrc));
+    this.setMetadata(xDest, yDest, zDest, sourceFragment.getMetadata(xSrc, ySrc, zSrc));
+    this.setTileEntityData(xDest, yDest, zDest, sourceFragment.getTileEntityData(xSrc, ySrc, zSrc));
+    final int offsetDest =   yDest * xCount * zCount
+                            + zDest * xCount
+                            + xDest;
+    LinkedList<NBTTagCompound> entitiesAtThisBlock;
+    entitiesAtThisBlock = sourceFragment.getEntitiesAtBlock(xSrc, ySrc, zSrc);
+    entityData.put(offsetDest, entitiesAtThisBlock);
   }
 
   /**
