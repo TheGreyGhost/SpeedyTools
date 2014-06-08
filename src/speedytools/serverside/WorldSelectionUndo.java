@@ -106,22 +106,24 @@ public class WorldSelectionUndo
     for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
       for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
         for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
-           boolean writeVoxelToWorld = true;
-           for (WorldSelectionUndo undoLayer : culledUndoLayers) {
-             if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
-                                                      y + wyOfOrigin - undoLayer.wyOfOrigin,
-                                                      z + wzOfOrigin - undoLayer.wzOfOrigin)) {
-               writeVoxelToWorld = false;
-               undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
-                                                             y + wyOfOrigin - undoLayer.wyOfOrigin,
-                                                             z + wzOfOrigin - undoLayer.wzOfOrigin,
-                                                             this.undoWorldFragment, x, y, z);
-               break;
-             }
-           }
-           if (writeVoxelToWorld) {
-             worldWriteMask.setVoxel(x, y, z);
-           }
+          if (changedBlocksMask.getVoxel(x, y, z)) {
+            boolean writeVoxelToWorld = true;
+            for (WorldSelectionUndo undoLayer : culledUndoLayers) {
+              if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                      y + wyOfOrigin - undoLayer.wyOfOrigin,
+                      z + wzOfOrigin - undoLayer.wzOfOrigin)) {
+                writeVoxelToWorld = false;
+                undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                        y + wyOfOrigin - undoLayer.wyOfOrigin,
+                        z + wzOfOrigin - undoLayer.wzOfOrigin,
+                        this.undoWorldFragment, x, y, z);
+                break;
+              }
+            }
+            if (writeVoxelToWorld) {
+              worldWriteMask.setVoxel(x, y, z);
+            }
+          }
         }
       }
     }

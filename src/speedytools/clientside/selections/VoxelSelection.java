@@ -176,7 +176,7 @@ public class VoxelSelection
       for (int y = 0; y < ysize; ++y) {
         for (int z = 0; z < zsize; ++z) {
           if (getVoxel(x,y,z)) {
-            setVoxel(x + borderWidth, y + borderWidth, z + borderWidth);
+            copy.setVoxel(x + borderWidth, y + borderWidth, z + borderWidth);
           }
         }
       }
@@ -216,14 +216,9 @@ public class VoxelSelection
   public boolean containsAllOfThisMask(VoxelSelection voxelSelection)
   {
     assert(voxelSelection.xsize == this.xsize && voxelSelection.ysize == this.ysize && voxelSelection.zsize == this.zsize);
-    try {
-      BitSet maskBitsNotInThis = (BitSet) voxelSelection.clone();
-      maskBitsNotInThis.andNot(this.voxels);
-      return maskBitsNotInThis.size() == 0;
-    } catch (CloneNotSupportedException e) {
-      assert false : "Bitset wouldn't clone";
-      return false;
-    }
+    BitSet maskBitsNotInThis = (BitSet)voxelSelection.voxels.clone();
+    maskBitsNotInThis.andNot(this.voxels);
+    return maskBitsNotInThis.length() == 0;
   }
 
   /**

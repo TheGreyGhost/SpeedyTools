@@ -350,22 +350,26 @@ public class WorldFragment
       }
     }
 
+    //todo: keep track of dirty chunks here
+
     for (int y = 0; y < yCount; ++y) {
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
-          int wx = x + wxOrigin;
-          int wy = y + wyOrigin;
-          int wz = z + wzOrigin;
-          int blockID = getBlockID(x, y, z);
-          int blockMetadata = getMetadata(x, y, z);
-          NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
+          if (selection.getVoxel(x, y, z)) {
+            int wx = x + wxOrigin;
+            int wy = y + wyOrigin;
+            int wz = z + wzOrigin;
+            int blockID = getBlockID(x, y, z);
+            int blockMetadata = getMetadata(x, y, z);
+            NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
 
-          Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+            Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
 
-          chunk.removeChunkBlockTileEntity(wx & 0x0f, wy, wz & 0x0f);
-          boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
-          if (successful && tileEntityNBT != null) {
-            setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
+            chunk.removeChunkBlockTileEntity(wx & 0x0f, wy, wz & 0x0f);
+            boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
+            if (successful && tileEntityNBT != null) {
+              setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
+            }
           }
         }
       }
@@ -430,20 +434,22 @@ public class WorldFragment
         for (int x = xmin; x <= xmax; ++x) {
           for (int y = ymin; y <= ymax; ++y) {
             for (int z = zmin; z <= zmax; ++z) {
-              TileEntity tileEntity = worldServer.getBlockTileEntity(x, y, z);
-              if (tileEntity != null) {
-                Packet tilePacket = tileEntity.getDescriptionPacket();
-                if (tilePacket != null) {
-                  playerinstance.sendToAllPlayersWatchingChunk(tilePacket);
+              if (selection.getVoxel(x - wxOrigin, y - wyOrigin, z - wzOrigin)) {
+                TileEntity tileEntity = worldServer.getBlockTileEntity(x, y, z);
+                if (tileEntity != null) {
+                  Packet tilePacket = tileEntity.getDescriptionPacket();
+                  if (tilePacket != null) {
+                    playerinstance.sendToAllPlayersWatchingChunk(tilePacket);
+                  }
                 }
-              }
-              LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(x - wxOrigin, y - wyOrigin, z - wzOrigin);
-              if (listOfEntitiesAtThisBlock != null) {
-                for (NBTTagCompound nbtTagCompound : listOfEntitiesAtThisBlock) {
-                  changeHangingEntityNBTposition(nbtTagCompound, x, y, z);
-                  Entity newEntity = EntityList.createEntityFromNBT(nbtTagCompound, worldServer);
-                  if (newEntity != null) {
-                    worldServer.spawnEntityInWorld(newEntity);
+                LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(x - wxOrigin, y - wyOrigin, z - wzOrigin);
+                if (listOfEntitiesAtThisBlock != null) {
+                  for (NBTTagCompound nbtTagCompound : listOfEntitiesAtThisBlock) {
+                    changeHangingEntityNBTposition(nbtTagCompound, x, y, z);
+                    Entity newEntity = EntityList.createEntityFromNBT(nbtTagCompound, worldServer);
+                    if (newEntity != null) {
+                      worldServer.spawnEntityInWorld(newEntity);
+                    }
                   }
                 }
               }
@@ -456,12 +462,14 @@ public class WorldFragment
     for (int y = 0; y < yCount; ++y) {
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
-          int wx = x + wxOrigin;
-          int wy = y + wyOrigin;
-          int wz = z + wzOrigin;
-          int blockID = getBlockID(x, y, z);
-          if (blockID > 0) {
-            Block.blocksList[blockID].updateTick(worldServer, wx, wy, wz, worldServer.rand);
+          if (selection.getVoxel(x, y, z)) {
+            int wx = x + wxOrigin;
+            int wy = y + wyOrigin;
+            int wz = z + wzOrigin;
+            int blockID = getBlockID(x, y, z);
+            if (blockID > 0) {
+              Block.blocksList[blockID].updateTick(worldServer, wx, wy, wz, worldServer.rand);
+            }
           }
         }
       }

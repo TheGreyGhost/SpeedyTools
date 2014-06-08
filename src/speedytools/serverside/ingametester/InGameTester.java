@@ -11,6 +11,10 @@ import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.serverside.WorldFragment;
+import speedytools.serverside.WorldSelectionUndo;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * User: The Grey Ghost
@@ -52,6 +56,9 @@ public class InGameTester
         case 2: success = performTest2(performTest); break;
         case 3: success = performTest3(performTest); break;
         case 4: success = performTest4(performTest); break;
+        case 5: success = performTest5(performTest); break;
+        case 6: success = performTest6(performTest); break;
+        case 7: success = performTest7(performTest); break;
       }
 
       if (performTest) {
@@ -86,89 +93,214 @@ public class InGameTester
   {
     final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -8;
     final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
-    return standardCopyAndTest(performTest,  true, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
+    return standardCopyAndTest(performTest, true, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
+  }
+
+  /**
+   *  Test5:  use WorldSelectionUndo to copy a cuboid fragment
+   */
+  public boolean performTest5(boolean performTest)
+  {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -17;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    TestRegions testRegions = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, false);
+    if (!performTest) {
+      testRegions.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      return true;
+    }
+
+    WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+
+    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ);
+
+    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+  }
+
+  // Test7: simple undo to troubleshoot a problem with masks
+  public boolean performTest7(boolean performTest)
+  {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -35;
+    final int XSIZE = 3; final int YSIZE = 3; final int ZSIZE = 3;
+    TestRegions testRegions = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, true);
+    if (!performTest) {
+      testRegions.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentInitial = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragmentInitial.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      return true;
+    }
+
+    WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize-2, testRegions.ySize, testRegions.zSize-2);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX+1, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ+1, null);
+
+    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.posX+1, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ+1);
+    List<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
+    worldSelectionUndo.undoChanges(worldServer, undoLayers);
+
+    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+  }
+
+  // Test6: more complicated undo
+  public boolean performTest6(boolean performTest)
+  {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -26;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    TestRegions testRegions = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, true);
+    if (!performTest) {
+      testRegions.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentInitial = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragmentInitial.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+//      worldFragmentInitial.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+      return true;
+    }
+
+    WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize-2, testRegions.ySize, testRegions.zSize-2);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX+1, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ+1, null);
+
+    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.posX+1, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ+1);
+    List<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
+    worldSelectionUndo.undoChanges(worldServer, undoLayers);
+
+    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
   }
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
                                      int xOrigin, int yOrigin, int zOrigin, int xSize, int ySize, int zSize)
   {
-    ChunkCoordinates sourceRegion = new ChunkCoordinates(xOrigin, yOrigin, zOrigin);
-    ChunkCoordinates expectedOutcome = expectedMatchesSource ? null : new ChunkCoordinates(xOrigin + 1*(xSize + 2), yOrigin, zOrigin);
-    ChunkCoordinates testOutputRegion = new ChunkCoordinates(xOrigin + 2*(xSize + 2), yOrigin, zOrigin);
-    ChunkCoordinates testRegionInitialiser = new ChunkCoordinates(xOrigin + 3*(xSize + 2), yOrigin, zOrigin);
-    return copyAndTestRegion(performTest, testRegionInitialiser, sourceRegion, expectedOutcome, testOutputRegion, xSize, ySize, zSize);
+    TestRegions testRegions = new TestRegions(xOrigin, yOrigin, zOrigin, xSize, ySize, zSize, !expectedMatchesSource);
+    return copyAndTestRegion(performTest, testRegions);
   }
 
-  public boolean copyAndTestRegion(boolean performTest,
-                                   ChunkCoordinates testRegionInitialiser,
-                                   ChunkCoordinates sourceRegion,
-                                   ChunkCoordinates expectedOutcome,
-                                   ChunkCoordinates testOutputRegion,
-                                   int xSize, int ySize, int zSize)
+  public boolean copyAndTestRegion(boolean performTest, TestRegions testRegions)
   {
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
 
     if (!performTest) {
-      final int WOOL_BLUE_COLOUR_ID = 2;
-      final int WOOL_PURPLE_COLOUR_ID = 3;
-      final int WOOL_YELLOW_COLOUR_ID = 4;
-      final int WOOL_GREEN_COLOUR_ID = 5;
-      drawTestRegionBoundaries(Block.cloth.blockID, WOOL_BLUE_COLOUR_ID, testRegionInitialiser, xSize, ySize, zSize);
-      drawTestRegionBoundaries(Block.cloth.blockID, WOOL_PURPLE_COLOUR_ID, sourceRegion, xSize, ySize, zSize);
-      if (expectedOutcome != null) drawTestRegionBoundaries(Block.cloth.blockID, WOOL_YELLOW_COLOUR_ID, expectedOutcome, xSize, ySize, zSize);
-      drawTestRegionBoundaries(Block.cloth.blockID, WOOL_GREEN_COLOUR_ID, testOutputRegion, xSize, ySize, zSize);
-      WorldFragment worldFragmentBlank = new WorldFragment(xSize, ySize, zSize);
-      worldFragmentBlank.readFromWorld(worldServer, testRegionInitialiser.posX, testRegionInitialiser.posY, testRegionInitialiser.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testOutputRegion.posX, testOutputRegion.posY, testOutputRegion.posZ, null);
+      testRegions.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
       return true;
     } else {
-      if (expectedOutcome == null) expectedOutcome = sourceRegion;
-      WorldFragment worldFragment = new WorldFragment(xSize, ySize, zSize);
-      worldFragment.readFromWorld(worldServer, sourceRegion.posX, sourceRegion.posY, sourceRegion.posZ, null);
-      worldFragment.writeToWorld(worldServer,testOutputRegion.posX, testOutputRegion.posY, testOutputRegion.posZ, null);
+      ChunkCoordinates expectedOutcome = (testRegions.expectedOutcome == null) ? testRegions.sourceRegion : testRegions.expectedOutcome;
+      WorldFragment worldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+      worldFragment.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
 
-      WorldFragment worldFragmentExpectedOutcome = new WorldFragment(xSize, ySize, zSize);
+      WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
       worldFragmentExpectedOutcome.readFromWorld(worldServer, expectedOutcome.posX, expectedOutcome.posY, expectedOutcome.posZ, null);
-      WorldFragment worldFragmentActualOutcome = new WorldFragment(xSize, ySize, zSize);
-      worldFragmentActualOutcome.readFromWorld(worldServer, testOutputRegion.posX, testOutputRegion.posY, testOutputRegion.posZ, null);
+      WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
       return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
     }
 
   }
 
-  /**
-   * sets up a block boundary for this test.  The parameters give the test region, the boundary will be drawn adjacent to the test region
-   * @param origin origin of the test region
-   * @param xSize
-   * @param ySize
-   * @param zSize
-   */
-  public void drawTestRegionBoundaries(int boundaryBlockID, int boundaryMetadata,
-                                       ChunkCoordinates origin,
-                                       int xSize, int ySize, int zSize)
+  public static class TestRegions
   {
-    int wOriginX = origin.posX;
-    int wOriginY = origin.posY;
-    int wOriginZ = origin.posZ;
-    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
-    int wy = wOriginY - 1;
-    for (int x = -1; x <= xSize; ++x) {
-      worldServer.setBlock(x + wOriginX, wy, wOriginZ - 1, boundaryBlockID, boundaryMetadata, 1 + 2);
-      worldServer.setBlock(x + wOriginX, wy, wOriginZ + zSize, boundaryBlockID, boundaryMetadata, 1 + 2);
+    /**
+     * Generate a new set of four test regions from the given origin and size information
+     * @param xOrigin
+     * @param yOrigin
+     * @param zOrigin
+     * @param i_xSize
+     * @param i_ySize
+     * @param i_zSize
+     * @param hasExpectedOutcomeRegion
+     */
+    public TestRegions(int xOrigin, int yOrigin, int zOrigin, int i_xSize, int i_ySize, int i_zSize, boolean hasExpectedOutcomeRegion)
+    {
+      sourceRegion = new ChunkCoordinates(xOrigin, yOrigin, zOrigin);
+      expectedOutcome = !hasExpectedOutcomeRegion ? null : new ChunkCoordinates(xOrigin + 1*(i_xSize + 2), yOrigin, zOrigin);
+      testOutputRegion = new ChunkCoordinates(xOrigin + 2*(i_xSize + 2), yOrigin, zOrigin);
+      testRegionInitialiser = new ChunkCoordinates(xOrigin + 3*(i_xSize + 2), yOrigin, zOrigin);
+      xSize = i_xSize;
+      ySize = i_ySize;
+      zSize = i_zSize;
     }
 
-    for (int z = -1; z <= zSize; ++z) {
-      worldServer.setBlock(wOriginX - 1, wy, z + wOriginZ, boundaryBlockID, boundaryMetadata, 1 + 2);
-      worldServer.setBlock(wOriginX + xSize, wy, z + wOriginZ, boundaryBlockID, boundaryMetadata, 1 + 2);
+    /**
+     * draw all of the test region boundaries for this test
+     */
+    public void drawAllTestRegionBoundaries()
+    {
+      final int WOOL_BLUE_COLOUR_ID = 2;
+      final int WOOL_PURPLE_COLOUR_ID = 3;
+      final int WOOL_YELLOW_COLOUR_ID = 4;
+      final int WOOL_GREEN_COLOUR_ID = 5;
+      drawSingleTestRegionBoundaries(Block.cloth.blockID, WOOL_BLUE_COLOUR_ID, testRegionInitialiser);
+      drawSingleTestRegionBoundaries(Block.cloth.blockID, WOOL_PURPLE_COLOUR_ID, sourceRegion);
+      if (expectedOutcome != null) drawSingleTestRegionBoundaries(Block.cloth.blockID, WOOL_YELLOW_COLOUR_ID, expectedOutcome);
+      drawSingleTestRegionBoundaries(Block.cloth.blockID, WOOL_GREEN_COLOUR_ID, testOutputRegion);
     }
 
-    for (int y = 0; y < ySize; ++y) {
-      worldServer.setBlock(    wOriginX - 1, y + wOriginY,     wOriginZ - 1, boundaryBlockID, boundaryMetadata, 1 + 2);
-      worldServer.setBlock(wOriginX + xSize, y + wOriginY,     wOriginZ - 1, boundaryBlockID, boundaryMetadata, 1 + 2);
-      worldServer.setBlock(    wOriginX - 1, y + wOriginY, wOriginZ + zSize, boundaryBlockID, boundaryMetadata, 1 + 2);
-      worldServer.setBlock(wOriginX + xSize, y + wOriginY, wOriginZ + zSize, boundaryBlockID, boundaryMetadata, 1 + 2);
+    /**
+     * sets up a block boundary for this test.  The parameters give the test region, the boundary will be drawn adjacent to the test region
+     * @param origin origin of the test region
+     */
+    public void drawSingleTestRegionBoundaries(int boundaryBlockID, int boundaryMetadata,
+                                               ChunkCoordinates origin)
+    {
+      int wOriginX = origin.posX;
+      int wOriginY = origin.posY;
+      int wOriginZ = origin.posZ;
+      WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+      int wy = wOriginY - 1;
+      for (int x = -1; x <= xSize; ++x) {
+        worldServer.setBlock(x + wOriginX, wy, wOriginZ - 1, boundaryBlockID, boundaryMetadata, 1 + 2);
+        worldServer.setBlock(x + wOriginX, wy, wOriginZ + zSize, boundaryBlockID, boundaryMetadata, 1 + 2);
+      }
+
+      for (int z = -1; z <= zSize; ++z) {
+        worldServer.setBlock(wOriginX - 1, wy, z + wOriginZ, boundaryBlockID, boundaryMetadata, 1 + 2);
+        worldServer.setBlock(wOriginX + xSize, wy, z + wOriginZ, boundaryBlockID, boundaryMetadata, 1 + 2);
+      }
+
+      for (int y = 0; y < ySize; ++y) {
+        worldServer.setBlock(    wOriginX - 1, y + wOriginY,     wOriginZ - 1, boundaryBlockID, boundaryMetadata, 1 + 2);
+        worldServer.setBlock(wOriginX + xSize, y + wOriginY,     wOriginZ - 1, boundaryBlockID, boundaryMetadata, 1 + 2);
+        worldServer.setBlock(    wOriginX - 1, y + wOriginY, wOriginZ + zSize, boundaryBlockID, boundaryMetadata, 1 + 2);
+        worldServer.setBlock(wOriginX + xSize, y + wOriginY, wOriginZ + zSize, boundaryBlockID, boundaryMetadata, 1 + 2);
+      }
     }
+
+    public ChunkCoordinates testRegionInitialiser;
+    public ChunkCoordinates sourceRegion;
+    public ChunkCoordinates expectedOutcome;
+    public ChunkCoordinates testOutputRegion;
+    public int xSize;
+    public int ySize;
+    public int zSize;
   }
+
 
   public class PacketHandlerSpeedyIngameTester implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
