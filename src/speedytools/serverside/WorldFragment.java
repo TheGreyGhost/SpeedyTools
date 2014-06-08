@@ -488,14 +488,21 @@ public class WorldFragment
    */
   public static NBTTagCompound changeHangingEntityNBTposition(NBTTagCompound nbtTagCompound, int wx, int wy, int wz)
   {
+    int oldPosX = nbtTagCompound.getInteger("TileX");
+    int oldPosY = nbtTagCompound.getInteger("TileY");
+    int oldPosZ = nbtTagCompound.getInteger("TileZ");
+    int deltaX = wx - oldPosX;
+    int deltaY = wy - oldPosY;
+    int deltaZ = wz - oldPosZ;
+
     NBTTagList nbttaglist = nbtTagCompound.getTagList("Pos");
     double oldX = ((NBTTagDouble)nbttaglist.tagAt(0)).data;
     double oldY = ((NBTTagDouble)nbttaglist.tagAt(1)).data;
     double oldZ = ((NBTTagDouble)nbttaglist.tagAt(2)).data;
 
-    double newX = wx + (oldX - Math.floor(oldX));
-    double newY = wy + (oldY - Math.floor(oldY));
-    double newZ = wz + (oldZ - Math.floor(oldZ));
+    double newX = oldX + deltaX;
+    double newY = oldY + deltaY;
+    double newZ = oldZ + deltaZ;
 
     NBTTagList newPositionNBT = new NBTTagList();
     newPositionNBT.appendTag(new NBTTagDouble((String) null, newX));
@@ -503,16 +510,9 @@ public class WorldFragment
     newPositionNBT.appendTag(new NBTTagDouble((String) null, newZ));
     nbtTagCompound.setTag("Pos", newPositionNBT);
 
-    int oldPosX = nbtTagCompound.getInteger("TileX");
-    int oldPosY = nbtTagCompound.getInteger("TileY");
-    int oldPosZ = nbtTagCompound.getInteger("TileZ");
-    long newPosX = oldPosX + Math.round(newX - oldX);
-    long newPosY = oldPosY + Math.round(newY - oldY);
-    long newPosZ = oldPosZ + Math.round(newZ - oldZ);
-
-    nbtTagCompound.setInteger("TileX", (int)newPosX);
-    nbtTagCompound.setInteger("TileY", (int)newPosY);
-    nbtTagCompound.setInteger("TileZ", (int)newPosZ);
+    nbtTagCompound.setInteger("TileX", wx);
+    nbtTagCompound.setInteger("TileY", wy);
+    nbtTagCompound.setInteger("TileZ", wz);
 
     return nbtTagCompound;
   }
