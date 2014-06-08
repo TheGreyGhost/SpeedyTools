@@ -305,7 +305,7 @@ public class WorldFragment
 
   /**
    * Write the WorldFragment to the world
-   * If the voxel selection and bordermaskSelection are defined, only reads those voxels, otherwise reads the entire block
+   * If the voxel selection and bordermaskSelection are defined, only writes those voxels, otherwise writes the entire cuboid
    * @param worldServer
    * @param wxOrigin the world x coordinate corresponding to the [0,0,0] corner of the WorldFragment
    * @param wyOrigin the world y coordinate corresponding to the [0,0,0] corner of the WorldFragment

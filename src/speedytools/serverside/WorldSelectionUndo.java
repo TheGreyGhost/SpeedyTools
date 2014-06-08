@@ -12,11 +12,12 @@ import java.util.List;
  * Stores the undo data (block ID, metadata, NBT (TileEntity) data, and Entity data) for a voxel selection.
  *
  * Typical usage:
- * (1) Create a WorldSelectionUndo from VoxelSelection
- * (2)  readFromWorld() to read the blockStore from the world
- * (3) various get() and set() to manipulate the blockStore contents
- * (4) writeToWorld() to write the blockStore into the world and return an undo WorldFragment
- * (5) undoWriteToWorld() to undo a previous write
+ * (1) Create an empty WorldSelectionUndo
+ * (2) writeToWorld() to write the supplied WorldFragment and store the undo information
+ * (3) undoChanges() to roll back the changes made in writeToWorld.  Should be supplied with a list
+ *       of WorldSelectionUndo objects that were performed after this one, so that their undo information
+ *       can be updated.
+ * (4) deleteUndoLayer to remove an undoLayer from the middle of a list of undoLayers
  */
 public class WorldSelectionUndo
 {
@@ -62,7 +63,7 @@ public class WorldSelectionUndo
       for (int x = 0; x < borderMask.getXsize(); ++x) {
         for (int z = 0; z < borderMask.getZsize(); ++z) {
           if (borderMask.getVoxel(x, y, z)
-              && borderFragmentAfterWrite.doesVoxelMatch(borderFragmentAfterWrite, x, y, z)) {
+              && borderFragmentAfterWrite.doesVoxelMatch(undoWorldFragment, x, y, z)) {
             expandedSelection.clearVoxel(x, y, z);
           }
         }
@@ -71,6 +72,12 @@ public class WorldSelectionUndo
     changedBlocksMask = expandedSelection;
   }
 
+  /**
+   * un-does the changes previously made by this WorldSelectionUndo, taking into account any subsequent
+   *   undo layers which overlap this one
+   * @param worldServer
+   * @param undoLayers the list of subsequent undo layers
+   */
   public void undoChanges(WorldServer worldServer, List<WorldSelectionUndo> undoLayers)
   {
     /* algorithm is:
@@ -121,9 +128,53 @@ public class WorldSelectionUndo
     undoWorldFragment.writeToWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, worldWriteMask);
   }
 
+  /**
+   * deletes this UndoLayer from the list;
+   * (integrates this undoLayer into any Layers that overlap it)
+   * @param undoLayers the list of subsequent undo layers
+   */
+  public void deleteUndoLayer(List<WorldSelectionUndo> undoLayers)
+  {
+    /* algorithm is:
+       1) remove undoLayers which don't overlap the undoWorldFragment at all (quick cull on x,y,z extents)
+       2) for each voxel in the undoWorldFragment, check if any subsequent undo layers overwrite it.
+          if yes: change that undo layer voxel
+          if no: do nothing
+     */
+    LinkedList<WorldSelectionUndo> culledUndoLayers = new LinkedList<WorldSelectionUndo>();
+
+    for (WorldSelectionUndo undoLayer : undoLayers) {
+      if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
+              && wyOfOrigin <= undoLayer.wyOfOrigin + undoLayer.undoWorldFragment.getyCount()
+              && wzOfOrigin <= undoLayer.wzOfOrigin + undoLayer.undoWorldFragment.getzCount()
+              && wxOfOrigin + undoWorldFragment.getxCount() >= undoLayer.wxOfOrigin
+              && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
+              && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
+              ) {
+        culledUndoLayers.add(undoLayer);
+      }
+    }
+
+    for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
+      for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
+        for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
+          for (WorldSelectionUndo undoLayer : culledUndoLayers) {
+            if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                    y + wyOfOrigin - undoLayer.wyOfOrigin,
+                    z + wzOfOrigin - undoLayer.wzOfOrigin)) {
+              undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                      y + wyOfOrigin - undoLayer.wyOfOrigin,
+                      z + wzOfOrigin - undoLayer.wzOfOrigin,
+                      this.undoWorldFragment, x, y, z);
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
   private WorldFragment undoWorldFragment;
-//  private VoxelSelection borderMask;
-//  private VoxelSelection
   private VoxelSelection changedBlocksMask;
   private int wxOfOrigin;
   private int wyOfOrigin;
