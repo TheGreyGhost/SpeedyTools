@@ -6,7 +6,9 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
+import speedytools.clientside.selections.VoxelSelection;
 import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
@@ -59,6 +61,8 @@ public class InGameTester
         case 5: success = performTest5(performTest); break;
         case 6: success = performTest6(performTest); break;
         case 7: success = performTest7(performTest); break;
+        case 8: success = performTest8(performTest); break;
+        case 9: success = performTest9(performTest); break;
       }
 
       if (performTest) {
@@ -192,6 +196,122 @@ public class InGameTester
     return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
   }
 
+  /**
+   *  Test8:  use WorldSelectionUndo with a selection mask to copy a fragment
+   */
+  public boolean performTest8(boolean performTest)
+  {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -44;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    TestRegions testRegions = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, true);
+    if (!performTest) {
+      testRegions.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      return true;
+    }
+
+    VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegions.sourceRegion, testRegions.xSize, testRegions.ySize, testRegions.zSize);
+
+    WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
+
+    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ);
+
+    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+  }
+
+  // Test9: two placements, undo the first placement, then undo the second placement
+  //  takes up two test bays:
+  //  the initialiser is the same in both
+  //  the source Region is different, region1 is applied first then region 2
+  //  the output Regions are 1: undo first only, 2: both undone
+  public boolean performTest9(boolean performTest)
+  {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -53;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    TestRegions testRegions1 = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, true);
+    TestRegions testRegions2 = new TestRegions(XORIGIN, YORIGIN, ZORIGIN - 9, XSIZE, YSIZE, ZSIZE, true);
+    if (!performTest) {
+      testRegions1.drawAllTestRegionBoundaries();
+      testRegions2.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentInitial = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
+      worldFragmentInitial.readFromWorld(worldServer, testRegions1.testRegionInitialiser.posX, testRegions1.testRegionInitialiser.posY, testRegions1.testRegionInitialiser.posZ, null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions2.testOutputRegion.posX, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ, null);
+
+      worldFragmentInitial.writeToWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
+
+      ChunkCoordinates sourceFragOrigin = new ChunkCoordinates(testRegions2.sourceRegion);
+      sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
+      VoxelSelection voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
+      WorldFragment sourceWorldFragment2 = new WorldFragment(testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
+      sourceWorldFragment2.readFromWorld(worldServer, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
+      sourceWorldFragment2.writeToWorld(worldServer, testRegions1.expectedOutcome.posX+1,  testRegions1.expectedOutcome.posY,  testRegions1.expectedOutcome.posZ+1, null);
+//      worldFragmentInitial.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+      return true;
+    }
+
+    ChunkCoordinates sourceFragOrigin = new ChunkCoordinates(testRegions1.sourceRegion);
+    sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
+    VoxelSelection voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions1.xSize-2, testRegions1.ySize, testRegions1.zSize-2);
+    WorldFragment sourceWorldFragment1 = new WorldFragment(testRegions1.xSize-2, testRegions1.ySize, testRegions1.zSize-2);
+    sourceWorldFragment1.readFromWorld(worldServer, testRegions1.sourceRegion.posX+1, testRegions1.sourceRegion.posY, testRegions1.sourceRegion.posZ+1, voxelSelection);
+
+    sourceFragOrigin = new ChunkCoordinates(testRegions2.sourceRegion);
+    sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
+    voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
+    WorldFragment sourceWorldFragment2 = new WorldFragment(testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
+    sourceWorldFragment2.readFromWorld(worldServer, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
+
+    List<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
+    WorldSelectionUndo worldSelectionUndo1 = new WorldSelectionUndo();
+    worldSelectionUndo1.writeToWorld(worldServer, sourceWorldFragment1, testRegions1.testOutputRegion.posX + 1, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ + 1);
+    WorldSelectionUndo worldSelectionUndo2 = new WorldSelectionUndo();
+    worldSelectionUndo2.writeToWorld(worldServer, sourceWorldFragment2, testRegions1.testOutputRegion.posX+1, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ+1);
+    undoLayers.add(worldSelectionUndo2);
+    worldSelectionUndo1.undoChanges(worldServer, undoLayers);
+
+    undoLayers = new LinkedList<WorldSelectionUndo>();
+    worldSelectionUndo1 = new WorldSelectionUndo();
+    worldSelectionUndo1.writeToWorld(worldServer, sourceWorldFragment1, testRegions2.testOutputRegion.posX+1, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ+1);
+    worldSelectionUndo2 = new WorldSelectionUndo();
+    worldSelectionUndo2.writeToWorld(worldServer, sourceWorldFragment2, testRegions2.testOutputRegion.posX+1, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ+1);
+    undoLayers.add(worldSelectionUndo2);
+    worldSelectionUndo1.undoChanges(worldServer, undoLayers);
+    undoLayers.clear();
+    worldSelectionUndo2.undoChanges(worldServer, undoLayers);
+
+    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
+    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
+    boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+
+    worldFragmentExpectedOutcome = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
+    worldFragmentActualOutcome = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions2.testOutputRegion.posX, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ, null);
+    retval = retval && WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+    return retval;
+  }
+
+  // Test9: two placements, undo the first placement then the second placement
+
+
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
                                      int xOrigin, int yOrigin, int zOrigin, int xSize, int ySize, int zSize)
   {
@@ -223,6 +343,22 @@ public class InGameTester
     }
 
   }
+
+  public VoxelSelection selectAllNonAir(World world, ChunkCoordinates origin, int xSize, int ySize, int zSize)
+  {
+    VoxelSelection retval = new VoxelSelection(xSize, ySize, zSize);
+    for (int zpos = 0; zpos < zSize; ++zpos) {
+      for (int xpos = 0; xpos < xSize; ++xpos) {
+        for (int ypos = 0; ypos < ySize; ++ypos) {
+          if (world.getBlockId(xpos + origin.posX, ypos + origin.posY, zpos + origin.posZ) != 0) {
+            retval.setVoxel(xpos, ypos, zpos);
+          }
+        }
+      }
+    }
+    return retval;
+  }
+
 
   public static class TestRegions
   {
