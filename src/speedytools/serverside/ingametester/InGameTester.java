@@ -38,12 +38,14 @@ public class InGameTester
   public void performTest(int testNumber, boolean performTest)
   {
     final int TEST_ALL = 64;
+    boolean runAllTests = false;
 
     int firsttest = testNumber;
     int lasttest = testNumber;
     if (testNumber == TEST_ALL) {
       firsttest = 1;
       lasttest = 63;
+      runAllTests = true;
     }
 
     for (int i = firsttest; i <= lasttest; ++i) {
@@ -62,7 +64,7 @@ public class InGameTester
         case 6: success = performTest6(performTest); break;
         case 7: success = performTest7(performTest); break;
         case 8: success = performTest8(performTest); break;
-        case 9: success = performTest9(performTest); break;
+        case 9: success = performTest9(performTest, runAllTests); break;
       }
 
       if (performTest) {
@@ -234,7 +236,17 @@ public class InGameTester
   //  the initialiser is the same in both
   //  the source Region is different, region1 is applied first then region 2
   //  the output Regions are 1: undo first only, 2: both undone
-  public boolean performTest9(boolean performTest)
+  //  one step per click
+  // NOTE - this out-of-order undo will not return the world exactly to the start condition:
+  // (1) erases a torch; (2) replaces the support wall for that torch with a ladder;
+  //  undo (1) puts the torch back, but it's now next to a ladder so it breaks; then
+  //  undo (2) replaces the support wall, but not the torch
+  static int whichStep9 = 0;
+  static WorldSelectionUndo worldSelectionUndo1_9;
+  static WorldSelectionUndo worldSelectionUndo2_9;
+  static WorldSelectionUndo worldSelectionUndo3_9;
+  static WorldSelectionUndo worldSelectionUndo4_9;
+  public boolean performTest9(boolean performTest, boolean runAllSteps)
   {
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
 
@@ -250,8 +262,8 @@ public class InGameTester
       worldFragmentInitial.writeToWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
       worldFragmentInitial.writeToWorld(worldServer, testRegions2.testOutputRegion.posX, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ, null);
 
-      worldFragmentInitial.writeToWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
 
       ChunkCoordinates sourceFragOrigin = new ChunkCoordinates(testRegions2.sourceRegion);
       sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
@@ -262,9 +274,11 @@ public class InGameTester
 //      worldFragmentInitial.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
 //      worldFragmentInitial.writeToWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
 //      worldFragmentInitial.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+      whichStep9 = 0;
       return true;
     }
 
+    ++whichStep9;
     ChunkCoordinates sourceFragOrigin = new ChunkCoordinates(testRegions1.sourceRegion);
     sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
     VoxelSelection voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions1.xSize-2, testRegions1.ySize, testRegions1.zSize-2);
@@ -277,36 +291,53 @@ public class InGameTester
     WorldFragment sourceWorldFragment2 = new WorldFragment(testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
     sourceWorldFragment2.readFromWorld(worldServer, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
 
-    List<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
-    WorldSelectionUndo worldSelectionUndo1 = new WorldSelectionUndo();
-    worldSelectionUndo1.writeToWorld(worldServer, sourceWorldFragment1, testRegions1.testOutputRegion.posX + 1, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ + 1);
-    WorldSelectionUndo worldSelectionUndo2 = new WorldSelectionUndo();
-    worldSelectionUndo2.writeToWorld(worldServer, sourceWorldFragment2, testRegions1.testOutputRegion.posX+1, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ+1);
-    undoLayers.add(worldSelectionUndo2);
-    worldSelectionUndo1.undoChanges(worldServer, undoLayers);
+    if (runAllSteps || (whichStep9 == 1)) {
+      worldSelectionUndo1_9 = new WorldSelectionUndo();
+      worldSelectionUndo1_9.writeToWorld(worldServer, sourceWorldFragment1, testRegions1.testOutputRegion.posX + 1, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ + 1);
+    }
+    if (runAllSteps || (whichStep9 == 2)) {
+      worldSelectionUndo2_9 = new WorldSelectionUndo();
+      worldSelectionUndo2_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions1.testOutputRegion.posX + 1, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ + 1);
+    }
 
-    undoLayers = new LinkedList<WorldSelectionUndo>();
-    worldSelectionUndo1 = new WorldSelectionUndo();
-    worldSelectionUndo1.writeToWorld(worldServer, sourceWorldFragment1, testRegions2.testOutputRegion.posX+1, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ+1);
-    worldSelectionUndo2 = new WorldSelectionUndo();
-    worldSelectionUndo2.writeToWorld(worldServer, sourceWorldFragment2, testRegions2.testOutputRegion.posX+1, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ+1);
-    undoLayers.add(worldSelectionUndo2);
-    worldSelectionUndo1.undoChanges(worldServer, undoLayers);
-    undoLayers.clear();
-    worldSelectionUndo2.undoChanges(worldServer, undoLayers);
+    if (runAllSteps || (whichStep9 == 3)) {
+      List<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
+      undoLayers.add(worldSelectionUndo2_9);
+      worldSelectionUndo1_9.undoChanges(worldServer, undoLayers);
+    }
 
-    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
-    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
-    boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+    if (runAllSteps || (whichStep9 == 1)) {
+      worldSelectionUndo3_9 = new WorldSelectionUndo();
+      worldSelectionUndo3_9.writeToWorld(worldServer, sourceWorldFragment1, testRegions2.testOutputRegion.posX + 1, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ + 1);
+    }
+    if (runAllSteps || (whichStep9 == 2)) {
+      worldSelectionUndo4_9 = new WorldSelectionUndo();
+      worldSelectionUndo4_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions2.testOutputRegion.posX + 1, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ + 1);
+    }
+    if (runAllSteps || (whichStep9 == 3)) {
+      LinkedList<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
+      undoLayers.add(worldSelectionUndo4_9);
+      worldSelectionUndo3_9.undoChanges(worldServer, undoLayers);
+    }
+    if (runAllSteps || (whichStep9 == 4)) {
+      LinkedList<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
+      worldSelectionUndo4_9.undoChanges(worldServer, undoLayers);
+    }
+    if (runAllSteps || (whichStep9 >= 5)) {
+      WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
+      WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
+      boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
 
-    worldFragmentExpectedOutcome = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
-    worldFragmentActualOutcome = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions2.testOutputRegion.posX, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ, null);
-    retval = retval && WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
-    return retval;
+      worldFragmentExpectedOutcome = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
+      worldFragmentActualOutcome = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions2.testOutputRegion.posX, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ, null);
+      retval = retval && WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+      return retval;
+    }
+    return false;
   }
 
   // Test9: two placements, undo the first placement then the second placement
