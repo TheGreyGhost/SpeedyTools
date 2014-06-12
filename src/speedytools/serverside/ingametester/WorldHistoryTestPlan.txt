@@ -1,0 +1,24 @@
+New Classes:
+WorldHistory
+  writeToWorldWithUndo
+  performUndo
+  cullUndoLayers
+- test using mocked EntityPlayerMP. WorldServer, and WorldSelectionUndo
+1) Do four writeToWorldWithUndo for the player, check that performUndo does them in correct order with the correct undolist.
+    Check that the last performUndo does nothing (returns false)
+2) Intersperse two different WorldServers and two different players.  Verify that the performUndo calls in correct order with correct undolist
+3) Delete one of the WorldServers and verify that the performUndo doesn't crash
+4) Delete one of the EntityPlayerMP and verify that their undolayers were all culled
+5) Initialise with a small history depth, add a few from different players, and verify that they are deleted oldest first, leaving each player with at least one.
+
+WorldFragment
+  readFromWorld
+  writeToWorld
+- all tested by InGameTester
+
+WorldSelectionUndo
+  deleteUndoLayer
+  writeToWorld
+  readFromWorld
+- all tested by InGameTester
+Still to test: deleteUndoLayer

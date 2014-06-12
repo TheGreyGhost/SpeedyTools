@@ -87,7 +87,7 @@ public class WorldSelectionUndo
           if no: set that voxel in the write mask
        3) write the undo data to the world using the write mask (of voxels not overlapped by any other layers.)
      */
-    LinkedList<WorldSelectionUndo> culledUndoLayers = new LinkedList<WorldSelectionUndo>();
+    LinkedList<WorldSelectionUndo> overlappingUndoLayers = new LinkedList<WorldSelectionUndo>();
 
     for (WorldSelectionUndo undoLayer : undoLayers) {
       if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
@@ -97,7 +97,7 @@ public class WorldSelectionUndo
           && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
           && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
          ) {
-        culledUndoLayers.add(undoLayer);
+        overlappingUndoLayers.add(undoLayer);
       }
     }
 
@@ -108,7 +108,7 @@ public class WorldSelectionUndo
         for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
           if (changedBlocksMask.getVoxel(x, y, z)) {
             boolean writeVoxelToWorld = true;
-            for (WorldSelectionUndo undoLayer : culledUndoLayers) {
+            for (WorldSelectionUndo undoLayer : overlappingUndoLayers) {
               if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
                       y + wyOfOrigin - undoLayer.wyOfOrigin,
                       z + wzOfOrigin - undoLayer.wzOfOrigin)) {
@@ -143,7 +143,7 @@ public class WorldSelectionUndo
           if yes: change that undo layer voxel
           if no: do nothing
      */
-    LinkedList<WorldSelectionUndo> culledUndoLayers = new LinkedList<WorldSelectionUndo>();
+    LinkedList<WorldSelectionUndo> overlappingUndoLayers = new LinkedList<WorldSelectionUndo>();
 
     for (WorldSelectionUndo undoLayer : undoLayers) {
       if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
@@ -153,22 +153,24 @@ public class WorldSelectionUndo
               && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
               && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
               ) {
-        culledUndoLayers.add(undoLayer);
+        overlappingUndoLayers.add(undoLayer);
       }
     }
 
     for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
       for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
         for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
-          for (WorldSelectionUndo undoLayer : culledUndoLayers) {
-            if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
-                    y + wyOfOrigin - undoLayer.wyOfOrigin,
-                    z + wzOfOrigin - undoLayer.wzOfOrigin)) {
-              undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+          if (this.undoWorldFragment.getVoxel(x, y, z)) {
+            for (WorldSelectionUndo undoLayer : overlappingUndoLayers) {
+              if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
                       y + wyOfOrigin - undoLayer.wyOfOrigin,
-                      z + wzOfOrigin - undoLayer.wzOfOrigin,
-                      this.undoWorldFragment, x, y, z);
-              break;
+                      z + wzOfOrigin - undoLayer.wzOfOrigin)){
+                undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                        y + wyOfOrigin - undoLayer.wyOfOrigin,
+                        z + wzOfOrigin - undoLayer.wzOfOrigin,
+                        this.undoWorldFragment, x, y, z);
+                break;
+              }
             }
           }
         }

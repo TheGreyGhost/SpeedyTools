@@ -44,7 +44,7 @@ public class WorldHistory
     cullUndoLayers(maximumDepth);
   }
 
-  /** perform  undo for the given player - finds the last undo that they did in the current WorldServer
+  /** perform undo for the given player - finds the last undo that they did in the current WorldServer
    * @param player
    * @param worldServer
    * @return true for success, or failure if no undo found
@@ -57,6 +57,9 @@ public class WorldHistory
       if (undoLayerInfo.worldServer.get() == worldServer
               && undoLayerInfo.entityPlayerMP.get() == player) {
         LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, worldServer);
+        undoLayerInfo.worldSelectionUndo.undoChanges(worldServer, subsequentUndoLayers);
+        undoLayerInfoIterator.remove();
+        return true;
       }
     }
     return false;
@@ -148,6 +151,4 @@ public class WorldHistory
     WeakReference<EntityPlayerMP>  entityPlayerMP;
     WorldSelectionUndo worldSelectionUndo;
   }
-
-
 }
