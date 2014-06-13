@@ -463,13 +463,15 @@ public class WorldFragment
     for (int cx = cxMin; cx <= cxMax; ++cx) {
       for (int cz = czMin; cz <= czMax; ++cz) {
         PlayerManager playerManager = worldServer.getPlayerManager();
-        PlayerInstance playerinstance = playerManager.getOrCreateChunkWatcher(cx, cz, false);
-        if (playerinstance != null) {
-          Chunk chunk = worldServer.getChunkFromChunkCoords(cx, cz);
-          Packet51MapChunk packet51MapChunk = new Packet51MapChunk(chunk, false, cyFlags);
-          playerinstance.sendToAllPlayersWatchingChunk(packet51MapChunk);
+        PlayerInstance playerInstance = null;
+        if (playerManager != null) {  // may be null during testing
+          playerInstance = playerManager.getOrCreateChunkWatcher(cx, cz, false);
+          if (playerInstance != null) {
+            Chunk chunk = worldServer.getChunkFromChunkCoords(cx, cz);
+            Packet51MapChunk packet51MapChunk = new Packet51MapChunk(chunk, false, cyFlags);
+            playerInstance.sendToAllPlayersWatchingChunk(packet51MapChunk);
+          }
         }
-
         int xmin = Math.max(cx << 4, wxOrigin);
         int ymin = wyOrigin;
         int zmin = Math.max(cz << 4, wzOrigin);
@@ -484,8 +486,8 @@ public class WorldFragment
                 TileEntity tileEntity = worldServer.getBlockTileEntity(x, y, z);
                 if (tileEntity != null) {
                   Packet tilePacket = tileEntity.getDescriptionPacket();
-                  if (tilePacket != null) {
-                    playerinstance.sendToAllPlayersWatchingChunk(tilePacket);
+                  if (tilePacket != null && playerInstance != null) {
+                    playerInstance.sendToAllPlayersWatchingChunk(tilePacket);
                   }
                 }
                 LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(x - wxOrigin, y - wyOrigin, z - wzOrigin);
@@ -586,7 +588,7 @@ public class WorldFragment
     }
   }
 
-  private boolean setBlockIDWithMetadata(Chunk chunk, int wx, int wy, int wz, int blockID, int metaData)
+  public static boolean setBlockIDWithMetadata(Chunk chunk, int wx, int wy, int wz, int blockID, int metaData)
   {
     int xLSB = wx & 0x0f;
     int yLSB = wy & 0x0f;
@@ -598,8 +600,8 @@ public class WorldFragment
     if (extendedblockstorage == null)
     {
       if (blockID == 0) { return false; }
-
-      extendedblockstorage =  new ExtendedBlockStorage(wy & ~0x0f, !chunk.worldObj.provider.hasNoSky);
+      boolean hasSky = (chunk.worldObj.provider == null) ? true : !chunk.worldObj.provider.hasNoSky;  // testing purposes
+      extendedblockstorage =  new ExtendedBlockStorage(wy & ~0x0f, hasSky);
       storageArrays[wy >> 4] = extendedblockstorage;
     }
     extendedblockstorage.setExtBlockID(xLSB, yLSB, zLSB, blockID);
