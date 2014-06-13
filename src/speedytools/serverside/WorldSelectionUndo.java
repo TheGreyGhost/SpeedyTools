@@ -9,15 +9,34 @@ import java.util.List;
 /**
  * User: The Grey Ghost
  * Date: 27/05/2014
- * Stores the undo data (block ID, metadata, NBT (TileEntity) data, and Entity data) for a voxel selection.
- *
+ * WorldSelectionUndo is used to record a clone tool change to the World and allow it to be subsequently reversed.
+ * Each clone tool change to the World is represented by a WorldSelectionUndo instance, and stores
+ * the old block ID, metadata, NBT (TileEntity) data, and Entity data for the parts of the World which changed.
+ * WorldHistory is typically used to keep track of a sequence of changes (WorldSelectionUndo instances), for example
+ *  first A, then B, then C
+ * The philosophy behind the WorldSelectionUndo is that, if action B is undone, the world should be as close as possible
+ *   to what it would look like if the action B had never been performed, i.e. the state of the World is rewound to its
+ *   initial state, followed by action A, then followed by action C.
+ *   Likewise, when the action B is made permanent using makePermanent(), the world and other WorldSelectionUndo
+ *   will be changed so that a subsequent undo of A will give the same result as if the World were rewound to the initial state,
+ *   and then action B is performed followed by action C.
+ * Under some conditions, out-of-order undos will not return the world exactly to the start condition.  This arises when
+ * copying the selection causes adjacent blocks to break, and these are then overwritten by an overlapping copy.
+ * For example:
+ * There is a torch hanging on a wall block.
+ * Action A replaces a torch with a new block;
+ * Action B replaces the support wall block for that torch with a ladder;
+ * undo (A) puts the torch back, but it's now next to a ladder so it breaks immediately; then
+ * undo (B) replaces the support wall, but the torch has been broken and will not be replaced in this step
+ * This would be relatively complicated to fix and is unlikely to arise much in practice so it won't be fixed at least for now.
  * Typical usage:
  * (1) Create an empty WorldSelectionUndo
  * (2) writeToWorld() to write the supplied WorldFragment and store the undo information
  * (3) undoChanges() to roll back the changes made in writeToWorld.  Should be supplied with a list
  *       of WorldSelectionUndo objects that were performed after this one, so that their undo information
  *       can be updated.
- * (4) deleteUndoLayer to remove an undoLayer from the middle of a list of undoLayers
+ * (4) makePermanent() to adjust the World and other undo layers to make this undo permanent, typically so that it can
+ *     be freed up.
  */
 public class WorldSelectionUndo
 {
@@ -39,7 +58,7 @@ public class WorldSelectionUndo
        (1) create a border mask for the fragment to be written, i.e. a mask showing all voxels which are adjacent to a set voxel in the fragment.
        (2) save the world data for the fragment voxels and the border mask voxels
        (3) write the fragment data into the world
-       (4) find out which voxels in the border mask were unaffected by the writing into the world, and remove them from the undo mask
+       (4) find out which voxels in the border mask were unaffected by the writing into the world, and remove them from the undo mask (changedBlocksMask)
      */
 
     final int BORDER_WIDTH = 1;
@@ -76,9 +95,9 @@ public class WorldSelectionUndo
    * un-does the changes previously made by this WorldSelectionUndo, taking into account any subsequent
    *   undo layers which overlap this one
    * @param worldServer
-   * @param undoLayers the list of subsequent undo layers
+   * @param subsequentUndoLayers the list of subsequent undo layers
    */
-  public void undoChanges(WorldServer worldServer, List<WorldSelectionUndo> undoLayers)
+  public void undoChanges(WorldServer worldServer, List<WorldSelectionUndo> subsequentUndoLayers)
   {
     /* algorithm is:
        1) remove undoLayers which don't overlap the undoWorldFragment at all (quick cull on x,y,z extents)
@@ -89,7 +108,7 @@ public class WorldSelectionUndo
      */
     LinkedList<WorldSelectionUndo> overlappingUndoLayers = new LinkedList<WorldSelectionUndo>();
 
-    for (WorldSelectionUndo undoLayer : undoLayers) {
+    for (WorldSelectionUndo undoLayer : subsequentUndoLayers) {
       if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
           && wyOfOrigin <= undoLayer.wyOfOrigin + undoLayer.undoWorldFragment.getyCount()
           && wzOfOrigin <= undoLayer.wzOfOrigin + undoLayer.undoWorldFragment.getzCount()
@@ -132,20 +151,39 @@ public class WorldSelectionUndo
 
   /**
    * deletes this UndoLayer from the list;
-   * (integrates this undoLayer into any Layers that overlap it)
-   * @param undoLayers the list of subsequent undo layers
+   * (integrates this undoLayer into any preceding Layers that overlap it, so that if any of the
+   *  preceding layers are undone, the outcome will not overwrite this permanent change.
+   *  For example:
+   *  Action A followed by Action B.
+   *  If Action B is made permanent, and then Action A is undone, the outcome should be as if the
+   *  world were rewound to the initial state and then action B performed.
+   * @param precedingUndoLayers the list of undo layers before this one, must be descending order of time, i.e. latest first
+   * @param subsequentUndoLayers the list of undo layers after this one, must be ascending order of time, i.e. earliest first
    */
-  public void deleteUndoLayer(List<WorldSelectionUndo> undoLayers)
+  public void makePermanent(WorldServer worldServer, List<WorldSelectionUndo> precedingUndoLayers, List<WorldSelectionUndo> subsequentUndoLayers)
   {
-    /* algorithm is:
-       1) remove undoLayers which don't overlap the undoWorldFragment at all (quick cull on x,y,z extents)
-       2) for each voxel in the undoWorldFragment, check if any subsequent undo layers overwrite it.
-          if yes: change that undo layer voxel
-          if no: do nothing
-     */
-    LinkedList<WorldSelectionUndo> overlappingUndoLayers = new LinkedList<WorldSelectionUndo>();
+    /* In order to remove this undoLayer completely, we need to propagate undo information both forwards and backwards
+       For example:
+       Initial State then Action A then Action B then Action C stores the following undo information
+       A[stores initial], B[stores A], C[stores B].
+       After removing action B, this needs to look like
+       A[stores B], C[Stores A]
+       In other words: The undo information about A (held by B) is moved forward to C, and the undo information about
+         B (held by C), is moved back to A.
 
-    for (WorldSelectionUndo undoLayer : undoLayers) {
+       algorithm is:
+       1) remove undoLayers which don't overlap the undoWorldFragment at all (quick cull on x,y,z extents)
+       2) for each voxel in the undoWorldFragment B, there are four possible situations, depending on whether
+          the voxel is overlapped by preceding and/or subsequent voxels:
+          no overlap = do nothing
+          preceding A, no subsequent C = copy the voxel from the World back into preceding A
+          no preceding A, subsequent C = do nothing
+          preceding A and subsequent C = copy the voxel from C back into A, and copy voxel B forward into C
+     */
+    LinkedList<WorldSelectionUndo> precedingOverlaps = new LinkedList<WorldSelectionUndo>();
+    LinkedList<WorldSelectionUndo> subsequentOverlaps = new LinkedList<WorldSelectionUndo>();
+
+    for (WorldSelectionUndo undoLayer : precedingUndoLayers) {
       if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
               && wyOfOrigin <= undoLayer.wyOfOrigin + undoLayer.undoWorldFragment.getyCount()
               && wzOfOrigin <= undoLayer.wzOfOrigin + undoLayer.undoWorldFragment.getzCount()
@@ -153,27 +191,63 @@ public class WorldSelectionUndo
               && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
               && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
               ) {
-        overlappingUndoLayers.add(undoLayer);
+        precedingOverlaps.add(undoLayer);
+      }
+    }
+    for (WorldSelectionUndo undoLayer : subsequentUndoLayers) {
+      if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
+              && wyOfOrigin <= undoLayer.wyOfOrigin + undoLayer.undoWorldFragment.getyCount()
+              && wzOfOrigin <= undoLayer.wzOfOrigin + undoLayer.undoWorldFragment.getzCount()
+              && wxOfOrigin + undoWorldFragment.getxCount() >= undoLayer.wxOfOrigin
+              && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
+              && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
+              ) {
+        subsequentOverlaps.add(undoLayer);
       }
     }
 
     for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
       for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
+//        System.out.print(y + ";" + x + ";");
         for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
-          if (this.undoWorldFragment.getVoxel(x, y, z)) {
-            for (WorldSelectionUndo undoLayer : overlappingUndoLayers) {
-              if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
-                      y + wyOfOrigin - undoLayer.wyOfOrigin,
-                      z + wzOfOrigin - undoLayer.wzOfOrigin)){
-                undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
-                        y + wyOfOrigin - undoLayer.wyOfOrigin,
-                        z + wzOfOrigin - undoLayer.wzOfOrigin,
-                        this.undoWorldFragment, x, y, z);
+//          char symbol = '.';
+          if (this.changedBlocksMask.getVoxel(x, y, z)) {
+            for (WorldSelectionUndo precedingUndo : precedingOverlaps) {
+//              symbol = 'O';
+              if (precedingUndo.changedBlocksMask.getVoxel(x + wxOfOrigin - precedingUndo.wxOfOrigin,
+                                                           y + wyOfOrigin - precedingUndo.wyOfOrigin,
+                                                           z + wzOfOrigin - precedingUndo.wzOfOrigin)){
+                boolean subsequentOverlapFound = false;
+                for (WorldSelectionUndo subsequentUndo: subsequentOverlaps) {
+                  if (subsequentUndo.changedBlocksMask.getVoxel(x + wxOfOrigin - subsequentUndo.wxOfOrigin,
+                                                                y + wyOfOrigin - subsequentUndo.wyOfOrigin,
+                                                                z + wzOfOrigin - subsequentUndo.wzOfOrigin)) {
+                    subsequentOverlapFound = true;
+                    precedingUndo.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - precedingUndo.wxOfOrigin,
+                                                                      y + wyOfOrigin - precedingUndo.wyOfOrigin,
+                                                                      z + wzOfOrigin - precedingUndo.wzOfOrigin,
+                                                                      subsequentUndo.undoWorldFragment,
+                                                                      x + wxOfOrigin - subsequentUndo.wxOfOrigin,
+                                                                      y + wyOfOrigin - subsequentUndo.wyOfOrigin,
+                                                                      z + wzOfOrigin - subsequentUndo.wzOfOrigin);
+                    subsequentUndo.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - subsequentUndo.wxOfOrigin,
+                                                                      y + wyOfOrigin - subsequentUndo.wyOfOrigin,
+                                                                      z + wzOfOrigin - subsequentUndo.wzOfOrigin,
+                                                                      this.undoWorldFragment, x, y, z);
+                  }
+                }
+
+                if (!subsequentOverlapFound) {
+                  precedingUndo.undoWorldFragment.readSingleBlockFromWorld(worldServer, x + wxOfOrigin, y + wyOfOrigin, z + wzOfOrigin,
+                                                                                        wxOfOrigin, wyOfOrigin, wzOfOrigin);
+                }
                 break;
               }
             }
           }
+//          System.out.print(symbol);
         }
+//        System.out.println();
       }
     }
   }

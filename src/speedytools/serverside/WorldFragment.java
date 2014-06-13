@@ -240,7 +240,53 @@ public class WorldFragment
   }
 
   /**
-   * Read a section of the world into the WorldFragment.
+   * Read a single [wx, wy, wz] from the world into the fragment
+   * @param worldServer
+   * @param wx  world x coordinate
+   * @param wy world y coordinate
+   * @param wz world z coordinate
+   * @param wxOrigin the world x coordinate of the [0,0,0] corner of the WorldFragment
+   * @param wyOrigin the world y coordinate of the [0,0,0] corner of the WorldFragment
+   * @param wzOrigin the world z coordinate of the [0,0,0] corner of the WorldFragment
+   */
+  public void readSingleBlockFromWorld(WorldServer worldServer, int wx, int wy, int wz,
+                                       int wxOrigin, int wyOrigin, int wzOrigin)
+  {
+    int x = wx - wxOrigin;
+    int y = wy - wyOrigin;
+    int z = wz - wzOrigin;
+    if (x < 0 || x >= xCount || y < 0 || y >= yCount || z < 0 || z >= zCount ) return;
+
+    int id = worldServer.getBlockId(wx, wy, wz);
+    int data = worldServer.getBlockMetadata(wx, wy, wz);
+    TileEntity tileEntity = worldServer.getBlockTileEntity(wx, wy, wz);
+    NBTTagCompound tileEntityTag = null;
+    if (tileEntity != null) {
+      tileEntityTag = new NBTTagCompound();
+      tileEntity.writeToNBT(tileEntityTag);
+    }
+    setBlockID(x, y, z, id);
+    setMetadata(x, y, z, data);
+    setTileEntityData(x, y, z, tileEntityTag);
+
+    final double EXPAND = 3;
+    AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxOrigin, wyOrigin, wzOrigin,
+                                                                wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount)
+                                                                .expand(EXPAND, EXPAND, EXPAND);
+
+    List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
+
+    for (EntityHanging entity : allHangingEntities) {
+      if (wx == entity.xPosition && wy == entity.yPosition && wz == entity.zPosition) {
+        NBTTagCompound tag = new NBTTagCompound();
+        entity.writeToNBTOptional(tag);
+        addEntity(x, y, z, tag);
+      }
+    }
+  }
+
+  /**
+   * Read a section of the world into the WorldFragment, erasing its existing contents.
    * If the voxel selection is defined, only reads those voxels, otherwise reads the entire block
    * @param worldServer
    * @param wxOrigin the world x coordinate of the [0,0,0] corner of the WorldFragment

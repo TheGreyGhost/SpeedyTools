@@ -266,6 +266,7 @@ public class InGameTester
       worldFragmentInitial.writeToWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
       worldFragmentInitial.writeToWorld(worldServer, testRegions2.testOutputRegion.posX, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ, null);
       worldFragmentInitial.writeToWorld(worldServer, testRegions3.testOutputRegion.posX, testRegions3.testOutputRegion.posY, testRegions3.testOutputRegion.posZ, null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions3.expectedOutcome.posX, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ, null);
 
 //      worldFragmentInitial.writeToWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
 //      worldFragmentInitial.writeToWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
@@ -277,10 +278,11 @@ public class InGameTester
       WorldFragment sourceWorldFragment2 = new WorldFragment(testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
       sourceWorldFragment2.readFromWorld(worldServer, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
       sourceWorldFragment2.writeToWorld(worldServer, testRegions1.expectedOutcome.posX+1,  testRegions1.expectedOutcome.posY,  testRegions1.expectedOutcome.posZ+1, null);
+      sourceWorldFragment2.writeToWorld(worldServer, testRegions3.expectedOutcome.posX+1,  testRegions3.expectedOutcome.posY,  testRegions3.expectedOutcome.posZ+1, null);
 
-      WorldFragment sourceWorldFragment3 = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
-      sourceWorldFragment3.readFromWorld(worldServer, testRegions2.expectedOutcome.posX+1, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ+1, null);
-      sourceWorldFragment3.writeToWorld(worldServer, testRegions3.expectedOutcome.posX+1,  testRegions3.expectedOutcome.posY,  testRegions3.expectedOutcome.posZ+1, null);
+//      WorldFragment sourceWorldFragment3 = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
+//      sourceWorldFragment3.readFromWorld(worldServer, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
+//      sourceWorldFragment3.writeToWorld(worldServer, testRegions3.expectedOutcome.posX+1,  testRegions3.expectedOutcome.posY,  testRegions3.expectedOutcome.posZ+1, null);
 //      worldFragmentInitial.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
 //      worldFragmentInitial.writeToWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
 //      worldFragmentInitial.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
@@ -343,13 +345,14 @@ public class InGameTester
       worldSelectionUndo3b_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions3.testOutputRegion.posX + 1, testRegions3.testOutputRegion.posY, testRegions3.testOutputRegion.posZ + 1);
     }
     if (runAllSteps || (whichStep9 == 3)) {
-      LinkedList<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
-      undoLayers.add(worldSelectionUndo3b_9);
-      worldSelectionUndo3a_9.deleteUndoLayer(undoLayers);
+      LinkedList<WorldSelectionUndo> precedingUndoLayers = new LinkedList<WorldSelectionUndo>();
+      LinkedList<WorldSelectionUndo> subsequentUndoLayers = new LinkedList<WorldSelectionUndo>();
+      precedingUndoLayers.add(worldSelectionUndo3a_9);
+      worldSelectionUndo3b_9.makePermanent(worldServer, precedingUndoLayers, subsequentUndoLayers);
     }
     if (runAllSteps || (whichStep9 == 4)) {
       LinkedList<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
-      worldSelectionUndo3b_9.undoChanges(worldServer, undoLayers);
+      worldSelectionUndo3a_9.undoChanges(worldServer, undoLayers);
     }
 
     if (runAllSteps || (whichStep9 >= 5)) {

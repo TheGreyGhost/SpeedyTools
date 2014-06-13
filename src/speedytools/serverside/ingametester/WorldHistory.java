@@ -44,7 +44,7 @@ public class WorldHistory
     cullUndoLayers(maximumDepth);
   }
 
-  /** perform undo for the given player - finds the last undo that they did in the current WorldServer
+  /** perform undo action for the given player - finds the most recent action that they did in the current WorldServer
    * @param player
    * @param worldServer
    * @return true for success, or failure if no undo found
@@ -74,16 +74,16 @@ public class WorldHistory
   private void cullUndoLayers(int targetSize)
   {
     // delete all invalid layers
-    // iterate backwards to avoid unnecessary work updating Layers which will be deleted anyway
-    Iterator<UndoLayerInfo> undoLayerInfoIterator = undoLayers.descendingIterator();
+    Iterator<UndoLayerInfo> undoLayerInfoIterator = undoLayers.iterator();
     while  (undoLayerInfoIterator.hasNext()) {
       UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
       if (undoLayerInfo.worldServer == null) {
         undoLayerInfoIterator.remove();
       } else {
         if (undoLayerInfo.entityPlayerMP == null) {
-          LinkedList<WorldSelectionUndo> subsequentLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-          undoLayerInfo.worldSelectionUndo.deleteUndoLayer(subsequentLayers);
+          LinkedList<WorldSelectionUndo> precedingUndoLayers = collatePrecedingUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
+          LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
+          undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers, subsequentUndoLayers);
           undoLayerInfoIterator.remove();
         }
       }
@@ -109,8 +109,9 @@ public class WorldHistory
       EntityPlayerMP entityPlayerMP = undoLayerInfo.entityPlayerMP.get();
       assert (entityPlayerMP != null);
       if (playerUndoCount.get(entityPlayerMP) > 1) {
-        LinkedList<WorldSelectionUndo> subsequentLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-        undoLayerInfo.worldSelectionUndo.deleteUndoLayer(subsequentLayers);
+        LinkedList<WorldSelectionUndo> precedingUndoLayers = collatePrecedingUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
+        LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
+        undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers, subsequentUndoLayers);
         undoLayerInfoIterator.remove();
         playerUndoCount.put(entityPlayerMP, playerUndoCount.get(entityPlayerMP) - 1);
         --layersToDelete;
@@ -122,7 +123,7 @@ public class WorldHistory
    * collates a list of undo layers with a creation time after the given time, for the given worldServer
    * @param creationTime only collate layers with a creation time > this value
    * @param worldServerToMatch the worldServer to match against
-   * @return
+   * @return a list of matching WorldSelectionUndo in ascending order of time.
    */
   private LinkedList<WorldSelectionUndo> collateSubsequentUndoLayers(long creationTime, WorldServer worldServerToMatch)
   {
@@ -130,6 +131,26 @@ public class WorldHistory
     for (UndoLayerInfo undoLayerInfo : undoLayers) {
       if (undoLayerInfo.worldServer.get() == worldServerToMatch
           && undoLayerInfo.creationTime > creationTime) {
+        collatedList.add(undoLayerInfo.worldSelectionUndo);
+      }
+    }
+    return collatedList;
+  }
+
+  /**
+   * collates a list of undo layers with a creation time before the given time, for the given worldServer
+   * @param creationTime only collate layers with a creation time < this value
+   * @param worldServerToMatch the worldServer to match against
+   * @return a list of matching WorldSelectionUndo in descending order of time.
+   */
+  private LinkedList<WorldSelectionUndo> collatePrecedingUndoLayers(long creationTime, WorldServer worldServerToMatch)
+  {
+    LinkedList<WorldSelectionUndo> collatedList = new LinkedList<WorldSelectionUndo>();
+    Iterator<UndoLayerInfo> undoLayerInfoIterator = undoLayers.descendingIterator();
+    while  (undoLayerInfoIterator.hasNext()) {
+      UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
+      if (undoLayerInfo.worldServer.get() == worldServerToMatch
+              && undoLayerInfo.creationTime < creationTime) {
         collatedList.add(undoLayerInfo.worldSelectionUndo);
       }
     }

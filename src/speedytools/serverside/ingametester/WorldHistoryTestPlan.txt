@@ -22,3 +22,8 @@ WorldSelectionUndo
   readFromWorld
 - all tested by InGameTester
 Still to test: deleteUndoLayer
+
+What should a deleted undo do?
+The guiding principle is that an undo should return
+
+That action should be made permanent and can't be undone by any other undo
