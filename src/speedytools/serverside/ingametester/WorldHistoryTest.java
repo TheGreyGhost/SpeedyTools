@@ -4,7 +4,6 @@ import net.minecraft.block.Block;
 import net.minecraft.command.IEntitySelector;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.StringTranslate;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import org.objenesis.Objenesis;
@@ -13,8 +12,8 @@ import speedytools.clientside.selections.VoxelSelection;
 import speedytools.serverside.WorldFragment;
 import speedytools.serverside.WorldSelectionUndo;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -113,7 +112,14 @@ public class WorldHistoryTest
     for (int perm = 0; perm < permutations; ++perm) {
       System.out.println(perm + "; ");
       for (int placeOrUndo = 0; placeOrUndo < (1 << ACTION_COUNT); ++placeOrUndo) {  // mask used for placing or undoing each action, one bit per action
-
+        boolean debugPrint = false;
+        final int DEBUG_PERM = -1;
+        final int DEBUG_PLACEORUNDO = 6;
+        final int DEBUG_XPOS = 1;
+        final int DEBUG_ZPOS = 3;
+        if (perm == DEBUG_PERM && placeOrUndo == DEBUG_PLACEORUNDO) {
+          debugPrint = true; // breakpoint here
+        }
         // start by placing all actions, then undoing or permanenting them one by one, checking the match after each step
         worldFragmentBlank.writeToWorld(worldServer, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
         boolean actionIncluded[] = new boolean[ACTION_COUNT];
@@ -123,13 +129,24 @@ public class WorldHistoryTest
           layersLeft.add(worldSelectionUndos.get(i));
           actionIncluded[i] = true;
         }
+        if (debugPrint) {
+          String states = "worldSelectionUndos[" + DEBUG_XPOS + ", 0, " + DEBUG_ZPOS + "]:";
+          for (int k = 0; k < ACTION_COUNT; ++k) {
+            Integer savedValue = worldSelectionUndos.get(k).getStoredMetadata(DEBUG_XPOS + allRegions.testOutputRegion.posX,
+                                                                             allRegions.testOutputRegion.posY,
+                                                                             DEBUG_ZPOS + allRegions.testOutputRegion.posZ);
+            states += (savedValue == null) ? "-" : savedValue;
+            states += " ";
+          }
+          System.out.println(states);
+        }
 
         // undo or permanent the changes one by one
         for (int j = 0; j < ACTION_COUNT; ++j) {
           int whichAction = permutationOrder[perm][j];
           boolean makeThisActionPermanent = (0 == (placeOrUndo & (1 << j)));
           ArrayList<WorldSelectionUndo> subsequentLayers = new ArrayList<WorldSelectionUndo>();
-          ArrayList<WorldSelectionUndo> precedingLayers = new ArrayList<WorldSelectionUndo>();
+          LinkedList<WorldSelectionUndo> precedingLayers = new LinkedList<WorldSelectionUndo>();
           WorldSelectionUndo thisLayer = worldSelectionUndos.get(whichAction);
           boolean preceding = true;
           for (WorldSelectionUndo eachLayer : layersLeft) {
@@ -137,19 +154,31 @@ public class WorldHistoryTest
               preceding = false;
             } else {
               if (preceding) {
-                precedingLayers.add(eachLayer);
+                precedingLayers.addFirst(eachLayer);
               } else {
                 subsequentLayers.add(eachLayer);
               }
             }
           }
+
           if (makeThisActionPermanent) {
-            thisLayer.makePermanent(worldServer, precedingLayers, subsequentLayers);
+            thisLayer.makePermanent(worldServer, precedingLayers);//, subsequentLayers);
           } else {
             thisLayer.undoChanges(worldServer, subsequentLayers);
             actionIncluded[whichAction] = false;
           }
           layersLeft.remove(thisLayer);
+          if (debugPrint) {
+            String states = "after undo/place   [" + DEBUG_XPOS + ", 0, " + DEBUG_ZPOS + "]:";
+            for (int k = 0; k < ACTION_COUNT; ++k) {
+              Integer savedValue = worldSelectionUndos.get(k).getStoredMetadata(DEBUG_XPOS + allRegions.testOutputRegion.posX,
+                      allRegions.testOutputRegion.posY,
+                      DEBUG_ZPOS + allRegions.testOutputRegion.posZ);
+              states += (savedValue == null) ? "-" : savedValue;
+              states += " ";
+            }
+            System.out.println(states);
+          }
           // create expected outcome at this step = placing all fragments which are still included
           worldFragmentBlank.writeToWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
           for (int i = 0; i < ACTION_COUNT; ++i) {
@@ -169,6 +198,17 @@ public class WorldHistoryTest
             }
             errorString += "]; placeOrUndo=" + placeOrUndo + "; steps performed=" + j;
             System.out.println(errorString);
+            System.out.print("Operations: ");
+            for (int k = 0; k <= j; ++k) {
+              System.out.print(permutationOrder[perm][k] + 1 + "-"
+                               + ((0 == (placeOrUndo & (1 << k))) ? "P " : "U "));
+            }
+            System.out.println();
+            System.out.print("Actions Included:");
+            for (int k = 0; k < ACTION_COUNT; ++k) {
+              if (actionIncluded[k]) System.out.print(k+1 + ", ");
+            }
+            System.out.println();
             System.out.println("Expected  : Actual");
             for (int x = 0; x < worldFragmentActualOutcome.getxCount(); ++x) {
               for (int z = 0; z < worldFragmentExpectedOutcome.getzCount(); ++z) {

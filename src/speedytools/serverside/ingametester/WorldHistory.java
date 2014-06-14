@@ -83,7 +83,7 @@ public class WorldHistory
         if (undoLayerInfo.entityPlayerMP == null) {
           LinkedList<WorldSelectionUndo> precedingUndoLayers = collatePrecedingUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
           LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-          undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers, subsequentUndoLayers);
+          undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers); //, subsequentUndoLayers);
           undoLayerInfoIterator.remove();
         }
       }
@@ -111,7 +111,7 @@ public class WorldHistory
       if (playerUndoCount.get(entityPlayerMP) > 1) {
         LinkedList<WorldSelectionUndo> precedingUndoLayers = collatePrecedingUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
         LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-        undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers, subsequentUndoLayers);
+        undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers); //, subsequentUndoLayers);
         undoLayerInfoIterator.remove();
         playerUndoCount.put(entityPlayerMP, playerUndoCount.get(entityPlayerMP) - 1);
         --layersToDelete;

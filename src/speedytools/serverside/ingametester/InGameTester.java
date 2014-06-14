@@ -349,7 +349,7 @@ public class InGameTester
       LinkedList<WorldSelectionUndo> precedingUndoLayers = new LinkedList<WorldSelectionUndo>();
       LinkedList<WorldSelectionUndo> subsequentUndoLayers = new LinkedList<WorldSelectionUndo>();
       precedingUndoLayers.add(worldSelectionUndo3a_9);
-      worldSelectionUndo3b_9.makePermanent(worldServer, precedingUndoLayers, subsequentUndoLayers);
+      worldSelectionUndo3b_9.makePermanent(worldServer, precedingUndoLayers); //, subsequentUndoLayers);
     }
     if (runAllSteps || (whichStep9 == 4)) {
       LinkedList<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
