@@ -4,6 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.command.IEntitySelector;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.StringTranslate;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import org.objenesis.Objenesis;
@@ -12,6 +13,7 @@ import speedytools.clientside.selections.VoxelSelection;
 import speedytools.serverside.WorldFragment;
 import speedytools.serverside.WorldSelectionUndo;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,12 +31,12 @@ import java.util.List;
  *
  * Test plan:
  *  Test of WorldSelectionUndo: Tests all permutations of makePermanent() and undoChanges() for five blocks:
- //  1) place A, B, C, D, E (in a binary pattern 0..31 so that every combination of A, B, C, D, E voxels is present)
+ //  1) place A, B, C, D, E (the voxels in A, B, C, D, E have a binary pattern 0..31 so that every combination of overlapping A, B, C, D, E voxels is present)
  //  2) remove each one by either makePermanent() or undoChanges(), and check that the result at each step matches
  //     a straight-forward placement.  eg
  //     after makePermanent(C) and undoChanges(B), the result matches the world after placing A, D, then E.
  //     performs every permutation:
- //     a) order of actions = 5! = 120
+ //     a) order of action removal = 5! = 120
  //     b) removal method = 2^5 = 32
  //     So a total of 120 * 32 = 40,000 or so.
  *
@@ -97,33 +99,93 @@ public class WorldHistoryTest
         int wz = testRegion.sourceRegion.posZ + j % testRegion.zSize;
 
         Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
-        boolean successful = WorldFragment.setBlockIDWithMetadata(chunk, wx, wy, wz, (0 == (j & (1 << i))) ? 0 : Block.cloth.blockID, i);
+        boolean successful = WorldFragment.setBlockIDWithMetadata(chunk, wx, wy, wz, (0 == (j & (1 << i))) ? 0 : Block.cloth.blockID, i+1);
       }
       VoxelSelection voxelSelection = InGameTester.selectAllNonAir(worldServer, testRegion.sourceRegion, testRegion.xSize, testRegion.ySize, testRegion.zSize);
       worldFragment.readFromWorld(worldServer, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
       sourceFragments.add(worldFragment);
     }
 
+    ArrayList<WorldSelectionUndo> worldSelectionUndos = new ArrayList<WorldSelectionUndo>();
+    for (int i = 0; i < ACTION_COUNT; ++i) {
+      worldSelectionUndos.add(new WorldSelectionUndo());
+    }
     for (int perm = 0; perm < permutations; ++perm) {
       System.out.println(perm + "; ");
-      for (int placeOrUndo = 0; placeOrUndo < (1 << ACTION_COUNT); ++placeOrUndo) {
-        // create expected outcome
-        worldFragmentBlank.writeToWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
+      for (int placeOrUndo = 0; placeOrUndo < (1 << ACTION_COUNT); ++placeOrUndo) {  // mask used for placing or undoing each action, one bit per action
+
+        // start by placing all actions, then undoing or permanenting them one by one, checking the match after each step
+        worldFragmentBlank.writeToWorld(worldServer, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
+        boolean actionIncluded[] = new boolean[ACTION_COUNT];
+        ArrayList<WorldSelectionUndo> layersLeft = new ArrayList<WorldSelectionUndo>();
         for (int i = 0; i < ACTION_COUNT; ++i) {
-          if (0 == (placeOrUndo & (1 << i))) {
-            sourceFragments.get(permutationOrder[perm][i]).writeToWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
+          worldSelectionUndos.get(i).writeToWorld(worldServer, sourceFragments.get(i), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+          layersLeft.add(worldSelectionUndos.get(i));
+          actionIncluded[i] = true;
+        }
+
+        // undo or permanent the changes one by one
+        for (int j = 0; j < ACTION_COUNT; ++j) {
+          int whichAction = permutationOrder[perm][j];
+          boolean makeThisActionPermanent = (0 == (placeOrUndo & (1 << j)));
+          ArrayList<WorldSelectionUndo> subsequentLayers = new ArrayList<WorldSelectionUndo>();
+          ArrayList<WorldSelectionUndo> precedingLayers = new ArrayList<WorldSelectionUndo>();
+          WorldSelectionUndo thisLayer = worldSelectionUndos.get(whichAction);
+          boolean preceding = true;
+          for (WorldSelectionUndo eachLayer : layersLeft) {
+            if (eachLayer == thisLayer) {
+              preceding = false;
+            } else {
+              if (preceding) {
+                precedingLayers.add(eachLayer);
+              } else {
+                subsequentLayers.add(eachLayer);
+              }
+            }
+          }
+          if (makeThisActionPermanent) {
+            thisLayer.makePermanent(worldServer, precedingLayers, subsequentLayers);
+          } else {
+            thisLayer.undoChanges(worldServer, subsequentLayers);
+            actionIncluded[whichAction] = false;
+          }
+          layersLeft.remove(thisLayer);
+          // create expected outcome at this step = placing all fragments which are still included
+          worldFragmentBlank.writeToWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
+          for (int i = 0; i < ACTION_COUNT; ++i) {
+            if (actionIncluded[i]) {
+              sourceFragments.get(i).writeToWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
+            }
+          }
+          WorldFragment worldFragmentExpectedOutcome = new WorldFragment(allRegions.xSize, allRegions.ySize, allRegions.zSize);
+          worldFragmentExpectedOutcome.readFromWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
+          WorldFragment worldFragmentActualOutcome = new WorldFragment(allRegions.xSize, allRegions.ySize, allRegions.zSize);
+          worldFragmentActualOutcome.readFromWorld(worldServer, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
+          boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+          if (!retval) {
+            String errorString = "comparison failed for perm=" + perm + " [";
+            for (int k = 0; k < ACTION_COUNT; ++k) {
+              errorString += permutationOrder[perm][k] + " ";
+            }
+            errorString += "]; placeOrUndo=" + placeOrUndo + "; steps performed=" + j;
+            System.out.println(errorString);
+            System.out.println("Expected  : Actual");
+            for (int x = 0; x < worldFragmentActualOutcome.getxCount(); ++x) {
+              for (int z = 0; z < worldFragmentExpectedOutcome.getzCount(); ++z) {
+                System.out.print(worldFragmentExpectedOutcome.getMetadata(x, 0, z) + " ");
+              }
+              System.out.print(": ");
+              for (int z = 0; z < worldFragmentActualOutcome.getzCount(); ++z) {
+                System.out.print(worldFragmentActualOutcome.getMetadata(x, 0, z) + " ");
+              }
+              System.out.println();
+            }
+            assert false: errorString;
           }
         }
       }
-      worldFragmentBlank.writeToWorld(worldServer, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
     }
-
-    WorldSelectionUndo worldSelectionUndo1_10;
-    WorldSelectionUndo worldSelectionUndo2_10;
-    WorldSelectionUndo worldSelectionUndo3_10;
-    WorldSelectionUndo worldSelectionUndo4_10;
-    WorldSelectionUndo worldSelectionUndo5_10;
-  }
+ }
 
   public static class WorldServerTest extends WorldServer {
     public static WorldServerTest createDummyInstance(int xBlockCount, int zBlockCount) {
