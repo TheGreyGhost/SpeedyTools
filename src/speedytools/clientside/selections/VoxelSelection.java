@@ -209,6 +209,24 @@ public class VoxelSelection
     return copy;
   }
 
+  /**
+   * clear all voxels outside of the given ranges (inclusive)
+   * @param yMin
+   * @param yMax
+   */
+  public void clipToYrange(int yMin, int yMax)
+  {
+    for (int y = 0; y < ysize; ++y) {
+      if (y < yMin || y > yMax) {
+        for (int x = 0; x < xsize; ++x) {
+          for (int z = 0; z < zsize; ++z) {
+            clearVoxel(x,y,z);
+          }
+        }
+      }
+    }
+  }
+
   /** checks whether all of the set voxels in voxelSelection are also set in this VoxelSelection
    * @param voxelSelection the voxels to test against.  must be the same size as 'this'.
    * @return true if all of the set voxels in voxelSelection are also set in this VoxelSelection

@@ -5,8 +5,10 @@ import net.minecraft.command.IEntitySelector;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import speedytools.clientside.selections.VoxelSelection;
@@ -361,7 +363,8 @@ public class WorldSelectionUndoTest
       worldSelectionUndos.add(new WorldSelectionUndo());
     }
     for (int perm = 0; perm < permutations; ++perm) {
-      System.out.println(perm + "; ");
+      System.out.print(perm + "; ");
+      System.out.flush();
       for (int placeOrUndo = 0; placeOrUndo < (1 << ACTION_COUNT); ++placeOrUndo) {  // mask used for placing or undoing each action, one bit per action
         boolean debugPrint = false;
         final int DEBUG_PERM = -1;
@@ -476,6 +479,7 @@ public class WorldSelectionUndoTest
         }
       }
     }
+    System.out.println();
  }
 
   public static class WorldServerTest extends WorldServer {
@@ -524,6 +528,19 @@ public class WorldSelectionUndoTest
     }
     public void generateSkylightMap() {return;}
     public void generateHeightMap() {return;}
+    public int getSavedLightValue(EnumSkyBlock par1EnumSkyBlock, int par2, int par3, int par4)
+    {
+      ExtendedBlockStorage extendedblockstorage = this.getBlockStorageArray()[par3 >> 4];
+      if (extendedblockstorage == null)
+        return (this.canBlockSeeTheSky(par2, par3, par4) ? par1EnumSkyBlock.defaultLightValue : 0);
+      else if (par1EnumSkyBlock == EnumSkyBlock.Sky)
+        return (/* this.worldObj.provider.hasNoSky ? 0 :*/ extendedblockstorage.getExtSkylightValue(par2, par3 & 15, par4));
+      else if (par1EnumSkyBlock == EnumSkyBlock.Block)
+        return extendedblockstorage.getExtBlocklightValue(par2, par3 & 15, par4);
+      else return par1EnumSkyBlock.defaultLightValue;
+    }
+
+
   }
 
   public static class EntityPlayerMPTest extends EntityPlayerMP {

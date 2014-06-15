@@ -61,6 +61,9 @@ public class WorldSelectionUndo
        (4) find out which voxels in the border mask were unaffected by the writing into the world, and remove them from the undo mask (changedBlocksMask)
      */
 
+    final int Y_MIN_VALID = 0;
+    final int Y_MAX_VALID_PLUS_ONE = 256;
+
     final int BORDER_WIDTH = 1;
     wxOfOrigin = i_wxOfOrigin - BORDER_WIDTH;
     wyOfOrigin = i_wyOfOrigin - BORDER_WIDTH;
@@ -69,6 +72,11 @@ public class WorldSelectionUndo
     VoxelSelection expandedSelection = fragmentToWrite.getVoxelsWithStoredData().makeCopyWithEmptyBorder(BORDER_WIDTH);
     VoxelSelection borderMask = expandedSelection.generateBorderMask();
     expandedSelection.union(borderMask);
+    int wyMax = wyOfOrigin + expandedSelection.getYsize();
+    if (wyOfOrigin < Y_MIN_VALID || wyMax >= Y_MAX_VALID_PLUS_ONE) {
+      expandedSelection.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
+      borderMask.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
+    }
 
     undoWorldFragment = new WorldFragment(expandedSelection.getXsize(), expandedSelection.getYsize(), expandedSelection.getZsize());
     undoWorldFragment.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, expandedSelection);

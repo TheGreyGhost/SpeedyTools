@@ -14,6 +14,7 @@ import net.minecraft.server.management.PlayerInstance;
 import net.minecraft.server.management.PlayerManager;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
@@ -42,6 +43,9 @@ public class WorldFragment
   public static final int MAX_Y_SIZE = 256;
   public static final int MAX_Z_SIZE = 256;
 
+  private static final int Y_MIN_VALID = 0;
+  private static final int Y_MAX_VALID_PLUS_ONE = 256;
+
   /** creates a WorldFragment, initially empty
    *
    * @param i_xcount
@@ -60,6 +64,7 @@ public class WorldFragment
     int numberOfBlocks = xCount * yCount * zCount;
     blockIDbits0to7 = new byte[numberOfBlocks];
     blockIDbits8to11andmetaData = new byte[numberOfBlocks];
+    lightValues = new byte[numberOfBlocks];
     tileEntityData = new HashMap<Integer, NBTTagCompound>();
     entityData = new HashMap<Integer, LinkedList<NBTTagCompound>>();
     voxelsWithStoredData = new VoxelSelection(i_xcount, i_ycount, i_zcount);
@@ -218,6 +223,41 @@ public class WorldFragment
     }
   }
 
+  /**
+   * gets the light value at a particular location.
+   * error if the location is not stored in this fragment
+   * @param x x position relative to the block origin [0,0,0]
+   * @param y y position relative to the block origin [0,0,0]
+   * @param z z position relative to the block origin [0,0,0]
+   * @return lightvalue (sky << 4 | block)
+   */
+  public byte getLightValue(int x, int y, int z)
+  {
+    assert (x >= 0 && x < xCount);
+    assert (y >= 0 && y < yCount);
+    assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
+    final int offset = y * xCount * zCount + z * xCount + x;
+    return lightValues[offset];
+  }
+
+  /**
+   * sets the light value at a particular location
+   * @param x x position relative to the block origin [0,0,0]
+   * @param y y position relative to the block origin [0,0,0]
+   * @param z z position relative to the block origin [0,0,0]
+   * @param lightValue lightvalue (sky << 4 | block)
+   */
+  public void setLightValue(int x, int y, int z, byte lightValue)
+  {
+    assert (x >= 0 && x < xCount);
+    assert (y >= 0 && y < yCount);
+    assert (z >= 0 && z < zCount);
+    final int offset = y * xCount * zCount + z * xCount + x;
+    lightValues[offset] = lightValue;
+  }
+
+
   public int getxCount() {
     return xCount;
   }
@@ -269,6 +309,14 @@ public class WorldFragment
     setMetadata(x, y, z, data);
     setTileEntityData(x, y, z, tileEntityTag);
 
+    Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+    int lightValue = 0;
+    if (wy >= Y_MIN_VALID && wy < Y_MAX_VALID_PLUS_ONE) {
+      lightValue = (chunk.getSavedLightValue(EnumSkyBlock.Sky, wx & 0x0f, wy, wz & 0x0f) << 4)
+                  | chunk.getSavedLightValue(EnumSkyBlock.Block, wx & 0x0f, wy, wz & 0x0f);
+    }
+    setLightValue(x, y, z, (byte)lightValue);
+
     final double EXPAND = 3;
     AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxOrigin, wyOrigin, wzOrigin,
                                                                 wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount)
@@ -304,7 +352,10 @@ public class WorldFragment
     }
     voxelsWithStoredData = new VoxelSelection(xCount, yCount, zCount);   // starts empty, the setBlockID will fill it
 
-    for (int y = 0; y < yCount; ++y) {
+    int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
+    int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
+
+    for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
           if (selection.getVoxel(x, y, z)) {
@@ -319,9 +370,14 @@ public class WorldFragment
               tileEntityTag = new NBTTagCompound();
               tileEntity.writeToNBT(tileEntityTag);
             }
+
+            Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+            int lightValue =   (chunk.getSavedLightValue(EnumSkyBlock.Sky, wx & 0x0f, wy, wz & 0x0f) << 4)
+                             | chunk.getSavedLightValue(EnumSkyBlock.Block, wx & 0x0f, wy, wz & 0x0f);
             setBlockID(x, y, z, id);
             setMetadata(x, y, z, data);
             setTileEntityData(x, y, z, tileEntityTag);
+            setLightValue(x, y, z, (byte)lightValue);
           }
         }
       }
@@ -365,6 +421,7 @@ public class WorldFragment
     10: delete TileEntityData and EntityHanging to stop resource leaks / items popping out
     20: copy ID and metadata to chunk directly (chunk setBlockIDwithMetadata without the updating)
     30: create & update TileEntities - setChunkBlockTileEntity, World.addTileEntity
+    35: update stored light values
     40: update helper structures - heightmap, lighting
     50: notifyNeighbourChange for all blocks; World.func_96440_m for redstone comparators
     52:
@@ -397,8 +454,10 @@ public class WorldFragment
     }
 
     //todo: keep track of dirty chunks here
+    int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
+    int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
 
-    for (int y = 0; y < yCount; ++y) {
+    for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
           if (selection.getVoxel(x, y, z)) {
@@ -407,6 +466,7 @@ public class WorldFragment
             int wz = z + wzOrigin;
             int blockID = getBlockID(x, y, z);
             int blockMetadata = getMetadata(x, y, z);
+            byte lightValue = getLightValue(x, y, z);
             NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
 
             Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
@@ -416,21 +476,23 @@ public class WorldFragment
             if (successful && tileEntityNBT != null) {
               setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
             }
+
+            setLightValue(chunk, wx, wy, wz, lightValue);
           }
         }
       }
     }
 
     final int cxMin = wxOrigin >> 4;
-    final int cxMax = (wxOrigin + xCount) >> 4;
-    final int cyMin = wyOrigin >> 4;
-    final int cyMax = (wyOrigin + yCount) >> 4;
+    final int cxMax = (wxOrigin + xCount - 1) >> 4;
+    final int cyMin = (yClipMin +  wyOrigin) >> 4;
+    final int cyMax = (yClipMaxPlusOne - 1 + wyOrigin) >> 4;
     final int czMin = wzOrigin >> 4;
-    final int czMax = (wzOrigin + zCount) >> 4;
+    final int czMax = (wzOrigin + zCount - 1) >> 4;
 
     int cyFlags = 0;
     for (int cy = cyMin; cy <= cyMax; ++cy) {
-      cyFlags = 1 << cy;
+      cyFlags |= 1 << cy;
     }
 
     for (int cx = cxMin; cx <= cxMax; ++cx) {
@@ -441,21 +503,23 @@ public class WorldFragment
       }
     }
 
-    for (int y = 0; y < yCount; ++y) {
+    for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
-          int wx = x + wxOrigin;
-          int wy = y + wyOrigin;
-          int wz = z + wzOrigin;
-          int blockID = worldServer.getBlockId(wx, wy, wz);
-          worldServer.func_96440_m(wx, wy, wz, blockID);
+          if (selection.getVoxel(x, y, z)) {
+            int wx = x + wxOrigin;
+            int wy = y + wyOrigin;
+            int wz = z + wzOrigin;
+            int blockID = worldServer.getBlockId(wx, wy, wz);
+            worldServer.func_96440_m(wx, wy, wz, blockID);
 
-          worldServer.notifyBlockOfNeighborChange(wx-1,   wy,   wz, blockID);
-          worldServer.notifyBlockOfNeighborChange(wx+1,   wy,   wz, blockID);
-          worldServer.notifyBlockOfNeighborChange(  wx, wy-1,   wz, blockID);
-          worldServer.notifyBlockOfNeighborChange(  wx, wy+1,   wz, blockID);
-          worldServer.notifyBlockOfNeighborChange(  wx,   wy, wz-1, blockID);
-          worldServer.notifyBlockOfNeighborChange(wx, wy, wz + 1, blockID);
+            worldServer.notifyBlockOfNeighborChange(wx - 1, wy, wz, blockID);
+            worldServer.notifyBlockOfNeighborChange(wx + 1, wy, wz, blockID);
+            worldServer.notifyBlockOfNeighborChange(wx, wy - 1, wz, blockID);
+            worldServer.notifyBlockOfNeighborChange(wx, wy + 1, wz, blockID);
+            worldServer.notifyBlockOfNeighborChange(wx, wy, wz - 1, blockID);
+            worldServer.notifyBlockOfNeighborChange(wx, wy, wz + 1, blockID);
+          }
         }
       }
     }
@@ -473,10 +537,10 @@ public class WorldFragment
           }
         }
         int xmin = Math.max(cx << 4, wxOrigin);
-        int ymin = wyOrigin;
+        int ymin = yClipMin + wyOrigin;
         int zmin = Math.max(cz << 4, wzOrigin);
         int xmax = Math.min((cx << 4) | 0x0f, wxOrigin + xCount - 1);
-        int ymax = wyOrigin + yCount - 1;
+        int ymax = wyOrigin + yClipMaxPlusOne - 1;
         int zmax = Math.min((cz << 4) | 0x0f, wzOrigin + zCount - 1);
 
         for (int x = xmin; x <= xmax; ++x) {
@@ -507,7 +571,7 @@ public class WorldFragment
       }
     }
 
-    for (int y = 0; y < yCount; ++y) {
+    for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
           if (selection.getVoxel(x, y, z)) {
@@ -590,9 +654,9 @@ public class WorldFragment
 
   public static boolean setBlockIDWithMetadata(Chunk chunk, int wx, int wy, int wz, int blockID, int metaData)
   {
-    int xLSB = wx & 0x0f;
-    int yLSB = wy & 0x0f;
-    int zLSB = wz & 0x0f;
+    int xLSN = wx & 0x0f;
+    int yLSN = wy & 0x0f;
+    int zLSN = wz & 0x0f;
 
     ExtendedBlockStorage[] storageArrays = chunk.getBlockStorageArray();
     ExtendedBlockStorage extendedblockstorage = storageArrays[wy >> 4];
@@ -604,9 +668,33 @@ public class WorldFragment
       extendedblockstorage =  new ExtendedBlockStorage(wy & ~0x0f, hasSky);
       storageArrays[wy >> 4] = extendedblockstorage;
     }
-    extendedblockstorage.setExtBlockID(xLSB, yLSB, zLSB, blockID);
-    extendedblockstorage.setExtBlockMetadata(xLSB, yLSB, zLSB, metaData);
+    extendedblockstorage.setExtBlockID(xLSN, yLSN, zLSN, blockID);
+    extendedblockstorage.setExtBlockMetadata(xLSN, yLSN, zLSN, metaData);
     return true;
+  }
+
+  public static void setLightValue(Chunk chunk, int wx, int wy, int wz, byte lightValue)
+  {
+    if (wy < Y_MIN_VALID || wy >= Y_MAX_VALID_PLUS_ONE) return;
+    int xLSN = wx & 0x0f;
+    int yLSN = wy & 0x0f;
+    int zLSN = wz & 0x0f;
+
+    ExtendedBlockStorage[] storageArrays = chunk.getBlockStorageArray();
+    ExtendedBlockStorage extendedblockstorage = storageArrays[wy >> 4];
+    boolean hasSky = (chunk.worldObj.provider == null) ? true : !chunk.worldObj.provider.hasNoSky;
+
+    if (extendedblockstorage == null)
+    {
+      extendedblockstorage = new ExtendedBlockStorage(wy & ~0x0f, hasSky);
+      storageArrays[wy >> 4] = extendedblockstorage;
+    }
+
+    if (hasSky) {
+      extendedblockstorage.setExtSkylightValue(xLSN, yLSN, zLSN, (lightValue & 0xf0) >> 4);
+    }
+    extendedblockstorage.setExtBlocklightValue(xLSN, yLSN, zLSN, lightValue & 0x0f);
+
   }
 
   /**
@@ -661,41 +749,57 @@ public class WorldFragment
     LinkedList<NBTTagCompound> entitiesAtThisBlock;
     entitiesAtThisBlock = sourceFragment.getEntitiesAtBlock(xSrc, ySrc, zSrc);
     entityData.put(offsetDest, entitiesAtThisBlock);
+    ;
   }
 
   /**
    * compares the contents of the two WorldFragments, excluding EntityHanging
-   * @param worldFragment1
-   * @param worldFragment2
+   * @param expected
+   * @param actual
    * @return true if the contents are exactly the same
    */
-  public static boolean areFragmentsEqual(WorldFragment worldFragment1, WorldFragment worldFragment2)
+  public static boolean areFragmentsEqual(WorldFragment expected, WorldFragment actual)
   {
-    if (worldFragment1.getxCount() != worldFragment2.getxCount()
-            || worldFragment1.getyCount() != worldFragment2.getyCount()
-            || worldFragment1.getzCount() != worldFragment2.getzCount()) {
+    if (expected.getxCount() != actual.getxCount()
+            || expected.getyCount() != actual.getyCount()
+            || expected.getzCount() != actual.getzCount()) {
+      lastFailureReason = "Fragment Size Mismatch";
       return false;
     }
-    for (int x = 0; x < worldFragment1.getxCount(); ++x ) {
-      for (int y = 0; y < worldFragment1.getyCount(); ++y) {
-        for (int z = 0; z < worldFragment1.getzCount(); ++z) {
-          if (worldFragment1.getBlockID(x, y, z) != worldFragment2.getBlockID(x, y, z)
-                  || worldFragment1.getMetadata(x, y, z) != worldFragment2.getMetadata(x, y, z) ) {
-            lastCompareFailX = x; lastCompareFailY = y; lastCompareFailZ = z;
-            return false;
+    for (int x = 0; x < expected.getxCount(); ++x ) {
+      for (int y = 0; y < expected.getyCount(); ++y) {
+        for (int z = 0; z < expected.getzCount(); ++z) {
+          if (expected.getBlockID(x, y, z) != actual.getBlockID(x, y, z)
+                  || expected.getMetadata(x, y, z) != actual.getMetadata(x, y, z) ) {
+            if (   (expected.getBlockID(x, y, z) != Block.waterStill.blockID || actual.getBlockID(x, y, z) != Block.waterMoving.blockID) // water changes itself back and forth, ignore
+                && (expected.getBlockID(x, y, z) != Block.lavaStill.blockID || actual.getBlockID(x, y, z) != Block.lavaMoving.blockID)) // lava changes itself back and forth, ignore
+            {
+              lastCompareFailX = x;
+              lastCompareFailY = y;
+              lastCompareFailZ = z;
+              Block temp = Block.blocksList[expected.getBlockID(x, y, z)];
+              lastFailureReason = "Name " + ((temp == null) ? "null" : temp.getUnlocalizedName());
+              temp = Block.blocksList[actual.getBlockID(x, y, z)];
+              lastFailureReason += " vs " + ((temp == null) ? "null" : temp.getUnlocalizedName());
+              lastFailureReason += "; ID " + expected.getBlockID(x, y, z) + " vs " + actual.getBlockID(x, y, z);
+              lastFailureReason += "; meta " + expected.getMetadata(x, y, z) + " vs " + actual.getMetadata(x, y, z);
+              return false;
+            }
           }
-          if (worldFragment1.getTileEntityData(x, y, z) == null) {
-            if (worldFragment2.getTileEntityData(x, y, z) != null) {
+          if (expected.getTileEntityData(x, y, z) == null) {
+            if (actual.getTileEntityData(x, y, z) != null) {
               lastCompareFailX = x; lastCompareFailY = y; lastCompareFailZ = z;
+              lastFailureReason = "TileEntity " + expected.getTileEntityData(x, y, z) + " vs " + actual.getTileEntityData(x, y, z);
               return false;
             }
           } else {
-            NBTTagCompound nbt1 = worldFragment1.getTileEntityData(x, y, z);
+            NBTTagCompound nbt1 = expected.getTileEntityData(x, y, z);
             changeTileEntityNBTposition(nbt1, 0, 0, 0);
-            NBTTagCompound nbt2 = worldFragment2.getTileEntityData(x, y, z);
+            NBTTagCompound nbt2 = actual.getTileEntityData(x, y, z);
             changeTileEntityNBTposition(nbt2, 0, 0, 0);
             if (0 != nbt1.toString().compareTo(nbt2.toString()) ) {
               lastCompareFailX = x; lastCompareFailY = y; lastCompareFailZ = z;
+              lastFailureReason = "TileEntityNBT " + nbt1.toString() + " vs " + nbt2.toString();
               return false;
             }
           }
@@ -709,6 +813,7 @@ public class WorldFragment
   public static int lastCompareFailX;    // for testing purposes only
   public static int lastCompareFailY;
   public static int lastCompareFailZ;
+  public static String lastFailureReason;
 
   private int xCount;
   private int yCount;
@@ -716,6 +821,7 @@ public class WorldFragment
 
   private byte blockIDbits0to7[];
   private byte blockIDbits8to11andmetaData[];
+  private byte lightValues[];
   private HashMap<Integer, NBTTagCompound> tileEntityData;
   private HashMap<Integer, LinkedList<NBTTagCompound>> entityData;
 
