@@ -1,4 +1,4 @@
-package speedytools.serverside;
+package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
@@ -681,10 +681,12 @@ public class WorldFragment
         for (int z = 0; z < worldFragment1.getzCount(); ++z) {
           if (worldFragment1.getBlockID(x, y, z) != worldFragment2.getBlockID(x, y, z)
                   || worldFragment1.getMetadata(x, y, z) != worldFragment2.getMetadata(x, y, z) ) {
+            lastCompareFailX = x; lastCompareFailY = y; lastCompareFailZ = z;
             return false;
           }
           if (worldFragment1.getTileEntityData(x, y, z) == null) {
             if (worldFragment2.getTileEntityData(x, y, z) != null) {
+              lastCompareFailX = x; lastCompareFailY = y; lastCompareFailZ = z;
               return false;
             }
           } else {
@@ -693,6 +695,7 @@ public class WorldFragment
             NBTTagCompound nbt2 = worldFragment2.getTileEntityData(x, y, z);
             changeTileEntityNBTposition(nbt2, 0, 0, 0);
             if (0 != nbt1.toString().compareTo(nbt2.toString()) ) {
+              lastCompareFailX = x; lastCompareFailY = y; lastCompareFailZ = z;
               return false;
             }
           }
@@ -702,6 +705,10 @@ public class WorldFragment
 
     return true;
   }
+
+  public static int lastCompareFailX;    // for testing purposes only
+  public static int lastCompareFailY;
+  public static int lastCompareFailZ;
 
   private int xCount;
   private int yCount;

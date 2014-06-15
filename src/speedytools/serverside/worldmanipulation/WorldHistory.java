@@ -1,9 +1,10 @@
-package speedytools.serverside.ingametester;
+package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
-import speedytools.serverside.WorldFragment;
-import speedytools.serverside.WorldSelectionUndo;
+import speedytools.serverside.worldmanipulation.WorldFragment;
+import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
@@ -66,6 +67,53 @@ public class WorldHistory
   }
 
   /**
+   * removes the specified player from the history.
+   * Optional, since any entityPlayerMP entries in the history which become invalid will eventually be removed automatically.
+   * @param entityPlayerMP
+   */
+  public void removePlayer(EntityPlayerMP entityPlayerMP)
+  {
+    for (UndoLayerInfo undoLayerInfo : undoLayers) {
+      if (undoLayerInfo.entityPlayerMP.get() == entityPlayerMP) {
+        undoLayerInfo.entityPlayerMP.clear();
+      }
+    }
+  }
+
+  /**
+   * removes the specified worldServer from the history.
+   * Optional, since any worldServer entries in the history which become invalid will eventually be removed automatically.
+   * @param worldServer
+   */
+  public void removeWorldServer(WorldServer worldServer)
+  {
+    for (UndoLayerInfo undoLayerInfo : undoLayers) {
+      if (undoLayerInfo.worldServer.get() == worldServer) {
+        undoLayerInfo.worldServer.clear();
+      }
+    }
+  }
+
+  /** for debugging purposes
+   */
+  public void printUndoStackYSlice(WorldServer worldServer, ChunkCoordinates origin, int xSize, int y, int zSize)
+  {
+    for (int x = 0; x < xSize; ++x) {
+      for (UndoLayerInfo undoLayerInfo : undoLayers) {
+        if (undoLayerInfo.worldServer.get() == worldServer) {
+          for (int z = 0; z < zSize; ++z) {
+            Integer metadata = undoLayerInfo.worldSelectionUndo.getStoredMetadata(x + origin.posX, y + origin.posY, z + origin.posZ);
+            System.out.print((metadata == null) ? "-" : metadata);
+            System.out.print(" ");
+          }
+        }
+        System.out.print(": ");
+      }
+      System.out.println();
+    }
+  }
+
+  /**
    * Tries to reduce the number of undoLayers to the target size
    * 1) culls all invalid layers (Player or WorldServer no longer exist)
    * 2) for each player with more than one undolayer, delete the extra layers, starting from oldest first
@@ -77,13 +125,12 @@ public class WorldHistory
     Iterator<UndoLayerInfo> undoLayerInfoIterator = undoLayers.iterator();
     while  (undoLayerInfoIterator.hasNext()) {
       UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
-      if (undoLayerInfo.worldServer == null) {
+      if (undoLayerInfo.worldServer.get() == null) {
         undoLayerInfoIterator.remove();
       } else {
-        if (undoLayerInfo.entityPlayerMP == null) {
+        if (undoLayerInfo.entityPlayerMP.get() == null) {
           LinkedList<WorldSelectionUndo> precedingUndoLayers = collatePrecedingUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-          LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-          undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers); //, subsequentUndoLayers);
+          undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers);
           undoLayerInfoIterator.remove();
         }
       }
@@ -104,15 +151,14 @@ public class WorldHistory
     int layersToDelete = undoLayers.size() - targetSize;
     assert (layersToDelete > 0);
     Iterator<UndoLayerInfo> excessIterator = undoLayers.iterator();
-    while (layersToDelete > 0 && undoLayerInfoIterator.hasNext()) {
+    while (layersToDelete > 0 && excessIterator.hasNext()) {
       UndoLayerInfo undoLayerInfo = excessIterator.next();
       EntityPlayerMP entityPlayerMP = undoLayerInfo.entityPlayerMP.get();
       assert (entityPlayerMP != null);
       if (playerUndoCount.get(entityPlayerMP) > 1) {
         LinkedList<WorldSelectionUndo> precedingUndoLayers = collatePrecedingUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-        LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayers(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-        undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers); //, subsequentUndoLayers);
-        undoLayerInfoIterator.remove();
+        undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers);
+        excessIterator.remove();
         playerUndoCount.put(entityPlayerMP, playerUndoCount.get(entityPlayerMP) - 1);
         --layersToDelete;
       }

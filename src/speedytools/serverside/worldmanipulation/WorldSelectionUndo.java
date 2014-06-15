@@ -1,4 +1,4 @@
-package speedytools.serverside;
+package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.world.WorldServer;
 import speedytools.clientside.selections.VoxelSelection;
@@ -157,8 +157,7 @@ public class WorldSelectionUndo
    *  Action A followed by Action B.
    *  If Action B is made permanent, and then Action A is undone, the outcome should be as if the
    *  world were rewound to the initial state and then action B performed.
-   * @param precedingUndoLayers the list of undo layers before this one, must be descending order of time, i.e. latest first
-   * subsequentUndoLayers the list of undo layers after this one, must be ascending order of time, i.e. earliest first
+   * @param precedingUndoLayers the list of undo layers before this one, can be in any order
    */
   public void makePermanent(WorldServer worldServer, List<WorldSelectionUndo> precedingUndoLayers)//, List<WorldSelectionUndo> subsequentUndoLayers)
   {
@@ -166,7 +165,7 @@ public class WorldSelectionUndo
        For example:
        Initial State then Action A then Action B then Action C stores the following undo information
        A[stores initial], B[stores A], C[stores B].
-       After removing action B, this needs to look like
+       After making action B permanent, this needs to look like
         C[Stores B]
        In other words: The undo voxel for Action A is deleted because it will always be overwritten by B
 

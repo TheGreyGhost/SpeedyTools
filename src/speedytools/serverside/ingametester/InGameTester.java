@@ -12,8 +12,8 @@ import speedytools.clientside.selections.VoxelSelection;
 import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
-import speedytools.serverside.WorldFragment;
-import speedytools.serverside.WorldSelectionUndo;
+import speedytools.serverside.worldmanipulation.WorldFragment;
+import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -66,6 +66,7 @@ public class InGameTester
         case 8: success = performTest8(performTest); break;
         case 9: success = performTest9(performTest, runAllTests); break;
         case 10: success = performTest10(performTest, runAllTests); break;
+        case 11: success = performTest11(performTest, runAllTests); break;
       }
 
       if (performTest) {
@@ -380,6 +381,7 @@ public class InGameTester
     return false;
   }
 
+
   // Test10:
   // Test of WorldSelectionUndo: Tests all permutations of makePermanent() and undoChanges() for five blocks:
   //  1) place A, B, C, D, E (in a binary pattern 0..31 so that every combination of A, B, C, D, E voxels is present)
@@ -390,16 +392,11 @@ public class InGameTester
   //     a) order of actions = 5! = 120
   //     b) removal method = 2^5 = 32
   //     So a total of 120 * 32 = 50,000 or so.
-  static WorldSelectionUndo worldSelectionUndo1_10;
-  static WorldSelectionUndo worldSelectionUndo2_10;
-  static WorldSelectionUndo worldSelectionUndo3_10;
-  static WorldSelectionUndo worldSelectionUndo4_10;
-  static WorldSelectionUndo worldSelectionUndo5_10;
   public boolean performTest10(boolean performTest, boolean runAllSteps) {
 
-    WorldHistoryTest worldHistoryTest = new WorldHistoryTest();
+    WorldSelectionUndoTest worldSelectionUndoTest = new WorldSelectionUndoTest();
     try {
-      worldHistoryTest.runTest();
+      worldSelectionUndoTest.runWorldSelectionUndoTest();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -592,6 +589,16 @@ public class InGameTester
     return false;
   }
 
+  public boolean performTest11(boolean performTest, boolean runAllSteps) {
+
+    WorldSelectionUndoTest worldSelectionUndoTest = new WorldSelectionUndoTest();
+    try {
+      worldSelectionUndoTest.runWorldHistoryTests();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return true;
+  }
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
                                      int xOrigin, int yOrigin, int zOrigin, int xSize, int ySize, int zSize)
