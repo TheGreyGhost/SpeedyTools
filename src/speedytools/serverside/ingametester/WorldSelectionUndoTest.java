@@ -11,7 +11,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
-import speedytools.clientside.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelection;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 import speedytools.serverside.worldmanipulation.WorldSelectionUndo;

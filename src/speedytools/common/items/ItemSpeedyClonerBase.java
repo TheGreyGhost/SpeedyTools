@@ -9,7 +9,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
-import speedytools.clientside.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelection;
 
 import java.util.*;
 

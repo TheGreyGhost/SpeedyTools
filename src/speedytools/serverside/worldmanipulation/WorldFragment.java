@@ -19,7 +19,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import speedytools.clientside.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelection;
 
 import java.util.HashMap;
 import java.util.LinkedList;

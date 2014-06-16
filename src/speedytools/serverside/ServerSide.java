@@ -13,10 +13,10 @@ public class ServerSide
   public static void initialise()
   {
     packetHandlerRegistry = new PacketHandlerRegistry() ;
-    cloneToolServerActions = new CloneToolServerActions();
+    serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistry);
+    cloneToolServerActions = new CloneToolServerActions(serverVoxelSelections);
     cloneToolsNetworkServer = new CloneToolsNetworkServer(packetHandlerRegistry, cloneToolServerActions);
     speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry);
-    serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistry);
     inGameTester = new InGameTester(packetHandlerRegistry);
   }
 

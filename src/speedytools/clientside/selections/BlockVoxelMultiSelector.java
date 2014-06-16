@@ -7,6 +7,7 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.Colour;
 
 import java.io.ByteArrayOutputStream;
@@ -17,7 +18,7 @@ import java.io.ByteArrayOutputStream;
  */
 public class BlockVoxelMultiSelector
 {
-  private VoxelSelection selection;
+  private VoxelSelectionWithOrigin selection;
 //  private VoxelSelection shadow;
 
   private int smallestVoxelX;
@@ -37,9 +38,9 @@ public class BlockVoxelMultiSelector
   private int xSize;
   private int ySize;
   private int zSize;
-  private int xOffset;
-  private int yOffset;
-  private int zOffset;
+  private int wxOrigin;
+  private int wyOrigin;
+  private int wzOrigin;
 
   private int xpos;
   private int ypos;
@@ -92,7 +93,7 @@ public class BlockVoxelMultiSelector
       for ( ; xpos < xSize; ++xpos, ypos = 0) {
         for ( ; ypos < ySize; ++ypos) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
-          if (world.getBlockId(xpos + xOffset, ypos + yOffset, zpos + zOffset) != 0) {
+          if (world.getBlockId(xpos + wxOrigin, ypos + wyOrigin, zpos + wzOrigin) != 0) {
             selection.setVoxel(xpos, ypos, zpos);
 //            shadow.setVoxel(xpos, 1, zpos);
             expandVoxelRange(xpos, ypos, zpos);
@@ -146,14 +147,14 @@ public class BlockVoxelMultiSelector
 
   private void initialiseSelectionSizeFromBoundary(ChunkCoordinates corner1, ChunkCoordinates corner2)
   {
-    xOffset = Math.min(corner1.posX, corner2.posX);
-    yOffset = Math.min(corner1.posY, corner2.posY);
-    zOffset = Math.min(corner1.posZ, corner2.posZ);
-    xSize = 1 + Math.max(corner1.posX, corner2.posX) - xOffset;
-    ySize = 1 + Math.max(corner1.posY, corner2.posY) - yOffset;
-    zSize = 1 + Math.max(corner1.posZ, corner2.posZ) - zOffset;
+    wxOrigin = Math.min(corner1.posX, corner2.posX);
+    wyOrigin = Math.min(corner1.posY, corner2.posY);
+    wzOrigin = Math.min(corner1.posZ, corner2.posZ);
+    xSize = 1 + Math.max(corner1.posX, corner2.posX) - wxOrigin;
+    ySize = 1 + Math.max(corner1.posY, corner2.posY) - wyOrigin;
+    zSize = 1 + Math.max(corner1.posZ, corner2.posZ) - wzOrigin;
     if (selection == null) {
-      selection = new VoxelSelection(xSize, ySize, zSize);
+      selection = new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
 //      shadow = new VoxelSelection(xSize, 1, zSize);
     } else {
       selection.resizeAndClear(xSize, ySize, zSize);

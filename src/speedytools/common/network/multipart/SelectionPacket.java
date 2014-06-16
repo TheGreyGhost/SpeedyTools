@@ -3,9 +3,10 @@ package speedytools.common.network.multipart;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
-import speedytools.clientside.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelection;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
@@ -62,11 +63,11 @@ public class SelectionPacket extends MultipartPacket
    * Once the packet is completely received, can be used to extract the VoxelSelection from it
    * @return the received VoxelSelection, or null if a problem
    */
-  public VoxelSelection retrieveVoxelSelection()
+  public VoxelSelectionWithOrigin retrieveVoxelSelection()
   {
     byte [] rawDataCopy = getRawDataCopy();
     if (rawDataCopy == null) return null;
-    VoxelSelection voxelSelection = new VoxelSelection(1,1,1);
+    VoxelSelectionWithOrigin voxelSelection = new VoxelSelectionWithOrigin(0, 0, 0, 1, 1, 1);
     ByteArrayInputStream inputStream = new ByteArrayInputStream(rawDataCopy);
     boolean success = voxelSelection.readFromBytes(inputStream);
     return success ? voxelSelection : null;

@@ -21,7 +21,7 @@ public class SpeedyToolsOptions
   public static int getMaxSimpleToolUndoCount() {return 5;}
 
   // the maximum number of undo for the complex speedy tools
-  public static int getMaxComplexToolUndoCount() {return 1;}
+  public static int getMaxComplexToolUndoCount() {return 5;}
 
   // if true - enabled the in-game testing tools
   public static boolean getTesterToolsEnabled() { return true;}

@@ -2,13 +2,15 @@ package speedytools.serverside;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
-import speedytools.clientside.selections.VoxelSelection;
-import speedytools.common.network.Packet250CloneToolUse;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.ServerStatus;
-import speedytools.common.network.multipart.SelectionPacket;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.UsefulFunctions;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
+import speedytools.serverside.worldmanipulation.WorldFragment;
+import speedytools.serverside.worldmanipulation.WorldHistory;
 
 import java.nio.file.Path;
 
@@ -17,6 +19,11 @@ import java.nio.file.Path;
  */
 public class CloneToolServerActions
 {
+  public CloneToolServerActions(ServerVoxelSelections i_serverVoxelSelections)
+  {
+    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+    serverVoxelSelections = i_serverVoxelSelections;
+  }
 
   public void setCloneToolsNetworkServer(CloneToolsNetworkServer server)
   {
@@ -56,12 +63,27 @@ public class CloneToolServerActions
 
   public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
   {
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
-    getTestDoSomethingStartTime = System.nanoTime();
-    testDoSomethingTime = getTestDoSomethingStartTime + 20 * ONE_SECOND_AS_NS;
-    testActionSequenceNumber = sequenceNumber;
-    testPlayer = player;
+
+    VoxelSelectionWithOrigin voxelSelection = serverVoxelSelections.getVoxelSelection(player);
+    if (voxelSelection == null) {
+      // TODO: something here to send back and say "no good"
+    }
+
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
+
+    WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
+
+    WorldFragment worldFragment = new WorldFragment(voxelSelection.getXsize(), voxelSelection.getYsize(), voxelSelection.getZsize());
+    worldFragment.readFromWorld(worldServer, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
+                                             voxelSelection);
+    worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos);
+
+//    getTestDoSomethingStartTime = System.nanoTime();
+//    testDoSomethingTime = getTestDoSomethingStartTime + 20 * ONE_SECOND_AS_NS;
+//    testActionSequenceNumber = sequenceNumber;
+//    testPlayer = player;
+
     return true;
   }
 
@@ -162,4 +184,6 @@ public class CloneToolServerActions
 
   private static MinecraftSaveFolderBackups minecraftSaveFolderBackups;
   private static CloneToolsNetworkServer cloneToolsNetworkServer;
+  private WorldHistory worldHistory;
+  private ServerVoxelSelections serverVoxelSelections;
 }

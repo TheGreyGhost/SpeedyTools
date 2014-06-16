@@ -15,9 +15,12 @@ import org.junit.Test;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import speedytools.clientside.network.CloneToolsNetworkClient;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.*;
 import speedytools.serverside.CloneToolServerActions;
 import speedytools.serverside.CloneToolsNetworkServer;
+import speedytools.serverside.ServerVoxelSelections;
+import speedytools.serverside.worldmanipulation.WorldHistory;
 
 import java.io.IOException;
 import java.util.*;
@@ -104,7 +107,7 @@ public class CloneToolsNetworkTest
     packetHandlerRegistryServer = new PacketHandlerRegistry();
     packetHandlerRegistryServer.changeToNonStatic();
 
-    stubCloneToolServerActions = new StubCloneToolServerActions();
+    stubCloneToolServerActions = new StubCloneToolServerActions(null);
     networkServer = new CloneToolsNetworkServer(packetHandlerRegistryServer, stubCloneToolServerActions);
     stubCloneToolServerActions.setupStub(networkServer);
     stubPacketHandlerServer = new StubPacketHandlerServer();
@@ -933,6 +936,12 @@ public class CloneToolsNetworkTest
 
   public static class StubCloneToolServerActions extends CloneToolServerActions
   {
+    public StubCloneToolServerActions(ServerVoxelSelections i_serverVoxelSelections)
+    {
+      super(i_serverVoxelSelections);
+    }
+
+
     public void setupStub(CloneToolsNetworkServer newNetworkServer) {
       cloneToolsNetworkServer = newNetworkServer;
     }

@@ -1,7 +1,7 @@
 package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.world.WorldServer;
-import speedytools.clientside.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelection;
 
 import java.util.LinkedList;
 import java.util.List;

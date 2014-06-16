@@ -1,4 +1,4 @@
-package speedytools.clientside.selections;
+package speedytools.common.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import speedytools.common.utilities.ErrorLog;
@@ -16,9 +16,9 @@ public class VoxelSelection
   public static final int MAX_Y_SIZE = 256;
   public static final int MAX_Z_SIZE = 256;
 
-  public VoxelSelection(int x, int y, int z)
+  public VoxelSelection(int xSize, int ySize, int zSize)
   {
-    resize(x, y, z);
+    resize(xSize, ySize, zSize);
   }
 
   public void clearAll()

@@ -1,24 +1,22 @@
 package speedytools.serverside;
 
-import com.sun.corba.se.spi.activation.Server;
 import cpw.mods.fml.common.IPlayerTracker;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.clientside.selections.VoxelSelection;
-import speedytools.common.network.ClientStatus;
-import speedytools.common.network.Packet250CloneToolStatus;
+import speedytools.common.selections.VoxelSelection;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;
 import speedytools.common.network.multipart.MultipartPacket;
 import speedytools.common.network.multipart.SelectionPacket;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.ref.WeakReference;
+import java.util.WeakHashMap;
 
 /**
  * User: The Grey Ghost
@@ -45,7 +43,7 @@ public class ServerVoxelSelections
    * @param player
    * @return  current selection for the given player, or null if none
    */
-  public VoxelSelection getVoxelSelection(EntityPlayerMP player)
+  public VoxelSelectionWithOrigin getVoxelSelection(EntityPlayerMP player)
   {
     return playerSelections.get(player);
   }
@@ -78,9 +76,9 @@ public class ServerVoxelSelections
     playerMOATreceivers.remove(whichPlayer);
   }
 
-  private Map<EntityPlayerMP, VoxelSelection> playerSelections = new HashMap<EntityPlayerMP, VoxelSelection>();
+  private WeakHashMap<EntityPlayerMP, VoxelSelectionWithOrigin> playerSelections = new WeakHashMap<EntityPlayerMP, VoxelSelectionWithOrigin>();
 
-  private Map<EntityPlayerMP, MultipartOneAtATimeReceiver> playerMOATreceivers = new HashMap<EntityPlayerMP, MultipartOneAtATimeReceiver>();
+  private WeakHashMap<EntityPlayerMP, MultipartOneAtATimeReceiver> playerMOATreceivers = new WeakHashMap<EntityPlayerMP, MultipartOneAtATimeReceiver>();
 
   public class PacketHandlerVoxel implements PacketHandlerRegistry.PacketHandlerMethod {
     public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
@@ -123,21 +121,21 @@ public class ServerVoxelSelections
     public VoxelPacketLinkage(EntityPlayerMP player, SelectionPacket linkedPacket) {
 //      System.out.println("VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID());
       myLinkedPacket = linkedPacket;
-      myPlayer = player;
+      myPlayer = new WeakReference<EntityPlayerMP>(player);
     }
     @Override
     public void progressUpdate(int percentComplete) {}
     @Override
     public void packetCompleted() {
 //      System.out.println("VoxelPacketLinkage - completed packet ID " + myLinkedPacket.getUniqueID());
-      if (myPlayer == null || myLinkedPacket == null) return;
-      playerSelections.put(myPlayer, myLinkedPacket.retrieveVoxelSelection());
+      if (myPlayer == null || myPlayer.get() == null ||  myLinkedPacket == null) return;
+      playerSelections.put(myPlayer.get(), myLinkedPacket.retrieveVoxelSelection());
     }
     @Override
     public void packetAborted() {}
     @Override
     public int getPacketID() {return myLinkedPacket.getUniqueID();}
-    private EntityPlayerMP myPlayer;
+    private WeakReference<EntityPlayerMP> myPlayer;
     private SelectionPacket myLinkedPacket;
   }
 
@@ -147,14 +145,14 @@ public class ServerVoxelSelections
   public class VoxelLinkageFactory implements MultipartOneAtATimeReceiver.PacketReceiverLinkageFactory
   {
     public VoxelLinkageFactory(EntityPlayerMP playerMP) {
-      myPlayer = playerMP;
+      myPlayer = new WeakReference<EntityPlayerMP>(playerMP);
     }
     @Override
     public VoxelPacketLinkage createNewLinkage(MultipartPacket linkedPacket) {
       assert linkedPacket instanceof SelectionPacket;
-      return ServerVoxelSelections.this.new VoxelPacketLinkage(myPlayer, (SelectionPacket)linkedPacket);
+      return ServerVoxelSelections.this.new VoxelPacketLinkage(myPlayer.get(), (SelectionPacket)linkedPacket);
     }
-    private EntityPlayerMP myPlayer;
+    private WeakReference<EntityPlayerMP> myPlayer;
   }
 
 }
