@@ -298,7 +298,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
             }
           }
         } else if (inputEvent.eventDuration >= MIN_PLACE_HOLD_DURATION_NS) {
-          placeSelection();
+          placeSelection(player, partialTick);
         }
         break;
       }
@@ -411,7 +411,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   /**
    * don't call if an action is already pending
    */
-  private void placeSelection()
+  private void placeSelection(EntityClientPlayerMP player, float partialTick)
   {
     checkInvariants();
     if (selectionPacketSender.getCurrentPacketProgress() != SelectionPacketSender.PacketProgress.COMPLETED) {
@@ -421,9 +421,12 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       return;
     }
 
+    Vec3 selectionPosition = getSelectionPosition(player, partialTick, false);
     boolean success = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
-            selectionOrigin.posX, selectionOrigin.posY, selectionOrigin.posZ,
-            (byte) 0, false); // todo: implement rotation and flipped
+                                                                Math.round((float)selectionPosition.xCoord),
+                                                                Math.round((float)selectionPosition.yCoord),
+                                                                Math.round((float)selectionPosition.zCoord),
+                                                                (byte) 0, false); // todo: implement rotation and flipped
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
   }
 
@@ -599,35 +602,46 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       final double THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID = 0.01;
       checkInvariants();
 
-      Vec3 playerOrigin = player.getPosition(partialTick);
-
-      double draggedSelectionOriginX = selectionOrigin.posX;
-      double draggedSelectionOriginY = selectionOrigin.posY;
-      double draggedSelectionOriginZ = selectionOrigin.posZ;
-      if (selectionGrabActivated) {
-        double currentSpeedSquared = player.motionX * player.motionX + player.motionY * player.motionY + player.motionZ * player.motionZ;
-        if (currentSpeedSquared >= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID) {
-          selectionMovedFastYet = true;
-        }
-        final boolean snapToGridWhileMoving = selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
-
-        Vec3 distanceMoved = selectionGrabPoint.subtract(playerOrigin);
-        draggedSelectionOriginX += distanceMoved.xCoord;
-        draggedSelectionOriginY += distanceMoved.yCoord;
-        draggedSelectionOriginZ += distanceMoved.zCoord;
-        if (snapToGridWhileMoving) {
-          draggedSelectionOriginX = Math.round(draggedSelectionOriginX);
-          draggedSelectionOriginY = Math.round(draggedSelectionOriginY);
-          draggedSelectionOriginZ = Math.round(draggedSelectionOriginZ);
-        }
+      double currentSpeedSquared = player.motionX * player.motionX + player.motionY * player.motionY + player.motionZ * player.motionZ;
+      if (currentSpeedSquared >= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID) {
+        selectionMovedFastYet = true;
       }
+      final boolean snapToGridWhileMoving = selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
+      Vec3 selectionPosition = getSelectionPosition(player, partialTick, snapToGridWhileMoving);
+
       infoToUpdate.blockVoxelMultiSelector = voxelSelectionManager;
-      infoToUpdate.draggedSelectionOriginX = draggedSelectionOriginX;
-      infoToUpdate.draggedSelectionOriginY = draggedSelectionOriginY;
-      infoToUpdate.draggedSelectionOriginZ = draggedSelectionOriginZ;
+      infoToUpdate.draggedSelectionOriginX = selectionPosition.xCoord;
+      infoToUpdate.draggedSelectionOriginY = selectionPosition.yCoord;
+      infoToUpdate.draggedSelectionOriginZ = selectionPosition.zCoord;
 
       return true;
     }
+  }
+
+  /**
+   * returns the current position of the selection, i.e. the corner where it will be placed if the user performs an action
+   * @param snapToGrid if true, snap to the nearest integer coordinates
+   * @return
+   */
+  private Vec3 getSelectionPosition(EntityPlayer player, float partialTick, boolean snapToGrid)
+  {
+    Vec3 playerOrigin = player.getPosition(partialTick);
+
+    double draggedSelectionOriginX = selectionOrigin.posX;
+    double draggedSelectionOriginY = selectionOrigin.posY;
+    double draggedSelectionOriginZ = selectionOrigin.posZ;
+    if (selectionGrabActivated) {
+      Vec3 distanceMoved = selectionGrabPoint.subtract(playerOrigin);
+      draggedSelectionOriginX += distanceMoved.xCoord;
+      draggedSelectionOriginY += distanceMoved.yCoord;
+      draggedSelectionOriginZ += distanceMoved.zCoord;
+      if (snapToGrid) {
+        draggedSelectionOriginX = Math.round(draggedSelectionOriginX);
+        draggedSelectionOriginY = Math.round(draggedSelectionOriginY);
+        draggedSelectionOriginZ = Math.round(draggedSelectionOriginZ);
+      }
+    }
+    return Vec3.createVectorHelper(draggedSelectionOriginX, draggedSelectionOriginY, draggedSelectionOriginZ);
   }
 
   /**
