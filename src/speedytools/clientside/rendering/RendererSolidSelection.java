@@ -58,7 +58,16 @@ public class RendererSolidSelection implements RendererElement
       Vec3 playerRelativeToSelectionOrigin = playerOrigin.addVector(-renderInfo.draggedSelectionOriginX,
                                                                     -renderInfo.draggedSelectionOriginY,
                                                                     -renderInfo.draggedSelectionOriginZ);
+      GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+      if (renderInfo.opaque) {
+        GL11.glDisable(GL11.GL_BLEND);
+      } else {
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+      }
+
       renderInfo.blockVoxelMultiSelector.renderSelection(playerRelativeToSelectionOrigin, playerLook);
+      GL11.glPopAttrib();
     } finally {
       GL11.glPopMatrix();
     }
@@ -78,6 +87,7 @@ public class RendererSolidSelection implements RendererElement
     public double draggedSelectionOriginX;                      // the coordinates of the selection origin, after it has been dragged from its starting point
     public double draggedSelectionOriginY;
     public double draggedSelectionOriginZ;
+    public boolean opaque;                    // if false, make partially transparent
   }
 
   SolidSelectionRenderInfoUpdateLink infoProvider;

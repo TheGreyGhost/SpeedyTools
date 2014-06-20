@@ -201,7 +201,9 @@ public class BlockVoxelMultiSelector
 
     Tessellator tessellator = Tessellator.instance;
 
-    GL11.glColor4f(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B, Colour.PINK_100.A);
+//    GL11.glEnable(GL11.GL_BLEND);
+//    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    GL11.glColor4f(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B, Colour.WHITE_40.A); // Colour.PINK_100.A);
 //    GL11.glColor4f(Colour.WHITE_40.R, Colour.WHITE_40.G, Colour.WHITE_40.B, Colour.PINK_100.A);
 
     tessellateSurface(tessellator, false, NUDGE_DISTANCE);

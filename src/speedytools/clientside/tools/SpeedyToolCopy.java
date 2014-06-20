@@ -285,6 +285,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           if (inputEvent.controlKeyDown) {
             flipSelection();
           } else { // toggle selection grabbing
+            hasBeenMoved = true;
             Vec3 playerPosition = player.getPosition(partialTick);  // beware, Vec3 is short-lived
             selectionGrabActivated = !selectionGrabActivated;
             if (selectionGrabActivated) {
@@ -488,6 +489,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         } else {
           voxelSelectionManager.createRenderList(world);
           currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
+          hasBeenMoved = false;
         }
       }
     }
@@ -507,6 +509,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
       lastActionWasRejected = false;
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+      hasBeenMoved = false;
     }
     if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
       lastActionWasRejected = true;
@@ -613,6 +616,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       infoToUpdate.draggedSelectionOriginX = selectionPosition.xCoord;
       infoToUpdate.draggedSelectionOriginY = selectionPosition.yCoord;
       infoToUpdate.draggedSelectionOriginZ = selectionPosition.zCoord;
+      infoToUpdate.opaque = hasBeenMoved;
 
       return true;
     }
@@ -740,6 +744,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private boolean selectionGrabActivated = false;
   private Vec3    selectionGrabPoint = null;
   private boolean selectionMovedFastYet;
+  private boolean hasBeenMoved;               // used to change the appearance when freshed created or placed.
 
   private CloneToolsNetworkClient cloneToolsNetworkClient;
   private SelectionPacketSender selectionPacketSender;
