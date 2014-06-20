@@ -53,7 +53,27 @@ public class RendererWireframeSelection implements RendererElement
 
       GL11.glEnable(GL11.GL_BLEND);
       GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-      GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+
+      // cycle the wireframe colour from white to black in a "triangle" pattern
+      final float COLOUR_CYCLING_PERIOD_IN_NS = 4000 * 1000 * 1000.0F;
+      float cyclePosition = (System.nanoTime() % COLOUR_CYCLING_PERIOD_IN_NS) / COLOUR_CYCLING_PERIOD_IN_NS;
+
+      // sawtooth = do nothing
+
+      //  triangle:
+//      cyclePosition *= 2.0;
+//      cyclePosition = Math.abs(cyclePosition - 1.0F);
+
+      // sine
+//      cyclePosition = 0.5F + 0.5F * (float)Math.sin(cyclePosition * 2 * Math.PI);
+
+      // just white
+      cyclePosition = 0.0F;
+      float red = Colour.WHITE_40.R + (Colour.BLACK_40.R - Colour.WHITE_40.R) * cyclePosition;
+      float green = Colour.WHITE_40.R + (Colour.BLACK_40.G - Colour.WHITE_40.G) * cyclePosition;
+      float blue = Colour.WHITE_40.R + (Colour.BLACK_40.B - Colour.WHITE_40.B) * cyclePosition;
+
+      GL11.glColor4f(red, green, blue, Colour.BLACK_40.A);
       GL11.glLineWidth(2.0F);
       GL11.glDisable(GL11.GL_TEXTURE_2D);
       double expandDistance = 0.002F;
