@@ -53,7 +53,9 @@ public class RenderCursorStatus implements RendererElement
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
     if (!shouldIRender) return;
 
-    final int SPIN_DOWN_DURATION_TICKS = 20;
+//    final int SPIN_DOWN_RING_COMPLETION_TICKS = 0;
+    final int SPIN_DOWN_STAR_SHRINK_TICKS = 20;
+    final int SPIN_DOWN_TOTAL_DURATION_TICKS =  SPIN_DOWN_STAR_SHRINK_TICKS; // + SPIN_DOWN_RING_COMPLETION_TICKS
     final float SPIN_DEGREES_PER_TICK = 9.0F;
     final double INITIAL_TASK_COMPLETION_ANGLE = 5.0;  // always show at least this much "task completion" angle
 
@@ -61,43 +63,139 @@ public class RenderCursorStatus implements RendererElement
     double lastDegreesOfRotation = degreesOfRotation;
     degreesOfRotation = (animationCounter - spinStartTick) * SPIN_DEGREES_PER_TICK;
 
-    switch (animationState) {
-      case IDLE: {
-        if (!renderInfo.idle) {
-          animationState = AnimationState.SPIN_UP;
-          spinStartTick = animationCounter;
-        }
-        break;
-      }
-      case SPIN_UP: {
-        if (renderInfo.performingTask) {
-          animationState = AnimationState.SPINNING;
-          taskCompletionRingAngle = INITIAL_TASK_COMPLETION_ANGLE;
-        } else if (renderInfo.idle) {
-          animationState = AnimationState.SPIN_DOWN;
-          spindownCompletionTickCount = animationCounter + SPIN_DOWN_DURATION_TICKS * starSize;
-        }
-        break;
-      }
-      case SPINNING: {
-        if (!renderInfo.performingTask) {
-          animationState = AnimationState.SPIN_DOWN;
-          spindownCompletionTickCount = animationCounter + SPIN_DOWN_DURATION_TICKS;
-        }
-        break;
-      }
-      case SPIN_DOWN: {
-        if (renderInfo.idle) {
-          if (animationCounter >= spindownCompletionTickCount) {
-            animationState = AnimationState.IDLE;
-          }
-        } else {
-          animationState = AnimationState.SPIN_UP;
-        }
-        break;
-      }
-      default: assert false : "illegal animationState:" + animationState;
+    public CursorRenderInfo.CursorMode cursorMode;         // the current mode the cursor is in
+    public enum CursorMode {
+      IDLE, CHARGE_UP, PERFORMING, CANCELLING, CANCELLED
     }
+
+
+    I AM UP TO HERE - add transitions - check if ready to exit, and setup variables for new state
+    // look for transitions
+    if (renderInfo.animationState != animationState) {
+      // check for special cases
+      switch (renderInfo.animationState) {
+        case IDLE: {
+
+          break;
+        }
+        case SPIN_UP_CW: {
+
+        }
+      }
+    }
+//    switch (animationState) {
+//      case IDLE: {
+//        if (!renderInfo.idle) {
+//          animationState = AnimationState.SPIN_UP;
+//          spinStartTick = animationCounter;
+//        }
+//        break;
+//      }
+//      case SPIN_UP: {
+//        if (renderInfo.performingTask) {
+//          animationState = AnimationState.SPINNING;
+//          taskCompletionRingAngle = INITIAL_TASK_COMPLETION_ANGLE;
+//          spindownInitialTaskCompletionRingAngle = taskCompletionRingAngle;
+//        } else if (renderInfo.idle) {
+//          animationState = AnimationState.SPIN_DOWN;
+//          spindownCompletionTickCount = animationCounter + SPIN_DOWN_STAR_SHRINK_TICKS * starSize;   // + SPIN_DOWN_RING_COMPLETION_TICKS
+//        }
+//        break;
+//      }
+//      case SPINNING: {
+//        if (!renderInfo.performingTask) {
+//          if (taskCompletionRingAngle >= renderInfo.taskCompletionPercent * 360.0/100.0 - 1.0 ) {   // don't start spindown until the completion ring is fully drawn
+//            animationState = AnimationState.SPIN_DOWN;
+//            spindownCompletionTickCount = animationCounter + SPIN_DOWN_TOTAL_DURATION_TICKS;
+//          }
+//        }
+//        break;
+//      }
+//      case SPIN_DOWN: {
+//        if (renderInfo.idle) {
+//          if (animationCounter >= spindownCompletionTickCount) {
+//            animationState = AnimationState.IDLE;
+//          }
+//        } else {
+//          animationState = AnimationState.SPIN_UP;
+//        }
+//        break;
+//      }
+//      default: assert false : "illegal animationState:" + animationState;
+//    }
+
+
+
+    IDLE, SPIN_UP_CW, SPINNING_CW, SPIN_DOWN_CW_SUCCESS, SPIN_DOWN_CW_CANCELLED,
+            SPIN_UP_CCW, SPINNING_CCW_FROM_FULL, SPINNING_CCW_FROM_PARTIAL, SPIN_DOWN_CCW_CANCELLED, SPIN_DOWN_CCW_SUCCESS
+
+
+    // what the cursor should do:
+    1) SPIN_UP_CLOCKWISE when the user holds down RMB, power up the action:
+      a) rotation clockwise
+      b) star and ring start very small
+      c) as powerup continues, they get bigger
+      d) when powerup done, constant size
+      e) ring gets bigger as server progress improves
+      f) goes bright when all ready
+      Transitions:
+      a) if user release before full, transition to SPIN_DOWN_CLOCKWISE
+      b) if user releases when full but can't be executed, transition to SPIN_DOWN_CLOCKWISE
+      c) if user releases when full, and action starts, transition to PERFORMING
+     2) PERFORMING
+      a) make ring dim, slowly draw completion ring  until full
+      Transitions:
+      a) if complete: transition to SPIN_DOWN
+      b) if cancelling, transition to SPIN_
+     3)
+
+     cursor has a number of states
+     IDLE, SPIN_UP_CW, SPINNING_CW, SPIN_DOWN_CW_SUCCESS, SPIN_DOWN_CW_CANCELLED,
+     SPIN_UP_CCW, SPINNING_CCW_FROM_FULL, SPINNING_CCW_FROM_PARTIAL, SPIN_DOWN_CCW_CANCELLED, SPIN_DOWN_CCW_SUCCESS,
+
+
+    make dim and shrink star to nothing
+
+//    switch (animationState) {
+//      case IDLE: {
+//        if (!renderInfo.idle) {
+//          animationState = AnimationState.SPIN_UP;
+//          spinStartTick = animationCounter;
+//        }
+//        break;
+//      }
+//      case SPIN_UP: {
+//        if (renderInfo.performingTask) {
+//          animationState = AnimationState.SPINNING;
+//          taskCompletionRingAngle = INITIAL_TASK_COMPLETION_ANGLE;
+//          spindownInitialTaskCompletionRingAngle = taskCompletionRingAngle;
+//        } else if (renderInfo.idle) {
+//          animationState = AnimationState.SPIN_DOWN;
+//          spindownCompletionTickCount = animationCounter + SPIN_DOWN_STAR_SHRINK_TICKS * starSize;   // + SPIN_DOWN_RING_COMPLETION_TICKS
+//        }
+//        break;
+//      }
+//      case SPINNING: {
+//        if (!renderInfo.performingTask) {
+//          if (taskCompletionRingAngle >= renderInfo.taskCompletionPercent * 360.0/100.0 - 1.0 ) {   // don't start spindown until the completion ring is fully drawn
+//            animationState = AnimationState.SPIN_DOWN;
+//            spindownCompletionTickCount = animationCounter + SPIN_DOWN_TOTAL_DURATION_TICKS;
+//          }
+//        }
+//        break;
+//      }
+//      case SPIN_DOWN: {
+//        if (renderInfo.idle) {
+//          if (animationCounter >= spindownCompletionTickCount) {
+//            animationState = AnimationState.IDLE;
+//          }
+//        } else {
+//          animationState = AnimationState.SPIN_UP;
+//        }
+//        break;
+//      }
+//      default: assert false : "illegal animationState:" + animationState;
+//    }
 
     final float Z_LEVEL_FROM_GUI_IN_GAME_FORGE = -90.0F;            // taken from GuiInGameForge.renderCrossHairs
     final double CROSSHAIR_ICON_WIDTH = 88;
@@ -132,48 +230,86 @@ public class RenderCursorStatus implements RendererElement
         renderCrossHairs(scaledResolution, cursorAngle, progressAngle);
         return;
       }
-      case SPIN_UP: {
+      case SPIN_UP_CCW:
+      case SPIN_UP_CW: {
         starSize = renderInfo.chargePercent / 100.0;
         ringSize = MIN_RING_SIZE + (MAX_RING_SIZE - MIN_RING_SIZE) * renderInfo.readinessPercent / 100.0;
         starColourIntensity = renderInfo.fullyChargedAndReady ? STAR_COLOUR_MAX_INTENSITY : STAR_COLOUR_MIN_INTENSITY;
         ringColourIntensity = RING_COLOUR_MAX_INTENSITY;
-        clockwiseRotation = renderInfo.clockwise;
-        drawTaskCompletionRing = false;
+        clockwiseRotation = (animationState == CursorRenderInfo.AnimationState.SPIN_UP_CW);
+        drawTaskCompletionRing = !clockwiseRotation;
+        taskCompletionRingAngle = clockwiseRotation ? 0.0 : 360.0;
         break;
       }
-      case SPINNING: {
+      case SPINNING_CW: {
         starSize = 1.0;
         ringSize = MAX_RING_SIZE; //MIN_RING_SIZE + (MAX_RING_SIZE - MIN_RING_SIZE) * renderInfo.readinessPercent / 100.0;
-        starColourIntensity = renderInfo.fullyChargedAndReady ? STAR_COLOUR_MAX_INTENSITY : STAR_COLOUR_MIN_INTENSITY;
+        starColourIntensity =  STAR_COLOUR_MAX_INTENSITY;
         ringColourIntensity = RING_COLOUR_MIN_INTENSITY;
-        clockwiseRotation = renderInfo.clockwise;
+        clockwiseRotation = true;
         drawTaskCompletionRing = true;
-
-        // every time the wheel sweeps past the task completion ring angle, extend the ring to the new completion point
-        double rotationOffset = lastDegreesOfRotation - (lastDegreesOfRotation % 360.0);
-        double lastRotationPosition = lastDegreesOfRotation - rotationOffset;
-        double rotationPosition = degreesOfRotation - rotationOffset;
-//          System.out.println("rotationOffset=" + rotationOffset + "; lastRotationPosition=" + lastRotationPosition + "; rotationPosition=" + rotationPosition);
-        if (lastRotationPosition <= taskCompletionRingAngle &&
-            rotationPosition >= taskCompletionRingAngle ) {  // swept over the current ring position
-          double newTaskCompletionAngle = renderInfo.taskCompletionPercent * 360.0/100.0;
-          taskCompletionRingAngle = Math.min(rotationPosition, newTaskCompletionAngle);
-          taskCompletionRingAngle = Math.max(taskCompletionRingAngle, INITIAL_TASK_COMPLETION_ANGLE);
-//            System.out.println("newTaskCompletionAngle=" + newTaskCompletionAngle + "; taskCompletionRingAngle=" + taskCompletionRingAngle);
-        }
-
+        targetTaskCompletionRingAngle = renderInfo.taskCompletionPercent * 360.0/100.0;
         break;
       }
-      case SPIN_DOWN: {
-        starSize = (spindownCompletionTickCount - animationCounter) / SPIN_DOWN_DURATION_TICKS;
+      case SPINNING_CCW_FROM_FULL: {
+        starSize = 1.0;
+        ringSize = MAX_RING_SIZE; //MIN_RING_SIZE + (MAX_RING_SIZE - MIN_RING_SIZE) * renderInfo.readinessPercent / 100.0;
+        starColourIntensity =  STAR_COLOUR_MAX_INTENSITY;
+        ringColourIntensity = RING_COLOUR_MIN_INTENSITY;
+        clockwiseRotation = false;
+        drawTaskCompletionRing = true;
+        targetTaskCompletionRingAngle = renderInfo.taskCompletionPercent * 360.0/100.0;
+        break;
+      }
+      case SPINNING_CCW_FROM_PARTIAL: {
+        starSize = 1.0;
+        ringSize = MAX_RING_SIZE; //MIN_RING_SIZE + (MAX_RING_SIZE - MIN_RING_SIZE) * renderInfo.readinessPercent / 100.0;
+        starColourIntensity = STAR_COLOUR_MAX_INTENSITY;
+        ringColourIntensity = RING_COLOUR_MIN_INTENSITY;
+        clockwiseRotation = false;
+        drawTaskCompletionRing = true;
+        targetTaskCompletionRingAngle = partialSpinStartingCompletionRingAngle + (360.0 - targetTaskCompletionRingAngle) * renderInfo.taskCompletionPercent / 100.0;
+        break;
+      }
+      case SPIN_DOWN_CCW_SUCCESS:
+      case SPIN_DOWN_CW_SUCCESS: {
+        double spinDownTicksElapsed = animationCounter - spindownStartTick;
+        starSize = 1.0 - spinDownTicksElapsed / SPIN_DOWN_STAR_SHRINK_TICKS;
         starSize = UsefulFunctions.clipToRange(starSize, 0.0, 1.0);
-        starColourIntensity = RING_COLOUR_MIN_INTENSITY;
-        ringColourIntensity = STAR_COLOUR_MIN_INTENSITY;
+        ringSize = MAX_RING_SIZE;
         drawTaskCompletionRing = false;
-        // uses the saved value of ringSize, clockwiseRotation,
+        starColourIntensity = STAR_COLOUR_MIN_INTENSITY;
+        ringColourIntensity = RING_COLOUR_MIN_INTENSITY;
+        clockwiseRotation = (animationState == CursorRenderInfo.AnimationState.SPIN_DOWN_CW_SUCCESS);
         break;
       }
-      default: assert false : "illegal animationState:" + animationState; return;
+      case SPIN_DOWN_CW_CANCELLED:
+      case SPIN_DOWN_CCW_CANCELLED: {
+        double spinDownTicksElapsed = animationCounter - spindownStartTick;
+        starSize = cancelledStarSize - spinDownTicksElapsed / SPIN_DOWN_STAR_SHRINK_TICKS;
+        starSize = UsefulFunctions.clipToRange(starSize, 0.0, 1.0);
+        drawTaskCompletionRing = false;
+        starColourIntensity = STAR_COLOUR_MIN_INTENSITY;
+        ringColourIntensity = RING_COLOUR_MIN_INTENSITY;
+        clockwiseRotation = (animationState == CursorRenderInfo.AnimationState.SPIN_DOWN_CW_CANCELLED);
+        // uses the saved value of ringSize
+        break;
+      }
+      default: assert false : "illegal animationState:" + animationState;
+    }
+
+    // every time the wheel sweeps past the target ring angle, extend the ring to the new completion point
+    if (drawTaskCompletionRing) {
+      double rotationOffset = lastDegreesOfRotation - (lastDegreesOfRotation % 360.0);
+      double lastRotationPosition = lastDegreesOfRotation - rotationOffset;
+      double rotationPosition = degreesOfRotation - rotationOffset;
+      //          System.out.println("rotationOffset=" + rotationOffset + "; lastRotationPosition=" + lastRotationPosition + "; rotationPosition=" + rotationPosition);
+      if (lastRotationPosition <= taskCompletionRingAngle &&
+              rotationPosition >= taskCompletionRingAngle) {  // swept over the current ring position
+        taskCompletionRingAngle = Math.min(rotationPosition, targetTaskCompletionRingAngle);
+        taskCompletionRingAngle = Math.max(taskCompletionRingAngle, INITIAL_TASK_COMPLETION_ANGLE);
+        //            System.out.println("newTaskCompletionAngle=" + newTaskCompletionAngle + "; taskCompletionRingAngle=" + taskCompletionRingAngle);
+      }
     }
 
     Colour lineColour = Colour.BLACK_40;
@@ -184,12 +320,10 @@ public class RenderCursorStatus implements RendererElement
       default: assert false : "illegal cursorType:" + renderInfo.cursorType;
     }
 
-
     try {
       GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
       GL11.glEnable(GL11.GL_BLEND);
       GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
 
       GL11.glColor3d(lineColour.R * ringColourIntensity, lineColour.G * ringColourIntensity, lineColour.B * ringColourIntensity);
 
@@ -221,7 +355,7 @@ public class RenderCursorStatus implements RendererElement
         GL11.glLineWidth(ARC_LINE_WIDTH);
         GL11.glTranslatef(width / 2, height / 2, Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
         drawArc(CROSSHAIR_ICON_RADIUS * ringSize, 0.0,
-                clockwiseRotation ? taskCompletionRingAngle : -taskCompletionRingAngle,
+                clockwiseRotation ? taskCompletionRingAngle : 360.0 - taskCompletionRingAngle,
                 0.0
                );
         GL11.glPopMatrix();
@@ -262,6 +396,21 @@ public class RenderCursorStatus implements RendererElement
     public float readinessPercent;        // completion percentage if waiting for another task to complete on server; 0.0 (min) - 100.0 (max)
     public float taskCompletionPercent;   // completion percentage if the server is currently performing an action or undo for the client; 0.0 (min) - 100.0 (max)
     public CursorType cursorType;         // the cursor appearance
+    public CursorMode cursorMode;         // the current mode the cursor is in
+    public AnimationState animationState;
+    public enum CursorMode {
+      IDLE, CHARGE_UP, PERFORMING, CANCELLING, CANCELLED
+    }
+    public enum ActionType {
+      ACTION, UNDO
+    }
+
+    public enum AnimationState
+    {
+      IDLE, SPIN_UP_CW, SPINNING_CW, SPIN_DOWN_CW_SUCCESS, SPIN_DOWN_CW_CANCELLED,
+      SPIN_UP_CCW, SPINNING_CCW_FROM_FULL, SPINNING_CCW_FROM_PARTIAL, SPIN_DOWN_CCW_CANCELLED, SPIN_DOWN_CCW_SUCCESS
+    }
+
     public enum CursorType {
       COPY, MOVE, DELETE
     }
@@ -269,18 +418,24 @@ public class RenderCursorStatus implements RendererElement
 
   private CursorRenderInfoUpdateLink infoProvider;
   private CursorRenderInfo renderInfo = new CursorRenderInfo();
-  private AnimationState animationState = AnimationState.IDLE;
+  private CursorRenderInfo.AnimationState animationState = CursorRenderInfo.AnimationState.IDLE;
   private double spinStartTick;
-  private double spindownCompletionTickCount;
+  private double degreesOfRotation;               // the number of degrees of rotation performed relative to spinStartTick. Always increases regardless of rotation direction
+//  private double spindownCompletionTickCount;
+//  private double spindownInitialTaskCompletionRingAngle;
+  private double partialSpinStartingCompletionRingAngle;
+  private double spindownStartTick;
+  private double cancelledStarSize;
   private double starSize;
   private double ringSize;
   private double taskCompletionRingAngle;
   private boolean clockwiseRotation;
-  private double degreesOfRotation;
   private boolean drawTaskCompletionRing;
+  private double targetTaskCompletionRingAngle;
   private double vanillaSpinStartTick;
 
-  private enum AnimationState {
+  private enum AnimationStateOld
+  {
     IDLE, SPIN_UP, SPINNING, SPIN_DOWN
   }
 
@@ -340,6 +495,7 @@ public class RenderCursorStatus implements RendererElement
     double x, y;
     double arcPos = 0;
     boolean arcFinished = false;
+
     do {
       double truncAngle = Math.min(arcPos, deltaAngle);
       x = radius * Math.sin(startAngle + direction * truncAngle);
@@ -348,7 +504,7 @@ public class RenderCursorStatus implements RendererElement
 
       arcFinished = (arcPos >= deltaAngle);
       arcPos += angleIncrement;
-    } while (!arcFinished);
+    } while (!arcFinished && arcPos <= Math.toRadians(360.0));      // arcPos test is a fail safe to prevent infinite loop in case of problem with angle arguments
     GL11.glEnd();
   }
 

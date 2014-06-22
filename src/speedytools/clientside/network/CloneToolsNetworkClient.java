@@ -31,6 +31,7 @@ public class CloneToolsNetworkClient
     serverStatus = ServerStatus.IDLE;
     lastActionStatus = ActionStatus.NONE_PENDING;
     lastUndoStatus = ActionStatus.NONE_PENDING;
+    lastRejectionReason = "";
     packetSender = i_packetSender;
 
     packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
@@ -175,6 +176,7 @@ public class CloneToolsNetworkClient
           }
           case REJECTED: {
             lastActionStatus = ActionStatus.REJECTED;
+            lastRejectionReason = packet.getReason();
             ++currentActionSequenceNumber;
             break;
           }
@@ -283,6 +285,12 @@ public class CloneToolsNetworkClient
     return retval;
   }
 
+  /** if an action or an undo has been rejected, this may hold a human-readable message
+   *    from the server explaining why.
+   * @return empty string if no reason given.
+   */
+  public String getLastRejectionReason() {return lastRejectionReason;}
+
   /** retrieves the status of the action currently being performed, without
    *   acknowledging a REJECTED or COMPLETED, i.e. unlike getCurrentActionStatus
    *   it won't revert to NONE_PENDING after the call if the status is REJECTED or COMPLETED
@@ -334,6 +342,7 @@ public class CloneToolsNetworkClient
 
   private ActionStatus lastActionStatus;
   private ActionStatus lastUndoStatus;
+  private String lastRejectionReason;
 
   private long lastServerStatusUpdateTime;  //time in ns.
   private long lastActionSentTime;          //time in ns.

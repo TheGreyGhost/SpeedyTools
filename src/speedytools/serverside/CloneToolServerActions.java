@@ -7,6 +7,7 @@ import net.minecraftforge.common.DimensionManager;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
+import speedytools.common.utilities.ResultWithReason;
 import speedytools.common.utilities.UsefulFunctions;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 import speedytools.serverside.worldmanipulation.WorldFragment;
@@ -35,7 +36,7 @@ public class CloneToolServerActions
    * @return true for success, false otherwise
    * TODO: make asynchronous later
    */
-  public boolean prepareForToolAction(EntityPlayerMP player)
+  public ResultWithReason prepareForToolAction(EntityPlayerMP player)
   {
     assert (minecraftSaveFolderBackups != null);
     assert (cloneToolsNetworkServer != null);
@@ -43,7 +44,7 @@ public class CloneToolServerActions
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte)0);
     minecraftSaveFolderBackups.backupWorld();
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-    return true;
+    return ResultWithReason.success();
   }
 
   /**
@@ -61,13 +62,14 @@ public class CloneToolServerActions
 
   public static final long ONE_SECOND_AS_NS = 1000 * 1000 * 1000;
 
-  public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
+  public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
   {
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
+//    if (!flipped) return ResultWithReason.failure("Just a test warning message to show"); //todo remove - for testing only
 
     VoxelSelectionWithOrigin voxelSelection = serverVoxelSelections.getVoxelSelection(player);
     if (voxelSelection == null) {
-      // TODO: something here to send back and say "no good"
+      return ResultWithReason.failure("Select some blocks first");
     }
 
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
@@ -78,13 +80,14 @@ public class CloneToolServerActions
     worldFragment.readFromWorld(worldServer, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
                                              voxelSelection);
     worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos);
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)100);
 
 //    getTestDoSomethingStartTime = System.nanoTime();
 //    testDoSomethingTime = getTestDoSomethingStartTime + 20 * ONE_SECOND_AS_NS;
 //    testActionSequenceNumber = sequenceNumber;
 //    testPlayer = player;
 
-    return true;
+    return ResultWithReason.success();
   }
 
 //  /**
@@ -98,7 +101,7 @@ public class CloneToolServerActions
 //    return true;
 //  }
 
-  public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
+  public ResultWithReason performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
@@ -109,10 +112,10 @@ public class CloneToolServerActions
     testUndoSequenceNumber = undoSequenceNumber;
     testPlayer = player;
     testActionSequenceNumber = -1;
-    return true;
+    return ResultWithReason.success();
   }
 
-  public boolean performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
+  public ResultWithReason performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
   {
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     System.out.println("Server: Tool Undo Last Completed Action received, undo seq number " + undoSequenceNumber);
@@ -120,7 +123,7 @@ public class CloneToolServerActions
     testDoSomethingTime = getTestDoSomethingStartTime + 7 * ONE_SECOND_AS_NS;
     testUndoSequenceNumber = undoSequenceNumber;
     testPlayer = player;
-    return true;
+    return ResultWithReason.success();
   }
 
   public void tick() {

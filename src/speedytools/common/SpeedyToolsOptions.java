@@ -26,4 +26,7 @@ public class SpeedyToolsOptions
   // if true - enabled the in-game testing tools
   public static boolean getTesterToolsEnabled() { return true;}
 
+  // the time that the in-game error message should stay on the screen
+  public static long getErrorMessageDisplayDurationNS() { return 5 * 1000 * 1000 * 1000L; }
+
 }

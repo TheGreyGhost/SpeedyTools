@@ -15,6 +15,7 @@ import speedytools.common.network.ClientStatus;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.UsefulConstants;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -50,6 +51,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
     solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
     cursorRenderInfoUpdateLink = this.new CursorRenderInfoLink();
+    statusMessageRenderInfoUpdateLink = this.new StatusMessageRenderInfoLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
     selectionPacketSender = new SelectionPacketSender(packetHandlerRegistry, packetSender);
   }
@@ -61,6 +63,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     rendererElements.add(new RendererSolidSelection(solidSelectionRendererUpdateLink));
     rendererElements.add(new RenderCursorStatus(cursorRenderInfoUpdateLink));
+    rendererElements.add(new RendererStatusMessage(statusMessageRenderInfoUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
     selectionPacketSender.reset();
     iAmActive = true;
@@ -513,6 +516,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     }
     if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
       lastActionWasRejected = true;
+      displayNewErrorMessage(cloneToolsNetworkClient.getLastRejectionReason());
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     }
 
@@ -529,6 +533,19 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     checkInvariants();
   }
 
+  /**
+   * start displaying a new error message
+   * @param newErrorMessage
+   */
+  private void displayNewErrorMessage(String newErrorMessage)
+  {
+    if (newErrorMessage.isEmpty()) return;
+    errorMessageDisplayTimeStartNS = System.nanoTime();
+    errorMessageBeingDisplayed = newErrorMessage;
+  }
+
+  private String errorMessageBeingDisplayed = "";
+  private long errorMessageDisplayTimeStartNS = 0;
 
   /**
    * copies the boundary field coordinates from the boundary tool, if a boundary is defined
@@ -564,7 +581,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       if (speedyToolBoundary == null) return false;
       AxisAlignedBB boundaryFieldAABB = speedyToolBoundary.getBoundaryField();
       if (boundaryFieldAABB == null) return false;
-      infoToUpdate.boundaryCursorSide = -1;
+      infoToUpdate.boundaryCursorSide = (currentHighlighting == SelectionType.FULL_BOX) ? UsefulConstants.FACE_ALL : UsefulConstants.FACE_NONE;
       infoToUpdate.boundaryGrabActivated = false;
       infoToUpdate.boundaryGrabSide = -1;
       infoToUpdate.boundaryFieldAABB = boundaryFieldAABB;
@@ -689,13 +706,32 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       infoToUpdate.cursorType = RenderCursorStatus.CursorRenderInfo.CursorType.COPY;
 
       infoToUpdate.taskAborted = lastActionWasRejected;
-      infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
+      if (infoToUpdate.performingTask) {
+        infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
+      } else {
+        infoToUpdate.taskCompletionPercent = lastActionWasRejected ? 0.0F : 100.0F;
+      }
+
 //      System.out.println("CurserRenderInfoLink - refresh.  Idle=" + infoToUpdate.idle +
 //                         "; clockwise=" + infoToUpdate.clockwise +
 //                         "; chargePercent= " + infoToUpdate.chargePercent +
 //                         "; chargedAndReady=" + infoToUpdate.fullyChargedAndReady
 //                        );
 
+      return true;
+    }
+  }
+
+  public class StatusMessageRenderInfoLink implements RendererStatusMessage.StatusMessageRenderInfoUpdateLink
+  {
+    @Override
+    public boolean refreshRenderInfo(RendererStatusMessage.StatusMessageRenderInfo infoToUpdate) {
+      long timeMessageHasBeenDisplayed =  System.nanoTime() - errorMessageDisplayTimeStartNS;
+      if (timeMessageHasBeenDisplayed <= SpeedyToolsOptions.getErrorMessageDisplayDurationNS()) {
+        infoToUpdate.messageToDisplay = errorMessageBeingDisplayed;
+      } else {
+        infoToUpdate.messageToDisplay = "";
+      }
       return true;
     }
   }
@@ -777,6 +813,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
 
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
   private RenderCursorStatus.CursorRenderInfoUpdateLink cursorRenderInfoUpdateLink;
+  private RendererStatusMessage.StatusMessageRenderInfoUpdateLink statusMessageRenderInfoUpdateLink;
 
   private PowerUpEffect leftClickPowerup = new PowerUpEffect();
   private PowerUpEffect rightClickPowerup = new PowerUpEffect();

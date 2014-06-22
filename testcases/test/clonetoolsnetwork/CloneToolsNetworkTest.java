@@ -1,26 +1,27 @@
 package test.clonetoolsnetwork;
 
 import cpw.mods.fml.common.network.Player;
-import org.junit.Assert;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.multiplayer.NetClientHandler;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.NetServerHandler;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import speedytools.clientside.network.CloneToolsNetworkClient;
-import speedytools.common.SpeedyToolsOptions;
-import speedytools.common.network.*;
+import speedytools.common.network.ClientStatus;
+import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.common.network.PacketSender;
+import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.CloneToolServerActions;
 import speedytools.serverside.CloneToolsNetworkServer;
 import speedytools.serverside.ServerVoxelSelections;
-import speedytools.serverside.worldmanipulation.WorldHistory;
 
 import java.io.IOException;
 import java.util.*;
@@ -946,14 +947,14 @@ public class CloneToolsNetworkTest
       cloneToolsNetworkServer = newNetworkServer;
     }
 
-    public boolean prepareForToolAction(EntityPlayerMP player) {
+    public ResultWithReason prepareForToolAction(EntityPlayerMP player) {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
       ++countPrepareForToolAction;
-      return true;
+      return ResultWithReason.success();
     }
 
-    public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped) {
+    public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped) {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte) 0);
       lastActionSequenceNumber = sequenceNumber;
       lastToolID = toolID;
@@ -964,10 +965,10 @@ public class CloneToolsNetworkTest
       lastFlipped = flipped;
       ++countPerformToolAction;
 //      System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
-      return true;
+      return ResultWithReason.success();
     }
 
-    public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber) {
+    public ResultWithReason performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber) {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
       cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
 
@@ -976,16 +977,16 @@ public class CloneToolsNetworkTest
       lastPlayer = (StubEntityPlayerMP)player;
       ++countPerformUndoOfCurrentAction;
 //      System.out.println("Server: Tool Undo Current Action received: sequenceNumber " + actionSequenceNumber);
-      return true;
+      return ResultWithReason.success();
     }
 
-    public boolean performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber) {
+    public ResultWithReason performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber) {
       cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
       lastPlayer = (StubEntityPlayerMP)player;
       lastUndoSequenceNumber = undoSequenceNumber;
       ++countPerformUndoOfLastAction;
 //      System.out.println("Server: Tool Undo Last Completed Action received ");
-      return true;
+      return ResultWithReason.success();
     }
 
     private CloneToolsNetworkServer cloneToolsNetworkServer;
