@@ -1,10 +1,13 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.common.utilities.Colour;
 
 /**
  * User: The Grey Ghost
@@ -65,6 +68,10 @@ public class RendererSolidSelection implements RendererElement
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
       }
+
+      GL11.glColor4f(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B, 0.4F);
+      Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.locationBlocksTexture);
+      GL11.glDisable(GL11.GL_ALPHA_TEST);
 
       renderInfo.blockVoxelMultiSelector.renderSelection(playerRelativeToSelectionOrigin, playerLook);
       GL11.glPopAttrib();

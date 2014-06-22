@@ -1,14 +1,18 @@
 package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
+import net.minecraft.block.Block;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.Icon;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
+import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.UsefulConstants;
 
 import java.io.ByteArrayOutputStream;
 
@@ -190,7 +194,7 @@ public class BlockVoxelMultiSelector
     GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
     GL11.glDisable(GL11.GL_CULL_FACE);
     GL11.glDisable(GL11.GL_LIGHTING);
-    GL11.glDisable(GL11.GL_TEXTURE_2D);
+    GL11.glEnable(GL11.GL_TEXTURE_2D);
 //    GL11.glDisable(GL11.GL_BLEND);
 //    GL11.glDisable(GL11.GL_COLOR_LOGIC_OP);
 //    GL11.glDisable(GL11.GL_FOG);
@@ -203,10 +207,12 @@ public class BlockVoxelMultiSelector
 
 //    GL11.glEnable(GL11.GL_BLEND);
 //    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-    GL11.glColor4f(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B, Colour.WHITE_40.A); // Colour.PINK_100.A);
+//    GL11.glColor4f(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B, Colour.WHITE_40.A); // Colour.PINK_100.A);
 //    GL11.glColor4f(Colour.WHITE_40.R, Colour.WHITE_40.G, Colour.WHITE_40.B, Colour.PINK_100.A);
 
-    tessellateSurface(tessellator, false, NUDGE_DISTANCE);
+//      GL11.glColor4f(Colour.WHITE_40.R, Colour.WHITE_40.G, Colour.WHITE_40.B, Colour.PINK_100.A);
+//    tessellateSurface(tessellator, false, NUDGE_DISTANCE);
+    tessellateSurfaceWithTexture(world, tessellator, false, NUDGE_DISTANCE);
 
     GL11.glEnable(GL11.GL_BLEND);
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -322,6 +328,133 @@ public class BlockVoxelMultiSelector
               tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + nudgeDistance);
               tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance);
               tessellator.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance);
+              if (drawingWireFrame) tessellator.draw();
+            }
+          }
+        }
+      }
+    }
+
+    if (!drawingWireFrame) {
+      tessellator.draw();
+    }
+  }
+
+  private void tessellateSurfaceWithTexture(World world, Tessellator tessellator, boolean drawingWireFrame, double nudgeDistance)
+  {
+    int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
+
+    if (!drawingWireFrame) {
+      tessellator.startDrawingQuads();
+    }
+
+    // goes outside the VoxelSelection size, which always returns zero when out of bounds
+    // "nudges" the quad boundaries to make solid blocks slightly larger, avoids annoying visual artifacts when overlapping with world blocks
+    // three cases of nudge for each edge: internal (concave) edges = nudge inwards (-1), flat = no nudge (0), outer (convex) = nudge outwards (+1)
+
+//    tessellator.setBrightness(this.renderMinY > 0.0D ? l : par1Block.getMixedBrightnessForBlock(this.blockAccess, par2, par3 - 1, par4));
+//    tessellator.setColorOpaque_F(1.0F, 1.0F, 1.0F);
+
+    for (int y = 0; y <= ySize; ++y) {
+      for (int z = 0; z <= zSize; ++z) {
+        for (int x = 0; x <= xSize; ++x) {
+          if (selection.getVoxel(x, y, z)) {
+            int wx = x + wxOrigin;
+            int wy = y + wyOrigin;
+            int wz = z + wzOrigin;
+            int blockID = world.getBlockId(wx, wy, wz);
+//            int metaData = world.getBlockMetadata(wx, wy, wz);
+            Block block = Block.blocksList[blockID];
+            if (block == null) block = RegistryForBlocks.blockSelectionFog;
+
+            // xneg face
+            if (!selection.getVoxel(x - 1, y, z)) {
+              yNegNudge = (selection.getVoxel(x-1, y-1, z+0) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
+              yPosNudge = (selection.getVoxel(x-1, y+1, z+0) ? -1 : (selection.getVoxel(x+0, y+1, z+0) ? 0 : 1) );
+              zNegNudge = (selection.getVoxel(x-1, y+0, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
+              zPosNudge = (selection.getVoxel(x-1, y+0, z+1) ? -1 : (selection.getVoxel(x+0, y+0, z+1) ? 0 : 1) );
+              Icon icon = block.getBlockTexture(world, wx, wy, wz, UsefulConstants.FACE_XNEG);
+
+              if (drawingWireFrame) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              tessellator.addVertexWithUV(x - nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
+              tessellator.addVertexWithUV(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
+              tessellator.addVertexWithUV(x - nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
+              if (drawingWireFrame) tessellator.draw();
+            }
+            // xpos face
+            if (!selection.getVoxel(x + 1, y, z)) {
+              yNegNudge = (selection.getVoxel(x+1, y-1, z+0) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
+              yPosNudge = (selection.getVoxel(x+1, y+1, z+0) ? -1 : (selection.getVoxel(x+0, y+1, z+0) ? 0 : 1) );
+              zNegNudge = (selection.getVoxel(x+1, y+0, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
+              zPosNudge = (selection.getVoxel(x+1, y+0, z+1) ? -1 : (selection.getVoxel(x+0, y+0, z+1) ? 0 : 1) );
+              Icon icon = block.getBlockTexture(world, wx, wy, wz, UsefulConstants.FACE_XPOS);
+
+              if (drawingWireFrame) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              tessellator.addVertexWithUV(x + 1 + nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
+              tessellator.addVertexWithUV(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
+              tessellator.addVertexWithUV(x + 1 + nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
+              if (drawingWireFrame) tessellator.draw();
+            }
+            // yneg face
+            if (!selection.getVoxel(x, y-1, z)) {
+              xNegNudge = (selection.getVoxel(x-1, y-1, z+0) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
+              xPosNudge = (selection.getVoxel(x+1, y-1, z+0) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
+              zNegNudge = (selection.getVoxel(x+0, y-1, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
+              zPosNudge = (selection.getVoxel(x+0, y-1, z+1) ? -1 : (selection.getVoxel(x+0, y+0, z+1) ? 0 : 1) );
+              Icon icon = block.getBlockTexture(world, wx, wy, wz, UsefulConstants.FACE_YNEG);
+                                                                                                                              // NB yneg face is flipped left-right in vanilla
+              if (drawingWireFrame) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
+              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
+              if (drawingWireFrame) tessellator.draw();
+            }
+            // ypos face
+            if (!selection.getVoxel(x, y+1, z)) {
+              xNegNudge = (selection.getVoxel(x-1, y+1, z+0) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
+              xPosNudge = (selection.getVoxel(x+1, y+1, z+0) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
+              zNegNudge = (selection.getVoxel(x+0, y+1, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
+              zPosNudge = (selection.getVoxel(x+0, y+1, z+1) ? -1 : (selection.getVoxel(x+0, y+0, z+1) ? 0 : 1) );
+              Icon icon = block.getBlockTexture(world, wx, wy, wz, UsefulConstants.FACE_YPOS);
+
+              if (drawingWireFrame) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
+              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
+              if (drawingWireFrame) tessellator.draw();
+            }
+            // zneg face
+            if (!selection.getVoxel(x, y, z-1)) {
+              xNegNudge = (selection.getVoxel(x-1, y+0, z-1) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
+              xPosNudge = (selection.getVoxel(x+1, y+0, z-1) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
+              yNegNudge = (selection.getVoxel(x+0, y-1, z-1) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
+              yPosNudge = (selection.getVoxel(x+0, y+1, z-1) ? -1 : (selection.getVoxel(x+0, y+1, z+0) ? 0 : 1) );
+              Icon icon = block.getBlockTexture(world, wx, wy, wz, UsefulConstants.FACE_ZNEG);
+
+              if (drawingWireFrame) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMaxU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMinU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance, icon.getMinU(), icon.getMinV());
+              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance, icon.getMaxU(), icon.getMinV());
+              if (drawingWireFrame) tessellator.draw();
+            }
+            // zpos face
+            if (!selection.getVoxel(x, y, z+1)) {
+              xNegNudge = (selection.getVoxel(x-1, y+0, z+1) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
+              xPosNudge = (selection.getVoxel(x+1, y+0, z+1) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
+              yNegNudge = (selection.getVoxel(x+0, y-1, z+1) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
+              yPosNudge = (selection.getVoxel(x+0, y+1, z+1) ? -1 : (selection.getVoxel(x+0, y+1, z+0) ? 0 : 1) );
+              Icon icon = block.getBlockTexture(world, wx, wy, wz, UsefulConstants.FACE_ZNEG);
+
+              if (drawingWireFrame) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMinU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMaxU(), icon.getMaxV());
+              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMaxU(), icon.getMinV());
+              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMinU(), icon.getMinV());
               if (drawingWireFrame) tessellator.draw();
             }
           }
