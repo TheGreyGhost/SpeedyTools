@@ -68,6 +68,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     selectionPacketSender.reset();
     iAmActive = true;
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    toolState = ToolState.IDLE;
     return true;
   }
 
@@ -407,6 +408,11 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private void undoAction()
   {
     checkInvariants();
+    if (toolState == ToolState.PERFORMING_ACTION) {
+      toolState = ToolState.PERFORMING_UNDO_FROM_PARTIAL;
+    } else {
+      toolState = ToolState.PERFORMING_UNDO_FROM_FULL;
+    }
     boolean success = cloneToolsNetworkClient.performToolUndo();
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
 //        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
@@ -432,6 +438,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
                                                                 Math.round((float)selectionPosition.zCoord),
                                                                 (byte) 0, false); // todo: implement rotation and flipped
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
+    toolState = ToolState.PERFORMING_ACTION;
   }
 
   private void flipSelection()
@@ -682,35 +689,67 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       }
 
       PowerUpEffect activePowerUp;
-      if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
-        infoToUpdate.performingTask = true;
-        infoToUpdate.clockwise = true;
-      } else if (cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
-        infoToUpdate.performingTask = true;
-        infoToUpdate.clockwise = false;
+      if (!leftClickPowerup.isIdle()) {
+        activePowerUp = leftClickPowerup;
       } else {
-        infoToUpdate.performingTask = false;
-        if (!leftClickPowerup.isIdle()) {
-          activePowerUp = leftClickPowerup;
-          infoToUpdate.clockwise = false;
-        } else {
-          activePowerUp = rightClickPowerup;
-          infoToUpdate.clockwise = true;
-        }
-        infoToUpdate.idle = activePowerUp.isIdle();
-        infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999 && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE);
-        infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
+        activePowerUp = rightClickPowerup;
+      }
+      if (cloneToolsNetworkClient.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING
+          && cloneToolsNetworkClient.peekCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING ) {
+        toolState = ToolState.IDLE;
       }
 
+      switch (toolState) {
+        case IDLE: {
+          if (rightClickPowerup.peekState() == PowerUpEffect.State.POWERINGUP) {
+            infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_UP_CW;
+          } else if (leftClickPowerup.peekState() == PowerUpEffect.State.POWERINGUP) {
+            infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_UP_CCW;
+          } else {
+            if (rightClickPowerup.peekState() == PowerUpEffect.State.RELEASING) {
+              infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_CANCELLED;
+            } else if (leftClickPowerup.peekState() == PowerUpEffect.State.RELEASING) {
+              infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_CANCELLED;
+            } else {
+              infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.IDLE;
+            }
+          }
+          break;
+        }
+        case PERFORMING_ACTION: {
+          infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CW;
+          break;
+        }
+        case PERFORMING_UNDO_FROM_FULL: {
+          infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CCW_FROM_FULL;
+          break;
+        }
+        case PERFORMING_UNDO_FROM_PARTIAL: {
+          infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CCW_FROM_PARTIAL;
+          break;
+        }
+        default: {
+          assert false : "Invalid toolstate = " + toolState + " in refreshRenderInfo()";
+        }
+      }
+
+
+//      if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
+//        performingTask = true;
+//        infoToUpdate.
+//      } else if (cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
+//        infoToUpdate.performingTask = true;
+//        infoToUpdate.clockwise = false;
+//      } else {
+//        infoToUpdate.performingTask = false;
+//        infoToUpdate.idle = activePowerUp.isIdle();
+//      }
+
+      infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999 && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE);
+      infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
       infoToUpdate.readinessPercent = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
       infoToUpdate.cursorType = RenderCursorStatus.CursorRenderInfo.CursorType.COPY;
-
-      infoToUpdate.taskAborted = lastActionWasRejected;
-      if (infoToUpdate.performingTask) {
-        infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
-      } else {
-        infoToUpdate.taskCompletionPercent = lastActionWasRejected ? 0.0F : 100.0F;
-      }
+      infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
 
 //      System.out.println("CurserRenderInfoLink - refresh.  Idle=" + infoToUpdate.idle +
 //                         "; clockwise=" + infoToUpdate.clockwise +
@@ -814,6 +853,11 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
   private RenderCursorStatus.CursorRenderInfoUpdateLink cursorRenderInfoUpdateLink;
   private RendererStatusMessage.StatusMessageRenderInfoUpdateLink statusMessageRenderInfoUpdateLink;
+
+  private enum ToolState {
+    IDLE, PERFORMING_ACTION, PERFORMING_UNDO_FROM_FULL, PERFORMING_UNDO_FROM_PARTIAL
+  }
+  private ToolState toolState;
 
   private PowerUpEffect leftClickPowerup = new PowerUpEffect();
   private PowerUpEffect rightClickPowerup = new PowerUpEffect();
