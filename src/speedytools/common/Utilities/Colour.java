@@ -19,6 +19,22 @@ public class Colour
     this.A = initA;
   }
 
+  public int getColourForFontRenderer()
+  {
+    int red = UsefulFunctions.clipToRange((int)(this.R * 255), 0, 255);
+    int green = UsefulFunctions.clipToRange((int)(this.G * 255), 0, 255);
+    int blue = UsefulFunctions.clipToRange((int)(this.B * 255), 0, 255);
+    int alpha = UsefulFunctions.clipToRange((int)(this.A * 255), 0, 255);
+    return green | (blue << 8) | (red << 16) | (alpha << 24);
+  }
+
+  public int getColourForFontRenderer(double alphaValue)
+  {
+    int baseColour = getColourForFontRenderer();
+    int newAlpha = UsefulFunctions.clipToRange((int)(alphaValue * 255), 0, 255);
+    return (baseColour & 0xffffff) | (newAlpha << 24);
+  }
+
   public static final Colour BLACK_40 = new Colour(0, 0, 0, 0.4F);
   public static final Colour WHITE_40 = new Colour(1.0F, 1.0F, 1.0F, 0.4F);
   public static final Colour GREEN_20 = new Colour(0, 1.0F, 0, 0.2F);
