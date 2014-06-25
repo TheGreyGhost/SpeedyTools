@@ -518,11 +518,13 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     CloneToolsNetworkClient.ActionStatus actionStatus = cloneToolsNetworkClient.getCurrentActionStatus();
     if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
       lastActionWasRejected = false;
+      toolState = ToolState.ACTION_SUCCEEDED;
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
       hasBeenMoved = false;
     }
     if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
       lastActionWasRejected = true;
+      toolState = ToolState.ACTION_FAILED;
       displayNewErrorMessage(cloneToolsNetworkClient.getLastRejectionReason());
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     }
@@ -530,10 +532,12 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     actionStatus = cloneToolsNetworkClient.getCurrentUndoStatus();
     if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
       lastActionWasRejected = false;
+      toolState = ToolState.UNDO_SUCCEEDED;
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     }
     if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
       lastActionWasRejected = true;
+      toolState = ToolState.UNDO_FAILED;
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     }
 
@@ -694,38 +698,64 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       } else {
         activePowerUp = rightClickPowerup;
       }
-      if (cloneToolsNetworkClient.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING
-          && cloneToolsNetworkClient.peekCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING ) {
-        toolState = ToolState.IDLE;
+//      if (cloneToolsNetworkClient.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING
+//          && cloneToolsNetworkClient.peekCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING ) {
+//        toolState = ToolState.IDLE;
+//      }
+      if (!activePowerUp.isIdle()) {
+        lastPowerupStarted = activePowerUp;
       }
 
       switch (toolState) {
+        case ACTION_FAILED:
+        case ACTION_SUCCEEDED:
+        case UNDO_FAILED:
+        case UNDO_SUCCEEDED:
         case IDLE: {
-          if (rightClickPowerup.peekState() == PowerUpEffect.State.POWERINGUP) {
+          if (!rightClickPowerup.isIdle()) {
             infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_UP_CW;
-          } else if (leftClickPowerup.peekState() == PowerUpEffect.State.POWERINGUP) {
+          } else if (!leftClickPowerup.isIdle()) {
             infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_UP_CCW;
           } else {
-            if (rightClickPowerup.peekState() == PowerUpEffect.State.RELEASING) {
-              infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_CANCELLED;
-            } else if (leftClickPowerup.peekState() == PowerUpEffect.State.RELEASING) {
-              infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_CANCELLED;
+            if (lastPowerupStarted != null && !lastPowerupStarted.isIdle()) {
+              infoToUpdate.animationState = lastPowerupStarted == rightClickPowerup ?  RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_CANCELLED
+                                                                                    : RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_CANCELLED;
             } else {
-              infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.IDLE;
+              switch (toolState) {
+                case ACTION_FAILED: {
+                  infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_CANCELLED;
+                  break;
+                }
+                case ACTION_SUCCEEDED: {
+                  infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_SUCCESS;
+                  break;
+                }
+                case UNDO_FAILED: {
+                  infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_CANCELLED;
+                  break;
+                }
+                case UNDO_SUCCEEDED: {
+                  infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_SUCCESS;
+                  break;
+                }
+              }
             }
           }
           break;
         }
         case PERFORMING_ACTION: {
           infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CW;
+          lastPowerupStarted = null;
           break;
         }
         case PERFORMING_UNDO_FROM_FULL: {
           infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CCW_FROM_FULL;
+          lastPowerupStarted = null;
           break;
         }
         case PERFORMING_UNDO_FROM_PARTIAL: {
           infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CCW_FROM_PARTIAL;
+          lastPowerupStarted = null;
           break;
         }
         default: {
@@ -756,9 +786,13 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
 //                         "; chargePercent= " + infoToUpdate.chargePercent +
 //                         "; chargedAndReady=" + infoToUpdate.fullyChargedAndReady
 //                        );
-
+      if (infoToUpdate.animationState != lastState) {
+        System.out.println("State:" + infoToUpdate.animationState);
+        lastState = infoToUpdate.animationState;
+      }
       return true;
     }
+    private RenderCursorStatus.CursorRenderInfo.AnimationState lastState;
   }
 
   public class StatusMessageRenderInfoLink implements RendererStatusMessage.StatusMessageRenderInfoUpdateLink
@@ -855,12 +889,13 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private RendererStatusMessage.StatusMessageRenderInfoUpdateLink statusMessageRenderInfoUpdateLink;
 
   private enum ToolState {
-    IDLE, PERFORMING_ACTION, PERFORMING_UNDO_FROM_FULL, PERFORMING_UNDO_FROM_PARTIAL
+    IDLE, PERFORMING_ACTION, PERFORMING_UNDO_FROM_FULL, PERFORMING_UNDO_FROM_PARTIAL, ACTION_SUCCEEDED, ACTION_FAILED, UNDO_SUCCEEDED, UNDO_FAILED
   }
   private ToolState toolState;
 
   private PowerUpEffect leftClickPowerup = new PowerUpEffect();
   private PowerUpEffect rightClickPowerup = new PowerUpEffect();
+  private PowerUpEffect lastPowerupStarted = null;  // points to the last powerup which was started (to detect when it has been released)
 
   /**
    * Manages the state of a "Power up" object (eg for animation purposes)
