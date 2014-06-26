@@ -483,8 +483,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
    * (3) acknowledge (get) the action and undo statuses
    */
   @Override
-  public void performTick(World world)
-  {
+  public void performTick(World world) {
     checkInvariants();
     final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
@@ -510,35 +509,38 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
 
     // if the selection has been freshly generated, keep trying to transmit it until we successfully start transmission
     if (currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION
-        && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.IDLE) {
+            && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.IDLE) {
       selectionPacketSender.startSendingSelection(voxelSelectionManager);
     }
     selectionPacketSender.tick();
 
     CloneToolsNetworkClient.ActionStatus actionStatus = cloneToolsNetworkClient.getCurrentActionStatus();
-    if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
-      lastActionWasRejected = false;
-      toolState = ToolState.ACTION_SUCCEEDED;
-      cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
-      hasBeenMoved = false;
-    }
-    if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
-      lastActionWasRejected = true;
-      toolState = ToolState.ACTION_FAILED;
-      displayNewErrorMessage(cloneToolsNetworkClient.getLastRejectionReason());
-      cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
-    }
+    CloneToolsNetworkClient.ActionStatus undoStatus = cloneToolsNetworkClient.getCurrentUndoStatus();
 
-    actionStatus = cloneToolsNetworkClient.getCurrentUndoStatus();
-    if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+    if (undoStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
       lastActionWasRejected = false;
       toolState = ToolState.UNDO_SUCCEEDED;
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     }
-    if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
+    if (undoStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
       lastActionWasRejected = true;
       toolState = ToolState.UNDO_FAILED;
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    }
+
+    if (undoStatus == CloneToolsNetworkClient.ActionStatus.NONE_PENDING) { // ignore action statuses if undo status is not idle, since we are undoing the current action
+      if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+        lastActionWasRejected = false;
+        toolState = ToolState.ACTION_SUCCEEDED;
+        cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+        hasBeenMoved = false;
+      }
+      if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
+        lastActionWasRejected = true;
+        toolState = ToolState.ACTION_FAILED;
+        displayNewErrorMessage(cloneToolsNetworkClient.getLastRejectionReason());
+        cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+      }
     }
 
     checkInvariants();
@@ -685,12 +687,14 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     @Override
     public boolean refreshRenderInfo(RenderCursorStatus.CursorRenderInfo infoToUpdate)
     {
+      infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.IDLE;
       if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
         infoToUpdate.vanillaCursorSpin = true;
         infoToUpdate.cursorSpinProgress = selectionGenerationPercentComplete;
       } else {
         infoToUpdate.vanillaCursorSpin = false;
       }
+      infoToUpdate.aSelectionIsDefined = (currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION);
 
       PowerUpEffect activePowerUp;
       if (!leftClickPowerup.isIdle()) {
@@ -717,7 +721,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           } else if (!leftClickPowerup.isIdle()) {
             infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_UP_CCW;
           } else {
-            if (lastPowerupStarted != null && !lastPowerupStarted.isIdle()) {
+            if (lastPowerupStarted != null && lastPowerupStarted.isIdle()) {
               infoToUpdate.animationState = lastPowerupStarted == rightClickPowerup ?  RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_CANCELLED
                                                                                     : RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_CANCELLED;
             } else {

@@ -73,6 +73,7 @@ public class Packet250CloneToolAcknowledge
       newPacket.undoAcknowledgement = byteToAcknowledgement(inputStream.readByte());
       newPacket.undoSequenceNumber = inputStream.readInt();
       newPacket.reason = inputStream.readUTF();
+      System.out.println("action ack:" + newPacket.actionAcknowledgement + "; undo ack:" + newPacket.undoAcknowledgement);
       if (newPacket.checkInvariants()) return newPacket;
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);

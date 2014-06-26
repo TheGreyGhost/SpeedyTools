@@ -125,7 +125,7 @@ public class CloneToolsNetworkClient
       return false;
     }
     if (lastActionStatus == ActionStatus.PROCESSING || lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT) {
-      packet = Packet250CloneToolUse.cancelCurentAction(currentUndoSequenceNumber, currentActionSequenceNumber);
+      packet = Packet250CloneToolUse.cancelCurrentAction(currentUndoSequenceNumber, currentActionSequenceNumber);
     } else {
       packet = Packet250CloneToolUse.performToolUndo(currentUndoSequenceNumber);
     }
