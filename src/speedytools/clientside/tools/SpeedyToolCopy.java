@@ -408,6 +408,11 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private void undoAction()
   {
     checkInvariants();
+    if (cloneToolsNetworkClient.getServerStatus() != ServerStatus.IDLE
+        && cloneToolsNetworkClient.getServerStatus() != ServerStatus.PERFORMING_YOUR_ACTION) {
+      return;
+    }
+
     if (toolState == ToolState.PERFORMING_ACTION) {
       toolState = ToolState.PERFORMING_UNDO_FROM_PARTIAL;
     } else {

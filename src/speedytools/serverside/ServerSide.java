@@ -1,6 +1,7 @@
 package speedytools.serverside;
 
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.serverside.ingametester.InGameStatusSimulator;
 import speedytools.serverside.ingametester.InGameTester;
 
 /**
@@ -18,6 +19,7 @@ public class ServerSide
     cloneToolsNetworkServer = new CloneToolsNetworkServer(packetHandlerRegistry, cloneToolServerActions);
     speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry);
     inGameTester = new InGameTester(packetHandlerRegistry);
+    inGameStatusSimulator = new InGameStatusSimulator();
   }
 
   public static void shutdown()
@@ -45,10 +47,15 @@ public class ServerSide
   public static ServerVoxelSelections getServerVoxelSelections() {
     return serverVoxelSelections;
   }
+  public static InGameStatusSimulator getInGameStatusSimulator() {
+    return inGameStatusSimulator;
+  }
 
   private static ServerVoxelSelections serverVoxelSelections;
   private static CloneToolServerActions cloneToolServerActions;
   private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
   private static PacketHandlerRegistry packetHandlerRegistry;
   private static InGameTester inGameTester;
+  private static InGameStatusSimulator inGameStatusSimulator;
+
 }

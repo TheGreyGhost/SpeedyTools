@@ -348,6 +348,12 @@ public class CloneToolsNetworkServer
   {
     long thresholdTime = System.nanoTime() - STATUS_UPDATE_WAIT_TIME_MS * 1000 * 1000;
     for (Map.Entry<EntityPlayerMP, ClientStatus> clientStatus : playerStatuses.entrySet()) {
+      if (ServerSide.getInGameStatusSimulator().testModeActivated(clientStatus.getKey())) {  // for in-game testing purposes
+        serverStatus = ServerSide.getInGameStatusSimulator().getForcedStatus(serverStatus);
+        playerBeingServiced = ServerSide.getInGameStatusSimulator().getForcedPlayerBeingServiced(playerBeingServiced, clientStatus.getKey());
+        serverPercentComplete = ServerSide.getInGameStatusSimulator().getForcedPercentComplete(serverPercentComplete);
+      }
+
       if (clientStatus.getValue() != ClientStatus.IDLE) {
         if (lastStatusPacketTimeNS.get(clientStatus.getKey()) < thresholdTime ) {
            sendUpdateToClient(clientStatus.getKey());
