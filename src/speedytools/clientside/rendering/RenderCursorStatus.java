@@ -127,7 +127,8 @@ public class RenderCursorStatus implements RendererElement
         }
         case SPINNING_CCW_FROM_PARTIAL: {
           // reverse spin direction, adjust spinStartTick to start from the current ring rotation
-          partialSpinStartingCompletionRingAngle = taskCompletionRingAngle;
+          renderInfo.taskCompletionPercent = 0;
+          partialSpinStartingCompletionRingAngle = 360.0 - taskCompletionRingAngle;
           taskCompletionRingAngle = 360.0 - taskCompletionRingAngle;
           degreesOfRotation = 360.0 - degreesOfRotation;
           spinStartTick = animationCounter - degreesOfRotation / SPIN_DEGREES_PER_TICK;
@@ -357,6 +358,7 @@ public class RenderCursorStatus implements RendererElement
         clockwiseRotation = false;
         drawTaskCompletionRing = true;
         targetTaskCompletionRingAngle = partialSpinStartingCompletionRingAngle + (360.0 - partialSpinStartingCompletionRingAngle) * renderInfo.taskCompletionPercent / 100.0;
+        System.out.println("target " + targetTaskCompletionRingAngle); //todo remove
         break;
       }
       case SPIN_DOWN_CCW_SUCCESS:
@@ -393,15 +395,16 @@ public class RenderCursorStatus implements RendererElement
       double rotationOffset = lastDegreesOfRotation - (lastDegreesOfRotation % 360.0);
       double lastRotationPosition = lastDegreesOfRotation - rotationOffset;
       double rotationPosition = degreesOfRotation - rotationOffset;
-      //          System.out.println("rotationOffset=" + rotationOffset + "; lastRotationPosition=" + lastRotationPosition + "; rotationPosition=" + rotationPosition);
+//      System.out.println("rotationOffset=" + rotationOffset + "; lastRotationPosition=" + lastRotationPosition + "; rotationPosition=" + rotationPosition);
+      System.out.println("taskCompletionRingAngle:"+ taskCompletionRingAngle + "; targetTaskCompletionRingAngle:" + targetTaskCompletionRingAngle);
+      System.out.println("rotationPosition:" + rotationPosition);
       if ((lastRotationPosition <= taskCompletionRingAngle && rotationPosition >= taskCompletionRingAngle)
            || (lastRotationPosition <= taskCompletionRingAngle + 360 && rotationPosition >= taskCompletionRingAngle + 360) ) {
               // swept over the current ring position - check near 0 and also near 360
 
         taskCompletionRingAngle = Math.min(rotationPosition, targetTaskCompletionRingAngle);
         taskCompletionRingAngle = Math.max(taskCompletionRingAngle, INITIAL_TASK_COMPLETION_ANGLE);
-        //            System.out.println("newTaskCompletionAngle=" + newTaskCompletionAngle + "; taskCompletionRingAngle=" + taskCompletionRingAngle);
-//        System.out.println("taskCompletionRingAngle:" + taskCompletionRingAngle + "; targetTaskCompletionRingAngle:" + targetTaskCompletionRingAngle);
+        System.out.println("taskCompletionRingAngle:" + taskCompletionRingAngle + "; targetTaskCompletionRingAngle:" + targetTaskCompletionRingAngle);
       }
     }
 
