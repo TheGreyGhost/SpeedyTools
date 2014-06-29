@@ -22,6 +22,11 @@ public class ServerSide
     inGameStatusSimulator = new InGameStatusSimulator();
   }
 
+  public static void initialiseForJTest()
+  {
+    inGameStatusSimulator = new InGameStatusSimulator();
+  }
+
   public static void shutdown()
   {
     packetHandlerRegistry = null;

@@ -72,8 +72,16 @@ public class CloneToolServerActions
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
 
     VoxelSelectionWithOrigin voxelSelection = serverVoxelSelections.getVoxelSelection(player);
+
     if (voxelSelection == null) {
-      return ResultWithReason.failure("Must wait for network chanting to complete...");
+      return ResultWithReason.failure("Must wait for spell preparation to finish ...");
+    }
+
+    if (!minecraftSaveFolderBackups.isBackedUpRecently()) {
+      ResultWithReason result = prepareForToolAction(player);
+      if (!result.succeeded()) {
+        return ResultWithReason.failure("Too risky!  World backup failed!");
+      }
     }
 
     if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only

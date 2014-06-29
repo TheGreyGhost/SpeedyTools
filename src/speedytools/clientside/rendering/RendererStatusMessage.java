@@ -96,7 +96,8 @@ public class RendererStatusMessage implements RendererElement
 
     int textColour = Colour.WHITE_40.getColourForFontRenderer(opacity);
 //    System.out.println("opacity:" + opacity + "; rgba:" + textColour);
-    drawHoveringText(currentlyDisplayedMessage, width/2, height/2, textColour);
+    final int MESSAGE_HEIGHT_OFFSET = 8;
+    drawHoveringText(currentlyDisplayedMessage, width/2, height/2 + MESSAGE_HEIGHT_OFFSET, textColour);
   }
 //    FontRenderer font = par1ItemStack.getItem().getFontRenderer(par1ItemStack);
 //    drawHoveringText(list, par2, par3, (font == null ? fontRenderer : font));

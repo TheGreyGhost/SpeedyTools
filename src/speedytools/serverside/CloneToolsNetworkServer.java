@@ -130,6 +130,7 @@ public class CloneToolsNetworkServer
   private void sendUpdateToClient(EntityPlayerMP player)
   {
     ServerStatus serverStatusForThisPlayer = serverStatus;
+    String nameOfOtherPlayerBeingServiced = "";
     if (player != playerBeingServiced) {
       switch (serverStatus) {
         case IDLE:
@@ -139,6 +140,7 @@ public class CloneToolsNetworkServer
         case PERFORMING_YOUR_ACTION:
         case UNDOING_YOUR_ACTION: {
           serverStatusForThisPlayer = ServerStatus.BUSY_WITH_OTHER_PLAYER;
+          nameOfOtherPlayerBeingServiced = (playerBeingServiced == null) ? "someone" : playerBeingServiced.getDisplayName();
           break;
         }
         default:
@@ -146,7 +148,7 @@ public class CloneToolsNetworkServer
       }
     }
 
-    Packet250CloneToolStatus packet = Packet250CloneToolStatus.serverStatusChange(serverStatusForThisPlayer, serverPercentComplete);
+    Packet250CloneToolStatus packet = Packet250CloneToolStatus.serverStatusChange(serverStatusForThisPlayer, serverPercentComplete, nameOfOtherPlayerBeingServiced);
     Packet250CustomPayload packet250 = packet.getPacket250CustomPayload();
     if (packet250 != null) {
       player.playerNetServerHandler.sendPacketToPlayer(packet250);
@@ -299,6 +301,32 @@ public class CloneToolsNetworkServer
           if (packet.getActionToBeUndoneSequenceNumber() == null) { // undo last completed action
             if (serverStatus == ServerStatus.IDLE) {
               result = cloneToolServerActions.performUndoOfLastAction(player, packet.getSequenceNumber());
+            } else {
+              switch (serverStatus) {
+                case PERFORMING_BACKUP: {
+                  result = ResultWithReason.failure("Must wait for world backup");
+                  break;
+                }
+                case PERFORMING_YOUR_ACTION:
+                case UNDOING_YOUR_ACTION: {
+                  if (player == playerBeingServiced) {
+                    if (serverStatus == ServerStatus.PERFORMING_YOUR_ACTION) {
+                      result = ResultWithReason.failure("Must wait for your earlier spell to finish");
+                    } else {
+                      result = ResultWithReason.failure("Must wait for your earlier spell to undo");
+                    }
+                  } else {
+                    String playerName = "someone";
+                    if (playerBeingServiced != null) {
+                      playerName = playerBeingServiced.getDisplayName();
+                    }
+                    result = ResultWithReason.failure("Must wait for " + playerName + " to finish");
+                  }
+                  break;
+                }
+                default:
+                  assert false : "Invalid serverStatus";
+              }
             }
             sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
             break;
@@ -350,15 +378,19 @@ public class CloneToolsNetworkServer
     for (Map.Entry<EntityPlayerMP, ClientStatus> clientStatus : playerStatuses.entrySet()) {
       ServerSide.getInGameStatusSimulator().setTestMode(clientStatus.getKey());  // for in-game testing purposes
       if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {
-        serverStatus = ServerSide.getInGameStatusSimulator().getForcedStatus(serverStatus);
-        playerBeingServiced = ServerSide.getInGameStatusSimulator().getForcedPlayerBeingServiced(playerBeingServiced, clientStatus.getKey());
-        serverPercentComplete = ServerSide.getInGameStatusSimulator().getForcedPercentComplete(serverPercentComplete);
+        serverStatus = ServerSide.getInGameStatusSimulator().getForcedStatus(serverStatus, Side.CLIENT);
+        playerBeingServiced = ServerSide.getInGameStatusSimulator().getForcedPlayerBeingServiced(playerBeingServiced, clientStatus.getKey(), Side.CLIENT);
+        serverPercentComplete = ServerSide.getInGameStatusSimulator().getForcedPercentComplete(serverPercentComplete, Side.CLIENT);
       }
-
       if (clientStatus.getValue() != ClientStatus.IDLE) {
         if (lastStatusPacketTimeNS.get(clientStatus.getKey()) < thresholdTime ) {
-           sendUpdateToClient(clientStatus.getKey());
+          sendUpdateToClient(clientStatus.getKey());
         }
+      }
+      if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {
+        serverStatus = ServerSide.getInGameStatusSimulator().getForcedStatus(serverStatus, Side.SERVER);
+        playerBeingServiced = ServerSide.getInGameStatusSimulator().getForcedPlayerBeingServiced(playerBeingServiced, clientStatus.getKey(), Side.SERVER);
+        serverPercentComplete = ServerSide.getInGameStatusSimulator().getForcedPercentComplete(serverPercentComplete, Side.SERVER);
       }
     }
   }

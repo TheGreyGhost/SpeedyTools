@@ -1,5 +1,6 @@
 package speedytools.serverside.ingametester;
 
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import org.objenesis.Objenesis;
@@ -20,14 +21,29 @@ import speedytools.serverside.CloneToolsNetworkServer;
  * (3) server state forced to UNDOING_YOUR_ACTION, playerBeingServiced = the client
  * (4) server state forced to PERFORMING_YOUR_ACTION, playerBeingServiced = null
  * (5) server state forced to PERFORMING_YOUR_ACTION, playerBeingServiced = someone else.
- * (6) - (10) = same as (1 - 5) except server returns to IDLE after a while
+ * (6) - (10) = same as (1 - 5) except server returns to IDLE after a while, and sends the status to client
+ * For states 1 - 5, the status stays on the server only, client side forced to IDLE.
  * For states 1 - 5, the percent complete slowly increases over 10 seconds from 0 to 100, stays there for 5 seconds,
  *   then starts from 0 in an endless cycle
  * For states 6 - 10, the percent complete slowly increases over 10 seconds from 0 to 100, then goes to IDLE for 5 seconds.
  *   Repeats in an endless cycle.
  * (11) = backups, placements, and undo are simulated.  Will succeed unless cancelled.  Will take 10 seconds.
  * (12) = backups, placements, and undo are simulated but will fail immediately.
-  */
+ * (20 - 27) = combinations of (11) and (12): +1 = backup succeed, +2 = placement succeed, +4 = undo succeed
+ *
+ * Test plan:  messages to test are
+ * Server-side failures:
+ * - selection not transmitted yet (not tested)
+ * 26 - backup failed
+ * 1 - world backup in progress
+ * 2 - own action already in progress
+ * 3 - own undo already in progress
+ * 4, 5 - someone else is busy
+ * Client-side failures:
+ * 6 - server backup in progress
+ * - selection not transmitted yet
+ * 9, 10 - someone else is busy
+ */
 public class InGameStatusSimulator
 {
   public InGameStatusSimulator()
@@ -39,6 +55,7 @@ public class InGameStatusSimulator
 
   public void setTestMode(EntityPlayerMP entityPlayerMP) {
     testMode = 0;
+    if (entityPlayerMP == null || entityPlayerMP.inventory == null) return;
     ItemStack firstSlotItem = entityPlayerMP.inventory.getStackInSlot(0);
     if (firstSlotItem == null) return;
     if (firstSlotItem.itemID != RegistryForItems.itemSpeedyTester.itemID) return;
@@ -49,11 +66,12 @@ public class InGameStatusSimulator
     return testMode != 0;
   }
 
-  public ServerStatus getForcedStatus(ServerStatus unforcedStatus)
+  public ServerStatus getForcedStatus(ServerStatus unforcedStatus, Side forWhichSide)
   {
     int status = testMode;
     if (testMode >= 6 && testMode <= 10) {
       status = testMode - 5;
+      forWhichSide = Side.SERVER;
       long nanoseconds = System.nanoTime();
       long CYCLE_TIME_NS = 15 * 1000 * 1000L * 1000;
       long IDLE_TIME_NS = 5 * 1000 * 1000L * 1000;
@@ -62,16 +80,16 @@ public class InGameStatusSimulator
     }
 
     switch (status) {
-      case 1: return  ServerStatus.PERFORMING_BACKUP;
-      case 2: return  ServerStatus.PERFORMING_YOUR_ACTION;
-      case 3: return  ServerStatus.UNDOING_YOUR_ACTION;
-      case 4: return  ServerStatus.PERFORMING_YOUR_ACTION;
-      case 5: return  ServerStatus.PERFORMING_YOUR_ACTION;
+      case 1: return forWhichSide == Side.SERVER  ? ServerStatus.PERFORMING_BACKUP : ServerStatus.IDLE;
+      case 2: return forWhichSide == Side.SERVER  ? ServerStatus.PERFORMING_YOUR_ACTION : ServerStatus.IDLE;
+      case 3: return forWhichSide == Side.SERVER  ? ServerStatus.UNDOING_YOUR_ACTION : ServerStatus.IDLE;
+      case 4: return forWhichSide == Side.SERVER  ? ServerStatus.PERFORMING_YOUR_ACTION : ServerStatus.IDLE;
+      case 5: return forWhichSide == Side.SERVER  ? ServerStatus.PERFORMING_YOUR_ACTION : ServerStatus.IDLE;
     }
     return unforcedStatus;
   }
 
-  public EntityPlayerMP getForcedPlayerBeingServiced(EntityPlayerMP unforcedEntityPlayerMP, EntityPlayerMP thePlayer)
+  public EntityPlayerMP getForcedPlayerBeingServiced(EntityPlayerMP unforcedEntityPlayerMP, EntityPlayerMP thePlayer, Side forWhichSide)
   {
     int status = testMode;
     if (testMode >= 6 && testMode <= 10) {
@@ -92,7 +110,7 @@ public class InGameStatusSimulator
     return unforcedEntityPlayerMP;
   }
 
-  public byte getForcedPercentComplete(byte unforcedPercentComplete)
+  public byte getForcedPercentComplete(byte unforcedPercentComplete, Side forWhichSide)
   {
     if (testMode >= 6 && testMode <= 10) {
       long nanoseconds = System.nanoTime();
@@ -121,11 +139,17 @@ public class InGameStatusSimulator
    */
   public ResultWithReason prepareForToolAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player)
   {
-    if (testMode == 12) {
-      return ResultWithReason.failure("Simulated Backup Failure");
+    final int TEST_BACKUP_FLAG = 1;
+    if (testMode >= 20 && testMode <= 27) {
+      if (((testMode - 20) & TEST_BACKUP_FLAG) == 0) {
+        return ResultWithReason.failure("Simulated Backup Failure");
+      }
+    } else {
+      if (testMode == 12) {
+        return ResultWithReason.failure("Simulated Backup Failure");
+      }
+      if (testMode != 11) return null;
     }
-    if (testMode != 11) return null;
-
     testInProgress = TestInProgress.PREPARE_FOR_TOOL_ACTION;
     testStartTime = System.nanoTime();
     testPlayer = player;
@@ -138,11 +162,17 @@ public class InGameStatusSimulator
    */
   public ResultWithReason performUndoOfCurrentAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {
-    if (testMode == 12) {
-      return ResultWithReason.failure("Simulated Undo Current Failure");
+    final int TEST_UNDO_FLAG = 4;
+    if (testMode >= 20 && testMode <= 27) {
+      if (((testMode - 20) & TEST_UNDO_FLAG) == 0) {
+        return ResultWithReason.failure("Simulated Undo Current Failure");
+      }
+    } else {
+      if (testMode == 12) {
+        return ResultWithReason.failure("Simulated Undo Current Failure");
+      }
+      if (testMode != 11) return null;
     }
-    if (testMode != 11) return null;
-
     testInProgress = TestInProgress.PERFORM_UNDO_OF_CURRENT_ACTION;
     testStartTime = System.nanoTime();
     testPlayer = player;
@@ -157,11 +187,17 @@ public class InGameStatusSimulator
    */
   public ResultWithReason performUndoOfLastAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player, int undoSequenceNumber)
   {
-    if (testMode == 12) {
-      return ResultWithReason.failure("Simulated Undo Last Failure");
+    final int TEST_UNDO_FLAG = 4;
+    if (testMode >= 20 && testMode <= 27) {
+      if (((testMode - 20) & TEST_UNDO_FLAG) == 0) {
+        return ResultWithReason.failure("Simulated Undo Last Failure");
+      }
+    } else {
+      if (testMode == 12) {
+        return ResultWithReason.failure("Simulated Undo Last Failure");
+      }
+      if (testMode != 11) return null;
     }
-    if (testMode != 11) return null;
-
     testInProgress = TestInProgress.PERFORM_UNDO_OF_LAST_ACTION;
     testStartTime = System.nanoTime();
     testPlayer = player;
@@ -175,11 +211,17 @@ public class InGameStatusSimulator
    */
   public ResultWithReason performToolAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
   {
-    if (testMode == 12) {
-      return ResultWithReason.failure("Simulated Action Failure");
+    final int TEST_ACTION_FLAG = 2;
+    if (testMode >= 20 && testMode <= 27) {
+      if (((testMode - 20) & TEST_ACTION_FLAG) == 0) {
+        return ResultWithReason.failure("Simulated Action Failure");
+      }
+    } else {
+      if (testMode == 12) {
+        return ResultWithReason.failure("Simulated Action Failure");
+      }
+      if (testMode != 11) return null;
     }
-    if (testMode != 11) return null;
-
     testInProgress = TestInProgress.PERFORM_TOOL_ACTION;
     testStartTime = System.nanoTime();
     testPlayer = player;

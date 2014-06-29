@@ -15,6 +15,7 @@ import speedytools.common.network.ClientStatus;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.ResultWithReason;
 import speedytools.common.utilities.UsefulConstants;
 
 import java.util.LinkedList;
@@ -418,8 +419,12 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     } else {
       toolState = ToolState.PERFORMING_UNDO_FROM_FULL;
     }
-    boolean success = cloneToolsNetworkClient.performToolUndo();
-    cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
+    ResultWithReason result = cloneToolsNetworkClient.performToolUndo();
+    if (result.succeeded()) {
+      cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
+    } else {
+      displayNewErrorMessage(result.getReason());
+    }
 //        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
   }
 
@@ -430,20 +435,22 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   {
     checkInvariants();
     if (selectionPacketSender.getCurrentPacketProgress() != SelectionPacketSender.PacketProgress.COMPLETED) {
-      return;
-    }
-    if (cloneToolsNetworkClient.getServerStatus() != ServerStatus.IDLE) {
+      displayNewErrorMessage("Must wait for spell preparation to finish ...");
       return;
     }
 
     Vec3 selectionPosition = getSelectionPosition(player, partialTick, false);
-    boolean success = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
+    ResultWithReason result = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
                                                                 Math.round((float)selectionPosition.xCoord),
                                                                 Math.round((float)selectionPosition.yCoord),
                                                                 Math.round((float)selectionPosition.zCoord),
                                                                 (byte) 0, false); // todo: implement rotation and flipped
-    cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
-    toolState = ToolState.PERFORMING_ACTION;
+    if (result.succeeded()) {
+      cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
+      toolState = ToolState.PERFORMING_ACTION;
+    } else {
+      displayNewErrorMessage(result.getReason());
+    }
   }
 
   private void flipSelection()

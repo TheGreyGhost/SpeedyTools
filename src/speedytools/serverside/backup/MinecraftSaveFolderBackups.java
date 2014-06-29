@@ -102,6 +102,16 @@ public class MinecraftSaveFolderBackups
     return success;
   }
 
+  /**
+   * returns true if the game has recently been backed up
+   * @return
+   */
+  public boolean isBackedUpRecently()
+  {
+    Calendar now = Calendar.getInstance();
+    return (now.getTimeInMillis() - lastSaveTimeInMillis < MINIMUM_TIME_BETWEEN_BACKUPS_MS);
+  }
+
   public Path getSourceSaveFolder() {
     return sourceSaveFolder;
   }
