@@ -205,6 +205,7 @@ public class CloneToolsNetworkClient
           }
           case REJECTED: {
             lastUndoStatus = ActionStatus.REJECTED;
+            lastRejectionReason = packet.getReason();
             ++currentUndoSequenceNumber;
             break;
           }

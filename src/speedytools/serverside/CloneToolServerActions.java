@@ -8,7 +8,6 @@ import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ResultWithReason;
-import speedytools.common.utilities.UsefulFunctions;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldHistory;
@@ -74,7 +73,7 @@ public class CloneToolServerActions
 
     VoxelSelectionWithOrigin voxelSelection = serverVoxelSelections.getVoxelSelection(player);
     if (voxelSelection == null) {
-      return ResultWithReason.failure("Select some blocks first");            // todo: selection not transferred yet?
+      return ResultWithReason.failure("Must wait for network chanting to complete...");
     }
 
     if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only

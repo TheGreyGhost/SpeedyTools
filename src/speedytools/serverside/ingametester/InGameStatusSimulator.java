@@ -1,17 +1,12 @@
 package speedytools.serverside.ingametester;
 
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemInWorldManager;
 import net.minecraft.item.ItemStack;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.World;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.ResultWithReason;
-import speedytools.common.utilities.UsefulFunctions;
 import speedytools.serverside.CloneToolsNetworkServer;
 
 /**
@@ -39,6 +34,7 @@ public class InGameStatusSimulator
   {
     Objenesis objenesis = new ObjenesisStd();
     entityPlayerMPDummy = (EntityPlayerMPDummy) objenesis.newInstance(EntityPlayerMPDummy.class);
+    testMode = 0;
   }
 
   public void setTestMode(EntityPlayerMP entityPlayerMP) {

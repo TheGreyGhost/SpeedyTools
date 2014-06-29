@@ -530,6 +530,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     if (undoStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
       lastActionWasRejected = true;
       toolState = ToolState.UNDO_FAILED;
+      displayNewErrorMessage(cloneToolsNetworkClient.getLastRejectionReason());
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     }
 

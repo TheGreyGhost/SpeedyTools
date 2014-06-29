@@ -57,18 +57,19 @@ public class RendererStatusMessage implements RendererElement
       }
     }
 
-    final double OPACITY_MIN = 0.0;
+    final double OPACITY_MIN = 0.2;
     final double OPACITY_MAX = 1.0;
     double opacity = OPACITY_MIN;
     switch (animationState) {
       case NONE: {
+        currentlyDisplayedMessage = "";
         return;
       }
       case FADE_IN: {
         if (animationCounter >= animationFadeInStartCounter + FADE_IN_DURATION_TICKS) {
           animationState = AnimationState.SUSTAIN;
         }
-        opacity = UsefulFunctions.interpolate(animationCounter, animationFadeInStartCounter, FADE_IN_DURATION_TICKS,
+        opacity = UsefulFunctions.interpolate(animationCounter, animationFadeInStartCounter, animationFadeInStartCounter + FADE_IN_DURATION_TICKS,
                 OPACITY_MIN, OPACITY_MAX);
         break;
       }
@@ -76,7 +77,7 @@ public class RendererStatusMessage implements RendererElement
         if (animationCounter >= animationFadeOutStartCounter + FADE_OUT_DURATION_TICKS) {
           animationState = AnimationState.NONE;
         }
-        opacity = UsefulFunctions.interpolate(animationCounter, animationFadeOutStartCounter, FADE_OUT_DURATION_TICKS,
+        opacity = UsefulFunctions.interpolate(animationCounter, animationFadeOutStartCounter, animationFadeOutStartCounter + FADE_OUT_DURATION_TICKS,
                 OPACITY_MAX, OPACITY_MIN);
         break;
       }
@@ -88,8 +89,14 @@ public class RendererStatusMessage implements RendererElement
         assert false : "Invalid animationState " + animationState + " in RendererStatusMessage";
     }
 
+    int width = scaledResolution.getScaledWidth();
+    int height = scaledResolution.getScaledHeight();
+
+//    GL11.glTranslatef(width / 2, height / 2, Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
+
     int textColour = Colour.WHITE_40.getColourForFontRenderer(opacity);
-    drawHoveringText(currentlyDisplayedMessage, 0, 0, textColour);
+//    System.out.println("opacity:" + opacity + "; rgba:" + textColour);
+    drawHoveringText(currentlyDisplayedMessage, width/2, height/2, textColour);
   }
 //    FontRenderer font = par1ItemStack.getItem().getFontRenderer(par1ItemStack);
 //    drawHoveringText(list, par2, par3, (font == null ? fontRenderer : font));
@@ -149,6 +156,7 @@ public class RendererStatusMessage implements RendererElement
       RenderHelper.disableStandardItemLighting();
       GL11.glDisable(GL11.GL_LIGHTING);
       GL11.glDisable(GL11.GL_DEPTH_TEST);
+
       int stringWidth = font.getStringWidth(message);
       font.drawStringWithShadow(message, x - stringWidth / 2, y, rgba);
 
