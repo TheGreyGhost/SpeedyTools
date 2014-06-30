@@ -33,7 +33,7 @@ public class CloneToolServerActions
   /**
    * performed in response to a "I've made a selection" message from the client
    * @return true for success, false otherwise
-   * TODO: make asynchronous later; add error detection
+   * TODO: make asynchronous later;
    */
   public ResultWithReason prepareForToolAction(EntityPlayerMP player)
   {
@@ -98,7 +98,8 @@ public class CloneToolServerActions
     worldFragment.readFromWorld(worldServer, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
                                              voxelSelection);
     worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos);
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)100);
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+//    cloneToolsNetworkServer.actionCompleted(player, sequenceNumber);  // todo - later this will be required
 
     return ResultWithReason.success();
   }
@@ -123,16 +124,20 @@ public class CloneToolServerActions
       if (resultWithReason != null) return resultWithReason;
     }
 
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-    cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
-    cloneToolsNetworkServer.undoCompleted(player, undoSequenceNumber);
+    // we're currently still synchronous undo so this is not relevant yet; just call performUndoOfLastAction instead
+
+    return performUndoOfLastAction(player, undoSequenceNumber);
+
+//    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+//    cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
+//    cloneToolsNetworkServer.undoCompleted(player, undoSequenceNumber);
 //    getTestDoSomethingStartTime = System.nanoTime();
 //
 //    testDoSomethingTime = getTestDoSomethingStartTime + 3 * ONE_SECOND_AS_NS;
 //    testUndoSequenceNumber = undoSequenceNumber;
 //    testPlayer = player;
 //    testActionSequenceNumber = -1;
-    return ResultWithReason.success();
+//    return ResultWithReason.success();
   }
 
   public ResultWithReason performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
@@ -146,13 +151,21 @@ public class CloneToolServerActions
     }
 
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-    cloneToolsNetworkServer.undoCompleted(player, undoSequenceNumber);
+    WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
+    boolean result = worldHistory.performUndo(player, worldServer);
+
+//    cloneToolsNetworkServer.undoCompleted(player, undoSequenceNumber);      // todo later this will be required
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    if (result) {
+      return ResultWithReason.success();
+    } else {
+      return ResultWithReason.failure("There are no more spells to undo...");
+    }
 //    getTestDoSomethingStartTime = System.nanoTime();
 //    testDoSomethingTime = getTestDoSomethingStartTime + 7 * ONE_SECOND_AS_NS;
 //    testUndoSequenceNumber = undoSequenceNumber;
 //    testPlayer = player;
-    return ResultWithReason.success();
   }
 
   public void tick() {

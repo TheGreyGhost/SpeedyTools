@@ -1,14 +1,14 @@
-Jun 30, 2014 12:09:46 AM speedytools.common.utilities.ErrorLog log
+Jun 30, 2014 11:14:39 PM speedytools.common.utilities.ErrorLog log
 WARNING: Invalid backuplisting file (root name wrong): premade\StoredBackupsTest\badRoot.dat
-Jun 30, 2014 12:09:46 AM speedytools.common.utilities.ErrorLog log
+Jun 30, 2014 11:14:39 PM speedytools.common.utilities.ErrorLog log
 WARNING: Duplicate backupNumber tag in backuplisting file: premade\StoredBackupsTest\duplicateBackupNumber.dat
-Jun 30, 2014 12:09:46 AM speedytools.common.utilities.ErrorLog log
+Jun 30, 2014 11:14:39 PM speedytools.common.utilities.ErrorLog log
 WARNING: Invalid backupNumber tag in backuplisting file: premade\StoredBackupsTest\invalidBackupNumber.dat
-Jun 30, 2014 12:09:46 AM speedytools.common.utilities.ErrorLog log
+Jun 30, 2014 11:14:39 PM speedytools.common.utilities.ErrorLog log
 WARNING: Invalid backuplisting file (missing tag): premade\StoredBackupsTest\missingVersion.dat
-Jun 30, 2014 12:09:46 AM speedytools.common.utilities.ErrorLog log
+Jun 30, 2014 11:14:39 PM speedytools.common.utilities.ErrorLog log
 WARNING: Invalid backupNumber entry in backuplisting file: premade\StoredBackupsTest\wrongPathType.dat
-Jun 30, 2014 12:09:46 AM speedytools.common.utilities.ErrorLog log
+Jun 30, 2014 11:14:39 PM speedytools.common.utilities.ErrorLog log
 WARNING: Invalid backuplisting file (version wrong): premade\StoredBackupsTest\wrongVersion.dat
-Jun 30, 2014 12:09:49 AM speedytools.common.utilities.ErrorLog log
-SEVERE: StoredBackups::saveBackupListing() failed to create backup save: java.io.FileNotFoundException: temp\StoredBackupsTest6203309462204710234\fail\g.dat (The system cannot find the path specified)
+Jun 30, 2014 11:14:40 PM speedytools.common.utilities.ErrorLog log
+SEVERE: StoredBackups::saveBackupListing() failed to create backup save: java.io.FileNotFoundException: temp\StoredBackupsTest5123432404377982472\fail\g.dat (The system cannot find the path specified)

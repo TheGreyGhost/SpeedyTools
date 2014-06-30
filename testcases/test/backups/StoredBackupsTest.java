@@ -96,13 +96,13 @@ public class StoredBackupsTest
     int failedDeletionCount = 0;
     for (int i = 1; i <= 30; ++i) {
 //      Path dest = storedBackups.getNextSaveFolder(tempDirPath, BACKUP_STEM);
-      boolean success = storedBackups.createBackupSave(source, tempDirPath, "Test" + i);
+      Path successPath = storedBackups.createBackupSave(source, tempDirPath, "Test" + i);
 //      boolean success = BackupMinecraftSave.createBackupSave(source, dest, "Test" + i);
-      Assert.assertTrue("Created save successfully", success);
+      Assert.assertTrue("Created save successfully", successPath != null);
 //      success = storedBackups.addStoredBackup(dest);
 //      Assert.assertTrue("addStoredBackup successfully", success);
-      success = storedBackups.cullSurplus();
-      if (!success) ++failedDeletionCount;
+      successPath = storedBackups.cullSurplus();
+      if (successPath == null) ++failedDeletionCount;
 
       HashMap<Integer, Path> backupListing = storedBackups.getBackupListing();
       for (Path path : backupListing.values()) {

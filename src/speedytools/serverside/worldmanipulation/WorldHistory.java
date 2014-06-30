@@ -14,7 +14,7 @@ import java.util.LinkedList;
 /**
  * User: The Grey Ghost
  * Date: 8/06/2014
- * Holds the undo history for the WorldServer.
+ * Holds the undo history for the WorldServers.
  * Every player gets at least one undo.  They will get more if there is enough space.
  * If the history is full, these "extra" undo layers are discarded, oldest first.
  * The layers are grouped according to WorldServer (different dimensions will have different WorldServers)

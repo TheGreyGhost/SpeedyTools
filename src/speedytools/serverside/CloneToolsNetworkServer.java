@@ -251,30 +251,30 @@ public class CloneToolsNetworkServer
 //            }
 //          }
 //          if (!foundundo) {
-          ResultWithReason reason = ResultWithReason.failure();
+          ResultWithReason result = ResultWithReason.failure();
           if (serverStatus == ServerStatus.IDLE) {
-            reason = cloneToolServerActions.performToolAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
+            result = cloneToolServerActions.performToolAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
                                                                packet.getRotationCount(), packet.isFlipped());
           } else {
             switch (serverStatus) {
               case PERFORMING_BACKUP: {
-                reason = ResultWithReason.failure("Must wait for world backup");
+                result = ResultWithReason.failure("Must wait for world backup");
                 break;
               }
               case PERFORMING_YOUR_ACTION:
               case UNDOING_YOUR_ACTION: {
                 if (player == playerBeingServiced) {
                   if (serverStatus == ServerStatus.PERFORMING_YOUR_ACTION) {
-                    reason = ResultWithReason.failure("Must wait for your earlier spell to finish");
+                    result = ResultWithReason.failure("Must wait for your earlier spell to finish");
                   } else {
-                    reason = ResultWithReason.failure("Must wait for your earlier spell to undo");
+                    result = ResultWithReason.failure("Must wait for your earlier spell to undo");
                   }
                 } else {
                   String playerName = "someone";
                   if (playerBeingServiced != null) {
                     playerName = playerBeingServiced.getDisplayName();
                   }
-                  reason = ResultWithReason.failure("Must wait for " + playerName + " to finish");
+                  result = ResultWithReason.failure("Must wait for " + playerName + " to finish");
                 }
                 break;
               }
@@ -282,7 +282,10 @@ public class CloneToolsNetworkServer
                 assert false: "Invalid serverStatus";
             }
           }
-          sendAcknowledgementWithReason(player, (reason.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, Acknowledgement.NOUPDATE, 0, reason.getReason());
+          sendAcknowledgementWithReason(player, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, Acknowledgement.NOUPDATE, 0, result.getReason());
+          if (result.succeeded()) {
+            actionCompleted(player, sequenceNumber);             // todo: later - remove this when async
+          }
         }
         break;
       }
@@ -329,6 +332,9 @@ public class CloneToolsNetworkServer
               }
             }
             sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
+            if (result.succeeded()) {
+              undoCompleted(player, sequenceNumber);             // todo: later - remove this when async
+            }
             break;
           } else if (packet.getActionToBeUndoneSequenceNumber() > lastAcknowledgedAction.get(player)    ) {  // undo for an action we haven't received yet
             sendAcknowledgementWithReason(player, Acknowledgement.REJECTED, packet.getActionToBeUndoneSequenceNumber(),

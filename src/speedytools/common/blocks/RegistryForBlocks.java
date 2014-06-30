@@ -16,7 +16,7 @@ public class RegistryForBlocks
   public static void initialise()
   {
     final int START_BLOCK = 2142;
-    blockSelectionFog = (BlockSelectionFog)(new BlockSelectionFog(START_BLOCK, Material.air).setUnlocalizedName("selectionfog").setTextureName("selectionfog"));
+    blockSelectionFog = (BlockSelectionFog)(new BlockSelectionFog(START_BLOCK, Material.air).setUnlocalizedName("selectionfog").setTextureName("speedytoolsmod:selectionfog"));
 
     GameRegistry.registerBlock(blockSelectionFog, blockSelectionFog.getUnlocalizedName());
 

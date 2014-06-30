@@ -149,26 +149,27 @@ public class StoredBackups
    * @param folderToBeBackedUp the Minecraft Save folder to be backup up
    * @param rootSavesFolder the root folder that Minecraft stores its saves into
    * @param comment comment for the file
-   * @return success if backup successfully created, false otherwise.
+   * @return the Path to the backup if backup was successfully created, null otherwise.
    */
-  public boolean createBackupSave(Path folderToBeBackedUp, Path rootSavesFolder,  String comment) {
+  public Path createBackupSave(Path folderToBeBackedUp, Path rootSavesFolder, String comment) {
     boolean success;
     Path newBackupName = getNextSaveFolder(rootSavesFolder, folderToBeBackedUp.getFileName().toString());
     success = FolderBackup.createBackupSave(folderToBeBackedUp, newBackupName, comment);
     if (success) {
-      success = addStoredBackup(newBackupName);
+      addStoredBackup(newBackupName);
+      return newBackupName;
+    } else {
+      return null;
     }
-
-    return success;
   }
 
   /**
    * Looks through the StoredBackups and culls any which are surplus
    * The deletion is performed to keep a series of backups with increasing spacing as they get older
    *     Up to six backups will be kept, the oldest will be at least 14 saves old (up to 21)
-   * @return true if a backup was deleted; false otherwise
+   * @return the Path to the backup which was deleted; or null if none deleted
    */
-  public boolean cullSurplus() {
+  public Path cullSurplus() {
     // If the saves are numbered from 1, 2, 3, etc and savenumber is the number of the
     //   current save,
     //   then savenumber - deletionSchedule[savenumber%8] is to be deleted
@@ -201,11 +202,11 @@ public class StoredBackups
     int maximumStoredBackupNumber = getMaximumStoredBackupNumber();
     int backupNumToDelete = maximumStoredBackupNumber - deletionSchedule[maximumStoredBackupNumber%8];
     Path backupToDelete = backupListing.get(backupNumToDelete);
-    if (backupToDelete == null) return false;
+    if (backupToDelete == null) return null;
     boolean success = FolderBackup.deleteBackupSave(backupToDelete);
-    if (!success) return false;
+    if (!success) return null;
     backupListing.remove(backupNumToDelete);
-    return true;
+    return backupToDelete;
   }
 
   /**
