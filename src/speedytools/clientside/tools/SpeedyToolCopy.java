@@ -467,18 +467,25 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   {
     switch (currentHighlighting) {
       case NONE: {
+        if (updateBoundaryCornersFromToolBoundary()) {
+          displayNewErrorMessage("First point your cursor at a nearby block, or at the boundary field ...");
+        } else {
+          displayNewErrorMessage("First point your cursor at a nearby block...");
+        }
         return;
       }
       case FULL_BOX: {
         voxelSelectionManager = new BlockVoxelMultiSelector();
         voxelSelectionManager.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
-//        sortBoundaryFieldCorners();
-        selectionOrigin = new ChunkCoordinates(boundaryCorner1);
+//        selectionOrigin = new ChunkCoordinates(boundaryCorner1);
         currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
-//            playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
         break;
       }
       case UNBOUND_FILL: {
+        voxelSelectionManager = new BlockVoxelMultiSelector();
+        voxelSelectionManager.selectUnboundFill(thePlayer.worldObj, blockUnderCursor);
+//        selectionOrigin = new ChunkCoordinates(blockUnderCursor);
+        currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
         break;
       }
       case BOUND_FILL: {
@@ -508,6 +515,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         if (voxelSelectionManager.isEmpty()) {
           currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
         } else {
+          selectionOrigin = voxelSelectionManager.getWorldOrigin();
           voxelSelectionManager.createRenderList(world);
           currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
           hasBeenMoved = false;

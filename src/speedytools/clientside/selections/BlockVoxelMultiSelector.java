@@ -10,6 +10,7 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.blocks.RegistryForBlocks;
+import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.UsefulConstants;
@@ -53,7 +54,7 @@ public class BlockVoxelMultiSelector
   private boolean empty = true;
 
   private enum OperationInProgress {
-    IDLE, ENTIREFIELD, COMPLETE
+    IDLE, ALL_IN_BOX, FILL, COMPLETE
   }
   private OperationInProgress mode;
 
@@ -74,7 +75,7 @@ public class BlockVoxelMultiSelector
     xpos = 0;
     ypos = 0;
     zpos = 0;
-    mode = OperationInProgress.ENTIREFIELD;
+    mode = OperationInProgress.ALL_IN_BOX;
     initialiseVoxelRange();
   }
 
@@ -86,8 +87,8 @@ public class BlockVoxelMultiSelector
    */
   public float selectAllInBoxContinue(World world, long maxTimeInNS)
   {
-    if (mode != OperationInProgress.ENTIREFIELD) {
-      FMLLog.severe("Mode should be ENTIREFIELD in BlockVoxelMultiSelector::selectEntireFieldContinue");
+    if (mode != OperationInProgress.ALL_IN_BOX) {
+      FMLLog.severe("Mode should be ALL_IN_BOX in BlockVoxelMultiSelector::selectAllInBoxContinue");
       return -1;
     }
 
@@ -99,7 +100,6 @@ public class BlockVoxelMultiSelector
           if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
           if (world.getBlockId(xpos + wxOrigin, ypos + wyOrigin, zpos + wzOrigin) != 0) {
             selection.setVoxel(xpos, ypos, zpos);
-//            shadow.setVoxel(xpos, 1, zpos);
             expandVoxelRange(xpos, ypos, zpos);
           }
         }
@@ -108,6 +108,63 @@ public class BlockVoxelMultiSelector
     mode = OperationInProgress.COMPLETE;
     return -1;
   }
+
+  /**
+   * initialise conversion of the selected box to a VoxelSelection
+   * @param world
+   * @param blockUnderCursor the block being highlighted by the cursor
+   */
+  public void selectUnboundFill(World world, ChunkCoordinates blockUnderCursor)
+  {
+    ChunkCoordinates corner1 = new ChunkCoordinates();
+    ChunkCoordinates corner2 = new ChunkCoordinates();
+    corner1.posX = blockUnderCursor.posX - VoxelSelection.MAX_X_SIZE / 2 + 1;
+    corner2.posX = blockUnderCursor.posX + VoxelSelection.MAX_X_SIZE / 2 - 1;
+    corner1.posY = Math.max(0,   blockUnderCursor.posY - VoxelSelection.MAX_Y_SIZE / 2 + 1);
+    corner2.posY = Math.min(255, blockUnderCursor.posY + VoxelSelection.MAX_Y_SIZE / 2 + 1);
+    corner1.posZ = blockUnderCursor.posZ - VoxelSelection.MAX_Z_SIZE / 2 + 1;
+    corner2.posZ = blockUnderCursor.posZ + VoxelSelection.MAX_Z_SIZE / 2 - 1;
+
+    initialiseSelectionSizeFromBoundary(corner1, corner2);
+    xpos = 0;
+    ypos = 0;
+    zpos = 0;
+    mode = OperationInProgress.ALL_IN_BOX;
+    initialiseVoxelRange();
+  }
+
+  /**
+   * continue conversion of the selected box to a VoxelSelection.  Call repeatedly until conversion complete.
+   * @param world
+   * @param maxTimeInNS maximum elapsed duration before processing stops & function returns
+   * @return fraction complete (0 - 1), -ve number for finished
+   */
+  public float selectUnboundFillContinue(World world, long maxTimeInNS)
+  {
+    if (mode != OperationInProgress.ALL_IN_BOX) {
+      FMLLog.severe("Mode should be ALL_IN_BOX in BlockVoxelMultiSelector::selectAllInBoxContinue");
+      return -1;
+    }
+
+    long startTime = System.nanoTime();
+
+    for ( ; zpos < zSize; ++zpos, xpos = 0) {
+      for ( ; xpos < xSize; ++xpos, ypos = 0) {
+        for ( ; ypos < ySize; ++ypos) {
+          if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
+          if (world.getBlockId(xpos + wxOrigin, ypos + wyOrigin, zpos + wzOrigin) != 0) {
+            selection.setVoxel(xpos, ypos, zpos);
+            expandVoxelRange(xpos, ypos, zpos);
+          }
+        }
+      }
+    }
+    mode = OperationInProgress.COMPLETE;
+    shrinkToSmallestEnclosingCuboid();
+    return -1;
+  }
+
+
 
   /**
    * returns true if there are no solid pixels at all in this selection.
@@ -149,6 +206,43 @@ public class BlockVoxelMultiSelector
     empty = false;
   }
 
+  /**
+   * shrinks the voxel selection to the minimum size needed to contain the set voxels
+   */
+  private void shrinkToSmallestEnclosingCuboid()
+  {
+    if (smallestVoxelX == 0 && smallestVoxelY == 0 && smallestVoxelZ == 0
+        && largestVoxelX == xSize-1 && largestVoxelY == ySize-1 && largestVoxelZ == zSize-1) {
+      return;
+    }
+
+    int newXsize = largestVoxelX - smallestVoxelX + 1;
+    int newYsize = largestVoxelY - smallestVoxelY + 1;
+    int newZsize = largestVoxelZ - smallestVoxelZ + 1;
+    VoxelSelectionWithOrigin smallerSelection = new VoxelSelectionWithOrigin(
+            wxOrigin + smallestVoxelX, wyOrigin + smallestVoxelY, wzOrigin + smallestVoxelZ,
+            newXsize, newYsize, newZsize);
+    for (int y = 0; y < newYsize; ++y) {
+      for (int z = 0; z < newZsize; ++z) {
+        for (int x = 0; x < newXsize; ++x) {
+          if (selection.getVoxel(x + smallestVoxelX, y + smallestVoxelY, z + smallestVoxelZ)) {
+            smallerSelection.setVoxel(x, y, z);
+          }
+        }
+      }
+    }
+    selection = smallerSelection;
+    wxOrigin += smallestVoxelX;
+    wyOrigin += smallestVoxelY;
+    wzOrigin += smallestVoxelZ;
+    smallestVoxelX = 0;
+    smallestVoxelY = 0;
+    smallestVoxelZ = 0;
+    largestVoxelX = xSize - 1;
+    largestVoxelY = ySize - 1;
+    largestVoxelZ = zSize - 1;
+  }
+
   private void initialiseSelectionSizeFromBoundary(ChunkCoordinates corner1, ChunkCoordinates corner2)
   {
     wxOrigin = Math.min(corner1.posX, corner2.posX);
@@ -164,6 +258,14 @@ public class BlockVoxelMultiSelector
       selection.resizeAndClear(xSize, ySize, zSize);
 //      shadow.clearAll(xSize, 1, zSize);
     }
+  }
+
+  /** gets the origin for the selection in world coordinates
+   * @return the origin for the selection in world coordinates
+   */
+  public ChunkCoordinates getWorldOrigin()
+  {
+    return new ChunkCoordinates(selection.getWxOrigin(), selection.getWyOrigin(), selection.getWzOrigin());
   }
 
   /**
