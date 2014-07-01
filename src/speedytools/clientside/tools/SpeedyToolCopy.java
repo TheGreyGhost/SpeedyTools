@@ -483,7 +483,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       }
       case UNBOUND_FILL: {
         voxelSelectionManager = new BlockVoxelMultiSelector();
-        voxelSelectionManager.selectUnboundFill(thePlayer.worldObj, blockUnderCursor);
+        voxelSelectionManager.selectUnboundFillStart(thePlayer.worldObj, blockUnderCursor);
 //        selectionOrigin = new ChunkCoordinates(blockUnderCursor);
         currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
         break;

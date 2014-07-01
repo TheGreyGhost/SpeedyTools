@@ -2,11 +2,10 @@ package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.Icon;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.*;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.blocks.RegistryForBlocks;
@@ -16,6 +15,7 @@ import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.UsefulConstants;
 
 import java.io.ByteArrayOutputStream;
+import java.util.*;
 
 /**
  * User: The Grey Ghost
@@ -110,27 +110,46 @@ public class BlockVoxelMultiSelector
   }
 
   /**
-   * initialise conversion of the selected box to a VoxelSelection
+   * initialise conversion of the selected fill to a VoxelSelection
+   * From the starting block, performs a flood fill on all non-air blocks.
+   * Will not fill any blocks with y less than the blockUnderCursor.
    * @param world
    * @param blockUnderCursor the block being highlighted by the cursor
    */
-  public void selectUnboundFill(World world, ChunkCoordinates blockUnderCursor)
+  public void selectUnboundFillStart(World world, ChunkCoordinates blockUnderCursor)
   {
     ChunkCoordinates corner1 = new ChunkCoordinates();
     ChunkCoordinates corner2 = new ChunkCoordinates();
     corner1.posX = blockUnderCursor.posX - VoxelSelection.MAX_X_SIZE / 2 + 1;
     corner2.posX = blockUnderCursor.posX + VoxelSelection.MAX_X_SIZE / 2 - 1;
-    corner1.posY = Math.max(0,   blockUnderCursor.posY - VoxelSelection.MAX_Y_SIZE / 2 + 1);
-    corner2.posY = Math.min(255, blockUnderCursor.posY + VoxelSelection.MAX_Y_SIZE / 2 + 1);
+    corner1.posY = blockUnderCursor.posY;
+    corner2.posY = Math.min(255, blockUnderCursor.posY + VoxelSelection.MAX_Y_SIZE - 1);
     corner1.posZ = blockUnderCursor.posZ - VoxelSelection.MAX_Z_SIZE / 2 + 1;
     corner2.posZ = blockUnderCursor.posZ + VoxelSelection.MAX_Z_SIZE / 2 - 1;
 
+    selectBoundFillStart(world, blockUnderCursor, corner1, corner2);
+  }
+
+  /**
+   * initialise conversion of the selected fill to a VoxelSelection
+   * From the starting block, performs a flood fill on all non-air blocks.
+   * Will not fill any blocks outside of the box defined by corner1 and corner2
+   * @param world
+   * @param blockUnderCursor the block being highlighted by the cursor
+   */
+  public void selectBoundFillStart(World world, ChunkCoordinates blockUnderCursor, ChunkCoordinates corner1, ChunkCoordinates corner2)
+  {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
-    xpos = 0;
-    ypos = 0;
-    zpos = 0;
-    mode = OperationInProgress.ALL_IN_BOX;
+    assert (blockUnderCursor.posX >= wxOrigin && blockUnderCursor.posY >= wyOrigin && blockUnderCursor.posZ >= wzOrigin);
+    assert (blockUnderCursor.posX < wxOrigin + xSize && blockUnderCursor.posY < wyOrigin + ySize && blockUnderCursor.posZ < wzOrigin + zSize);
+    mode = OperationInProgress.FILL;
     initialiseVoxelRange();
+    ChunkCoordinates startingBlockCopy = new ChunkCoordinates(blockUnderCursor.posX - wxOrigin, blockUnderCursor.posY - wyOrigin, blockUnderCursor.posZ - wzOrigin);
+    currentSearchPositions.clear();
+    nextDepthSearchPositions.clear();
+    currentSearchPositions.add(new SearchPosition(startingBlockCopy));
+    selection.setVoxel(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    checkedLocations = new VoxelSelection(xSize, ySize, zSize);
   }
 
   /**
@@ -139,10 +158,10 @@ public class BlockVoxelMultiSelector
    * @param maxTimeInNS maximum elapsed duration before processing stops & function returns
    * @return fraction complete (0 - 1), -ve number for finished
    */
-  public float selectUnboundFillContinue(World world, long maxTimeInNS)
+  public float selectFillContinue(World world, long maxTimeInNS)
   {
-    if (mode != OperationInProgress.ALL_IN_BOX) {
-      FMLLog.severe("Mode should be ALL_IN_BOX in BlockVoxelMultiSelector::selectAllInBoxContinue");
+    if (mode != OperationInProgress.FILL) {
+      FMLLog.severe("Mode should be FILL in BlockVoxelMultiSelector::selectFillContinue");
       return -1;
     }
 
@@ -161,10 +180,105 @@ public class BlockVoxelMultiSelector
     }
     mode = OperationInProgress.COMPLETE;
     shrinkToSmallestEnclosingCuboid();
+    checkedLocations = null;
     return -1;
   }
 
+  Deque<SearchPosition> currentSearchPositions = new LinkedList<SearchPosition>();
+  Deque<SearchPosition> nextDepthSearchPositions = new LinkedList<SearchPosition>();
+  VoxelSelection checkedLocations;
 
+  /**
+   * selectFill is used to select a flood fill of blocks which match the starting block, and return a list of their coordinates.
+   * Starting from the block identified by mouseTarget, the selection will flood fill out in three directions
+   * depending on diagonalOK it will follow diagonals or only the cardinal directions.
+   * Keeps going until it reaches maxBlockCount, y goes outside the valid range.  The search algorithm is to look for closest blocks first
+   *   ("closest" meaning the shortest distance travelled along the blob being created)
+   *
+   * @param mouseTarget the block under the player's cursor.  Uses [x,y,z]
+   * @param world       the world
+   * @param maxBlockCount the maximum number of blocks to select
+   * @param diagonalOK    if true, diagonal 45 degree lines are allowed
+   * @param matchAnyNonAir
+   * @param xMin  the fill will not extend below xMin.  Likewise it will not extend above xMax.  Similar for y, z.
+   */
+  public  selectFill(World world,
+
+  {
+    // lookup table to give the possible search directions for non-diagonal and diagonal respectively
+    final int NON_DIAGONAL_DIRECTIONS = 6;
+    final int ALL_DIRECTIONS = 26;
+    final int searchDirectionsX[] = {+0, +0, +0, +0, -1, +1,   // non-diagonal
+            +1, +0, -1, +0,   +1, +1, -1, -1,   +1, +0, -1, +0,  // top, middle, bottom "edge" blocks
+            +1, +1, -1, -1,   +1, +1, -1, -1                   // top, bottom "corner" blocks
+    };
+    final int searchDirectionsY[] = {-1, +1, +0, +0, +0, +0,   // non-diagonal
+            +1, +1, +1, +1,   +0, +0, +0, +0,   -1, -1, -1, -1,   // top, middle, bottom "edge" blocks
+            +1, +1, +1, +1,   -1, -1, -1, -1                      // top, bottom "corner" blocks
+    };
+
+    final int searchDirectionsZ[] = {+0, +0, -1, +1, +0, +0,   // non-diagonal
+            +0, -1, +0, +1,   +1, -1, -1, +1,   +0, -1, +0, +1,   // top, middle, bottom "edge" blocks
+            +1, -1, -1, +1,   +1, -1, -1, +1
+    };
+
+//    final int INITIAL_CAPACITY = 128;
+//    Set<ChunkCoordinates> locationsFilled = new HashSet<ChunkCoordinates>(INITIAL_CAPACITY);                                   // locations which have been selected during the fill
+    ChunkCoordinates checkPosition = new ChunkCoordinates(0,0,0);
+    ChunkCoordinates checkPositionSupport = new ChunkCoordinates(0,0,0);
+
+    // algorithm is:
+    //   for each block in the list of search positions, iterate through each adjacent block to see whether it meets the criteria for expansion:
+    //     a) matches the block-to-be-replaced (if matchAnyNonAir: non-air, otherwise if blockID and metaData match.  For lava or water metadata doesn't need to match).
+    //     b) hasn't been filled already during this contour search
+    //   if the criteria are met, select the block and add it to the list of blocks to be search next round.
+    //   if the criteria aren't met, keep trying other directions from the same position until all positions are searched.  Then delete the search position and move onto the next.
+    //   This will ensure that the fill spreads evenly out from the starting point.   Check the boundary to stop fill spreading outside it.
+
+    UP TO HERE
+
+    while (!currentSearchPositions.isEmpty()) {
+      SearchPosition currentSearchPosition = currentSearchPositions.getFirst();
+      checkPosition.set(currentSearchPosition.chunkCoordinates.posX + searchDirectionsX[currentSearchPosition.nextSearchDirection],
+                        currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[currentSearchPosition.nextSearchDirection],
+                        currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[currentSearchPosition.nextSearchDirection]);
+      if (    checkPosition.posX >= 0 && checkPosition.posX < xSize
+              &&  checkPosition.posY >= 0 && checkPosition.posY < ySize
+              &&  checkPosition.posZ >= 0 && checkPosition.posZ < zSize
+              && !checkedLocations.getVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ)) {
+        int blockToCheckID = world.getBlockId(checkPosition.posX + wxOrigin, checkPosition.posY + wyOrigin, checkPosition.posZ + wzOrigin);
+
+        if (blockToCheckID != 0) {
+          ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
+          SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
+          nextDepthSearchPositions.addLast(nextSearchPosition);
+          selection.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+          checkedLocations.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+        }
+      }
+      ++currentSearchPosition.nextSearchDirection;
+      if (currentSearchPosition.nextSearchDirection >= ALL_DIRECTIONS) {
+        currentSearchPositions.removeFirst();
+        if (currentSearchPositions.isEmpty()) {
+          Deque<SearchPosition> temp = currentSearchPositions;
+          currentSearchPositions = nextDepthSearchPositions;
+          nextDepthSearchPositions = temp;
+        }
+      }
+    }
+
+    return selection;
+  }
+
+  public static class SearchPosition
+  {
+    public SearchPosition(ChunkCoordinates initChunkCoordinates) {
+      chunkCoordinates = initChunkCoordinates;
+      nextSearchDirection = 0;
+    }
+    public ChunkCoordinates chunkCoordinates;
+    public int nextSearchDirection;
+  }
 
   /**
    * returns true if there are no solid pixels at all in this selection.
