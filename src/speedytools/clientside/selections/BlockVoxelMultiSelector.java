@@ -2,7 +2,6 @@ package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.*;
@@ -79,13 +78,27 @@ public class BlockVoxelMultiSelector
     initialiseVoxelRange();
   }
 
+  public float continueSelectionGeneration(World world, long maxTimeInNS)
+  {
+    switch (mode) {
+      case ALL_IN_BOX: {
+        return selectAllInBoxContinue(world, maxTimeInNS);
+      }
+      case FILL: {
+        return selectFillContinue(world, maxTimeInNS);
+      }
+      default: assert false : "invalid mode " + mode + " in continueSelectionGeneration";
+    }
+    return 0;
+  }
+
   /**
    * continue conversion of the selected box to a VoxelSelection.  Call repeatedly until conversion complete.
    * @param world
    * @param maxTimeInNS maximum elapsed duration before processing stops & function returns
    * @return fraction complete (0 - 1), -ve number for finished
    */
-  public float selectAllInBoxContinue(World world, long maxTimeInNS)
+  private float selectAllInBoxContinue(World world, long maxTimeInNS)
   {
     if (mode != OperationInProgress.ALL_IN_BOX) {
       FMLLog.severe("Mode should be ALL_IN_BOX in BlockVoxelMultiSelector::selectAllInBoxContinue");
@@ -148,8 +161,10 @@ public class BlockVoxelMultiSelector
     currentSearchPositions.clear();
     nextDepthSearchPositions.clear();
     currentSearchPositions.add(new SearchPosition(startingBlockCopy));
-    selection.setVoxel(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
-    checkedLocations = new VoxelSelection(xSize, ySize, zSize);
+    selection.setVoxel(startingBlockCopy.posX, startingBlockCopy.posY, startingBlockCopy.posZ);
+    expandVoxelRange(startingBlockCopy.posX, startingBlockCopy.posY, startingBlockCopy.posZ);
+    blocksAddedCount = 0;
+//    checkedLocations = new VoxelSelection(xSize, ySize, zSize);
   }
 
   /**
@@ -158,7 +173,7 @@ public class BlockVoxelMultiSelector
    * @param maxTimeInNS maximum elapsed duration before processing stops & function returns
    * @return fraction complete (0 - 1), -ve number for finished
    */
-  public float selectFillContinue(World world, long maxTimeInNS)
+  private float selectFillContinue(World world, long maxTimeInNS)
   {
     if (mode != OperationInProgress.FILL) {
       FMLLog.severe("Mode should be FILL in BlockVoxelMultiSelector::selectFillContinue");
@@ -167,44 +182,6 @@ public class BlockVoxelMultiSelector
 
     long startTime = System.nanoTime();
 
-    for ( ; zpos < zSize; ++zpos, xpos = 0) {
-      for ( ; xpos < xSize; ++xpos, ypos = 0) {
-        for ( ; ypos < ySize; ++ypos) {
-          if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
-          if (world.getBlockId(xpos + wxOrigin, ypos + wyOrigin, zpos + wzOrigin) != 0) {
-            selection.setVoxel(xpos, ypos, zpos);
-            expandVoxelRange(xpos, ypos, zpos);
-          }
-        }
-      }
-    }
-    mode = OperationInProgress.COMPLETE;
-    shrinkToSmallestEnclosingCuboid();
-    checkedLocations = null;
-    return -1;
-  }
-
-  Deque<SearchPosition> currentSearchPositions = new LinkedList<SearchPosition>();
-  Deque<SearchPosition> nextDepthSearchPositions = new LinkedList<SearchPosition>();
-  VoxelSelection checkedLocations;
-
-  /**
-   * selectFill is used to select a flood fill of blocks which match the starting block, and return a list of their coordinates.
-   * Starting from the block identified by mouseTarget, the selection will flood fill out in three directions
-   * depending on diagonalOK it will follow diagonals or only the cardinal directions.
-   * Keeps going until it reaches maxBlockCount, y goes outside the valid range.  The search algorithm is to look for closest blocks first
-   *   ("closest" meaning the shortest distance travelled along the blob being created)
-   *
-   * @param mouseTarget the block under the player's cursor.  Uses [x,y,z]
-   * @param world       the world
-   * @param maxBlockCount the maximum number of blocks to select
-   * @param diagonalOK    if true, diagonal 45 degree lines are allowed
-   * @param matchAnyNonAir
-   * @param xMin  the fill will not extend below xMin.  Likewise it will not extend above xMax.  Similar for y, z.
-   */
-  public  selectFill(World world,
-
-  {
     // lookup table to give the possible search directions for non-diagonal and diagonal respectively
     final int NON_DIAGONAL_DIRECTIONS = 6;
     final int ALL_DIRECTIONS = 26;
@@ -235,25 +212,24 @@ public class BlockVoxelMultiSelector
     //   if the criteria aren't met, keep trying other directions from the same position until all positions are searched.  Then delete the search position and move onto the next.
     //   This will ensure that the fill spreads evenly out from the starting point.   Check the boundary to stop fill spreading outside it.
 
-    UP TO HERE
-
     while (!currentSearchPositions.isEmpty()) {
       SearchPosition currentSearchPosition = currentSearchPositions.getFirst();
       checkPosition.set(currentSearchPosition.chunkCoordinates.posX + searchDirectionsX[currentSearchPosition.nextSearchDirection],
-                        currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[currentSearchPosition.nextSearchDirection],
-                        currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[currentSearchPosition.nextSearchDirection]);
+              currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[currentSearchPosition.nextSearchDirection],
+              currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[currentSearchPosition.nextSearchDirection]);
       if (    checkPosition.posX >= 0 && checkPosition.posX < xSize
               &&  checkPosition.posY >= 0 && checkPosition.posY < ySize
               &&  checkPosition.posZ >= 0 && checkPosition.posZ < zSize
-              && !checkedLocations.getVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ)) {
+              && !selection.getVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ)) {
         int blockToCheckID = world.getBlockId(checkPosition.posX + wxOrigin, checkPosition.posY + wyOrigin, checkPosition.posZ + wzOrigin);
-
         if (blockToCheckID != 0) {
           ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
           SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
           nextDepthSearchPositions.addLast(nextSearchPosition);
           selection.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
-          checkedLocations.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+          expandVoxelRange(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+          ++blocksAddedCount;
+//          checkedLocations.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
         }
       }
       ++currentSearchPosition.nextSearchDirection;
@@ -265,10 +241,26 @@ public class BlockVoxelMultiSelector
           nextDepthSearchPositions = temp;
         }
       }
+      if (System.nanoTime() - startTime >= maxTimeInNS) {   // completion fraction is hard to predict, so use a logarithmic function instead to provide some visual movement regardless of size
+        if (blocksAddedCount == 0) return 0;
+        double fillFraction = blocksAddedCount / (double)(xSize * ySize * zSize);
+
+        final double FULL_SCALE = Math.log(1.0 / (xSize * ySize * zSize)) - 1;
+        double fractionComplete = (1 - Math.log(fillFraction) / FULL_SCALE);
+        return (float)fractionComplete;
+      }
     }
 
-    return selection;
+    mode = OperationInProgress.COMPLETE;
+    shrinkToSmallestEnclosingCuboid();
+//    checkedLocations = null;
+    return -1;
   }
+
+  Deque<SearchPosition> currentSearchPositions = new LinkedList<SearchPosition>();
+  Deque<SearchPosition> nextDepthSearchPositions = new LinkedList<SearchPosition>();
+  int blocksAddedCount;
+//  VoxelSelection checkedLocations;
 
   public static class SearchPosition
   {
@@ -352,9 +344,12 @@ public class BlockVoxelMultiSelector
     smallestVoxelX = 0;
     smallestVoxelY = 0;
     smallestVoxelZ = 0;
-    largestVoxelX = xSize - 1;
-    largestVoxelY = ySize - 1;
-    largestVoxelZ = zSize - 1;
+    largestVoxelX = newXsize - 1;
+    largestVoxelY = newYsize - 1;
+    largestVoxelZ = newZsize - 1;
+    xSize = newXsize;
+    ySize = newYsize;
+    zSize = newZsize;
   }
 
   private void initialiseSelectionSizeFromBoundary(ChunkCoordinates corner1, ChunkCoordinates corner2)

@@ -489,6 +489,10 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         break;
       }
       case BOUND_FILL: {
+        voxelSelectionManager = new BlockVoxelMultiSelector();
+        voxelSelectionManager.selectBoundFillStart(thePlayer.worldObj, blockUnderCursor, boundaryCorner1, boundaryCorner2);
+//        selectionOrigin = new ChunkCoordinates(blockUnderCursor);
+        currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
         break;
       }
     }
@@ -507,7 +511,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
 //      System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);
-      selectionGenerationPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
+      selectionGenerationPercentComplete = 100.0F * voxelSelectionManager.continueSelectionGeneration(world, MAX_TIME_IN_NS);
 //      System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);
 
       if (selectionGenerationPercentComplete < 0.0F) {
