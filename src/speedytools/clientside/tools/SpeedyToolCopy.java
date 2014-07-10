@@ -8,6 +8,7 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.ItemSpeedyCopy;
@@ -520,7 +521,13 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
         } else {
           selectionOrigin = voxelSelectionManager.getWorldOrigin();
-          voxelSelectionManager.createRenderList(world);
+          if (voxelSelectionRenderer != null) {
+            voxelSelectionRenderer.release();
+          } else {
+            voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
+          }
+          ChunkCoordinates wOrigin = voxelSelectionManager.getWorldOrigin();
+          voxelSelectionRenderer.createRenderList(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ, voxelSelectionManager.getSelection());
           currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
           hasBeenMoved = false;
         }
@@ -666,8 +673,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       }
       final boolean snapToGridWhileMoving = selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
       Vec3 selectionPosition = getSelectionPosition(player, partialTick, snapToGridWhileMoving);
-
-      infoToUpdate.blockVoxelMultiSelector = voxelSelectionManager;
+      infoToUpdate.selectorRenderer = voxelSelectionRenderer;
       infoToUpdate.draggedSelectionOriginX = selectionPosition.xCoord;
       infoToUpdate.draggedSelectionOriginY = selectionPosition.yCoord;
       infoToUpdate.draggedSelectionOriginZ = selectionPosition.zCoord;
@@ -878,6 +884,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private ToolSelectionStates currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
 
   private BlockVoxelMultiSelector voxelSelectionManager;
+  private BlockVoxelMultiSelectorRenderer voxelSelectionRenderer;
   private ChunkCoordinates selectionOrigin;
   private boolean selectionGrabActivated = false;
   private Vec3    selectionGrabPoint = null;
