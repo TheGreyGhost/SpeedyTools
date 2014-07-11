@@ -480,6 +480,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         voxelSelectionManager.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
 //        selectionOrigin = new ChunkCoordinates(boundaryCorner1);
         currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
+        selectionGenerationState = SelectionGenerationState.VOXELS;
+        selectionGenerationPercentComplete = 0;
         break;
       }
       case UNBOUND_FILL: {
@@ -487,6 +489,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         voxelSelectionManager.selectUnboundFillStart(thePlayer.worldObj, blockUnderCursor);
 //        selectionOrigin = new ChunkCoordinates(blockUnderCursor);
         currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
+        selectionGenerationState = SelectionGenerationState.VOXELS;
+        selectionGenerationPercentComplete = 0;
         break;
       }
       case BOUND_FILL: {
@@ -494,6 +498,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         voxelSelectionManager.selectBoundFillStart(thePlayer.worldObj, blockUnderCursor, boundaryCorner1, boundaryCorner2);
 //        selectionOrigin = new ChunkCoordinates(blockUnderCursor);
         currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
+        selectionGenerationState = SelectionGenerationState.VOXELS;
+        selectionGenerationPercentComplete = 0;
         break;
       }
     }
@@ -509,28 +515,46 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   @Override
   public void performTick(World world) {
     checkInvariants();
-    final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
+    final long MAX_TIME_IN_NS = 20 * 1000 * 1000L;
+    final float VOXEL_MAX_COMPLETION = 75.0F;
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
-//      System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);
-      selectionGenerationPercentComplete = 100.0F * voxelSelectionManager.continueSelectionGeneration(world, MAX_TIME_IN_NS);
-//      System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);
-
-      if (selectionGenerationPercentComplete < 0.0F) {
-        selectionPacketSender.reset();
-        if (voxelSelectionManager.isEmpty()) {
-          currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
-        } else {
-          selectionOrigin = voxelSelectionManager.getWorldOrigin();
-          if (voxelSelectionRenderer != null) {
-            voxelSelectionRenderer.release();
+      switch (selectionGenerationState) {
+        case VOXELS: {
+          float progress = voxelSelectionManager.continueSelectionGeneration(world, MAX_TIME_IN_NS);
+          if (progress >= 0) {
+            selectionGenerationPercentComplete = VOXEL_MAX_COMPLETION * progress;
           } else {
-            voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
+            voxelCompletionReached = selectionGenerationPercentComplete;
+            selectionGenerationState = SelectionGenerationState.RENDERLISTS;
+            selectionPacketSender.reset();
+            if (voxelSelectionManager.isEmpty()) {
+              currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
+            } else {
+              selectionOrigin = voxelSelectionManager.getWorldOrigin();
+              if (voxelSelectionRenderer == null) {
+                voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
+              }
+              ChunkCoordinates wOrigin = voxelSelectionManager.getWorldOrigin();
+              voxelSelectionRenderer.createRenderListStart(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ, voxelSelectionManager.getSelection());
+            }
           }
-          ChunkCoordinates wOrigin = voxelSelectionManager.getWorldOrigin();
-          voxelSelectionRenderer.createRenderList(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ, voxelSelectionManager.getSelection());
-          currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
-          hasBeenMoved = false;
+          break;
         }
+        case RENDERLISTS: {
+          ChunkCoordinates wOrigin = voxelSelectionManager.getWorldOrigin();
+          float progress = voxelSelectionRenderer.createRenderListContinue(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ,
+                                                                           voxelSelectionManager.getSelection(), MAX_TIME_IN_NS);
+
+          if (progress >= 0) {
+            selectionGenerationPercentComplete = voxelCompletionReached + (100.0F - voxelCompletionReached) * progress;
+          } else {
+            currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
+            selectionGenerationState = SelectionGenerationState.IDLE;
+            hasBeenMoved = false;
+          }
+          break;
+        }
+        default: assert false : "Invalid selectionGenerationState:" + selectionGenerationState;
       }
     }
 
@@ -919,6 +943,9 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       performingAction = init_performingAction;
     }
   }
+  private enum SelectionGenerationState {IDLE, VOXELS, RENDERLISTS};
+  SelectionGenerationState selectionGenerationState = SelectionGenerationState.IDLE;
+  private float voxelCompletionReached;
 
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
   private RenderCursorStatus.CursorRenderInfoUpdateLink cursorRenderInfoUpdateLink;

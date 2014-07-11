@@ -1,20 +1,14 @@
 package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
-import net.minecraft.block.Block;
-import net.minecraft.client.renderer.GLAllocation;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.util.*;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
-import org.lwjgl.opengl.GL11;
-import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
-import speedytools.common.utilities.Colour;
-import speedytools.common.utilities.UsefulConstants;
 
 import java.io.ByteArrayOutputStream;
-import java.util.*;
+import java.util.Deque;
+import java.util.LinkedList;
 
 /**
  * User: The Grey Ghost
@@ -88,6 +82,9 @@ public class BlockVoxelMultiSelector
       }
       case FILL: {
         return selectFillContinue(world, maxTimeInNS);
+      }
+      case COMPLETE: {
+        return -1;
       }
       default: assert false : "invalid mode " + mode + " in continueSelectionGeneration";
     }

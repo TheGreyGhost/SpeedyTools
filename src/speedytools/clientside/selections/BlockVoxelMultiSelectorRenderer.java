@@ -2,10 +2,8 @@ package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.util.Icon;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -13,7 +11,6 @@ import org.lwjgl.opengl.GL11;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.utilities.Colour;
-import speedytools.common.utilities.OpenGLdebugging;
 import speedytools.common.utilities.UsefulConstants;
 
 /**
@@ -51,6 +48,7 @@ public class BlockVoxelMultiSelectorRenderer
       displayListCubesBase = 0;
       displayListCubesCount = 0;
     }
+    mode = OperationInProgress.INVALID;
   }
 
 
@@ -66,17 +64,25 @@ public class BlockVoxelMultiSelectorRenderer
   private int displayListCubesCount = 0;
   int chunkCountX, chunkCountY, chunkCountZ;
   int xSize, ySize, zSize;
+
+
   // get the display list for the given chunk
   private int getDisplayListIndex(int cx, int cy, int cz) {
     return displayListCubesBase + cx + cy * chunkCountX + cz * chunkCountX * chunkCountY;
   }
+
+  private enum OperationInProgress {
+    INVALID, IN_PROGRESS, COMPLETE
+  }
+  private OperationInProgress mode = OperationInProgress.INVALID;
+  int cxCurrent, cyCurrent, czCurrent;
 
   /**
    * create a render list for the current selection.
    * Quads, with lines to outline them
    * @param world
    */
-  public void createRenderList(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
+  public void createRenderListStart(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
   {
     release();
     displayListWireFrameXY = GLAllocation.generateDisplayLists(1);
@@ -103,26 +109,44 @@ public class BlockVoxelMultiSelectorRenderer
     }
     displayListCubesCount = displayListCount;
 
-//    if (selection == null) {
-//      GL11.glNewList(displayListSelection, GL11.GL_COMPILE);
-//      GL11.glEndList();
-//      return;
-//    }
+    createMeshRenderLists(voxelSelection.getXsize(), voxelSelection.getYsize(), voxelSelection.getZsize());
 
+    cxCurrent = 0;
+    cyCurrent = 0;
+    czCurrent = 0;
+
+    mode = OperationInProgress.IN_PROGRESS;
+  }
+
+  /**
+   * create a render list for the current selection.
+   * Quads, with lines to outline them
+   * @param world
+   */
+  public float createRenderListContinue(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection, long maxTimeInNS)
+  {
+    if (mode != OperationInProgress.IN_PROGRESS) {
+      FMLLog.severe("Mode should be IN_PROGRESS in BlockVoxelMultiSelectorRenderer::createRenderListContinue, but was actually " + mode);
+      return -1;
+    }
+
+    long startTime = System.nanoTime();
     final double NUDGE_DISTANCE = 0.01;
     final double FRAME_NUDGE_DISTANCE = NUDGE_DISTANCE + 0.002;
 
-    for (int cx = 0; cx < chunkCountX; ++cx) {
-      for (int cy = 0; cy < chunkCountY; ++cy) {
-        for (int cz = 0; cz < chunkCountZ; ++cz) {
-          GL11.glNewList(getDisplayListIndex(cx, cy, cz), GL11.GL_COMPILE);
+    for (; cxCurrent < chunkCountX; ++cxCurrent, cyCurrent = 0) {
+      for (; cyCurrent < chunkCountY; ++cyCurrent, czCurrent = 0) {
+        for (; czCurrent < chunkCountZ; ++czCurrent) {
+          if (System.nanoTime() - startTime >= maxTimeInNS) return (cxCurrent / (float)chunkCountX);
+
+          GL11.glNewList(getDisplayListIndex(cxCurrent, cyCurrent, czCurrent), GL11.GL_COMPILE);
           GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
           GL11.glDisable(GL11.GL_CULL_FACE);
           GL11.glDisable(GL11.GL_LIGHTING);
           GL11.glEnable(GL11.GL_TEXTURE_2D);
           Tessellator tessellator = Tessellator.instance;
           tessellateSurfaceWithTexture(world, voxelSelection, wxOrigin, wyOrigin, wzOrigin,
-                                       cx * DISPLAY_LIST_XSIZE, cy * DISPLAY_LIST_YSIZE, cz * DISPLAY_LIST_ZSIZE, tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
+                  cxCurrent * DISPLAY_LIST_XSIZE, cyCurrent * DISPLAY_LIST_YSIZE, czCurrent * DISPLAY_LIST_ZSIZE, tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
 
           GL11.glEnable(GL11.GL_BLEND);
           GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -130,7 +154,7 @@ public class BlockVoxelMultiSelectorRenderer
           GL11.glLineWidth(2.0F);
           GL11.glDisable(GL11.GL_TEXTURE_2D);
           GL11.glDepthMask(false);
-          tessellateSurface(voxelSelection, cx * DISPLAY_LIST_XSIZE, cy * DISPLAY_LIST_YSIZE, cz * DISPLAY_LIST_ZSIZE, tessellator, WhatToDraw.WIREFRAME, FRAME_NUDGE_DISTANCE);
+          tessellateSurface(voxelSelection, cxCurrent * DISPLAY_LIST_XSIZE, cyCurrent * DISPLAY_LIST_YSIZE, czCurrent * DISPLAY_LIST_ZSIZE, tessellator, WhatToDraw.WIREFRAME, FRAME_NUDGE_DISTANCE);
 
           GL11.glDepthMask(true);
           GL11.glPopAttrib();
@@ -138,8 +162,8 @@ public class BlockVoxelMultiSelectorRenderer
         }
       }
     }
-
-    createMeshRenderLists(voxelSelection.getXsize(), voxelSelection.getYsize(), voxelSelection.getZsize());
+    mode = OperationInProgress.COMPLETE;
+    return -1;
   }
 
 //  int debugCount = 0;
