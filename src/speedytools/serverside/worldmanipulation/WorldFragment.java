@@ -14,6 +14,7 @@ import net.minecraft.server.management.PlayerInstance;
 import net.minecraft.server.management.PlayerManager;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -523,6 +524,27 @@ public class WorldFragment
         }
       }
     }
+
+    NEW CODE:
+
+    public ChunkCoordIntPair getChunkCoordIntPair()
+    {
+      return new ChunkCoordIntPair(this.xPosition, this.zPosition);
+    }
+
+    EntityPlayerMP.loadedChunks.add(ChunkCoordIntPair)
+
+    par1MinecraftServer.getConfigurationManager().getViewDistance() to limit the chunks, or
+
+    worldServer.playerEntities
+            or
+    PlayerManager.isPlayerWatchingChunk                       YES THIS ONE
+    WorldServer.getPlayerManager
+
+    alternatively add all then
+    PlayerManager.filterChunkLoadQueue(par1EntityPlayerMP);           NO!
+
+
 
     for (int cx = cxMin; cx <= cxMax; ++cx) {
       for (int cz = czMin; cz <= czMax; ++cz) {
