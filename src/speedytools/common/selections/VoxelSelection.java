@@ -1,8 +1,6 @@
-package speedytools.clientside.selections;
+package speedytools.common.selections;
 
 import cpw.mods.fml.common.FMLLog;
-import speedytools.common.network.Packet250Types;
-import speedytools.common.network.multipart.MultipartPacket;
 import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
@@ -18,14 +16,24 @@ public class VoxelSelection
   public static final int MAX_Y_SIZE = 256;
   public static final int MAX_Z_SIZE = 256;
 
-  public VoxelSelection(int x, int y, int z)
+  public VoxelSelection(int xSize, int ySize, int zSize)
+  {
+    resize(xSize, ySize, zSize);
+  }
+
+  public void clearAll()
+  {
+    voxels.clear();
+  }
+
+  public void resizeAndClear(int x, int y, int z)
   {
     resize(x, y, z);
   }
 
-  public void clearAll(int x, int y, int z)
+  public void setAll()
   {
-    resize(x, y, z);
+    voxels.set(0, xsize * ysize * zsize);
   }
 
   /**
@@ -153,8 +161,109 @@ public class VoxelSelection
     return true;
   }
 
+  /**
+   * Creates a copy of this VoxelSelection, adding a border of blank voxels on all faces.
+   * For example - if the VoxelSelection has size 5x6x7, and borderWidth is 2, the resulting VoxelSelection is 9x10x11 in size
+   * And (eg) if the initial VoxelSelection is all set, the new selection will be all clear except from the box from [2,2,2] to [6,7,8] inclusive which will be all set
+   * @param borderWidth the number of voxels in the border added to all faces
+   * @return the new VoxelSelection
+   */
+
+  public VoxelSelection makeCopyWithEmptyBorder(int borderWidth)
+  {
+    VoxelSelection copy = new VoxelSelection(xsize + 2 * borderWidth, ysize + 2 * borderWidth, zsize + 2 * borderWidth);
+    for (int x = 0; x < xsize; ++x) {
+      for (int y = 0; y < ysize; ++y) {
+        for (int z = 0; z < zsize; ++z) {
+          if (getVoxel(x,y,z)) {
+            copy.setVoxel(x + borderWidth, y + borderWidth, z + borderWidth);
+          }
+        }
+      }
+    }
+    return copy;
+  }
+
+  /** For the given VoxelSelection, make a "BorderMask" copy where all the empty voxels adjacent to a set voxel are marked as set.
+   *  i.e. for a given [x,y,z]:
+   *  1) if the voxel is set, the BorderMask voxel is clear
+   *  2) if all of the six adjacent voxels are clear, the BorderMask voxel is clear
+   *  3) otherwise, the BorderMask voxel is set.
+   *
+   * @return
+   */
+  public VoxelSelection generateBorderMask()
+  {
+    VoxelSelection copy = new VoxelSelection(xsize, ysize, zsize);
+    for (int x = 0; x < xsize; ++x) {
+      for (int y = 0; y < ysize; ++y) {
+        for (int z = 0; z < zsize; ++z) {
+          if (!getVoxel(x, y, z)) {
+            if (getVoxel(x-1, y, z) || getVoxel(x+1, y, z) || getVoxel(x, y-1, z) || getVoxel(x, y+1, z) || getVoxel(x, y, z-1) || getVoxel(x, y, z+1)) {
+              copy.setVoxel(x, y, z);
+            }
+          }
+        }
+      }
+    }
+    return copy;
+  }
+
+  /**
+   * clear all voxels outside of the given ranges (inclusive)
+   * @param yMin
+   * @param yMax
+   */
+  public void clipToYrange(int yMin, int yMax)
+  {
+    for (int y = 0; y < ysize; ++y) {
+      if (y < yMin || y > yMax) {
+        for (int x = 0; x < xsize; ++x) {
+          for (int z = 0; z < zsize; ++z) {
+            clearVoxel(x,y,z);
+          }
+        }
+      }
+    }
+  }
+
+  /** checks whether all of the set voxels in voxelSelection are also set in this VoxelSelection
+   * @param voxelSelection the voxels to test against.  must be the same size as 'this'.
+   * @return true if all of the set voxels in voxelSelection are also set in this VoxelSelection
+   */
+  public boolean containsAllOfThisMask(VoxelSelection voxelSelection)
+  {
+    assert(voxelSelection.xsize == this.xsize && voxelSelection.ysize == this.ysize && voxelSelection.zsize == this.zsize);
+    BitSet maskBitsNotInThis = (BitSet)voxelSelection.voxels.clone();
+    maskBitsNotInThis.andNot(this.voxels);
+    return maskBitsNotInThis.length() == 0;
+  }
+
+  /**
+   * updates this to include all set Voxels in both this and in voxelSelection
+   * @param voxelSelection the voxels to be set.  Must be the same size as 'this'.
+   */
+  public void union(VoxelSelection voxelSelection)
+  {
+    assert(voxelSelection.xsize == this.xsize && voxelSelection.ysize == this.ysize && voxelSelection.zsize == this.zsize);
+    voxels.or(voxelSelection.voxels);
+  }
+
   private BitSet voxels;
-  private int xsize;
-  private int ysize;
-  private int zsize;
+
+  public int getXsize() {
+    return xsize;
+  }
+
+  public int getYsize() {
+    return ysize;
+  }
+
+  public int getZsize() {
+    return zsize;
+  }
+
+  protected int xsize;
+  protected int ysize;
+  protected int zsize;
 }

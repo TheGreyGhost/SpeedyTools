@@ -1,0 +1,20 @@
+New Classes:
+WorldHistory
+  writeToWorldWithUndo
+  performUndo
+  cullUndoLayers
+- test using stubs for EntityPlayerMP and WorldServer.
+  tested in WorldSelectionUndoTest
+
+WorldFragment
+  readFromWorld
+  writeToWorld
+- all tested by InGameTester
+
+WorldSelectionUndo
+  makePermanent
+  writeToWorld
+  readFromWorld
+- all tested by InGameTester
+- (one test in WorldSelectionUndoTest)
+

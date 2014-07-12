@@ -39,7 +39,7 @@ public class Packet250CloneToolUse
     return retval;
   }
 
-  public static Packet250CloneToolUse cancelCurentAction(int i_undoSequenceNumber, int i_actionSequenceNumber)
+  public static Packet250CloneToolUse cancelCurrentAction(int i_undoSequenceNumber, int i_actionSequenceNumber)
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_UNDO);
     retval.sequenceNumber = i_undoSequenceNumber;

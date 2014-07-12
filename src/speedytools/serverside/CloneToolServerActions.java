@@ -2,13 +2,15 @@ package speedytools.serverside;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
-import speedytools.clientside.selections.VoxelSelection;
-import speedytools.common.network.Packet250CloneToolUse;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.ServerStatus;
-import speedytools.common.network.multipart.SelectionPacket;
-import speedytools.common.utilities.UsefulFunctions;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
+import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
+import speedytools.serverside.worldmanipulation.WorldFragment;
+import speedytools.serverside.worldmanipulation.WorldHistory;
 
 import java.nio.file.Path;
 
@@ -17,6 +19,11 @@ import java.nio.file.Path;
  */
 public class CloneToolServerActions
 {
+  public CloneToolServerActions(ServerVoxelSelections i_serverVoxelSelections)
+  {
+    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+    serverVoxelSelections = i_serverVoxelSelections;
+  }
 
   public void setCloneToolsNetworkServer(CloneToolsNetworkServer server)
   {
@@ -26,17 +33,23 @@ public class CloneToolServerActions
   /**
    * performed in response to a "I've made a selection" message from the client
    * @return true for success, false otherwise
-   * TODO: make asynchronous later
+   * TODO: make asynchronous later;
    */
-  public boolean prepareForToolAction(EntityPlayerMP player)
+  public ResultWithReason prepareForToolAction(EntityPlayerMP player)
   {
     assert (minecraftSaveFolderBackups != null);
     assert (cloneToolsNetworkServer != null);
 
+    if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
+      ResultWithReason resultWithReason = null;
+      resultWithReason = ServerSide.getInGameStatusSimulator().prepareForToolAction(cloneToolsNetworkServer, player);
+      if (resultWithReason != null) return resultWithReason;
+    }
+
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte)0);
     minecraftSaveFolderBackups.backupWorld();
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-    return true;
+    return ResultWithReason.success();
   }
 
   /**
@@ -54,15 +67,41 @@ public class CloneToolServerActions
 
   public static final long ONE_SECOND_AS_NS = 1000 * 1000 * 1000;
 
-  public boolean performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
+  public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
   {
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
-    getTestDoSomethingStartTime = System.nanoTime();
-    testDoSomethingTime = getTestDoSomethingStartTime + 20 * ONE_SECOND_AS_NS;
-    testActionSequenceNumber = sequenceNumber;
-    testPlayer = player;
-    return true;
+
+    VoxelSelectionWithOrigin voxelSelection = serverVoxelSelections.getVoxelSelection(player);
+
+    if (voxelSelection == null) {
+      return ResultWithReason.failure("Must wait for spell preparation to finish ...");
+    }
+
+    if (!minecraftSaveFolderBackups.isBackedUpRecently()) {
+      ResultWithReason result = prepareForToolAction(player);
+      if (!result.succeeded()) {
+        return ResultWithReason.failure("Too risky!  World backup failed!");
+      }
+    }
+
+    if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
+      ResultWithReason resultWithReason = null;
+      resultWithReason = ServerSide.getInGameStatusSimulator().performToolAction(cloneToolsNetworkServer, player, sequenceNumber, toolID, xpos, ypos, zpos, rotationCount, flipped);
+      if (resultWithReason != null) return resultWithReason;
+    }
+
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
+
+    WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
+
+    WorldFragment worldFragment = new WorldFragment(voxelSelection.getXsize(), voxelSelection.getYsize(), voxelSelection.getZsize());
+    worldFragment.readFromWorld(worldServer, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
+                                             voxelSelection);
+    worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos);
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+//    cloneToolsNetworkServer.actionCompleted(player, sequenceNumber);  // todo - later this will be required
+
+    return ResultWithReason.success();
   }
 
 //  /**
@@ -76,59 +115,63 @@ public class CloneToolServerActions
 //    return true;
 //  }
 
-  public boolean performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
+  public ResultWithReason performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-    cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
     System.out.println("Server: Tool Undo Current Action received: action sequenceNumber " + actionSequenceNumber + ", undo seq number " + undoSequenceNumber);
-    getTestDoSomethingStartTime = System.nanoTime();
+    if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
+      ResultWithReason resultWithReason = null;
+      resultWithReason = ServerSide.getInGameStatusSimulator().performUndoOfCurrentAction(cloneToolsNetworkServer, player, undoSequenceNumber, actionSequenceNumber);
+      if (resultWithReason != null) return resultWithReason;
+    }
 
-    testDoSomethingTime = getTestDoSomethingStartTime + 3 * ONE_SECOND_AS_NS;
-    testUndoSequenceNumber = undoSequenceNumber;
-    testPlayer = player;
-    testActionSequenceNumber = -1;
-    return true;
+    // we're currently still synchronous undo so this is not relevant yet; just call performUndoOfLastAction instead
+
+    return performUndoOfLastAction(player, undoSequenceNumber);
+
+//    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+//    cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
+//    cloneToolsNetworkServer.undoCompleted(player, undoSequenceNumber);
+//    getTestDoSomethingStartTime = System.nanoTime();
+//
+//    testDoSomethingTime = getTestDoSomethingStartTime + 3 * ONE_SECOND_AS_NS;
+//    testUndoSequenceNumber = undoSequenceNumber;
+//    testPlayer = player;
+//    testActionSequenceNumber = -1;
+//    return ResultWithReason.success();
   }
 
-  public boolean performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
+  public ResultWithReason performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
   {
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     System.out.println("Server: Tool Undo Last Completed Action received, undo seq number " + undoSequenceNumber);
-    getTestDoSomethingStartTime = System.nanoTime();
-    testDoSomethingTime = getTestDoSomethingStartTime + 7 * ONE_SECOND_AS_NS;
-    testUndoSequenceNumber = undoSequenceNumber;
-    testPlayer = player;
-    return true;
+
+    if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
+      ResultWithReason resultWithReason = null;
+      resultWithReason = ServerSide.getInGameStatusSimulator().performUndoOfLastAction(cloneToolsNetworkServer, player, undoSequenceNumber);
+      if (resultWithReason != null) return resultWithReason;
+    }
+
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+    WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
+
+    boolean result = worldHistory.performUndo(player, worldServer);
+
+//    cloneToolsNetworkServer.undoCompleted(player, undoSequenceNumber);      // todo later this will be required
+    cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    if (result) {
+      return ResultWithReason.success();
+    } else {
+      return ResultWithReason.failure("There are no more spells to undo...");
+    }
+//    getTestDoSomethingStartTime = System.nanoTime();
+//    testDoSomethingTime = getTestDoSomethingStartTime + 7 * ONE_SECOND_AS_NS;
+//    testUndoSequenceNumber = undoSequenceNumber;
+//    testPlayer = player;
   }
 
   public void tick() {
-    if (System.nanoTime() >= testDoSomethingTime) {
-      testDoSomethingTime = Long.MAX_VALUE;
-      if (testActionSequenceNumber >= 0) {
-        cloneToolsNetworkServer.actionCompleted(testPlayer, testActionSequenceNumber);
-        System.out.println("Server: actionCompleted # " + testActionSequenceNumber);
-        testActionSequenceNumber = -1;
-        cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-      }
-      if (testUndoSequenceNumber >= 0) {
-        cloneToolsNetworkServer.undoCompleted(testPlayer, testUndoSequenceNumber);
-        System.out.println("Server: undoCompleted # " + testUndoSequenceNumber);
-        testUndoSequenceNumber = -1;
-      }
+    if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {
+      ServerSide.getInGameStatusSimulator().updateServerStatus(cloneToolsNetworkServer);
     }
-
-    double progress = (System.nanoTime() - getTestDoSomethingStartTime);
-    progress /= (testDoSomethingTime - getTestDoSomethingStartTime);
-    progress *= 100.0;
-    progress = UsefulFunctions.clipToRange(progress, 0.0, 100.0);
-    if (testActionSequenceNumber >= 0) {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, testPlayer, (byte)progress);
-    } else if (testUndoSequenceNumber >= 0) {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, testPlayer, (byte)progress);
-    } else {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-    }
-
   }
 
   int testUndoSequenceNumber = -1;
@@ -162,4 +205,6 @@ public class CloneToolServerActions
 
   private static MinecraftSaveFolderBackups minecraftSaveFolderBackups;
   private static CloneToolsNetworkServer cloneToolsNetworkServer;
+  private WorldHistory worldHistory;
+  private ServerVoxelSelections serverVoxelSelections;
 }

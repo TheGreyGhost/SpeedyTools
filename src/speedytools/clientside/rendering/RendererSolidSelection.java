@@ -1,10 +1,15 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
+import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.utilities.Colour;
 
 /**
  * User: The Grey Ghost
@@ -47,19 +52,32 @@ public class RendererSolidSelection implements RendererElement
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, player, partialTick);
     if (!shouldIRender) return;
 
-    Vec3 playerLook = player.getLook(partialTick);
+//    Vec3 playerLook = player.getLook(partialTick);
     Vec3 playerOrigin = player.getPosition(partialTick);
 
     try {
       GL11.glPushMatrix();
-      GL11.glTranslated(renderInfo.draggedSelectionOriginX - playerOrigin.xCoord,
-                        renderInfo.draggedSelectionOriginY - playerOrigin.yCoord,
-                        renderInfo.draggedSelectionOriginZ - playerOrigin.zCoord);
+      GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+//      GL11.glTranslated(- playerOrigin.xCoord, - playerOrigin.yCoord, - playerOrigin.zCoord);
       Vec3 playerRelativeToSelectionOrigin = playerOrigin.addVector(-renderInfo.draggedSelectionOriginX,
                                                                     -renderInfo.draggedSelectionOriginY,
                                                                     -renderInfo.draggedSelectionOriginZ);
-      renderInfo.blockVoxelMultiSelector.renderSelection(playerRelativeToSelectionOrigin, playerLook);
+      if (renderInfo.opaque) {
+        GL11.glDisable(GL11.GL_BLEND);
+      } else {
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+      }
+
+      Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.locationBlocksTexture);
+      GL11.glDisable(GL11.GL_ALPHA_TEST);
+
+      int renderDistanceBlocks = SpeedyToolsOptions.getRenderDistanceInBlocks();
+      if (renderInfo.selectorRenderer != null) {
+        renderInfo.selectorRenderer.renderSelection(playerRelativeToSelectionOrigin, renderDistanceBlocks);         // todo: later - maybe - clip by frustrum
+      }
     } finally {
+      GL11.glPopAttrib();
       GL11.glPopMatrix();
     }
   }
@@ -74,10 +92,11 @@ public class RendererSolidSelection implements RendererElement
 
   public static class SolidSelectionRenderInfo
   {
-    public BlockVoxelMultiSelector blockVoxelMultiSelector;     // the voxel selection to be rendered
+    public BlockVoxelMultiSelectorRenderer selectorRenderer;     // the voxel selection to be rendered
     public double draggedSelectionOriginX;                      // the coordinates of the selection origin, after it has been dragged from its starting point
     public double draggedSelectionOriginY;
     public double draggedSelectionOriginZ;
+    public boolean opaque;                    // if false, make partially transparent
   }
 
   SolidSelectionRenderInfoUpdateLink infoProvider;

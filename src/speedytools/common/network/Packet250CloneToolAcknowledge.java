@@ -12,13 +12,25 @@ import java.io.*;
  */
 public class Packet250CloneToolAcknowledge
 {
+  /**
+   * The packet will contain acknowledgement information for the action, the undo, or both.
+   * If one of them is status rejected, an optional reason can be provided.
+   * @param i_actionStatus
+   * @param i_actionSequenceNumber
+   * @param i_undoStatus
+   * @param i_undoSequenceNumber
+   * @param i_reason If a status is rejected, this human-readable message will be sent to the client
+   *                 If not required - leave blank "", not null.
+   */
   public Packet250CloneToolAcknowledge(Acknowledgement i_actionStatus, int i_actionSequenceNumber,
-                                       Acknowledgement i_undoStatus, int i_undoSequenceNumber)
+                                       Acknowledgement i_undoStatus, int i_undoSequenceNumber,
+                                       String i_reason)
   {
     actionAcknowledgement = i_actionStatus;
     actionSequenceNumber = i_actionSequenceNumber;
     undoAcknowledgement = i_undoStatus;
     undoSequenceNumber = i_undoSequenceNumber;
+    reason = i_reason;
   }
 
   public Packet250CustomPayload getPacket250CustomPayload()
@@ -33,6 +45,7 @@ public class Packet250CloneToolAcknowledge
       outputStream.writeInt(actionSequenceNumber);
       outputStream.writeByte(acknowledgementToByte(undoAcknowledgement));
       outputStream.writeInt(undoSequenceNumber);
+      outputStream.writeUTF(reason);
       retval = new Packet250CustomPayload("speedytools",bos.toByteArray());
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Failed to getPacket250CustomPayload, due to exception " + ioe.toString());
@@ -59,6 +72,8 @@ public class Packet250CloneToolAcknowledge
       newPacket.actionSequenceNumber = inputStream.readInt();
       newPacket.undoAcknowledgement = byteToAcknowledgement(inputStream.readByte());
       newPacket.undoSequenceNumber = inputStream.readInt();
+      newPacket.reason = inputStream.readUTF();
+      System.out.println("action ack:" + newPacket.actionAcknowledgement + "; undo ack:" + newPacket.undoAcknowledgement);
       if (newPacket.checkInvariants()) return newPacket;
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
@@ -91,6 +106,10 @@ public class Packet250CloneToolAcknowledge
 
   public int getUndoSequenceNumber() {
     return undoSequenceNumber;
+  }
+
+  public String getReason() {
+    return reason;
   }
 
   private Packet250CloneToolAcknowledge() {}
@@ -133,5 +152,7 @@ public class Packet250CloneToolAcknowledge
   private Acknowledgement undoAcknowledgement;
   private int undoSequenceNumber;
 
+
+  private String reason;
 
 }

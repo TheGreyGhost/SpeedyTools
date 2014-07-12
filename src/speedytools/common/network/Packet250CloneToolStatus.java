@@ -12,14 +12,14 @@ import java.io.*;
  */
 public class Packet250CloneToolStatus
 {
-  public static Packet250CloneToolStatus serverStatusChange(ServerStatus newStatus, byte newPercentage)
+  public static Packet250CloneToolStatus serverStatusChange(ServerStatus newStatus, byte newPercentage, String newNameOfPlayerBeingServiced)
   {
-    return new Packet250CloneToolStatus(null, newStatus, newPercentage);
+    return new Packet250CloneToolStatus(null, newStatus, newPercentage, newNameOfPlayerBeingServiced);
   }
 
   public static Packet250CloneToolStatus clientStatusChange(ClientStatus newStatus)
   {
-    return new Packet250CloneToolStatus(newStatus, null, (byte)100);
+    return new Packet250CloneToolStatus(newStatus, null, (byte)100, "");
   }
 
   /**
@@ -37,6 +37,7 @@ public class Packet250CloneToolStatus
       outputStream.writeByte(clientStatusToByte(clientStatus));
       outputStream.writeByte(serverStatusToByte(serverStatus));
       outputStream.writeByte(completionPercentage);
+      outputStream.writeUTF(nameOfPlayerBeingServiced == null ? "" : nameOfPlayerBeingServiced);
       retval = new Packet250CustomPayload("speedytools",bos.toByteArray());
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Failed to getPacket250CustomPayload, due to exception " + ioe.toString());
@@ -62,6 +63,7 @@ public class Packet250CloneToolStatus
       newPacket.clientStatus = byteToClientStatus(inputStream.readByte());
       newPacket.serverStatus = byteToServerStatus(inputStream.readByte());
       newPacket.completionPercentage = inputStream.readByte();
+      newPacket.nameOfPlayerBeingServiced = inputStream.readUTF();
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
       return null;
@@ -70,14 +72,14 @@ public class Packet250CloneToolStatus
     return newPacket;
   }
 
-  private Packet250CloneToolStatus(ClientStatus newClientStatus,
-                                   ServerStatus newServerStatus,
-                                   byte newPercentage
+  private Packet250CloneToolStatus(ClientStatus newClientStatus, ServerStatus newServerStatus,
+                                   byte newPercentage, String newNameOfPlayerBeingServiced
   )
   {
     clientStatus = newClientStatus;
     serverStatus = newServerStatus;
     completionPercentage = newPercentage;
+    nameOfPlayerBeingServiced = newNameOfPlayerBeingServiced;
   }
 
   private static final byte NULL_BYTE_VALUE = Byte.MAX_VALUE;
@@ -108,6 +110,10 @@ public class Packet250CloneToolStatus
     assert (checkInvariants());
     assert (serverStatus != null);
     return completionPercentage;
+  }
+  public String getNameOfPlayerBeingServiced() {
+    assert (serverStatus != null);
+    return nameOfPlayerBeingServiced;
   }
 
   private boolean checkInvariants()
@@ -162,4 +168,5 @@ public class Packet250CloneToolStatus
   private ClientStatus clientStatus;
   private ServerStatus serverStatus;
   private byte completionPercentage = 100;
+  private String nameOfPlayerBeingServiced;
 }

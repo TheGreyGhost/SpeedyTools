@@ -1,6 +1,5 @@
 package speedytools.clientside.tools;
 
-import cpw.mods.fml.common.FMLLog;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.AxisAlignedBB;
@@ -10,14 +9,9 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.rendering.*;
-import speedytools.clientside.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelection;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyTool;
-import speedytools.common.utilities.UsefulConstants;
-import speedytools.common.utilities.UsefulFunctions;
-
-import java.util.ArrayList;
-import java.util.LinkedList;
 
 /**
  * User: The Grey Ghost
@@ -91,7 +85,7 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
   }
 
 
-  protected static ChunkCoordinates blockUnderCursor = null;
+  protected static ChunkCoordinates blockUnderCursor = null;      // why is this static?      // todo - try removing static later
   protected ChunkCoordinates boundaryCorner1 = null;
   protected ChunkCoordinates boundaryCorner2 = null;
 

@@ -50,4 +50,22 @@ public class UsefulFunctions
       return Math.max(limit2, Math.min(limit1, value));
     }
   }
+
+  /** linearly interpolate for y between [x1, y1] to [x2, y2] using x
+   *  y = y1 + (y2 - y1) * (x - x1) / (x2 - x1)
+   * @param x  the
+   * @param x1
+   * @param x2
+   * @param y1
+   * @param y2
+   * @return linearly interpolated value.  If x is outside the range, clip it to the nearest end
+   */
+  public static double interpolate(double x, double x1, double x2, double y1, double y2)
+  {
+    if (x <= x1) return y1;
+    if (x >= x2) return y2;
+    double xFraction = (x - x1) / (x2 - x1);
+    return y1 + xFraction * (y2 - y1);
+  }
+
 }

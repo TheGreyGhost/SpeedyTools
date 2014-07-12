@@ -8,6 +8,7 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.ItemSpeedyCopy;
@@ -15,6 +16,8 @@ import speedytools.common.network.ClientStatus;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.ResultWithReason;
+import speedytools.common.utilities.UsefulConstants;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -50,6 +53,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
     solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
     cursorRenderInfoUpdateLink = this.new CursorRenderInfoLink();
+    statusMessageRenderInfoUpdateLink = this.new StatusMessageRenderInfoLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
     selectionPacketSender = new SelectionPacketSender(packetHandlerRegistry, packetSender);
   }
@@ -61,10 +65,12 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     rendererElements.add(new RendererSolidSelection(solidSelectionRendererUpdateLink));
     rendererElements.add(new RenderCursorStatus(cursorRenderInfoUpdateLink));
+    rendererElements.add(new RendererStatusMessage(statusMessageRenderInfoUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
     selectionPacketSender.reset();
     iAmActive = true;
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    toolState = ToolState.IDLE;
     return true;
   }
 
@@ -285,6 +291,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           if (inputEvent.controlKeyDown) {
             flipSelection();
           } else { // toggle selection grabbing
+            hasBeenMoved = true;
             Vec3 playerPosition = player.getPosition(partialTick);  // beware, Vec3 is short-lived
             selectionGrabActivated = !selectionGrabActivated;
             if (selectionGrabActivated) {
@@ -298,7 +305,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
             }
           }
         } else if (inputEvent.eventDuration >= MIN_PLACE_HOLD_DURATION_NS) {
-          placeSelection();
+          placeSelection(player, partialTick);
         }
         break;
       }
@@ -403,28 +410,48 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private void undoAction()
   {
     checkInvariants();
-    boolean success = cloneToolsNetworkClient.performToolUndo();
-    cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
+    if (cloneToolsNetworkClient.getServerStatus() != ServerStatus.IDLE
+        && cloneToolsNetworkClient.getServerStatus() != ServerStatus.PERFORMING_YOUR_ACTION) {
+      return;
+    }
+
+    if (toolState == ToolState.PERFORMING_ACTION) {
+      toolState = ToolState.PERFORMING_UNDO_FROM_PARTIAL;
+    } else {
+      toolState = ToolState.PERFORMING_UNDO_FROM_FULL;
+    }
+    ResultWithReason result = cloneToolsNetworkClient.performToolUndo();
+    if (result.succeeded()) {
+      cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
+    } else {
+      displayNewErrorMessage(result.getReason());
+    }
 //        playSound(CustomSoundsHandler.BOUNDARY_UNPLACE, thePlayer);
   }
 
   /**
    * don't call if an action is already pending
    */
-  private void placeSelection()
+  private void placeSelection(EntityClientPlayerMP player, float partialTick)
   {
     checkInvariants();
     if (selectionPacketSender.getCurrentPacketProgress() != SelectionPacketSender.PacketProgress.COMPLETED) {
-      return;
-    }
-    if (cloneToolsNetworkClient.getServerStatus() != ServerStatus.IDLE) {
+      displayNewErrorMessage("Must wait for spell preparation to finish ...");
       return;
     }
 
-    boolean success = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
-            selectionOrigin.posX, selectionOrigin.posY, selectionOrigin.posZ,
-            (byte) 0, false); // todo: implement rotation and flipped
-    cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
+    Vec3 selectionPosition = getSelectionPosition(player, partialTick, false);
+    ResultWithReason result = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
+                                                                Math.round((float)selectionPosition.xCoord),
+                                                                Math.round((float)selectionPosition.yCoord),
+                                                                Math.round((float)selectionPosition.zCoord),
+                                                                (byte) 0, false); // todo: implement rotation and flipped
+    if (result.succeeded()) {
+      cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
+      toolState = ToolState.PERFORMING_ACTION;
+    } else {
+      displayNewErrorMessage(result.getReason());
+    }
   }
 
   private void flipSelection()
@@ -441,21 +468,38 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   {
     switch (currentHighlighting) {
       case NONE: {
+        if (updateBoundaryCornersFromToolBoundary()) {
+          displayNewErrorMessage("First point your cursor at a nearby block, or at the boundary field ...");
+        } else {
+          displayNewErrorMessage("First point your cursor at a nearby block...");
+        }
         return;
       }
       case FULL_BOX: {
         voxelSelectionManager = new BlockVoxelMultiSelector();
         voxelSelectionManager.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
-//        sortBoundaryFieldCorners();
-        selectionOrigin = new ChunkCoordinates(boundaryCorner1);
+//        selectionOrigin = new ChunkCoordinates(boundaryCorner1);
         currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
-//            playSound(CustomSoundsHandler.BOUNDARY_PLACE_1ST, thePlayer);
+        selectionGenerationState = SelectionGenerationState.VOXELS;
+        selectionGenerationPercentComplete = 0;
         break;
       }
       case UNBOUND_FILL: {
+        voxelSelectionManager = new BlockVoxelMultiSelector();
+        voxelSelectionManager.selectUnboundFillStart(thePlayer.worldObj, blockUnderCursor);
+//        selectionOrigin = new ChunkCoordinates(blockUnderCursor);
+        currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
+        selectionGenerationState = SelectionGenerationState.VOXELS;
+        selectionGenerationPercentComplete = 0;
         break;
       }
       case BOUND_FILL: {
+        voxelSelectionManager = new BlockVoxelMultiSelector();
+        voxelSelectionManager.selectBoundFillStart(thePlayer.worldObj, blockUnderCursor, boundaryCorner1, boundaryCorner2);
+//        selectionOrigin = new ChunkCoordinates(blockUnderCursor);
+        currentToolSelectionState = ToolSelectionStates.GENERATING_SELECTION;
+        selectionGenerationState = SelectionGenerationState.VOXELS;
+        selectionGenerationPercentComplete = 0;
         break;
       }
     }
@@ -469,23 +513,48 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
    * (3) acknowledge (get) the action and undo statuses
    */
   @Override
-  public void performTick(World world)
-  {
+  public void performTick(World world) {
     checkInvariants();
-    final long MAX_TIME_IN_NS = 20 * 1000 * 1000;
+    final long MAX_TIME_IN_NS = 20 * 1000 * 1000L;
+    final float VOXEL_MAX_COMPLETION = 75.0F;
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
-//      System.out.print("Vox start nano(ms) : " + System.nanoTime()/ 1000000);
-      selectionGenerationPercentComplete = 100.0F * voxelSelectionManager.selectAllInBoxContinue(world, MAX_TIME_IN_NS);
-//      System.out.println(": end (ms) : " + System.nanoTime()/ 1000000);
-
-      if (selectionGenerationPercentComplete < 0.0F) {
-        selectionPacketSender.reset();
-        if (voxelSelectionManager.isEmpty()) {
-          currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
-        } else {
-          voxelSelectionManager.createRenderList(world);
-          currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
+      switch (selectionGenerationState) {
+        case VOXELS: {
+          float progress = voxelSelectionManager.continueSelectionGeneration(world, MAX_TIME_IN_NS);
+          if (progress >= 0) {
+            selectionGenerationPercentComplete = VOXEL_MAX_COMPLETION * progress;
+          } else {
+            voxelCompletionReached = selectionGenerationPercentComplete;
+            selectionGenerationState = SelectionGenerationState.RENDERLISTS;
+            selectionPacketSender.reset();
+            if (voxelSelectionManager.isEmpty()) {
+              currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
+            } else {
+              selectionOrigin = voxelSelectionManager.getWorldOrigin();
+              if (voxelSelectionRenderer == null) {
+                voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
+              }
+              ChunkCoordinates wOrigin = voxelSelectionManager.getWorldOrigin();
+              voxelSelectionRenderer.createRenderListStart(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ, voxelSelectionManager.getSelection());
+            }
+          }
+          break;
         }
+        case RENDERLISTS: {
+          ChunkCoordinates wOrigin = voxelSelectionManager.getWorldOrigin();
+          float progress = voxelSelectionRenderer.createRenderListContinue(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ,
+                                                                           voxelSelectionManager.getSelection(), MAX_TIME_IN_NS);
+
+          if (progress >= 0) {
+            selectionGenerationPercentComplete = voxelCompletionReached + (100.0F - voxelCompletionReached) * progress;
+          } else {
+            currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
+            selectionGenerationState = SelectionGenerationState.IDLE;
+            hasBeenMoved = false;
+          }
+          break;
+        }
+        default: assert false : "Invalid selectionGenerationState:" + selectionGenerationState;
       }
     }
 
@@ -495,34 +564,57 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
 
     // if the selection has been freshly generated, keep trying to transmit it until we successfully start transmission
     if (currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION
-        && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.IDLE) {
+            && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.IDLE) {
       selectionPacketSender.startSendingSelection(voxelSelectionManager);
     }
     selectionPacketSender.tick();
 
     CloneToolsNetworkClient.ActionStatus actionStatus = cloneToolsNetworkClient.getCurrentActionStatus();
-    if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+    CloneToolsNetworkClient.ActionStatus undoStatus = cloneToolsNetworkClient.getCurrentUndoStatus();
+
+    if (undoStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
       lastActionWasRejected = false;
+      toolState = ToolState.UNDO_SUCCEEDED;
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     }
-    if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
+    if (undoStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
       lastActionWasRejected = true;
+      toolState = ToolState.UNDO_FAILED;
+      displayNewErrorMessage(cloneToolsNetworkClient.getLastRejectionReason());
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     }
 
-    actionStatus = cloneToolsNetworkClient.getCurrentUndoStatus();
-    if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
-      lastActionWasRejected = false;
-      cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
-    }
-    if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
-      lastActionWasRejected = true;
-      cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+    if (undoStatus == CloneToolsNetworkClient.ActionStatus.NONE_PENDING) { // ignore action statuses if undo status is not idle, since we are undoing the current action
+      if (actionStatus == CloneToolsNetworkClient.ActionStatus.COMPLETED) {
+        lastActionWasRejected = false;
+        toolState = ToolState.ACTION_SUCCEEDED;
+        cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+        hasBeenMoved = false;
+      }
+      if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
+        lastActionWasRejected = true;
+        toolState = ToolState.ACTION_FAILED;
+        displayNewErrorMessage(cloneToolsNetworkClient.getLastRejectionReason());
+        cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
+      }
     }
 
     checkInvariants();
   }
 
+  /**
+   * start displaying a new error message
+   * @param newErrorMessage
+   */
+  private void displayNewErrorMessage(String newErrorMessage)
+  {
+    if (newErrorMessage.isEmpty()) return;
+    errorMessageDisplayTimeStartNS = System.nanoTime();
+    errorMessageBeingDisplayed = newErrorMessage;
+  }
+
+  private String errorMessageBeingDisplayed = "";
+  private long errorMessageDisplayTimeStartNS = 0;
 
   /**
    * copies the boundary field coordinates from the boundary tool, if a boundary is defined
@@ -558,7 +650,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       if (speedyToolBoundary == null) return false;
       AxisAlignedBB boundaryFieldAABB = speedyToolBoundary.getBoundaryField();
       if (boundaryFieldAABB == null) return false;
-      infoToUpdate.boundaryCursorSide = -1;
+      infoToUpdate.boundaryCursorSide = (currentHighlighting == SelectionType.FULL_BOX) ? UsefulConstants.FACE_ALL : UsefulConstants.FACE_NONE;
       infoToUpdate.boundaryGrabActivated = false;
       infoToUpdate.boundaryGrabSide = -1;
       infoToUpdate.boundaryFieldAABB = boundaryFieldAABB;
@@ -599,35 +691,46 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       final double THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID = 0.01;
       checkInvariants();
 
-      Vec3 playerOrigin = player.getPosition(partialTick);
-
-      double draggedSelectionOriginX = selectionOrigin.posX;
-      double draggedSelectionOriginY = selectionOrigin.posY;
-      double draggedSelectionOriginZ = selectionOrigin.posZ;
-      if (selectionGrabActivated) {
-        double currentSpeedSquared = player.motionX * player.motionX + player.motionY * player.motionY + player.motionZ * player.motionZ;
-        if (currentSpeedSquared >= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID) {
-          selectionMovedFastYet = true;
-        }
-        final boolean snapToGridWhileMoving = selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
-
-        Vec3 distanceMoved = selectionGrabPoint.subtract(playerOrigin);
-        draggedSelectionOriginX += distanceMoved.xCoord;
-        draggedSelectionOriginY += distanceMoved.yCoord;
-        draggedSelectionOriginZ += distanceMoved.zCoord;
-        if (snapToGridWhileMoving) {
-          draggedSelectionOriginX = Math.round(draggedSelectionOriginX);
-          draggedSelectionOriginY = Math.round(draggedSelectionOriginY);
-          draggedSelectionOriginZ = Math.round(draggedSelectionOriginZ);
-        }
+      double currentSpeedSquared = player.motionX * player.motionX + player.motionY * player.motionY + player.motionZ * player.motionZ;
+      if (currentSpeedSquared >= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID) {
+        selectionMovedFastYet = true;
       }
-      infoToUpdate.blockVoxelMultiSelector = voxelSelectionManager;
-      infoToUpdate.draggedSelectionOriginX = draggedSelectionOriginX;
-      infoToUpdate.draggedSelectionOriginY = draggedSelectionOriginY;
-      infoToUpdate.draggedSelectionOriginZ = draggedSelectionOriginZ;
+      final boolean snapToGridWhileMoving = selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
+      Vec3 selectionPosition = getSelectionPosition(player, partialTick, snapToGridWhileMoving);
+      infoToUpdate.selectorRenderer = voxelSelectionRenderer;
+      infoToUpdate.draggedSelectionOriginX = selectionPosition.xCoord;
+      infoToUpdate.draggedSelectionOriginY = selectionPosition.yCoord;
+      infoToUpdate.draggedSelectionOriginZ = selectionPosition.zCoord;
+      infoToUpdate.opaque = hasBeenMoved;
 
       return true;
     }
+  }
+
+  /**
+   * returns the current position of the selection, i.e. the corner where it will be placed if the user performs an action
+   * @param snapToGrid if true, snap to the nearest integer coordinates
+   * @return
+   */
+  private Vec3 getSelectionPosition(EntityPlayer player, float partialTick, boolean snapToGrid)
+  {
+    Vec3 playerOrigin = player.getPosition(partialTick);
+
+    double draggedSelectionOriginX = selectionOrigin.posX;
+    double draggedSelectionOriginY = selectionOrigin.posY;
+    double draggedSelectionOriginZ = selectionOrigin.posZ;
+    if (selectionGrabActivated) {
+      Vec3 distanceMoved = selectionGrabPoint.subtract(playerOrigin);
+      draggedSelectionOriginX += distanceMoved.xCoord;
+      draggedSelectionOriginY += distanceMoved.yCoord;
+      draggedSelectionOriginZ += distanceMoved.zCoord;
+      if (snapToGrid) {
+        draggedSelectionOriginX = Math.round(draggedSelectionOriginX);
+        draggedSelectionOriginY = Math.round(draggedSelectionOriginY);
+        draggedSelectionOriginZ = Math.round(draggedSelectionOriginZ);
+      }
+    }
+    return Vec3.createVectorHelper(draggedSelectionOriginX, draggedSelectionOriginY, draggedSelectionOriginZ);
   }
 
   /**
@@ -639,45 +742,128 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     @Override
     public boolean refreshRenderInfo(RenderCursorStatus.CursorRenderInfo infoToUpdate)
     {
+      infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.IDLE;
       if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
         infoToUpdate.vanillaCursorSpin = true;
         infoToUpdate.cursorSpinProgress = selectionGenerationPercentComplete;
       } else {
         infoToUpdate.vanillaCursorSpin = false;
       }
+      infoToUpdate.aSelectionIsDefined = (currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION);
 
       PowerUpEffect activePowerUp;
-      if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
-        infoToUpdate.performingTask = true;
-        infoToUpdate.clockwise = true;
-      } else if (cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
-        infoToUpdate.performingTask = true;
-        infoToUpdate.clockwise = false;
+      if (!leftClickPowerup.isIdle()) {
+        activePowerUp = leftClickPowerup;
       } else {
-        infoToUpdate.performingTask = false;
-        if (!leftClickPowerup.isIdle()) {
-          activePowerUp = leftClickPowerup;
-          infoToUpdate.clockwise = false;
-        } else {
-          activePowerUp = rightClickPowerup;
-          infoToUpdate.clockwise = true;
-        }
-        infoToUpdate.idle = activePowerUp.isIdle();
-        infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999 && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE);
-        infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
+        activePowerUp = rightClickPowerup;
+      }
+//      if (cloneToolsNetworkClient.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING
+//          && cloneToolsNetworkClient.peekCurrentUndoStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING ) {
+//        toolState = ToolState.IDLE;
+//      }
+      if (!activePowerUp.isIdle()) {
+        lastPowerupStarted = activePowerUp;
       }
 
+      switch (toolState) {
+        case ACTION_FAILED:
+        case ACTION_SUCCEEDED:
+        case UNDO_FAILED:
+        case UNDO_SUCCEEDED:
+        case IDLE: {
+          if (!rightClickPowerup.isIdle()) {
+            infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_UP_CW;
+          } else if (!leftClickPowerup.isIdle()) {
+            infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_UP_CCW;
+          } else {
+            if (lastPowerupStarted != null && lastPowerupStarted.isIdle()) {
+              infoToUpdate.animationState = lastPowerupStarted == rightClickPowerup ?  RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_CANCELLED
+                                                                                    : RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_CANCELLED;
+            } else {
+              switch (toolState) {
+                case ACTION_FAILED: {
+                  infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_CANCELLED;
+                  break;
+                }
+                case ACTION_SUCCEEDED: {
+                  infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CW_SUCCESS;
+                  break;
+                }
+                case UNDO_FAILED: {
+                  infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_CANCELLED;
+                  break;
+                }
+                case UNDO_SUCCEEDED: {
+                  infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPIN_DOWN_CCW_SUCCESS;
+                  break;
+                }
+              }
+            }
+          }
+          break;
+        }
+        case PERFORMING_ACTION: {
+          infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CW;
+          lastPowerupStarted = null;
+          break;
+        }
+        case PERFORMING_UNDO_FROM_FULL: {
+          infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CCW_FROM_FULL;
+          lastPowerupStarted = null;
+          break;
+        }
+        case PERFORMING_UNDO_FROM_PARTIAL: {
+          infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CCW_FROM_PARTIAL;
+          lastPowerupStarted = null;
+          break;
+        }
+        default: {
+          assert false : "Invalid toolstate = " + toolState + " in refreshRenderInfo()";
+        }
+      }
+
+
+//      if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
+//        performingTask = true;
+//        infoToUpdate.
+//      } else if (cloneToolsNetworkClient.peekCurrentUndoStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
+//        infoToUpdate.performingTask = true;
+//        infoToUpdate.clockwise = false;
+//      } else {
+//        infoToUpdate.performingTask = false;
+//        infoToUpdate.idle = activePowerUp.isIdle();
+//      }
+
+      infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999 && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE);
+      infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
       infoToUpdate.readinessPercent = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
       infoToUpdate.cursorType = RenderCursorStatus.CursorRenderInfo.CursorType.COPY;
-
-      infoToUpdate.taskAborted = lastActionWasRejected;
       infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
+
 //      System.out.println("CurserRenderInfoLink - refresh.  Idle=" + infoToUpdate.idle +
 //                         "; clockwise=" + infoToUpdate.clockwise +
 //                         "; chargePercent= " + infoToUpdate.chargePercent +
 //                         "; chargedAndReady=" + infoToUpdate.fullyChargedAndReady
 //                        );
+      if (infoToUpdate.animationState != lastState) {
+        System.out.println("State:" + infoToUpdate.animationState);
+        lastState = infoToUpdate.animationState;
+      }
+      return true;
+    }
+    private RenderCursorStatus.CursorRenderInfo.AnimationState lastState;
+  }
 
+  public class StatusMessageRenderInfoLink implements RendererStatusMessage.StatusMessageRenderInfoUpdateLink
+  {
+    @Override
+    public boolean refreshRenderInfo(RendererStatusMessage.StatusMessageRenderInfo infoToUpdate) {
+      long timeMessageHasBeenDisplayed =  System.nanoTime() - errorMessageDisplayTimeStartNS;
+      if (timeMessageHasBeenDisplayed <= SpeedyToolsOptions.getErrorMessageDisplayDurationNS()) {
+        infoToUpdate.messageToDisplay = errorMessageBeingDisplayed;
+      } else {
+        infoToUpdate.messageToDisplay = "";
+      }
       return true;
     }
   }
@@ -722,10 +908,12 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private ToolSelectionStates currentToolSelectionState = ToolSelectionStates.NO_SELECTION;
 
   private BlockVoxelMultiSelector voxelSelectionManager;
+  private BlockVoxelMultiSelectorRenderer voxelSelectionRenderer;
   private ChunkCoordinates selectionOrigin;
   private boolean selectionGrabActivated = false;
   private Vec3    selectionGrabPoint = null;
   private boolean selectionMovedFastYet;
+  private boolean hasBeenMoved;               // used to change the appearance when freshed created or placed.
 
   private CloneToolsNetworkClient cloneToolsNetworkClient;
   private SelectionPacketSender selectionPacketSender;
@@ -755,12 +943,22 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       performingAction = init_performingAction;
     }
   }
+  private enum SelectionGenerationState {IDLE, VOXELS, RENDERLISTS};
+  SelectionGenerationState selectionGenerationState = SelectionGenerationState.IDLE;
+  private float voxelCompletionReached;
 
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
   private RenderCursorStatus.CursorRenderInfoUpdateLink cursorRenderInfoUpdateLink;
+  private RendererStatusMessage.StatusMessageRenderInfoUpdateLink statusMessageRenderInfoUpdateLink;
+
+  private enum ToolState {
+    IDLE, PERFORMING_ACTION, PERFORMING_UNDO_FROM_FULL, PERFORMING_UNDO_FROM_PARTIAL, ACTION_SUCCEEDED, ACTION_FAILED, UNDO_SUCCEEDED, UNDO_FAILED
+  }
+  private ToolState toolState;
 
   private PowerUpEffect leftClickPowerup = new PowerUpEffect();
   private PowerUpEffect rightClickPowerup = new PowerUpEffect();
+  private PowerUpEffect lastPowerupStarted = null;  // points to the last powerup which was started (to detect when it has been released)
 
   /**
    * Manages the state of a "Power up" object (eg for animation purposes)

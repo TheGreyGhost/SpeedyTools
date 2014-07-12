@@ -6,6 +6,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilities.ResultWithReason;
 
 /**
  * User: The Grey Ghost
@@ -31,6 +32,7 @@ public class CloneToolsNetworkClient
     serverStatus = ServerStatus.IDLE;
     lastActionStatus = ActionStatus.NONE_PENDING;
     lastUndoStatus = ActionStatus.NONE_PENDING;
+    lastRejectionReason = "";
     packetSender = i_packetSender;
 
     packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
@@ -95,11 +97,10 @@ public class CloneToolsNetworkClient
    * @param flipped true if flipped left-right
    * @return true for success, false otherwise
    */
-  public boolean performToolAction(int toolID, int x, int y, int z, byte rotationCount, boolean flipped)
+  public ResultWithReason performToolAction(int toolID, int x, int y, int z, byte rotationCount, boolean flipped)
   {
-    if (lastActionStatus != ActionStatus.NONE_PENDING || lastUndoStatus != ActionStatus.NONE_PENDING || serverStatus != ServerStatus.IDLE) {
-      return false;
-    }
+    ResultWithReason result = isReadyToPerformAction();
+    if (!result.succeeded()) return result;
 
     Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, rotationCount, flipped);
     lastActionPacket = packet.getPacket250CustomPayload();
@@ -107,35 +108,72 @@ public class CloneToolsNetworkClient
       packetSender.sendPacket(lastActionPacket);
       lastActionStatus = ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT;
       lastActionSentTime = System.nanoTime();
-      return true;
+      return ResultWithReason.success();
     }
-    return false;
+    return ResultWithReason.failure("I am confused...");
   }
 
   /**
-   * sends the "Tool Undo" command to the server
-   * undoes the last action (or the action currently in progress)
-   * @return true for success, false otherwise
+   * Check whether an action / undo can be started yet
+   * @return
    */
-  public boolean performToolUndo()
+  private ResultWithReason isReadyToPerformAction() {return isReadyToPerform(true);}
+  private ResultWithReason isReadyToPerformUndo() {return isReadyToPerform(false);}
+  private ResultWithReason isReadyToPerform(boolean isAction)
   {
-    Packet250CloneToolUse packet;
-    if (lastUndoStatus != ActionStatus.NONE_PENDING) {
-      return false;
+    switch (serverStatus) {
+      case IDLE: {
+        break;
+      }
+      case PERFORMING_BACKUP: {
+        return ResultWithReason.failure("Must wait for world backup to finish!");
+      }
+      case PERFORMING_YOUR_ACTION: {
+        return ResultWithReason.failure("Must wait for your earlier spell to finish!");
+      }
+      case UNDOING_YOUR_ACTION: {
+        return ResultWithReason.failure("Must wait for your earlier spell to undo!");
+      }
+      case BUSY_WITH_OTHER_PLAYER: {
+        return ResultWithReason.failure("Must wait for " + nameOfPlayerBeingServiced + " to finish!");
+      }
+      default: assert false : "invalid serverStatus " + serverStatus;
     }
+
+    if (lastUndoStatus != ActionStatus.NONE_PENDING) {
+      return ResultWithReason.failure();
+    }
+    if (isAction && lastActionStatus != ActionStatus.NONE_PENDING) {
+      return ResultWithReason.failure();
+    }
+    return ResultWithReason.success();
+  }
+
+/**
+ * sends the "Tool Undo" command to the server
+ * undoes the last action (or the action currently in progress)
+ * @return true for success, false otherwise
+ */
+  public ResultWithReason performToolUndo()
+  {
+    ResultWithReason result = isReadyToPerformUndo();
+    if (!result.succeeded()) return result;
+
+    Packet250CloneToolUse packet;
+
     if (lastActionStatus == ActionStatus.PROCESSING || lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT) {
-      packet = Packet250CloneToolUse.cancelCurentAction(currentUndoSequenceNumber, currentActionSequenceNumber);
+      packet = Packet250CloneToolUse.cancelCurrentAction(currentUndoSequenceNumber, currentActionSequenceNumber);
     } else {
       packet = Packet250CloneToolUse.performToolUndo(currentUndoSequenceNumber);
-    }
-    lastUndoPacket = packet.getPacket250CustomPayload();
-    if (lastUndoPacket != null) {
-      packetSender.sendPacket(lastUndoPacket);
-      lastUndoStatus = ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT;
-      lastUndoSentTime = System.nanoTime();
-      return true;
-    }
-    return false;
+  }
+  lastUndoPacket = packet.getPacket250CustomPayload();
+  if (lastUndoPacket != null) {
+  packetSender.sendPacket(lastUndoPacket);
+  lastUndoStatus = ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT;
+  lastUndoSentTime = System.nanoTime();
+  return ResultWithReason.success();
+}
+  return ResultWithReason.failure("I am confused...");
   }
 
   public byte getServerPercentComplete() {
@@ -146,6 +184,8 @@ public class CloneToolsNetworkClient
     return serverStatus;
   }
 
+  public String getNameOfPlayerBeingServiced() { return nameOfPlayerBeingServiced;}
+
   /**
    * respond to an incoming status packet
    * @param player
@@ -155,6 +195,7 @@ public class CloneToolsNetworkClient
   {
     serverStatus = packet.getServerStatus();
     serverPercentComplete = packet.getCompletionPercentage();
+    nameOfPlayerBeingServiced = packet.getNameOfPlayerBeingServiced();
     lastServerStatusUpdateTime = System.nanoTime();
   }
 
@@ -175,6 +216,7 @@ public class CloneToolsNetworkClient
           }
           case REJECTED: {
             lastActionStatus = ActionStatus.REJECTED;
+            lastRejectionReason = packet.getReason();
             ++currentActionSequenceNumber;
             break;
           }
@@ -203,6 +245,7 @@ public class CloneToolsNetworkClient
           }
           case REJECTED: {
             lastUndoStatus = ActionStatus.REJECTED;
+            lastRejectionReason = packet.getReason();
             ++currentUndoSequenceNumber;
             break;
           }
@@ -283,6 +326,12 @@ public class CloneToolsNetworkClient
     return retval;
   }
 
+  /** if an action or an undo has been rejected, this may hold a human-readable message
+   *    from the server explaining why.
+   * @return empty string if no reason given.
+   */
+  public String getLastRejectionReason() {return lastRejectionReason;}
+
   /** retrieves the status of the action currently being performed, without
    *   acknowledging a REJECTED or COMPLETED, i.e. unlike getCurrentActionStatus
    *   it won't revert to NONE_PENDING after the call if the status is REJECTED or COMPLETED
@@ -331,9 +380,11 @@ public class CloneToolsNetworkClient
   private ClientStatus clientStatus;
   private ServerStatus serverStatus;
   private byte serverPercentComplete;
+  private String nameOfPlayerBeingServiced = "";
 
   private ActionStatus lastActionStatus;
   private ActionStatus lastUndoStatus;
+  private String lastRejectionReason;
 
   private long lastServerStatusUpdateTime;  //time in ns.
   private long lastActionSentTime;          //time in ns.

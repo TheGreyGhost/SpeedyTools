@@ -1,5 +1,7 @@
 package speedytools.common;
 
+import net.minecraft.client.Minecraft;
+
 /**
  * User: The Grey Ghost
  * Date: 10/03/14
@@ -21,6 +23,17 @@ public class SpeedyToolsOptions
   public static int getMaxSimpleToolUndoCount() {return 5;}
 
   // the maximum number of undo for the complex speedy tools
-  public static int getMaxComplexToolUndoCount() {return 1;}
+  public static int getMaxComplexToolUndoCount() {return 5;}
 
+  // if true - enabled the in-game testing tools
+  public static boolean getTesterToolsEnabled() { return true;}
+
+  // the time that the in-game error message should stay on the screen
+  public static long getErrorMessageDisplayDurationNS() { return 5 * 1000 * 1000 * 1000L; }
+
+  public static int getRenderDistanceInBlocks() {
+    int renderDistanceSetting = Minecraft.getMinecraft().gameSettings.renderDistance;
+    int renderDistanceBlocks = 64 << 3 - renderDistanceSetting;
+    return Math.min(400, renderDistanceBlocks);
+  }
 }
