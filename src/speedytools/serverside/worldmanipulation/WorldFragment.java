@@ -4,13 +4,11 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityHanging;
 import net.minecraft.entity.EntityList;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagDouble;
 import net.minecraft.nbt.NBTTagInt;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.Packet51MapChunk;
-import net.minecraft.server.management.PlayerInstance;
 import net.minecraft.server.management.PlayerManager;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
@@ -426,7 +424,7 @@ public class WorldFragment
     40: update helper structures - heightmap, lighting
     50: notifyNeighbourChange for all blocks; World.func_96440_m for redstone comparators
     52:
-    55: flagChunkForUpdate to resend to client
+    55: queue all changes chunks to resend to client
     60: updateTick for all blocks to restart updating (causes Dispensers to dispense, but leave for now)
      */
 
@@ -491,10 +489,10 @@ public class WorldFragment
     final int czMin = wzOrigin >> 4;
     final int czMax = (wzOrigin + zCount - 1) >> 4;
 
-    int cyFlags = 0;
-    for (int cy = cyMin; cy <= cyMax; ++cy) {
-      cyFlags |= 1 << cy;
-    }
+//    int cyFlags = 0;
+//    for (int cy = cyMin; cy <= cyMax; ++cy) {
+//      cyFlags |= 1 << cy;
+//    }
 
     for (int cx = cxMin; cx <= cxMax; ++cx) {
       for (int cz = czMin; cz <= czMax; ++cz) {
@@ -525,39 +523,21 @@ public class WorldFragment
       }
     }
 
-    NEW CODE:
-
-    public ChunkCoordIntPair getChunkCoordIntPair()
-    {
-      return new ChunkCoordIntPair(this.xPosition, this.zPosition);
-    }
-
-    EntityPlayerMP.loadedChunks.add(ChunkCoordIntPair)
-
-    par1MinecraftServer.getConfigurationManager().getViewDistance() to limit the chunks, or
-
-    worldServer.playerEntities
-            or
-    PlayerManager.isPlayerWatchingChunk                       YES THIS ONE
-    WorldServer.getPlayerManager
-
-    alternatively add all then
-    PlayerManager.filterChunkLoadQueue(par1EntityPlayerMP);           NO!
-
-
-
     for (int cx = cxMin; cx <= cxMax; ++cx) {
       for (int cz = czMin; cz <= czMax; ++cz) {
+        // mark chunks for "loading" (transfer to any interested player)
         PlayerManager playerManager = worldServer.getPlayerManager();
-        PlayerInstance playerInstance = null;
         if (playerManager != null) {  // may be null during testing
-          playerInstance = playerManager.getOrCreateChunkWatcher(cx, cz, false);
-          if (playerInstance != null) {
-            Chunk chunk = worldServer.getChunkFromChunkCoords(cx, cz);
-            Packet51MapChunk packet51MapChunk = new Packet51MapChunk(chunk, false, cyFlags);
-            playerInstance.sendToAllPlayersWatchingChunk(packet51MapChunk);
+          for (Object playerEntity : worldServer.playerEntities) {
+            EntityPlayerMP entityPlayerMP = (EntityPlayerMP)playerEntity;
+            if (playerManager.isPlayerWatchingChunk(entityPlayerMP, cx, cz)) {        // todo later: this might be slow because it searches loadedChunks unnecessarily; optimise later
+              Chunk chunk = worldServer.getChunkFromChunkCoords(cx, cz);
+              ChunkCoordIntPair chunkCoordIntPair = chunk.getChunkCoordIntPair();
+              entityPlayerMP.loadedChunks.add(chunkCoordIntPair);                     // "loadedChunks" should better be "dirtyChunksQueuedForSending"
+            }
           }
         }
+
         int xmin = Math.max(cx << 4, wxOrigin);
         int ymin = yClipMin + wyOrigin;
         int zmin = Math.max(cz << 4, wzOrigin);
@@ -565,21 +545,21 @@ public class WorldFragment
         int ymax = wyOrigin + yClipMaxPlusOne - 1;
         int zmax = Math.min((cz << 4) | 0x0f, wzOrigin + zCount - 1);
 
-        for (int x = xmin; x <= xmax; ++x) {
-          for (int y = ymin; y <= ymax; ++y) {
-            for (int z = zmin; z <= zmax; ++z) {
-              if (selection.getVoxel(x - wxOrigin, y - wyOrigin, z - wzOrigin)) {
-                TileEntity tileEntity = worldServer.getBlockTileEntity(x, y, z);
-                if (tileEntity != null) {
-                  Packet tilePacket = tileEntity.getDescriptionPacket();
-                  if (tilePacket != null && playerInstance != null) {
-                    playerInstance.sendToAllPlayersWatchingChunk(tilePacket);
-                  }
-                }
-                LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(x - wxOrigin, y - wyOrigin, z - wzOrigin);
+        for (int wx = xmin; wx <= xmax; ++wx) {
+          for (int wy = ymin; wy <= ymax; ++wy) {
+            for (int wz = zmin; wz <= zmax; ++wz) {
+              if (selection.getVoxel(wx - wxOrigin, wy - wyOrigin, wz - wzOrigin)) {
+//                TileEntity tileEntity = worldServer.getBlockTileEntity(x, y, z);
+//                if (tileEntity != null) {
+//                  Packet tilePacket = tileEntity.getDescriptionPacket();
+//                  if (tilePacket != null && playerInstance != null) {
+//                    playerInstance.sendToAllPlayersWatchingChunk(tilePacket);
+//                  }
+//                }
+                LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(wx - wxOrigin, wy - wyOrigin, wz - wzOrigin);
                 if (listOfEntitiesAtThisBlock != null) {
                   for (NBTTagCompound nbtTagCompound : listOfEntitiesAtThisBlock) {
-                    changeHangingEntityNBTposition(nbtTagCompound, x, y, z);
+                    changeHangingEntityNBTposition(nbtTagCompound, wx, wy, wz);
                     Entity newEntity = EntityList.createEntityFromNBT(nbtTagCompound, worldServer);
                     if (newEntity != null) {
                       worldServer.spawnEntityInWorld(newEntity);
