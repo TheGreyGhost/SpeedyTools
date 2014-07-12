@@ -60,7 +60,7 @@ public class CloneToolServerActions
    * @param xpos
    * @param ypos
    * @param zpos
-   * @param rotationCount
+   * @param clockwiseRotationCount
    * @param flipped
    * @return true if the action has been successfully started
    */

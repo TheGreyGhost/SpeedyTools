@@ -6,10 +6,8 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
-import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.common.SpeedyToolsOptions;
-import speedytools.common.utilities.Colour;
 
 /**
  * User: The Grey Ghost
@@ -74,7 +72,8 @@ public class RendererSolidSelection implements RendererElement
 
       int renderDistanceBlocks = SpeedyToolsOptions.getRenderDistanceInBlocks();
       if (renderInfo.selectorRenderer != null) {
-        renderInfo.selectorRenderer.renderSelection(playerRelativeToSelectionOrigin, renderDistanceBlocks);         // todo: later - maybe - clip by frustrum
+        renderInfo.selectorRenderer.renderSelection(playerRelativeToSelectionOrigin, renderDistanceBlocks,
+                                                    renderInfo.clockwiseRotationCount, renderInfo.flippedX);         // todo: later - maybe - clip by frustrum
       }
     } finally {
       GL11.glPopAttrib();
@@ -97,6 +96,8 @@ public class RendererSolidSelection implements RendererElement
     public double draggedSelectionOriginY;
     public double draggedSelectionOriginZ;
     public boolean opaque;                    // if false, make partially transparent
+    public boolean flippedX;                  // if true: xneg and xpos swap
+    public byte clockwiseRotationCount;        // the number of quadrants to rotate clockwise
   }
 
   SolidSelectionRenderInfoUpdateLink infoProvider;

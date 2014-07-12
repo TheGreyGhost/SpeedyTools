@@ -65,7 +65,6 @@ public class BlockVoxelMultiSelectorRenderer
   int chunkCountX, chunkCountY, chunkCountZ;
   int xSize, ySize, zSize;
 
-
   // get the display list for the given chunk
   private int getDisplayListIndex(int cx, int cy, int cz) {
     return displayListCubesBase + cx + cy * chunkCountX + cz * chunkCountX * chunkCountY;
@@ -171,7 +170,7 @@ public class BlockVoxelMultiSelectorRenderer
    * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef so that the player's eyes are at [0,0,0]
    * playerRelativePos is position of the player relative to the minimum [x,y,z] corner of the VoxelSelection
    */
-  public void renderSelection(Vec3 playerRelativePos, int blockRenderDistance)
+  public void renderSelection(Vec3 playerRelativePos, int blockRenderDistance, byte clockwiseRotationCount, boolean flippedX)
   {
     if (displayListCubesBase == 0) {
       return;
@@ -188,6 +187,18 @@ public class BlockVoxelMultiSelectorRenderer
       final int CX_MAX = Math.min(chunkCountX - 1, (int)((playerRelativePos.xCoord + blockRenderDistance)/ DISPLAY_LIST_XSIZE));
       final int CY_MAX = Math.min(chunkCountY - 1, (int)((playerRelativePos.yCoord + blockRenderDistance)/ DISPLAY_LIST_YSIZE));
       final int CZ_MAX = Math.min(chunkCountZ - 1, (int)((playerRelativePos.zCoord + blockRenderDistance)/ DISPLAY_LIST_ZSIZE));
+
+      if (flippedX) {  // flip around the midpoint
+        GL11.glTranslatef(xSize / 2.0F, 0, 0);
+        GL11.glScaled(-1, 1, 1);
+        GL11.glTranslatef(-xSize / 2.0F, 0, 0);
+      }
+
+      if (clockwiseRotationCount > 0) { // rotate around the midpoint
+        GL11.glTranslatef(xSize / 2.0F, 0, zSize / 2.0F);
+        GL11.glRotatef(clockwiseRotationCount * -90, 0, 1, 0);
+        GL11.glTranslatef(-xSize / 2.0F, 0, -zSize / 2.0F);
+      }
 
       try {
         GL11.glPushMatrix();

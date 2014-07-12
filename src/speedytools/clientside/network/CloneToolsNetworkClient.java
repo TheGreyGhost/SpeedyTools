@@ -93,16 +93,16 @@ public class CloneToolsNetworkClient
    * @param x
    * @param y
    * @param z
-   * @param rotationCount number of quadrants rotated clockwise
-   * @param flipped true if flipped left-right
+   * @param clockwiseRotationCount number of quadrants rotated clockwise
+   * @param flippedX true if flipped left-right
    * @return true for success, false otherwise
    */
-  public ResultWithReason performToolAction(int toolID, int x, int y, int z, byte rotationCount, boolean flipped)
+  public ResultWithReason performToolAction(int toolID, int x, int y, int z, byte clockwiseRotationCount, boolean flippedX)
   {
     ResultWithReason result = isReadyToPerformAction();
     if (!result.succeeded()) return result;
 
-    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, rotationCount, flipped);
+    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, clockwiseRotationCount, flippedX);
     lastActionPacket = packet.getPacket250CustomPayload();
     if (lastActionPacket != null) {
       packetSender.sendPacket(lastActionPacket);

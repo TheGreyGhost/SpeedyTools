@@ -310,7 +310,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         break;
       }
       case WHEEL_MOVE: {
-        rotateSelection();
+        rotateSelection(inputEvent.count);
         break;
       }
     }
@@ -445,7 +445,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
                                                                 Math.round((float)selectionPosition.xCoord),
                                                                 Math.round((float)selectionPosition.yCoord),
                                                                 Math.round((float)selectionPosition.zCoord),
-                                                                (byte) 0, false); // todo: implement rotation and flipped
+                                                                clockwiseRotationCount, flippedX);
     if (result.succeeded()) {
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
       toolState = ToolState.PERFORMING_ACTION;
@@ -456,12 +456,13 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
 
   private void flipSelection()
   {
-    // todo: do something here!
+    // todo: do something here! - later - flip depending on which way the player is looking (i.e. so flip is always left-right)
+    flippedX = !flippedX;
   }
 
-  private void rotateSelection()
+  private void rotateSelection(int rotationCountAndDirection)
   {
-    // todo: do something here!
+    clockwiseRotationCount = (byte)((clockwiseRotationCount + rotationCountAndDirection) & 3);
   }
 
   private void initiateSelectionCreation(EntityClientPlayerMP thePlayer)
@@ -550,6 +551,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           } else {
             currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
             selectionGenerationState = SelectionGenerationState.IDLE;
+            clockwiseRotationCount = 0;
+            flippedX = false;
             hasBeenMoved = false;
           }
           break;
@@ -702,6 +705,9 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       infoToUpdate.draggedSelectionOriginY = selectionPosition.yCoord;
       infoToUpdate.draggedSelectionOriginZ = selectionPosition.zCoord;
       infoToUpdate.opaque = hasBeenMoved;
+
+      infoToUpdate.flippedX = flippedX;
+      infoToUpdate.clockwiseRotationCount = clockwiseRotationCount;
 
       return true;
     }
@@ -914,6 +920,8 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private Vec3    selectionGrabPoint = null;
   private boolean selectionMovedFastYet;
   private boolean hasBeenMoved;               // used to change the appearance when freshed created or placed.
+  private byte clockwiseRotationCount;        // selection rotation: number of quadrants rotated clockwise
+  private boolean flippedX;                   // if true, selection is flipped along the x axis i.e. xneg becomes xpos
 
   private CloneToolsNetworkClient cloneToolsNetworkClient;
   private SelectionPacketSender selectionPacketSender;

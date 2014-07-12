@@ -966,7 +966,7 @@ public class CloneToolsNetworkTest
       lastRotationCount = rotationCount;
       lastFlipped = flipped;
       ++countPerformToolAction;
-//      System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
+//      System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + clockwiseRotationCount + ", flipped:" + flipped);
       return ResultWithReason.success();
     }
 
