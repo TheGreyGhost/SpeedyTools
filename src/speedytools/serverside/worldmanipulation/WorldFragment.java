@@ -19,6 +19,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.utilities.QuadOrientation;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -45,6 +46,15 @@ public class WorldFragment
   private static final int Y_MIN_VALID = 0;
   private static final int Y_MAX_VALID_PLUS_ONE = 256;
 
+  /**
+   * create an empty WorldFragment from a given quadOrientation and y size
+   * The x,z size of the region is copied from the quadOrientation
+   */
+  public WorldFragment(QuadOrientation quadOrientation, int i_ycount)
+  {
+    initialise(quadOrientation.getWXsize(), i_ycount, quadOrientation.getWZSize());
+  }
+
   /** creates a WorldFragment, initially empty
    *
    * @param i_xcount
@@ -52,6 +62,11 @@ public class WorldFragment
    * @param i_zcount
    */
   public WorldFragment(int i_xcount, int i_ycount, int i_zcount)
+  {
+    initialise(i_xcount, i_ycount, i_zcount);
+  }
+
+  private void initialise(int i_xcount, int i_ycount, int i_zcount)
   {
     assert (i_xcount >= 0 && i_xcount <= MAX_X_SIZE);
     assert (i_ycount >= 0 && i_ycount <= MAX_Y_SIZE);
@@ -278,6 +293,13 @@ public class WorldFragment
     return voxelsWithStoredData.getVoxel(x, y, z);
   }
 
+  public void readSingleBlockFromWorld(WorldServer worldServer, int wx, int wy, int wz,
+                                       int wxOrigin, int wyOrigin, int wzOrigin)
+  {
+    QuadOrientation noChange = new QuadOrientation(0, 0, 1, 1);
+    readSingleBlockFromWorld(worldServer, wx, wy, wz, wxOrigin, wyOrigin, wzOrigin, noChange);
+  }
+
   /**
    * Read a single [wx, wy, wz] from the world into the fragment
    * @param worldServer
@@ -287,13 +309,16 @@ public class WorldFragment
    * @param wxOrigin the world x coordinate of the [0,0,0] corner of the WorldFragment
    * @param wyOrigin the world y coordinate of the [0,0,0] corner of the WorldFragment
    * @param wzOrigin the world z coordinate of the [0,0,0] corner of the WorldFragment
+   * @param orientation the orientation of the fragment (flip, rotate)
    */
   public void readSingleBlockFromWorld(WorldServer worldServer, int wx, int wy, int wz,
-                                       int wxOrigin, int wyOrigin, int wzOrigin)
+                                       int wxOrigin, int wyOrigin, int wzOrigin,
+                                       QuadOrientation orientation)
   {
-    int x = wx - wxOrigin;
+    int x = orientation.calcXfromWXZ(wx - wxOrigin, wz - wzOrigin);
     int y = wy - wyOrigin;
-    int z = wz - wzOrigin;
+    int z = orientation.calcZfromWXZ(wx - wxOrigin, wz - wzOrigin);
+
     if (x < 0 || x >= xCount || y < 0 || y >= yCount || z < 0 || z >= zCount ) return;
 
     int id = worldServer.getBlockId(wx, wy, wz);
@@ -416,15 +441,33 @@ public class WorldFragment
   public void writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin,
                            VoxelSelection writeMask)
   {
+    QuadOrientation noChange = new QuadOrientation(0, 0, 1, 1);
+    writeToWorld(worldServer, wxOrigin, wyOrigin, wzOrigin, writeMask, noChange);
+  }
+
+
+  /**
+   * Write the WorldFragment to the world
+   * If the voxel selection and bordermaskSelection are defined, only writes those voxels, otherwise writes the entire cuboid
+   * @param worldServer
+   * @param wxOrigin the world x coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @param wyOrigin the world y coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @param wzOrigin the world z coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @param writeMask the blocks to be written; or if null - all valid voxels in the fragment
+   * @param orientation the orientation of the fragment (flip, rotate)
+   */
+  public void writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin,
+                           VoxelSelection writeMask, QuadOrientation orientation)
+  {
     /* the steps are
-    10: delete TileEntityData and EntityHanging to stop resource leaks / items popping out
+    10: delete EntityHanging to stop resource leaks / items popping out
     20: copy ID and metadata to chunk directly (chunk setBlockIDwithMetadata without the updating)
     30: create & update TileEntities - setChunkBlockTileEntity, World.addTileEntity
     35: update stored light values
     40: update helper structures - heightmap, lighting
     50: notifyNeighbourChange for all blocks; World.func_96440_m for redstone comparators
-    52:
     55: queue all changes chunks to resend to client
+    57: create any hanging entities
     60: updateTick for all blocks to restart updating (causes Dispensers to dispense, but leave for now)
      */
 
@@ -435,17 +478,26 @@ public class WorldFragment
       selection = writeMask;
     }
 
+    int wx1 = orientation.calcWXfromXZ(0, 0);
+    int wz1 = orientation.calcWZfromXZ(0, 0);
+    int wx2 = orientation.calcWXfromXZ(xCount, zCount);
+    int wz2 = orientation.calcWZfromXZ(xCount, zCount);
+    int wxMin = Math.min(wx1, wx2) + wxOrigin;
+    int wxMaxPlusOne = Math.max(wx1, wx2) + 1 + wxOrigin;
+    int wzMin = Math.min(wz1, wz2) + wzOrigin;
+    int wzMaxPlusOne = Math.max(wz1, wz2) + 1 + wzOrigin;
+
     final double EXPAND = 3;
-    AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxOrigin, wyOrigin, wzOrigin,
-            wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount)
+    AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxMin, wyOrigin, wzMin,
+            wxMaxPlusOne, wyOrigin + yCount, wzMaxPlusOne)
             .expand(EXPAND, EXPAND, EXPAND);
 
     List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
     for (EntityHanging entity : allHangingEntities) {
-      int x = entity.xPosition - wxOrigin;
+      int x = orientation.calcXfromWXZ(entity.xPosition - wxOrigin, entity.zPosition - wzOrigin);
       int y = entity.yPosition - wyOrigin;
-      int z = entity.zPosition - wzOrigin;
+      int z = orientation.calcZfromWXZ(entity.xPosition - wxOrigin, entity.zPosition - wzOrigin);
 
       if (selection.getVoxel(x, y, z)) {
         entity.setDead();
@@ -460,9 +512,9 @@ public class WorldFragment
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
           if (selection.getVoxel(x, y, z)) {
-            int wx = x + wxOrigin;
+            int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
             int wy = y + wyOrigin;
-            int wz = z + wzOrigin;
+            int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
             int blockID = getBlockID(x, y, z);
             int blockMetadata = getMetadata(x, y, z);
             byte lightValue = getLightValue(x, y, z);
@@ -482,12 +534,12 @@ public class WorldFragment
       }
     }
 
-    final int cxMin = wxOrigin >> 4;
-    final int cxMax = (wxOrigin + xCount - 1) >> 4;
+    final int cxMin = wxMin >> 4;
+    final int cxMax = (wxMaxPlusOne - 1) >> 4;
     final int cyMin = (yClipMin +  wyOrigin) >> 4;
     final int cyMax = (yClipMaxPlusOne - 1 + wyOrigin) >> 4;
-    final int czMin = wzOrigin >> 4;
-    final int czMax = (wzOrigin + zCount - 1) >> 4;
+    final int czMin = wzMin >> 4;
+    final int czMax = (wzMaxPlusOne - 1) >> 4;
 
 //    int cyFlags = 0;
 //    for (int cy = cyMin; cy <= cyMax; ++cy) {
@@ -506,9 +558,9 @@ public class WorldFragment
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
           if (selection.getVoxel(x, y, z)) {
-            int wx = x + wxOrigin;
+            int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
             int wy = y + wyOrigin;
-            int wz = z + wzOrigin;
+            int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
             int blockID = worldServer.getBlockId(wx, wy, wz);
             worldServer.func_96440_m(wx, wy, wz, blockID);
 
@@ -548,7 +600,10 @@ public class WorldFragment
         for (int wx = xmin; wx <= xmax; ++wx) {
           for (int wy = ymin; wy <= ymax; ++wy) {
             for (int wz = zmin; wz <= zmax; ++wz) {
-              if (selection.getVoxel(wx - wxOrigin, wy - wyOrigin, wz - wzOrigin)) {
+              int x = orientation.calcXfromWXZ(wx - wxOrigin, wz - wzOrigin);
+              int y = wy - wyOrigin;
+              int z = orientation.calcZfromWXZ(wx - wxOrigin, wz - wzOrigin);
+              if (selection.getVoxel(x, y, z)) {
 //                TileEntity tileEntity = worldServer.getBlockTileEntity(x, y, z);
 //                if (tileEntity != null) {
 //                  Packet tilePacket = tileEntity.getDescriptionPacket();
@@ -556,7 +611,7 @@ public class WorldFragment
 //                    playerInstance.sendToAllPlayersWatchingChunk(tilePacket);
 //                  }
 //                }
-                LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(wx - wxOrigin, wy - wyOrigin, wz - wzOrigin);
+                LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(x, y, z);
                 if (listOfEntitiesAtThisBlock != null) {
                   for (NBTTagCompound nbtTagCompound : listOfEntitiesAtThisBlock) {
                     changeHangingEntityNBTposition(nbtTagCompound, wx, wy, wz);
@@ -577,9 +632,9 @@ public class WorldFragment
       for (int z = 0; z < zCount; ++z) {
         for (int x = 0; x < xCount; ++x) {
           if (selection.getVoxel(x, y, z)) {
-            int wx = x + wxOrigin;
+            int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
             int wy = y + wyOrigin;
-            int wz = z + wzOrigin;
+            int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
             int blockID = getBlockID(x, y, z);
             if (blockID > 0) {
               Block.blocksList[blockID].updateTick(worldServer, wx, wy, wz, worldServer.rand);
