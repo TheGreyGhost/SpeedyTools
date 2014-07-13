@@ -11,6 +11,8 @@ import org.lwjgl.opengl.GL11;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.Pair;
+import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.UsefulConstants;
 
 /**
@@ -165,12 +167,12 @@ public class BlockVoxelMultiSelectorRenderer
     return -1;
   }
 
-//  int debugCount = 0;
+  int debugCount = 0;
   /**
    * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef so that the player's eyes are at [0,0,0]
    * playerRelativePos is position of the player relative to the minimum [x,y,z] corner of the VoxelSelection
    */
-  public void renderSelection(Vec3 playerRelativePos, int blockRenderDistance, byte clockwiseRotationCount, boolean flippedX)
+  public void renderSelection(Vec3 playerRelativePos, int blockRenderDistance, QuadOrientation quadOrientation)
   {
     if (displayListCubesBase == 0) {
       return;
@@ -181,23 +183,30 @@ public class BlockVoxelMultiSelectorRenderer
       GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
 
       GL11.glTranslated(-playerRelativePos.xCoord, -playerRelativePos.yCoord, -playerRelativePos.zCoord);
-      final int CX_MIN = Math.max(0, (int)((playerRelativePos.xCoord - blockRenderDistance)/ DISPLAY_LIST_XSIZE));
-      final int CY_MIN = Math.max(0, (int)((playerRelativePos.yCoord - blockRenderDistance)/ DISPLAY_LIST_YSIZE));
-      final int CZ_MIN = Math.max(0, (int)((playerRelativePos.zCoord - blockRenderDistance)/ DISPLAY_LIST_ZSIZE));
-      final int CX_MAX = Math.min(chunkCountX - 1, (int)((playerRelativePos.xCoord + blockRenderDistance)/ DISPLAY_LIST_XSIZE));
-      final int CY_MAX = Math.min(chunkCountY - 1, (int)((playerRelativePos.yCoord + blockRenderDistance)/ DISPLAY_LIST_YSIZE));
-      final int CZ_MAX = Math.min(chunkCountZ - 1, (int)((playerRelativePos.zCoord + blockRenderDistance)/ DISPLAY_LIST_ZSIZE));
 
-      if (flippedX) {  // flip around the midpoint
+      // transform the player world [x,z] into the coordinates of the selection
+      int playerRelativePositionX = quadOrientation.calcXfromWXZ((int)(playerRelativePos.xCoord), (int)(playerRelativePos.zCoord));
+      int playerRelativePositionZ = quadOrientation.calcXfromWXZ((int)(playerRelativePos.xCoord), (int)(playerRelativePos.zCoord));
+
+      final int CX_MIN = Math.max(0, (int)((playerRelativePositionX - blockRenderDistance)/ DISPLAY_LIST_XSIZE));
+      final int CY_MIN = Math.max(0, (int)((playerRelativePos.yCoord - blockRenderDistance)/ DISPLAY_LIST_YSIZE));
+      final int CZ_MIN = Math.max(0, (int)((playerRelativePositionZ - blockRenderDistance)/ DISPLAY_LIST_ZSIZE));
+      final int CX_MAX = Math.min(chunkCountX - 1, (int)((playerRelativePositionX + blockRenderDistance)/ DISPLAY_LIST_XSIZE));
+      final int CY_MAX = Math.min(chunkCountY - 1, (int)((playerRelativePos.yCoord + blockRenderDistance)/ DISPLAY_LIST_YSIZE));
+      final int CZ_MAX = Math.min(chunkCountZ - 1, (int)((playerRelativePositionZ + blockRenderDistance)/ DISPLAY_LIST_ZSIZE));
+
+      Pair<Float, Float> renderNudge = quadOrientation.getWXZNudge();
+      GL11.glTranslatef(renderNudge.getFirst(), 0.0F, renderNudge.getSecond());
+
+      if (quadOrientation.getClockwiseRotationCount() > 0) { // rotate around the midpoint
+        GL11.glTranslatef(xSize / 2.0F, 0, zSize / 2.0F);
+        GL11.glRotatef(quadOrientation.getClockwiseRotationCount() * -90, 0, 1, 0);
+        GL11.glTranslatef(-xSize / 2.0F, 0, -zSize / 2.0F);
+      }
+      if (quadOrientation.isFlippedX()) {  // flip around the midpoint
         GL11.glTranslatef(xSize / 2.0F, 0, 0);
         GL11.glScaled(-1, 1, 1);
         GL11.glTranslatef(-xSize / 2.0F, 0, 0);
-      }
-
-      if (clockwiseRotationCount > 0) { // rotate around the midpoint
-        GL11.glTranslatef(xSize / 2.0F, 0, zSize / 2.0F);
-        GL11.glRotatef(clockwiseRotationCount * -90, 0, 1, 0);
-        GL11.glTranslatef(-xSize / 2.0F, 0, -zSize / 2.0F);
       }
 
       try {
@@ -220,23 +229,44 @@ public class BlockVoxelMultiSelectorRenderer
       // only draw a face if you can see the front of it
       //   eg for xpos face - if player is to the right, for xneg - if player is to the left.  if between don't draw either one.
       // exception: if inside the cube, render all faces.  Yneg is always drawn.
-      boolean inside =     (playerRelativePos.xCoord >= 0 && playerRelativePos.xCoord <= xSize)
-              && (                                 playerRelativePos.yCoord <= ySize)
-              && (playerRelativePos.zCoord >= 0 && playerRelativePos.zCoord <= zSize);
+
+//      int frameX1 = quadOrientation.calcWXfromXZ(0, 0);
+//      int frameZ1 = quadOrientation.calcWZfromXZ(0, 0);
+//      int frameX2 = quadOrientation.calcWXfromXZ(xSize-1, zSize-1);
+//      int frameZ2 = quadOrientation.calcWZfromXZ(xSize-1, zSize-1);
+//      int frameXmin = Math.min(frameX1, frameX2);
+//      int frameXmax = Math.max(frameX1, frameX2) + 1;
+//      int frameYmin = 0;
+//      int frameYmax = ySize;
+//      int frameZmin = Math.min(frameZ1, frameZ2);
+//      int frameZmax = Math.max(frameZ1, frameZ2) + 1;
+
+
+      double playerRelativePositionVx = quadOrientation.calcXfromWXZ(playerRelativePos.xCoord, playerRelativePos.zCoord);
+      double playerRelativePositionVz = quadOrientation.calcZfromWXZ(playerRelativePos.xCoord, playerRelativePos.zCoord);
+      boolean inside =     (playerRelativePositionVx >= 0 && playerRelativePositionVx <= xSize)
+                && (                                         playerRelativePos.yCoord <= ySize)
+                        && (playerRelativePositionVz >= 0 && playerRelativePositionVz <= zSize);
+
+      if (++debugCount % 20 == 0) {
+        System.out.println("playerRelativePos [" + playerRelativePos.xCoord + ", " + playerRelativePos.zCoord + "]");
+        System.out.println("playerRelativeVPos [" + playerRelativePositionVx + ", " + playerRelativePositionVz + "]");
+//        System.out.println("frame X [" + frameX1 + " : " + frameX2 + "]; frame Z [" + frameZ1 + " : " + frameZ2 + "]");
+      }
 
       final Colour WALL_GRID_COLOUR = Colour.BLACK_40;
       final Colour FLOOR_GRID_COLOUR = Colour.WHITE_40;
 
       GL11.glColor4f(WALL_GRID_COLOUR.R, WALL_GRID_COLOUR.G, WALL_GRID_COLOUR.B, WALL_GRID_COLOUR.A);
 
-      if (inside || playerRelativePos.xCoord < 0) {
+      if (inside || playerRelativePositionVx < 0) {
         GL11.glPushMatrix();
         GL11.glTranslated(0, ySize, 0);
         GL11.glCallList(displayListWireFrameYZ);
         GL11.glPopMatrix();
       }
 
-      if (inside || playerRelativePos.xCoord > xSize) {
+      if (inside || playerRelativePositionVx > xSize) {
         GL11.glPushMatrix();
         GL11.glTranslated(xSize, ySize, 0);
         GL11.glCallList(displayListWireFrameYZ);
@@ -261,14 +291,14 @@ public class BlockVoxelMultiSelectorRenderer
         GL11.glPopMatrix();
       }
 
-      if (inside || playerRelativePos.zCoord < 0) {
+      if (inside || playerRelativePositionVz < 0) {
         GL11.glPushMatrix();
         GL11.glTranslated(0, ySize, 0);
         GL11.glCallList(displayListWireFrameXY);
         GL11.glPopMatrix();
       }
 
-      if (inside || playerRelativePos.zCoord > zSize) {
+      if (inside || playerRelativePositionVz > zSize) {
         GL11.glPushMatrix();
         GL11.glTranslated(0, ySize, zSize);
         GL11.glCallList(displayListWireFrameXY);
@@ -279,6 +309,67 @@ public class BlockVoxelMultiSelectorRenderer
       GL11.glPopMatrix();
     }
   }
+
+//  double playerRelativePositionVx = quadOrientation.calcXfromWXZ(playerRelativePos.xCoord, playerRelativePos.zCoord);
+//  double playerRelativePositionVz = quadOrientation.calcZfromWXZ(playerRelativePos.xCoord, playerRelativePos.zCoord);
+//  boolean inside =     (playerRelativePos.xCoord >= frameXmin && playerRelativePos.xCoord <= frameXmax)
+//          && (                                         playerRelativePos.yCoord <= frameYmax)
+//          && (playerRelativePos.zCoord >= frameZmin && playerRelativePos.zCoord <= frameZmax);
+//
+//  final Colour WALL_GRID_COLOUR = Colour.BLACK_40;
+//  final Colour FLOOR_GRID_COLOUR = Colour.WHITE_40;
+//
+//  GL11.glColor4f(WALL_GRID_COLOUR.R, WALL_GRID_COLOUR.G, WALL_GRID_COLOUR.B, WALL_GRID_COLOUR.A);
+//
+//  if (inside || playerRelativePos.xCoord < frameXmin) {
+//  GL11.glPushMatrix();
+//  GL11.glTranslated(0, ySize, 0);
+//  GL11.glCallList(displayListWireFrameYZ);
+//  GL11.glPopMatrix();
+//}
+//
+//  if (inside || playerRelativePos.xCoord > frameXmax) {
+//  GL11.glPushMatrix();
+//  GL11.glTranslated(xSize, ySize, 0);
+//  GL11.glCallList(displayListWireFrameYZ);
+//  GL11.glPopMatrix();
+//}
+//
+//  GL11.glColor4f(FLOOR_GRID_COLOUR.R, FLOOR_GRID_COLOUR.G, FLOOR_GRID_COLOUR.B, FLOOR_GRID_COLOUR.A);
+//
+//  if (true) {
+//  GL11.glPushMatrix();
+//  GL11.glTranslated(0, 0, 0);
+//  GL11.glCallList(displayListWireFrameXZ);
+//  GL11.glPopMatrix();
+//}
+//
+//  GL11.glColor4f(WALL_GRID_COLOUR.R, WALL_GRID_COLOUR.G, WALL_GRID_COLOUR.B, WALL_GRID_COLOUR.A);
+//
+//  if (inside || playerRelativePos.yCoord > frameYmax) {
+//  GL11.glPushMatrix();
+//  GL11.glTranslated(0, ySize, 0);
+//  GL11.glCallList(displayListWireFrameXZ);
+//  GL11.glPopMatrix();
+//}
+//
+//  if (inside || playerRelativePos.zCoord < frameZmin) {
+//  GL11.glPushMatrix();
+//  GL11.glTranslated(0, ySize, 0);
+//  GL11.glCallList(displayListWireFrameXY);
+//  GL11.glPopMatrix();
+//}
+//
+//  if (inside || playerRelativePos.zCoord > frameZmax) {
+//  GL11.glPushMatrix();
+//  GL11.glTranslated(0, ySize, zSize);
+//  GL11.glCallList(displayListWireFrameXY);
+//  GL11.glPopMatrix();
+//}
+//} finally {
+//        GL11.glPopAttrib();
+//        GL11.glPopMatrix();
+//        }
 
   enum WhatToDraw {FACES, WIREFRAME};
 

@@ -254,7 +254,7 @@ public class CloneToolsNetworkServer
           ResultWithReason result = ResultWithReason.failure();
           if (serverStatus == ServerStatus.IDLE) {
             result = cloneToolServerActions.performToolAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
-                                                               packet.getRotationCount(), packet.isFlipped());
+                                                              packet.getQuadOrientation());
           } else {
             switch (serverStatus) {
               case PERFORMING_BACKUP: {

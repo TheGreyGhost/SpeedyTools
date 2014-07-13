@@ -7,6 +7,7 @@ import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.CloneToolsNetworkServer;
 
@@ -209,7 +210,7 @@ public class InGameStatusSimulator
   /** simulate this method
    * @return null if not simulated (-> progress to real code)
    */
-  public ResultWithReason performToolAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
+  public ResultWithReason performToolAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
   {
     final int TEST_ACTION_FLAG = 2;
     if (testMode >= 20 && testMode <= 27) {

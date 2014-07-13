@@ -6,6 +6,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 
 /**
@@ -97,12 +98,12 @@ public class CloneToolsNetworkClient
    * @param flippedX true if flipped left-right
    * @return true for success, false otherwise
    */
-  public ResultWithReason performToolAction(int toolID, int x, int y, int z, byte clockwiseRotationCount, boolean flippedX)
+  public ResultWithReason performToolAction(int toolID, int x, int y, int z, QuadOrientation quadOrientation)
   {
     ResultWithReason result = isReadyToPerformAction();
     if (!result.succeeded()) return result;
 
-    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, clockwiseRotationCount, flippedX);
+    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, quadOrientation);
     lastActionPacket = packet.getPacket250CustomPayload();
     if (lastActionPacket != null) {
       packetSender.sendPacket(lastActionPacket);

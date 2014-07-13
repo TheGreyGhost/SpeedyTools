@@ -107,7 +107,7 @@ public class QuadOrientationTest
       int [][] newQuad = new int[4][4];
       for (int x = 0; x < 4; ++x) {
         for (int z = 0; z < 4; ++z) {
-          newQuad[x][z] = quad[3-z][x];
+          newQuad[x][z] = quad[z][3-x];
         }
       }
       quad = newQuad;

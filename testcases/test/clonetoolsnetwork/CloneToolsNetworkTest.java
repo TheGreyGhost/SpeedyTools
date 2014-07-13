@@ -18,6 +18,7 @@ import speedytools.common.network.ClientStatus;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.CloneToolServerActions;
 import speedytools.serverside.CloneToolsNetworkServer;
@@ -99,6 +100,7 @@ public class CloneToolsNetworkTest
   public static StubPacketHandlerServer stubPacketHandlerServer;
   public static ArrayList<String> names = new ArrayList<String>();
   public static PacketHandlerRegistry packetHandlerRegistryServer;
+  public static QuadOrientation dummyQuadOrientation = new QuadOrientation(0, 0, 1, 1);
 
   public static final int NUMBER_OF_CLIENTS = 5;
 
@@ -330,7 +332,7 @@ public class CloneToolsNetworkTest
     CloneToolsNetworkClient testClient0 = networkClients.get(names.get(0));
 
     // test (1)
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
@@ -365,7 +367,7 @@ public class CloneToolsNetworkTest
     networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
     result = processAllClients();
 
-    result = testClient3.performToolAction(161, 12345, -35135, 230, (byte) 0, true).succeeded();
+    result = testClient3.performToolAction(161, 12345, -35135, 230, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
@@ -391,7 +393,7 @@ public class CloneToolsNetworkTest
     CloneToolsNetworkClient testClient2 = networkClients.get(names.get(2));
     networkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);  // not communicated to client2
     result = processAllClients();
-    result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient2.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     Assert.assertTrue(processAllServers());
     Assert.assertTrue(processAllClients());
@@ -401,7 +403,7 @@ public class CloneToolsNetworkTest
 
     networkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(0)), (byte) 0);
     result = processAllClients();
-    result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient2.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
@@ -410,7 +412,7 @@ public class CloneToolsNetworkTest
 
     networkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(0)), (byte) 0);
     result = processAllClients();
-    result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient2.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
@@ -419,7 +421,7 @@ public class CloneToolsNetworkTest
 
     networkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(2)), (byte) 0);
     result = processAllClients();
-    result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient2.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
@@ -428,7 +430,7 @@ public class CloneToolsNetworkTest
 
     networkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, stubEntityPlayerMP.get(names.get(2)), (byte) 0);
     result = processAllClients();
-    result = testClient2.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient2.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
@@ -437,13 +439,13 @@ public class CloneToolsNetworkTest
 
     // test (3)
     networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     result = processAllServers();
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
 
-    result = testClient0.performToolAction(136, -12345, 3513, 0, (byte) 2, false).succeeded();
+    result = testClient0.performToolAction(136, -12345, 3513, 0, dummyQuadOrientation).succeeded();
     Assert.assertFalse(result);
     result = processAllServers();
     Assert.assertFalse(result);
@@ -451,7 +453,7 @@ public class CloneToolsNetworkTest
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.PROCESSING);
 
-    result = testClient0.performToolAction(136, -12345, 3513, 0, (byte) 2, false).succeeded();
+    result = testClient0.performToolAction(136, -12345, 3513, 0, dummyQuadOrientation).succeeded();
     Assert.assertFalse(result);
     Assert.assertFalse(processAllServers());
 
@@ -469,7 +471,7 @@ public class CloneToolsNetworkTest
     final int DISABLE_SENDING = -2;
     stubNetServerHandler.get(names.get(0)).setSequenceNumber(DISABLE_SENDING);
     while (processAllServers()) ;
-    result = testClient0.performToolAction(13, -145, 355, 5, (byte) 1, true).succeeded();
+    result = testClient0.performToolAction(13, -145, 355, 5, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
@@ -537,7 +539,7 @@ public class CloneToolsNetworkTest
 
     networkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
     while (processAllClients()) ;
-    Assert.assertTrue(testClient0.performToolAction(0, 1, 2, 3, (byte) 2, false).succeeded());
+    Assert.assertTrue(testClient0.performToolAction(0, 1, 2, 3, dummyQuadOrientation).succeeded());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
     Packet250CustomPayload test7OldClientPacket = lastpacketreceived;
@@ -545,7 +547,7 @@ public class CloneToolsNetworkTest
     Packet250CustomPayload oldPacket = lastpacketreceived;
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.REJECTED);
 
-    Assert.assertTrue(testClient0.performToolAction(0, 1, 2, 3, (byte) 2, false).succeeded());
+    Assert.assertTrue(testClient0.performToolAction(0, 1, 2, 3, dummyQuadOrientation).succeeded());
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());
     Packet250CustomPayload test6clientAction = lastpacketreceived;
@@ -578,7 +580,7 @@ public class CloneToolsNetworkTest
     StubNetClientHandler testNCH0 = stubNetClientHandlers.get(names.get(0));
 
     // test (1)
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     Assert.assertTrue(processAllServers());
     Assert.assertTrue(testClient0.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
@@ -609,7 +611,7 @@ public class CloneToolsNetworkTest
 
     // test (2)
     networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     Assert.assertTrue(processAllServers());
     Assert.assertTrue(processAllClients());
@@ -653,7 +655,7 @@ public class CloneToolsNetworkTest
     // test (4)  - action received after the corresponding undo
     networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
     testNCH0.setSequenceNumber(1000);
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     testNCH0.setSequenceNumber(100);
@@ -681,7 +683,7 @@ public class CloneToolsNetworkTest
 
     // test (5) - old undo request
     networkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
-    result = testClient0.performToolAction(1361, -12345, 35135, 0, (byte) 3, false).succeeded();
+    result = testClient0.performToolAction(1361, -12345, 35135, 0, dummyQuadOrientation).succeeded();
     Assert.assertTrue(result);
     Assert.assertTrue(testClient0.getCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(processAllServers());

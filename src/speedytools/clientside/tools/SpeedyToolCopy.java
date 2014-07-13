@@ -16,6 +16,7 @@ import speedytools.common.network.ClientStatus;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.common.utilities.UsefulConstants;
 
@@ -310,7 +311,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
         break;
       }
       case WHEEL_MOVE: {
-        rotateSelection(inputEvent.count);
+        rotateSelection(-inputEvent.count);  // wheel down rotates clockwise
         break;
       }
     }
@@ -445,7 +446,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
                                                                 Math.round((float)selectionPosition.xCoord),
                                                                 Math.round((float)selectionPosition.yCoord),
                                                                 Math.round((float)selectionPosition.zCoord),
-                                                                clockwiseRotationCount, flippedX);
+                                                                selectionOrientation);
     if (result.succeeded()) {
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
       toolState = ToolState.PERFORMING_ACTION;
@@ -457,12 +458,12 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private void flipSelection()
   {
     // todo: do something here! - later - flip depending on which way the player is looking (i.e. so flip is always left-right)
-    flippedX = !flippedX;
+    selectionOrientation.flipWX();
   }
 
   private void rotateSelection(int rotationCountAndDirection)
   {
-    clockwiseRotationCount = (byte)((clockwiseRotationCount + rotationCountAndDirection) & 3);
+    selectionOrientation.rotateClockwise(rotationCountAndDirection);
   }
 
   private void initiateSelectionCreation(EntityClientPlayerMP thePlayer)
@@ -551,8 +552,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           } else {
             currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
             selectionGenerationState = SelectionGenerationState.IDLE;
-            clockwiseRotationCount = 0;
-            flippedX = false;
+            selectionOrientation = new QuadOrientation(0, 0, voxelSelectionManager.getSelection().getXsize(), voxelSelectionManager.getSelection().getZsize());
             hasBeenMoved = false;
           }
           break;
@@ -705,10 +705,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       infoToUpdate.draggedSelectionOriginY = selectionPosition.yCoord;
       infoToUpdate.draggedSelectionOriginZ = selectionPosition.zCoord;
       infoToUpdate.opaque = hasBeenMoved;
-
-      infoToUpdate.flippedX = flippedX;
-      infoToUpdate.clockwiseRotationCount = clockwiseRotationCount;
-
+      infoToUpdate.selectionOrientation = selectionOrientation;
       return true;
     }
   }
@@ -920,8 +917,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   private Vec3    selectionGrabPoint = null;
   private boolean selectionMovedFastYet;
   private boolean hasBeenMoved;               // used to change the appearance when freshed created or placed.
-  private byte clockwiseRotationCount;        // selection rotation: number of quadrants rotated clockwise
-  private boolean flippedX;                   // if true, selection is flipped along the x axis i.e. xneg becomes xpos
+  private QuadOrientation selectionOrientation;
 
   private CloneToolsNetworkClient cloneToolsNetworkClient;
   private SelectionPacketSender selectionPacketSender;

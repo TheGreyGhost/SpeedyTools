@@ -4,6 +4,7 @@ package speedytools.common.network;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilities.QuadOrientation;
 
 import java.io.*;
 
@@ -24,15 +25,14 @@ public class Packet250CloneToolUse
     return retval;
   }
 
-  public static Packet250CloneToolUse performToolAction(int i_sequenceNumber, int i_toolID, int x, int y, int z, byte i_rotationCount, boolean i_flipped)
+  public static Packet250CloneToolUse performToolAction(int i_sequenceNumber, int i_toolID, int x, int y, int z, QuadOrientation i_quadOrientation)
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_ACTION);
     retval.toolID = i_toolID;
     retval.xpos = x;
     retval.ypos = y;
     retval.zpos = z;
-    retval.flipped = i_flipped;
-    retval.rotationCount = i_rotationCount;
+    retval.quadOrientation = i_quadOrientation;
     retval.sequenceNumber = i_sequenceNumber;
 
     assert (retval.checkInvariants());
@@ -72,8 +72,10 @@ public class Packet250CloneToolUse
       outputStream.writeInt(xpos);
       outputStream.writeInt(ypos);
       outputStream.writeInt(zpos);
-      outputStream.writeByte(rotationCount);
-      outputStream.writeBoolean(flipped);
+      if (quadOrientation == null) {
+        quadOrientation = new QuadOrientation(0, 0, 1, 1); // just a dummy
+      }
+      quadOrientation.writeToStream(outputStream);
       retval = new Packet250CustomPayload("speedytools",bos.toByteArray());
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Failed to getPacket250CustomPayload, due to exception " + ioe.toString());
@@ -107,8 +109,7 @@ public class Packet250CloneToolUse
       newPacket.xpos = inputStream.readInt();
       newPacket.ypos = inputStream.readInt();
       newPacket.zpos = inputStream.readInt();
-      newPacket.rotationCount = inputStream.readByte();
-      newPacket.flipped = inputStream.readBoolean();
+      newPacket.quadOrientation = new QuadOrientation(inputStream);
       if (newPacket.checkInvariants()) return newPacket;
     } catch (IOException ioe) {
       ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
@@ -162,18 +163,11 @@ public class Packet250CloneToolUse
     return zpos;
   }
 
-  public byte getRotationCount() {
+  public QuadOrientation getQuadOrientation() {
     assert (checkInvariants());
     assert(command == Command.PERFORM_TOOL_ACTION);
-    return rotationCount;
+    return quadOrientation;
   }
-
-  public boolean isFlipped() {
-    assert (checkInvariants());
-    assert(command == Command.PERFORM_TOOL_ACTION);
-    return flipped;
-  }
-
 
   public int getSequenceNumber() {
     return sequenceNumber;
@@ -220,7 +214,7 @@ public class Packet250CloneToolUse
         return true;
       }
       case PERFORM_TOOL_ACTION: {
-        return (rotationCount >= 0 && rotationCount <= 3);
+        return true;
       }
       case PERFORM_TOOL_UNDO: {
         return true;
@@ -239,6 +233,5 @@ public class Packet250CloneToolUse
   private int xpos;
   private int ypos;
   private int zpos;
-  private byte rotationCount;
-  private boolean flipped;
+  private QuadOrientation quadOrientation;
 }

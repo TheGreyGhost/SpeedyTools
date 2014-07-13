@@ -7,6 +7,7 @@ import net.minecraftforge.common.DimensionManager;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
+import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 import speedytools.serverside.worldmanipulation.WorldFragment;
@@ -67,9 +68,10 @@ public class CloneToolServerActions
 
   public static final long ONE_SECOND_AS_NS = 1000 * 1000 * 1000;
 
-  public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped)
+  public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
   {
-    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + rotationCount + ", flipped:" + flipped);
+    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos
+                       + "], rotated:" + quadOrientation.getClockwiseRotationCount() + ", flippedX:" + quadOrientation.isFlippedX());
 
     VoxelSelectionWithOrigin voxelSelection = serverVoxelSelections.getVoxelSelection(player);
 
@@ -86,7 +88,7 @@ public class CloneToolServerActions
 
     if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
       ResultWithReason resultWithReason = null;
-      resultWithReason = ServerSide.getInGameStatusSimulator().performToolAction(cloneToolsNetworkServer, player, sequenceNumber, toolID, xpos, ypos, zpos, rotationCount, flipped);
+      resultWithReason = ServerSide.getInGameStatusSimulator().performToolAction(cloneToolsNetworkServer, player, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
       if (resultWithReason != null) return resultWithReason;
     }
 
