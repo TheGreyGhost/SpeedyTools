@@ -3,8 +3,7 @@ package speedytools.serverside.worldmanipulation;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
-import speedytools.serverside.worldmanipulation.WorldFragment;
-import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
+import speedytools.common.utilities.QuadOrientation;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
@@ -38,8 +37,23 @@ public class WorldHistory
    */
   public void writeToWorldWithUndo(EntityPlayerMP player, WorldServer worldServer, WorldFragment fragmentToWrite, int wxOfOrigin, int wyOfOrigin, int wzOfOrigin)
   {
+    QuadOrientation noChange = new QuadOrientation(0, 0, 1, 1);
+    writeToWorldWithUndo(player, worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, noChange);
+  }
+
+  /** write the given fragment to the World, storing undo information
+   * @param player
+   * @param worldServer
+   * @param fragmentToWrite
+   * @param wxOfOrigin
+   * @param wyOfOrigin
+   * @param wzOfOrigin
+   */
+  public void writeToWorldWithUndo(EntityPlayerMP player, WorldServer worldServer, WorldFragment fragmentToWrite, int wxOfOrigin, int wyOfOrigin, int wzOfOrigin,
+                                   QuadOrientation quadOrientation)
+  {
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin);
+    worldSelectionUndo.writeToWorld(worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, player, worldSelectionUndo);
     undoLayers.add(undoLayerInfo);
     cullUndoLayers(maximumDepth);

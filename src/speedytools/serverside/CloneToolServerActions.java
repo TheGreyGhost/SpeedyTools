@@ -99,7 +99,7 @@ public class CloneToolServerActions
     WorldFragment worldFragment = new WorldFragment(voxelSelection.getXsize(), voxelSelection.getYsize(), voxelSelection.getZsize());
     worldFragment.readFromWorld(worldServer, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
                                              voxelSelection);
-    worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos);
+    worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos, quadOrientation);
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
 //    cloneToolsNetworkServer.actionCompleted(player, sequenceNumber);  // todo - later this will be required
 

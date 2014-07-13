@@ -2,6 +2,7 @@ package speedytools.common.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilities.QuadOrientation;
 
 import java.io.*;
 import java.util.BitSet;
@@ -177,6 +178,32 @@ public class VoxelSelection
         for (int z = 0; z < zsize; ++z) {
           if (getVoxel(x,y,z)) {
             copy.setVoxel(x + borderWidth, y + borderWidth, z + borderWidth);
+          }
+        }
+      }
+    }
+    return copy;
+  }
+
+  /**
+   * Creates a reoriented copy of this VoxelSelection and add a border of blank voxels on all faces.
+   * @param borderWidth the number of voxels in the border added to all faces
+   * @param orientation the new orientation (flip, rotate)
+   * @return the new VoxelSelection
+   */
+  public VoxelSelection makeReorientedCopyWithBorder(QuadOrientation orientation, int borderWidth)
+  {
+    int newXsize = orientation.getWXsize() + 2 * borderWidth;
+    int newYsize = ysize + 2* borderWidth;
+    int newZsize = orientation.getWZSize() + 2 * borderWidth;
+    VoxelSelection copy = new VoxelSelection(newXsize, newYsize, newZsize);
+    for (int x = 0; x < xsize; ++x) {
+      for (int y = 0; y < ysize; ++y) {
+        for (int z = 0; z < zsize; ++z) {
+          if (getVoxel(x,y,z)) {
+            copy.setVoxel(orientation.calcWXfromXZ(x, z) + borderWidth,
+                          y + borderWidth,
+                          orientation.calcWZfromXZ(x, z) + borderWidth);
           }
         }
       }

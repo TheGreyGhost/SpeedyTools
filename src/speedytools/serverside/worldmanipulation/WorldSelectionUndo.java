@@ -2,6 +2,7 @@ package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.world.WorldServer;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.utilities.QuadOrientation;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -52,7 +53,22 @@ public class WorldSelectionUndo
    * @param i_wyOfOrigin
    * @param i_wzOfOrigin
    */
+
   public void writeToWorld(WorldServer worldServer, WorldFragment fragmentToWrite, int i_wxOfOrigin, int i_wyOfOrigin, int i_wzOfOrigin)
+  {
+    QuadOrientation noChange = new QuadOrientation(0, 0, 1, 1);
+    writeToWorld(worldServer, fragmentToWrite, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, noChange);
+  }
+
+  /**
+   * writes the given WorldFragment into the world, saving enough information to allow for a subsequent undo
+   * @param worldServer
+   * @param fragmentToWrite
+   * @param i_wxOfOrigin
+   * @param i_wyOfOrigin
+   * @param i_wzOfOrigin
+   */
+  public void writeToWorld(WorldServer worldServer, WorldFragment fragmentToWrite, int i_wxOfOrigin, int i_wyOfOrigin, int i_wzOfOrigin, QuadOrientation quadOrientation)
   {
     /* algorithm is:
        (1) create a border mask for the fragment to be written, i.e. a mask showing all voxels which are adjacent to a set voxel in the fragment.
@@ -69,7 +85,7 @@ public class WorldSelectionUndo
     wyOfOrigin = i_wyOfOrigin - BORDER_WIDTH;
     wzOfOrigin = i_wzOfOrigin - BORDER_WIDTH;
 
-    VoxelSelection expandedSelection = fragmentToWrite.getVoxelsWithStoredData().makeCopyWithEmptyBorder(BORDER_WIDTH);
+    VoxelSelection expandedSelection = fragmentToWrite.getVoxelsWithStoredData().makeReorientedCopyWithBorder(quadOrientation, BORDER_WIDTH);
     VoxelSelection borderMask = expandedSelection.generateBorderMask();
     expandedSelection.union(borderMask);
     int wyMax = wyOfOrigin + expandedSelection.getYsize();
@@ -81,7 +97,7 @@ public class WorldSelectionUndo
     undoWorldFragment = new WorldFragment(expandedSelection.getXsize(), expandedSelection.getYsize(), expandedSelection.getZsize());
     undoWorldFragment.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, expandedSelection);
 
-    fragmentToWrite.writeToWorld(worldServer, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, null);
+    fragmentToWrite.writeToWorld(worldServer, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, null, quadOrientation);
 
     WorldFragment borderFragmentAfterWrite = new WorldFragment(borderMask.getXsize(), borderMask.getYsize(), borderMask.getZsize());
     borderFragmentAfterWrite.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, borderMask);
