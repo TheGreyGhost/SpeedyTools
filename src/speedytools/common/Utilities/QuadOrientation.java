@@ -1,5 +1,16 @@
 package speedytools.common.utilities;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+NOTE
+bugs:
+undo is offset when rotated 2x5 pattern is placed and undone
+place/unplace highlighting is confusing
+selection cancel and remake gives problems if drag mode is still on.
+
+
 /**
  * User: The Grey Ghost
  * Date: 12/07/2014
@@ -7,6 +18,7 @@ package speedytools.common.utilities;
  * The quad is a 2D array indexed by [x, z] - its initial coordinates are [0,0] to [xsize-1, zsize-1]
  * It is mapped to a 2D location in the world by providing an [wxOrigin, wzOrigin] for the bottom left corner.
  * The quad can be flipped and rotated, and the class can be used to convert between the [x,z] and the [wx,wz]
+ * The x, z axes are oriented as per the minecraft world, i.e. a 90 degrees clockwise rotation from the x axis [1,0] gives the z axis [0,1]
  * For example:
  * If the quad is set up with size [7, 6] and origin at [100, 200]:
  * An unflipped, unrotated quad:
@@ -33,6 +45,18 @@ public class QuadOrientation
     flippedX = i_flippedX;
     clockwiseRotationCount = i_clockwiseRotationCount;
     transformationIndex = (flippedX ? 4 : 0) | (clockwiseRotationCount & 3);
+    calculateOriginTransformed();
+  }
+
+  public QuadOrientation(DataInputStream inputStream) throws IOException
+  {
+    transformationIndex = inputStream.readInt();
+    wxOrigin = inputStream.readInt();
+    wzOrigin = inputStream.readInt();
+    xSize = inputStream.readInt();
+    zSize = inputStream.readInt();
+    flippedX = (transformationIndex & 4) != 0;
+    clockwiseRotationCount = (byte)(transformationIndex & 3);
     calculateOriginTransformed();
   }
 
@@ -76,14 +100,69 @@ public class QuadOrientation
     return (wx - wxOriginTransformed) * Z_MULTIPLIER_FROM_WX[transformationIndex] +  (wz - wzOriginTransformed) * Z_MULTIPLIER_FROM_WZ[transformationIndex];
   }
 
+  /**
+   * convert the world coordinates into array coordinates
+   * @param wx
+   * @param wz
+   * @return x
+   */
+  public double calcXfromWXZ(double wx, double wz)  {
+    double rotationPointX = wxOrigin + xSize / 2.0;
+    double rotationPointZ = wzOrigin + zSize / 2.0;
+    double radiusWX = wx - rotationPointX;
+    double radiusWZ = wz - rotationPointZ;
+    return rotationPointX + radiusWX * X_MULTIPLIER_FROM_WX[transformationIndex] + radiusWZ * X_MULTIPLIER_FROM_WZ[transformationIndex];
+  }
+
+  /**
+   * convert the world coordinates into array coordinates
+   * @param wx
+   * @param wz
+   * @return z
+   */
+  public double calcZfromWXZ(double wx, double wz) {
+    wx -= wxNudge;
+    wz -= wzNudge;
+    double rotationPointX = wxOrigin + xSize / 2.0;
+    double rotationPointZ = wzOrigin + zSize / 2.0;
+    double radiusWX = wx - rotationPointX;
+    double radiusWZ = wz - rotationPointZ;
+    return rotationPointZ + radiusWX * Z_MULTIPLIER_FROM_WX[transformationIndex] + radiusWZ * Z_MULTIPLIER_FROM_WZ[transformationIndex];
+  }
+
+
   /** If the quad is rotated by 90 or 270 degrees, and the xSize is odd and the zSize is even (or vica versa) then
-   *    the origin will be rounded off to align with a whole number.
-   *    This function returns that rounding
+   *    the quad is nudged to align with the grid.
+   *    This function returns that "nudge" in world coordinates
     * @return [wxOffset, wzOffset] - eg if the origin has been rounded from 15.5 to 15, offset is -0.5
    */
-  public Pair<Float, Float> getOriginNudge()
+  public Pair<Float, Float> getWXZNudge()
   {
-    return new Pair<Float, Float>(wxOriginTransformedNudge, wzOriginTransformedNudge);
+    return new Pair<Float, Float>(wxNudge, wzNudge);
+  }
+
+  /**
+   * Flip the quad left-right in the world coordinates i.e wxneg becomes wxpos
+   */
+  public void flipWX()
+  {
+    if ((clockwiseRotationCount & 1) == 0) {
+      flipX();
+    } else {
+      flipZ();
+    }
+  }
+
+  /**
+   * Flip the quad front-back in the world coordinates  i.e wzneg becomes wzpos
+   */
+  public void flipWZ()
+  {
+    if ((clockwiseRotationCount & 1) == 0) {
+      flipZ();
+    } else {
+      flipX();
+    }
   }
 
   private final int [] FLIP_X_NEW_INDEX = {4, 7, 6, 5, 0, 3, 2, 1};
@@ -119,12 +198,46 @@ public class QuadOrientation
     calculateOriginTransformed();
   }
 
+  public byte getClockwiseRotationCount() {
+    return clockwiseRotationCount;
+  }
+
+  public boolean isFlippedX() {
+    return flippedX;
+  }
+
+  public void writeToStream(DataOutputStream outputStream) throws IOException
+  {
+    outputStream.writeInt(transformationIndex);
+    outputStream.writeInt(wxOrigin);
+    outputStream.writeInt(wzOrigin);
+    outputStream.writeInt(xSize);
+    outputStream.writeInt(zSize);
+  }
+
+  /** return the current x size of the quad in world coordinates
+   * @return
+   */
+  public int getWXsize() {
+    return ((clockwiseRotationCount & 1) == 0) ? xSize : zSize;
+  }
+
+  /** return the current z size of the quad in world coordinates
+   * @return
+   */
+  public int getWZSize() {
+    return ((clockwiseRotationCount & 1) == 0) ? zSize : xSize;
+  }
+
   private void calculateOriginTransformed()
   {
     // algorithm is:
     // find the centre point, calculate the radius of the origin from the centrepoint (use the centre of the origin block as the origin)
     // then round the origin back to the bottom left corner again.
-    // if the quad no longer aligns to the grid because xSize is odd and zSize is even (or vica versa) then nudge down and left by half a block
+    // if the quad no longer aligns to the grid, i.e.  because
+    // a) the quad is rotated by 90 or 270; and
+    // b) xSize is odd and zSize is even (or vica versa);
+    // then nudge down and left by half a block in world coordinates
     float xRadius = (xSize-1) / 2.0F;
     float xRotationPoint = xSize / 2.0F;
     float zRadius = (zSize-1) / 2.0F;
@@ -132,25 +245,25 @@ public class QuadOrientation
     float xNewOrigin = xRotationPoint - xRadius * WX_MULTIPLIER_FROM_X[transformationIndex] - zRadius * WX_MULTIPLIER_FROM_Z[transformationIndex];
     float zNewOrigin = zRotationPoint - xRadius * WZ_MULTIPLIER_FROM_X[transformationIndex] - zRadius * WZ_MULTIPLIER_FROM_Z[transformationIndex];
 
-    final float NUDGE = 0.1F;  // ensure that half blocks round down
-    int xRounded = Math.round(xNewOrigin - NUDGE);
-    int zRounded = Math.round(zNewOrigin - NUDGE);
+    final float ROUND_DELTA = 0.1F;  // ensure correct rounding
+    int xRounded = Math.round(xNewOrigin - ROUND_DELTA - 0.5F);  // add back the half block to move from centre of origin block to edge; nudge if necessary to align with grid
+    int zRounded = Math.round(zNewOrigin - ROUND_DELTA - 0.5F);
     wxOriginTransformed = xRounded + wxOrigin;
     wzOriginTransformed = zRounded + wzOrigin;
     boolean parityMatches = ((xSize ^ zSize) & 1) == 0;
-    wxOriginTransformedNudge = parityMatches ? 0 : -0.5F;
-    wzOriginTransformedNudge = wxOriginTransformedNudge;
+    wxNudge = (!parityMatches && ((clockwiseRotationCount & 1) != 0)) ? -0.5F : 0;
+    wzNudge = wxNudge;
   }
 
   // 0 - 3 = rotations, 4 - 7 = flipX followed by rotations (& 0x03)
   private final int [] WX_MULTIPLIER_FROM_X = { 1,  0, -1,  0, -1,  0,  1,  0};
-  private final int [] WX_MULTIPLIER_FROM_Z = { 0,  1,  0, -1,  0,  1,  0, -1};
-  private final int [] WZ_MULTIPLIER_FROM_X = { 0, -1,  0,  1,  0,  1,  0, -1};
+  private final int [] WX_MULTIPLIER_FROM_Z = { 0, -1,  0,  1,  0, -1,  0,  1};
+  private final int [] WZ_MULTIPLIER_FROM_X = { 0,  1,  0, -1,  0, -1,  0,  1};
   private final int [] WZ_MULTIPLIER_FROM_Z = { 1,  0, -1,  0,  1,  0, -1,  0};
 
   private final int [] X_MULTIPLIER_FROM_WX = { 1,  0, -1,  0, -1,  0,  1,  0};
-  private final int [] X_MULTIPLIER_FROM_WZ = { 0, -1,  0,  1,  0,  1,  0, -1};
-  private final int [] Z_MULTIPLIER_FROM_WX = { 0,  1,  0, -1,  0,  1,  0, -1};
+  private final int [] X_MULTIPLIER_FROM_WZ = { 0,  1,  0, -1,  0, -1,  0,  1};
+  private final int [] Z_MULTIPLIER_FROM_WX = { 0, -1,  0,  1,  0, -1,  0,  1};
   private final int [] Z_MULTIPLIER_FROM_WZ = { 1,  0, -1,  0,  1,  0, -1,  0};
 
 
@@ -164,13 +277,16 @@ public class QuadOrientation
 
   private int wxOrigin;
   private int wzOrigin;
+
   private int xSize;
   private int zSize;
+
   private boolean flippedX;
   private byte clockwiseRotationCount;  // number of quadrants rotated clockwise
   private int transformationIndex; // combined index for flippedX followed by clockwiseRotationCount
   private int wxOriginTransformed;
   private int wzOriginTransformed;
-  private float wxOriginTransformedNudge;
-  private float wzOriginTransformedNudge;
+
+  private float wxNudge;
+  private float wzNudge;
 }
