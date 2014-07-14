@@ -2,6 +2,7 @@ package speedytools.common.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
 
 import java.io.*;
@@ -189,21 +190,33 @@ public class VoxelSelection
    * Creates a reoriented copy of this VoxelSelection and add a border of blank voxels on all faces.
    * @param borderWidth the number of voxels in the border added to all faces
    * @param orientation the new orientation (flip, rotate)
+   * @param wxzOrigin takes the current [wxMin, wzMin] and returns the new [wxMin, wzMin] - if the selection is rotated this may change
    * @return the new VoxelSelection
    */
-  public VoxelSelection makeReorientedCopyWithBorder(QuadOrientation orientation, int borderWidth)
+  public VoxelSelection makeReorientedCopyWithBorder(QuadOrientation orientation, int borderWidth, Pair<Integer, Integer> wxzOrigin)
   {
-    int newXsize = orientation.getWXsize() + 2 * borderWidth;
+    int wxMin = wxzOrigin.getFirst();
+    int wzMin = wxzOrigin.getSecond();
+    Pair<Integer, Integer> xrange = new Pair<Integer, Integer>(wxMin, wxMin + xsize - 1);
+    Pair<Integer, Integer> zrange = new Pair<Integer, Integer>(wzMin, wzMin + zsize - 1);
+    orientation.getWXZranges(xrange, zrange);
+    int wxNewMin = xrange.getFirst();
+    int wzNewMin = zrange.getFirst();
+    wxzOrigin.setFirst(wxNewMin);
+    wxzOrigin.setSecond(wzNewMin);
+
+
+    int newXsize = (xrange.getSecond() - xrange.getFirst() + 1) + 2 * borderWidth;
     int newYsize = ysize + 2* borderWidth;
-    int newZsize = orientation.getWZSize() + 2 * borderWidth;
+    int newZsize = (zrange.getSecond() - zrange.getFirst() + 1) + 2 * borderWidth;
     VoxelSelection copy = new VoxelSelection(newXsize, newYsize, newZsize);
     for (int x = 0; x < xsize; ++x) {
       for (int y = 0; y < ysize; ++y) {
         for (int z = 0; z < zsize; ++z) {
           if (getVoxel(x,y,z)) {
-            copy.setVoxel(orientation.calcWXfromXZ(x, z) + borderWidth,
+            copy.setVoxel(orientation.calcWXfromXZ(x, z) + borderWidth - wxNewMin,
                           y + borderWidth,
-                          orientation.calcWZfromXZ(x, z) + borderWidth);
+                          orientation.calcWZfromXZ(x, z) + borderWidth - wzNewMin);
           }
         }
       }

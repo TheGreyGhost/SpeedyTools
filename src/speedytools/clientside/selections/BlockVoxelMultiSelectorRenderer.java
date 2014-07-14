@@ -248,11 +248,11 @@ public class BlockVoxelMultiSelectorRenderer
                 && (                                         playerRelativePos.yCoord <= ySize)
                         && (playerRelativePositionVz >= 0 && playerRelativePositionVz <= zSize);
 
-      if (++debugCount % 20 == 0) {
-        System.out.println("playerRelativePos [" + playerRelativePos.xCoord + ", " + playerRelativePos.zCoord + "]");
-        System.out.println("playerRelativeVPos [" + playerRelativePositionVx + ", " + playerRelativePositionVz + "]");
-//        System.out.println("frame X [" + frameX1 + " : " + frameX2 + "]; frame Z [" + frameZ1 + " : " + frameZ2 + "]");
-      }
+//      if (++debugCount % 20 == 0) {
+//        System.out.println("playerRelativePos [" + playerRelativePos.xCoord + ", " + playerRelativePos.zCoord + "]");
+//        System.out.println("playerRelativeVPos [" + playerRelativePositionVx + ", " + playerRelativePositionVz + "]");
+////        System.out.println("frame X [" + frameX1 + " : " + frameX2 + "]; frame Z [" + frameZ1 + " : " + frameZ2 + "]");
+//      }
 
       final Colour WALL_GRID_COLOUR = Colour.BLACK_40;
       final Colour FLOOR_GRID_COLOUR = Colour.WHITE_40;

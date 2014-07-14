@@ -2,7 +2,9 @@ package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.world.WorldServer;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
+import speedytools.serverside.ingametester.InGameStatusSimulator;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -81,13 +83,15 @@ public class WorldSelectionUndo
     final int Y_MAX_VALID_PLUS_ONE = 256;
 
     final int BORDER_WIDTH = 1;
-    wxOfOrigin = i_wxOfOrigin - BORDER_WIDTH;
-    wyOfOrigin = i_wyOfOrigin - BORDER_WIDTH;
-    wzOfOrigin = i_wzOfOrigin - BORDER_WIDTH;
-
-    VoxelSelection expandedSelection = fragmentToWrite.getVoxelsWithStoredData().makeReorientedCopyWithBorder(quadOrientation, BORDER_WIDTH);
+    Pair<Integer, Integer> wxzOriginMove = new Pair<Integer, Integer>(0, 0);
+    VoxelSelection expandedSelection = fragmentToWrite.getVoxelsWithStoredData().makeReorientedCopyWithBorder(quadOrientation, BORDER_WIDTH, wxzOriginMove);
     VoxelSelection borderMask = expandedSelection.generateBorderMask();
     expandedSelection.union(borderMask);
+
+    wxOfOrigin = i_wxOfOrigin - BORDER_WIDTH + wxzOriginMove.getFirst();
+    wyOfOrigin = i_wyOfOrigin - BORDER_WIDTH;
+    wzOfOrigin = i_wzOfOrigin - BORDER_WIDTH + wxzOriginMove.getSecond();
+
     int wyMax = wyOfOrigin + expandedSelection.getYsize();
     if (wyOfOrigin < Y_MIN_VALID || wyMax >= Y_MAX_VALID_PLUS_ONE) {
       expandedSelection.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);

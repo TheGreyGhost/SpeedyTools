@@ -19,6 +19,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
 
 import java.util.HashMap;
@@ -478,14 +479,13 @@ public class WorldFragment
       selection = writeMask;
     }
 
-    int wx1 = orientation.calcWXfromXZ(0, 0);
-    int wz1 = orientation.calcWZfromXZ(0, 0);
-    int wx2 = orientation.calcWXfromXZ(xCount, zCount);
-    int wz2 = orientation.calcWZfromXZ(xCount, zCount);
-    int wxMin = Math.min(wx1, wx2) + wxOrigin;
-    int wxMaxPlusOne = Math.max(wx1, wx2) + 1 + wxOrigin;
-    int wzMin = Math.min(wz1, wz2) + wzOrigin;
-    int wzMaxPlusOne = Math.max(wz1, wz2) + 1 + wzOrigin;
+    Pair<Integer, Integer> xrange = new Pair<Integer, Integer>(0, xCount - 1);
+    Pair<Integer, Integer> zrange = new Pair<Integer, Integer>(0, zCount - 1);
+    orientation.getWXZranges(xrange, zrange);
+    int wxMin = xrange.getFirst() + wxOrigin;
+    int wxMaxPlusOne = xrange.getSecond() + 1 + wxOrigin;
+    int wzMin = zrange.getFirst() + wzOrigin;
+    int wzMaxPlusOne = zrange.getSecond() + 1 + wzOrigin;
 
     final double EXPAND = 3;
     AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxMin, wyOrigin, wzMin,
@@ -585,7 +585,7 @@ public class WorldFragment
             if (playerManager.isPlayerWatchingChunk(entityPlayerMP, cx, cz)) {        // todo later: this might be slow because it searches loadedChunks unnecessarily; optimise later
               Chunk chunk = worldServer.getChunkFromChunkCoords(cx, cz);
               ChunkCoordIntPair chunkCoordIntPair = chunk.getChunkCoordIntPair();
-              entityPlayerMP.loadedChunks.add(chunkCoordIntPair);                     // "loadedChunks" should better be "dirtyChunksQueuedForSending"
+              entityPlayerMP.loadedChunks.add(chunkCoordIntPair);                     // a better name for "loadedChunks" would be "dirtyChunksQueuedForSending"
             }
           }
         }
