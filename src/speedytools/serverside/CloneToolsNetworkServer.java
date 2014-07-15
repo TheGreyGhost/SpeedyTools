@@ -8,8 +8,8 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.Packet250CloneToolAcknowledge.Acknowledgement;
 import speedytools.common.network.*;
-import speedytools.common.utilities.ErrorLog;
-import speedytools.common.utilities.ResultWithReason;
+import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilitiesOld.ResultWithReason;
 
 import java.util.HashMap;
 import java.util.Map;

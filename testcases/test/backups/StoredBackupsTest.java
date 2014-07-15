@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilitiesOld.ErrorLog;
 import speedytools.serverside.backup.FolderBackup;
 import speedytools.serverside.backup.StoredBackups;
 

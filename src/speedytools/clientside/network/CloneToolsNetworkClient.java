@@ -5,9 +5,9 @@ import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.*;
-import speedytools.common.utilities.ErrorLog;
-import speedytools.common.utilities.QuadOrientation;
-import speedytools.common.utilities.ResultWithReason;
+import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilitiesOld.QuadOrientation;
+import speedytools.common.utilitiesOld.ResultWithReason;
 
 /**
  * User: The Grey Ghost

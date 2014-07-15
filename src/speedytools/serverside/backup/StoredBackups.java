@@ -4,7 +4,7 @@ import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagString;
-import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilitiesOld.ErrorLog;
 
 import java.io.IOException;
 import java.io.OutputStream;

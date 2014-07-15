@@ -3,7 +3,7 @@ package speedytools.serverside.worldmanipulation;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
-import speedytools.common.utilities.QuadOrientation;
+import speedytools.common.utilitiesOld.QuadOrientation;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;

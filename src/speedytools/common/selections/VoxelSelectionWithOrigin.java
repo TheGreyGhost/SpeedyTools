@@ -1,9 +1,8 @@
 package speedytools.common.selections;
 
-import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilitiesOld.ErrorLog;
 
 import java.io.*;
-import java.util.BitSet;
 
 /**
  * Created by TheGreyGhost on 16/06/14.

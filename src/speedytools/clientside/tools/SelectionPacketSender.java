@@ -1,9 +1,7 @@
 package speedytools.clientside.tools;
 
 import cpw.mods.fml.relauncher.Side;
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.common.network.Packet250Types;
@@ -11,10 +9,6 @@ import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.multipart.MultipartOneAtATimeSender;
 import speedytools.common.network.multipart.SelectionPacket;
-import speedytools.common.utilities.ErrorLog;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 /**
  * User: The Grey Ghost

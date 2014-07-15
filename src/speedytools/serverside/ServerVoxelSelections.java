@@ -6,14 +6,13 @@ import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.common.selections.VoxelSelection;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;
 import speedytools.common.network.multipart.MultipartPacket;
 import speedytools.common.network.multipart.SelectionPacket;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
-import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilitiesOld.ErrorLog;
 
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;

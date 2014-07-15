@@ -5,7 +5,7 @@ import net.minecraft.block.Block;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.util.ChunkCoordinates;
 import speedytools.common.blocks.BlockWithMetadata;
-import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilitiesOld.ErrorLog;
 
 import java.io.*;
 import java.util.ArrayList;

@@ -1,7 +1,7 @@
 package test.utilities;
 
 import org.junit.*;
-import speedytools.common.utilities.QuadOrientation;
+import speedytools.common.utilitiesOld.QuadOrientation;
 
 public class QuadOrientationTest
 {

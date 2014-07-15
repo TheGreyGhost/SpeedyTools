@@ -19,8 +19,8 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import speedytools.common.selections.VoxelSelection;
-import speedytools.common.utilities.Pair;
-import speedytools.common.utilities.QuadOrientation;
+import speedytools.common.utilitiesOld.Pair;
+import speedytools.common.utilitiesOld.QuadOrientation;
 
 import java.util.HashMap;
 import java.util.LinkedList;

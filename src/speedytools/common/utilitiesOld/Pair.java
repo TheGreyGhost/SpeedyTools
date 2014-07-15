@@ -1,4 +1,4 @@
-package speedytools.common.utilities;
+package speedytools.common.utilitiesOld;
 
 /**
  * User: The Grey Ghost

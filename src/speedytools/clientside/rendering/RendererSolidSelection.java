@@ -8,7 +8,7 @@ import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.common.SpeedyToolsOptions;
-import speedytools.common.utilities.QuadOrientation;
+import speedytools.common.utilitiesOld.QuadOrientation;
 
 /**
  * User: The Grey Ghost

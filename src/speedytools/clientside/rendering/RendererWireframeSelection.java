@@ -6,7 +6,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
-import speedytools.common.utilities.Colour;
+import speedytools.common.utilitiesOld.Colour;
 
 import java.util.Collection;
 

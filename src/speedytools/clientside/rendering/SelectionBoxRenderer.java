@@ -4,8 +4,8 @@ package speedytools.clientside.rendering;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.AxisAlignedBB;
 import org.lwjgl.opengl.GL11;
-import speedytools.common.utilities.Colour;
-import speedytools.common.utilities.UsefulConstants;
+import speedytools.common.utilitiesOld.Colour;
+import speedytools.common.utilitiesOld.UsefulConstants;
 
 public class SelectionBoxRenderer {
 

@@ -1,4 +1,4 @@
-package speedytools.common.utilities;
+package speedytools.common.utilitiesOld;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
