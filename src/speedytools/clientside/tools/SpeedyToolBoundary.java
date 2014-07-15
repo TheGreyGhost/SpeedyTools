@@ -9,8 +9,8 @@ import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyBoundary;
-import speedytools.common.utilitiesOld.UsefulConstants;
-import speedytools.common.utilitiesOld.UsefulFunctions;
+import speedytools.common.utilities.UsefulConstants;
+import speedytools.common.utilities.UsefulFunctions;
 
 import java.util.ArrayList;
 import java.util.LinkedList;

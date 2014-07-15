@@ -1,7 +1,7 @@
 package test.backups;
 
 import org.junit.*;
-import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilities.ErrorLog;
 import speedytools.serverside.backup.FolderBackup;
 
 import java.io.File;

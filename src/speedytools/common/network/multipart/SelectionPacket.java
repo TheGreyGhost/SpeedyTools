@@ -6,7 +6,7 @@ import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
-import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
 

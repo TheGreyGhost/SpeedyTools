@@ -7,8 +7,8 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
-import speedytools.common.utilitiesOld.Colour;
-import speedytools.common.utilitiesOld.UsefulFunctions;
+import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.UsefulFunctions;
 
 /**
  * Created by TheGreyGhost on 9/05/14.

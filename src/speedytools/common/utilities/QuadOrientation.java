@@ -1,4 +1,4 @@
-package speedytools.common.utilitiesOld;
+package speedytools.common.utilities;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

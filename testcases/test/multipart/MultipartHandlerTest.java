@@ -9,7 +9,7 @@ import speedytools.common.network.PacketSender;
 import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;
 import speedytools.common.network.multipart.MultipartOneAtATimeSender;
 import speedytools.common.network.multipart.MultipartPacket;
-import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilities.ErrorLog;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

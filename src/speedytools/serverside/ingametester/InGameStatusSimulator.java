@@ -7,8 +7,8 @@ import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ServerStatus;
-import speedytools.common.utilitiesOld.QuadOrientation;
-import speedytools.common.utilitiesOld.ResultWithReason;
+import speedytools.common.utilities.QuadOrientation;
+import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.CloneToolsNetworkServer;
 
 /**

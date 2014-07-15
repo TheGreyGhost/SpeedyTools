@@ -2,8 +2,8 @@ package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.world.WorldServer;
 import speedytools.common.selections.VoxelSelection;
-import speedytools.common.utilitiesOld.Pair;
-import speedytools.common.utilitiesOld.QuadOrientation;
+import speedytools.common.utilities.Pair;
+import speedytools.common.utilities.QuadOrientation;
 
 import java.util.LinkedList;
 import java.util.List;

@@ -1,9 +1,9 @@
 package speedytools.common.selections;
 
 import cpw.mods.fml.common.FMLLog;
-import speedytools.common.utilitiesOld.ErrorLog;
-import speedytools.common.utilitiesOld.Pair;
-import speedytools.common.utilitiesOld.QuadOrientation;
+import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilities.Pair;
+import speedytools.common.utilities.QuadOrientation;
 
 import java.io.*;
 import java.util.BitSet;

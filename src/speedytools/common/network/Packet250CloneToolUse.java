@@ -3,8 +3,8 @@ package speedytools.common.network;
 
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.common.utilitiesOld.ErrorLog;
-import speedytools.common.utilitiesOld.QuadOrientation;
+import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilities.QuadOrientation;
 
 import java.io.*;
 

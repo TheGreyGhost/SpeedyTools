@@ -5,7 +5,7 @@ import org.junit.Assert;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import org.junit.Test;
 import speedytools.common.network.multipart.MultipartPacket;
-import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;

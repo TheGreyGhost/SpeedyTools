@@ -7,7 +7,7 @@ import net.minecraft.util.IProgressUpdate;
 import net.minecraft.world.MinecraftException;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
-import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
 import java.nio.file.*;

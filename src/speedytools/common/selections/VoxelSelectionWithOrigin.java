@@ -1,6 +1,6 @@
 package speedytools.common.selections;
 
-import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
 

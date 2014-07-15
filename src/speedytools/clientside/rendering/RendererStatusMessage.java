@@ -7,8 +7,8 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
-import speedytools.common.utilitiesOld.Colour;
-import speedytools.common.utilitiesOld.UsefulFunctions;
+import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.UsefulFunctions;
 
 /**
  * User: The Grey Ghost

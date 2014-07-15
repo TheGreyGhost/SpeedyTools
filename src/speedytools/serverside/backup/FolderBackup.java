@@ -35,7 +35,7 @@ package speedytools.serverside.backup;
 
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
-import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.IOException;
 import java.nio.file.*;

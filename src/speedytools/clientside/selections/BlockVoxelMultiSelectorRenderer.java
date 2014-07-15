@@ -10,10 +10,10 @@ import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.selections.VoxelSelection;
-import speedytools.common.utilitiesOld.Colour;
-import speedytools.common.utilitiesOld.Pair;
-import speedytools.common.utilitiesOld.QuadOrientation;
-import speedytools.common.utilitiesOld.UsefulConstants;
+import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.Pair;
+import speedytools.common.utilities.QuadOrientation;
+import speedytools.common.utilities.UsefulConstants;
 
 /**
  * Created by TheGreyGhost on 10/07/14.

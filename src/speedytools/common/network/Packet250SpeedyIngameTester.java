@@ -2,7 +2,7 @@ package speedytools.common.network;
 
 
 import net.minecraft.network.packet.Packet250CustomPayload;
-import speedytools.common.utilitiesOld.ErrorLog;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.*;
 

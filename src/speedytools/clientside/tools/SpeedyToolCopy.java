@@ -16,9 +16,9 @@ import speedytools.common.network.ClientStatus;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
-import speedytools.common.utilitiesOld.QuadOrientation;
-import speedytools.common.utilitiesOld.ResultWithReason;
-import speedytools.common.utilitiesOld.UsefulConstants;
+import speedytools.common.utilities.QuadOrientation;
+import speedytools.common.utilities.ResultWithReason;
+import speedytools.common.utilities.UsefulConstants;
 
 import java.util.LinkedList;
 import java.util.List;
