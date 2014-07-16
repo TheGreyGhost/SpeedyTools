@@ -4,11 +4,11 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-NOTE
-bugs:
-undo is offset when rotated 2x5 pattern is placed and undone
-place/unplace highlighting is confusing
-selection cancel and remake gives problems if drag mode is still on.
+//NOTE
+//bugs:
+//undo is offset when rotated 2x5 pattern is placed and undone
+//place/unplace highlighting is confusing
+// todo: check if selection cancel and remake still gives problems if drag mode is still on.
 
 
 /**
@@ -227,6 +227,23 @@ public class QuadOrientation
    */
   public int getWZSize() {
     return ((clockwiseRotationCount & 1) == 0) ? zSize : xSize;
+  }
+
+  /**
+   * returns the new WXZ ranges ([min, max] inclusive) after the transformation
+   * @param wxRange takes the current [xMin, xMax] inclusive and returns the new [wxMin, wxMax] inclusive
+   * @param wzRange takes the current [zMin, zMax] inclusive and returns the new [wzMin, wzMax] inclusive
+   */
+  public void getWXZranges(Pair<Integer, Integer> wxRange, Pair<Integer, Integer> wzRange)
+  {
+    int wx1 = calcWXfromXZ(wxRange.getFirst(), wzRange.getFirst());
+    int wz1 = calcWZfromXZ(wxRange.getFirst(), wzRange.getFirst());
+    int wx2 = calcWXfromXZ(wxRange.getSecond(), wzRange.getSecond());
+    int wz2 = calcWZfromXZ(wxRange.getSecond(), wzRange.getSecond());
+    wxRange.setFirst(Math.min(wx1, wx2));
+    wxRange.setSecond(Math.max(wx1, wx2));
+    wzRange.setFirst(Math.min(wz1, wz2));
+    wzRange.setSecond(Math.max(wz1, wz2));
   }
 
   private void calculateOriginTransformed()
