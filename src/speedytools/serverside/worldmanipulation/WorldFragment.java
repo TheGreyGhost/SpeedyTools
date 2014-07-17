@@ -19,6 +19,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.utilities.BlockData;
 import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
 
@@ -523,6 +524,14 @@ public class WorldFragment
             Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
 
             chunk.removeChunkBlockTileEntity(wx & 0x0f, wy, wz & 0x0f);
+
+            if (orientation.isFlippedX()) {
+              blockMetadata = BlockData.flip(blockID, blockMetadata, BlockData.FlipDirection.WEST_EAST);
+            }
+            for (int quadrants = orientation.getClockwiseRotationCount(); quadrants > 0; --quadrants) {
+              blockMetadata = BlockData.rotate90(blockID, blockMetadata);
+            }
+
             boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
             if (successful && tileEntityNBT != null) {
               setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
