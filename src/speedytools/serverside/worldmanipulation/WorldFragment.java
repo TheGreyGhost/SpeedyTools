@@ -682,6 +682,9 @@ public class WorldFragment
     if (newEntity instanceof EntityHanging ) {
       EntityHanging newEntityHanging = (EntityHanging)newEntity;
       int direction = newEntityHanging.hangingDirection;
+
+//      System.out.println("Direction:" + direction + "; old [x,y,z]= [" + wx + ", " + wy + ", " + wz + "]");
+
       if (orientation.isFlippedX()) {
         if (direction == 1 || direction == 3) {   // 0 and 2 are when the painting is parallel to the x axis
           direction ^= 2;
@@ -690,16 +693,16 @@ public class WorldFragment
       direction = (direction + orientation.getClockwiseRotationCount()) & 3;
 
       if (orientation.isFlippedX()) {
-      System.out.println("Direction:" + direction + "; old [x,y,z]= [" + wx + ", " + wy + ", " + wz + "]");         // todo remove
         // if a hanging entity is mirrored and is more than 1 block wide, we need to shift the "origin" of the painting to the opposite end of the painting to make sure it stays in the same place
+        int originShiftDirection = (newEntityHanging.hangingDirection - orientation.getClockwiseRotationCount()) & 3;
         int paintingOriginShift = newEntityHanging.getWidthPixels() >= 31.9F ? 1 : 0;
-        switch (direction) {
+        switch (originShiftDirection) {
           case 0: {
             newEntityHanging.xPosition -= paintingOriginShift;
             break;
           }
           case 1: {
-            newEntityHanging.zPosition -= paintingOriginShift;
+            newEntityHanging.zPosition += paintingOriginShift;
             break;
           }
           case 2: {
@@ -707,11 +710,11 @@ public class WorldFragment
             break;
           }
           case 3: {
-            newEntityHanging.zPosition += paintingOriginShift;
+            newEntityHanging.zPosition -= paintingOriginShift;
             break;
           }
         }
-        System.out.println("getWidthPixels = " + newEntityHanging.getWidthPixels() + "; new [x,y,z]= [" + newEntityHanging.xPosition + ", " + newEntityHanging.yPosition + ", " + newEntityHanging.zPosition + "]");      // todo remove
+//        System.out.println("getWidthPixels = " + newEntityHanging.getWidthPixels() + "; new [x,y,z]= [" + newEntityHanging.xPosition + ", " + newEntityHanging.yPosition + ", " + newEntityHanging.zPosition + "]");
       }
       newEntityHanging.setDirection(direction);
     }
