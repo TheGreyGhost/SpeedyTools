@@ -6,9 +6,7 @@ import net.minecraft.entity.EntityHanging;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagDouble;
 import net.minecraft.nbt.NBTTagInt;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.management.PlayerManager;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
@@ -599,12 +597,19 @@ public class WorldFragment
           }
         }
 
-        int xmin = Math.max(cx << 4, wxOrigin);
+//        int xmin = Math.max(cx << 4, wxOrigin);
+//        int ymin = yClipMin + wyOrigin;
+//        int zmin = Math.max(cz << 4, wzOrigin);
+//        int xmax = Math.min((cx << 4) | 0x0f, wxOrigin + xCount - 1);
+//        int ymax = wyOrigin + yClipMaxPlusOne - 1;
+//        int zmax = Math.min((cz << 4) | 0x0f, wzOrigin + zCount - 1);
+
+        int xmin = cx << 4;
         int ymin = yClipMin + wyOrigin;
-        int zmin = Math.max(cz << 4, wzOrigin);
-        int xmax = Math.min((cx << 4) | 0x0f, wxOrigin + xCount - 1);
+        int zmin = cz << 4;
+        int xmax = (cx << 4) | 0x0f;
         int ymax = wyOrigin + yClipMaxPlusOne - 1;
-        int zmax = Math.min((cz << 4) | 0x0f, wzOrigin + zCount - 1);
+        int zmax = (cz << 4) | 0x0f;
 
         for (int wx = xmin; wx <= xmax; ++wx) {
           for (int wy = ymin; wy <= ymax; ++wy) {
@@ -613,18 +618,10 @@ public class WorldFragment
               int y = wy - wyOrigin;
               int z = orientation.calcZfromWXZ(wx - wxOrigin, wz - wzOrigin);
               if (selection.getVoxel(x, y, z)) {
-//                TileEntity tileEntity = worldServer.getBlockTileEntity(x, y, z);
-//                if (tileEntity != null) {
-//                  Packet tilePacket = tileEntity.getDescriptionPacket();
-//                  if (tilePacket != null && playerInstance != null) {
-//                    playerInstance.sendToAllPlayersWatchingChunk(tilePacket);
-//                  }
-//                }
                 LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(x, y, z);
                 if (listOfEntitiesAtThisBlock != null) {
                   for (NBTTagCompound nbtTagCompound : listOfEntitiesAtThisBlock) {
-                    changeHangingEntityNBTposition(nbtTagCompound, wx, wy, wz);
-                    Entity newEntity = EntityList.createEntityFromNBT(nbtTagCompound, worldServer);
+                    Entity newEntity = spawnRotatedTranslatedEntity(worldServer, nbtTagCompound, wx, wy, wz, orientation);
                     if (newEntity != null) {
                       worldServer.spawnEntityInWorld(newEntity);
                     }
@@ -667,41 +664,97 @@ public class WorldFragment
     return nbtTagCompound;
   }
 
+  /** spawn the entity after translating, flipping, and rotating it
+   *
+   * @param nbtTagCompound
+   * @param wx
+   * @param wy
+   * @param wz
+   * @param orientation
+   * @return
+   */
+  public Entity spawnRotatedTranslatedEntity(WorldServer worldServer, NBTTagCompound nbtTagCompound, int wx, int wy, int wz, QuadOrientation orientation)
+  {
+    nbtTagCompound.setInteger("TileX", wx);
+    nbtTagCompound.setInteger("TileY", wy);
+    nbtTagCompound.setInteger("TileZ", wz);
+    Entity newEntity = EntityList.createEntityFromNBT(nbtTagCompound, worldServer);
+    if (newEntity instanceof EntityHanging ) {
+      EntityHanging newEntityHanging = (EntityHanging)newEntity;
+      int direction = newEntityHanging.hangingDirection;
+      if (orientation.isFlippedX()) {
+        if (direction == 1 || direction == 3) {   // 0 and 2 are when the painting is parallel to the x axis
+          direction ^= 2;
+        }
+      }
+      direction = (direction + orientation.getClockwiseRotationCount()) & 3;
+
+      if (orientation.isFlippedX()) {
+      System.out.println("Direction:" + direction + "; old [x,y,z]= [" + wx + ", " + wy + ", " + wz + "]");         // todo remove
+        // if a hanging entity is mirrored and is more than 1 block wide, we need to shift the "origin" of the painting to the opposite end of the painting to make sure it stays in the same place
+        int paintingOriginShift = newEntityHanging.getWidthPixels() >= 31.9F ? 1 : 0;
+        switch (direction) {
+          case 0: {
+            newEntityHanging.xPosition -= paintingOriginShift;
+            break;
+          }
+          case 1: {
+            newEntityHanging.zPosition -= paintingOriginShift;
+            break;
+          }
+          case 2: {
+            newEntityHanging.xPosition += paintingOriginShift;
+            break;
+          }
+          case 3: {
+            newEntityHanging.zPosition += paintingOriginShift;
+            break;
+          }
+        }
+        System.out.println("getWidthPixels = " + newEntityHanging.getWidthPixels() + "; new [x,y,z]= [" + newEntityHanging.xPosition + ", " + newEntityHanging.yPosition + ", " + newEntityHanging.zPosition + "]");      // todo remove
+      }
+      newEntityHanging.setDirection(direction);
+    }
+    return newEntity;
+  }
+
   /**
    * Update the position information of the given HangingEntityNBT.  The integer position is changed; the fractional component is unchanged.
    * @param nbtTagCompound the NBT
    * @return the updated NBT
    */
-  public static NBTTagCompound changeHangingEntityNBTposition(NBTTagCompound nbtTagCompound, int wx, int wy, int wz)
-  {
-    int oldPosX = nbtTagCompound.getInteger("TileX");
-    int oldPosY = nbtTagCompound.getInteger("TileY");
-    int oldPosZ = nbtTagCompound.getInteger("TileZ");
-    int deltaX = wx - oldPosX;
-    int deltaY = wy - oldPosY;
-    int deltaZ = wz - oldPosZ;
-
-    NBTTagList nbttaglist = nbtTagCompound.getTagList("Pos");
-    double oldX = ((NBTTagDouble)nbttaglist.tagAt(0)).data;
-    double oldY = ((NBTTagDouble)nbttaglist.tagAt(1)).data;
-    double oldZ = ((NBTTagDouble)nbttaglist.tagAt(2)).data;
-
-    double newX = oldX + deltaX;
-    double newY = oldY + deltaY;
-    double newZ = oldZ + deltaZ;
-
-    NBTTagList newPositionNBT = new NBTTagList();
-    newPositionNBT.appendTag(new NBTTagDouble((String) null, newX));
-    newPositionNBT.appendTag(new NBTTagDouble((String) null, newY));
-    newPositionNBT.appendTag(new NBTTagDouble((String) null, newZ));
-    nbtTagCompound.setTag("Pos", newPositionNBT);
-
-    nbtTagCompound.setInteger("TileX", wx);
-    nbtTagCompound.setInteger("TileY", wy);
-    nbtTagCompound.setInteger("TileZ", wz);
-
-    return nbtTagCompound;
-  }
+//  public static NBTTagCompound changeHangingEntityNBTposition(NBTTagCompound nbtTagCompound, int wx, int wy, int wz)
+//  {
+//    int oldPosX = nbtTagCompound.getInteger("TileX");
+//    int oldPosY = nbtTagCompound.getInteger("TileY");
+//    int oldPosZ = nbtTagCompound.getInteger("TileZ");
+//    int deltaX = wx - oldPosX;
+//    int deltaY = wy - oldPosY;
+//    int deltaZ = wz - oldPosZ;
+//
+//    NBTTagList nbttaglist = nbtTagCompound.getTagList("Pos");
+//    double oldX = ((NBTTagDouble)nbttaglist.tagAt(0)).data;
+//    double oldY = ((NBTTagDouble)nbttaglist.tagAt(1)).data;
+//    double oldZ = ((NBTTagDouble)nbttaglist.tagAt(2)).data;
+//
+//    System.out.println("OldPos: ["+ oldX + ", " + oldY + ", " + oldZ + "]"); // todo remove
+//
+//    double newX = oldX + deltaX;
+//    double newY = oldY + deltaY;
+//    double newZ = oldZ + deltaZ;
+//
+//    NBTTagList newPositionNBT = new NBTTagList();
+//    newPositionNBT.appendTag(new NBTTagDouble((String) null, newX));
+//    newPositionNBT.appendTag(new NBTTagDouble((String) null, newY));
+//    newPositionNBT.appendTag(new NBTTagDouble((String) null, newZ));
+//    nbtTagCompound.setTag("Pos", newPositionNBT);
+//
+//    nbtTagCompound.setInteger("TileX", wx);
+//    nbtTagCompound.setInteger("TileY", wy);
+//    nbtTagCompound.setInteger("TileZ", wz);
+//
+//    return nbtTagCompound;
+//  }
 
   /**
    * Creates a TileEntity from the given NBT and puts it at the specified world location
