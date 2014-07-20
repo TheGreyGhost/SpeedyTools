@@ -75,10 +75,8 @@ public class WorldFragment
     yCount = i_ycount;
     zCount = i_zcount;
 
-    int numberOfBlocks = xCount * yCount * zCount;
-    blockIDbits0to7 = new byte[numberOfBlocks];
-    blockIDbits8to11andmetaData = new byte[numberOfBlocks];
-    lightValues = new byte[numberOfBlocks];
+    final int DEFAULT_BLOCK_COUNT_ESTIMATE = 16;
+    blockDataStore = new BlockDataStoreSparse(xCount, yCount, zCount, DEFAULT_BLOCK_COUNT_ESTIMATE);
     tileEntityData = new HashMap<Integer, NBTTagCompound>();
     entityData = new HashMap<Integer, LinkedList<NBTTagCompound>>();
     voxelsWithStoredData = new VoxelSelection(i_xcount, i_ycount, i_zcount);
@@ -97,8 +95,7 @@ public class WorldFragment
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
     assert (voxelsWithStoredData.getVoxel(x, y, z));
-    final int offset = y * xCount * zCount + z * xCount + x;
-    return (blockIDbits0to7[offset] & 0xff) | ( (blockIDbits8to11andmetaData[offset] & 0x0f) << 4);
+    return blockDataStore.getBlockID(x, y, z);
   }
 
   /**
@@ -113,9 +110,7 @@ public class WorldFragment
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
     assert (blockID >= 0 && blockID <= 0xfff);
-    final int offset = y * xCount * zCount + z * xCount + x;
-    blockIDbits0to7[offset] = (byte)(blockID & 0xff);
-    blockIDbits8to11andmetaData[offset] = (byte)((blockIDbits8to11andmetaData[offset] & 0xf0) | (blockID >> 8) );
+    blockDataStore.setBlockID(x, y, z, blockID);
     voxelsWithStoredData.setVoxel(x, y, z);
   }
 
@@ -132,8 +127,7 @@ public class WorldFragment
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
     assert (voxelsWithStoredData.getVoxel(x, y, z));
-    final int offset = y * xCount * zCount + z * xCount + x;
-    return (blockIDbits8to11andmetaData[offset] & 0xf0) >> 4;
+    return blockDataStore.getMetadata(x, y, z);
   }
 
   /**
@@ -148,8 +142,7 @@ public class WorldFragment
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
     assert (metadata >= 0 && metadata <= 0x0f);
-    final int offset = y * xCount * zCount + z * xCount + x;
-    blockIDbits8to11andmetaData[offset] = (byte)((blockIDbits8to11andmetaData[offset] & 0x0f) | (metadata << 4) );
+    blockDataStore.setMetadata(x, y, z, metadata);
     voxelsWithStoredData.setVoxel(x, y, z);
   }
 
@@ -251,8 +244,7 @@ public class WorldFragment
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
     assert (voxelsWithStoredData.getVoxel(x, y, z));
-    final int offset = y * xCount * zCount + z * xCount + x;
-    return lightValues[offset];
+    return blockDataStore.getLightValue(x, y, z);
   }
 
   /**
@@ -267,8 +259,8 @@ public class WorldFragment
     assert (x >= 0 && x < xCount);
     assert (y >= 0 && y < yCount);
     assert (z >= 0 && z < zCount);
-    final int offset = y * xCount * zCount + z * xCount + x;
-    lightValues[offset] = lightValue;
+    blockDataStore.setLightValue(x, y, z, lightValue);
+    voxelsWithStoredData.setVoxel(x, y, z);
   }
 
 
@@ -369,12 +361,22 @@ public class WorldFragment
   public void readFromWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
   {
     VoxelSelection selection = voxelSelection;
-
+    int setVoxelsCount;
     if (selection == null) {
       selection = new VoxelSelection(xCount, yCount, zCount);
       selection.setAll();
+      setVoxelsCount = xCount * yCount * zCount;
+    } else {
+      setVoxelsCount = selection.getSetVoxelsCount();
     }
     voxelsWithStoredData = new VoxelSelection(xCount, yCount, zCount);   // starts empty, the setBlockID will fill it
+
+    final double THRESHOLD_FILL_FRACTION = 0.25;
+    if (setVoxelsCount / (double)(xCount * yCount * zCount) > THRESHOLD_FILL_FRACTION) {
+      blockDataStore = new BlockDataStoreArray(xCount, yCount, zCount);
+    } else {
+      blockDataStore = new BlockDataStoreSparse(xCount, yCount, zCount, setVoxelsCount);
+    }
 
     int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
     int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
@@ -941,14 +943,15 @@ public class WorldFragment
   private int yCount;
   private int zCount;
 
-  private byte blockIDbits0to7[];
-  private byte blockIDbits8to11andmetaData[];
-  private byte lightValues[];
+  // data is stored in either the three byte arrays or in sparseData, depending on how much of the fragment is filled with solid blocks
+//  private boolean useSparseData;
+//  private byte blockIDbits0to7[];                                     // todo make suitable for sparse array
+//  private byte blockIDbits8to11andmetaData[];
+//  private byte lightValues[];
+//  private HashMap<Integer, Integer> sparseData;
+  private BlockDataStore blockDataStore;
   private HashMap<Integer, NBTTagCompound> tileEntityData;
   private HashMap<Integer, LinkedList<NBTTagCompound>> entityData;
 
   private VoxelSelection voxelsWithStoredData;                        // each set voxel corresponds to a block with valid data.
-//  private VoxelSelection selectedRegion;                            // each set voxel corresponds to a valid block location in the store
-//  private VoxelSelection borderMaskSelection;                       // each set voxel corresponds to a block which is not in the voxelselection but is potentially affected by it.
-//  private VoxelSelection affectedNeighbours;                        // each set voxel corresponds to a block in the borderMask which was affected by the placement.
 }

@@ -303,6 +303,10 @@ public class VoxelSelection
     return zsize;
   }
 
+  public int getSetVoxelsCount()
+  {
+    return voxels.cardinality();
+  }
   protected int xsize;
   protected int ysize;
   protected int zsize;
