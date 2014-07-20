@@ -22,7 +22,7 @@ package speedytools.common.utilities;
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-public final class BlockData
+public final class BlockRotateFlipHelper
 {
 
   public enum FlipDirection
@@ -32,7 +32,7 @@ public final class BlockData
     UP_DOWN
   }
 
-  private BlockData() {
+  private BlockRotateFlipHelper() {
   }
 
   /**
