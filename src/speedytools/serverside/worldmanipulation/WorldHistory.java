@@ -3,12 +3,14 @@ package speedytools.serverside.worldmanipulation;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.utilities.QuadOrientation;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * User: The Grey Ghost
@@ -55,6 +57,19 @@ public class WorldHistory
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
     worldSelectionUndo.writeToWorld(worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, player, worldSelectionUndo);
+    undoLayers.add(undoLayerInfo);
+    cullUndoLayers(maximumDepth);
+  }
+
+  /** write the given fragment to the World, storing undo information
+   * @param worldServer
+
+   */
+  public void writeToWorldWithUndo(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  {
+    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+    worldSelectionUndo.writeToWorld(worldServer,entityPlayerMP, blockToPlace, blockSelection);
+    UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, entityPlayerMP, worldSelectionUndo);
     undoLayers.add(undoLayerInfo);
     cullUndoLayers(maximumDepth);
   }

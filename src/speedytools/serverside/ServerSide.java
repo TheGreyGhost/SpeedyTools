@@ -1,8 +1,10 @@
 package speedytools.serverside;
 
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.serverside.ingametester.InGameStatusSimulator;
 import speedytools.serverside.ingametester.InGameTester;
+import speedytools.serverside.worldmanipulation.WorldHistory;
 
 /**
  * User: The Grey Ghost
@@ -15,9 +17,10 @@ public class ServerSide
   {
     packetHandlerRegistry = new PacketHandlerRegistry() ;
     serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistry);
-    cloneToolServerActions = new CloneToolServerActions(serverVoxelSelections);
+    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+    cloneToolServerActions = new CloneToolServerActions(serverVoxelSelections, worldHistory);
     cloneToolsNetworkServer = new CloneToolsNetworkServer(packetHandlerRegistry, cloneToolServerActions);
-    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry);
+    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry, worldHistory);
     inGameTester = new InGameTester(packetHandlerRegistry);
     inGameStatusSimulator = new InGameStatusSimulator();
   }
@@ -62,5 +65,6 @@ public class ServerSide
   private static PacketHandlerRegistry packetHandlerRegistry;
   private static InGameTester inGameTester;
   private static InGameStatusSimulator inGameStatusSimulator;
+  private static WorldHistory worldHistory;
 
 }

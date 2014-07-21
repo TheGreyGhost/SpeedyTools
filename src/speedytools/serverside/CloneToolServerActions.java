@@ -4,7 +4,6 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
-import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.QuadOrientation;
@@ -20,9 +19,9 @@ import java.nio.file.Path;
  */
 public class CloneToolServerActions
 {
-  public CloneToolServerActions(ServerVoxelSelections i_serverVoxelSelections)
+  public CloneToolServerActions(ServerVoxelSelections i_serverVoxelSelections, WorldHistory i_worldHistory)
   {
-    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+    worldHistory = i_worldHistory;  // new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount());
     serverVoxelSelections = i_serverVoxelSelections;
   }
 

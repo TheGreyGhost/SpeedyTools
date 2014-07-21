@@ -11,11 +11,12 @@ import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
-import speedytools.common.network.ClientStatus;
 import speedytools.common.network.Packet250SpeedyToolUse;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.serverside.worldmanipulation.WorldHistory;
 
 import java.util.*;
 
@@ -29,8 +30,9 @@ public class SpeedyToolWorldManipulator
 {
   private static final int MAXIMUM_UNDO_COUNT = 5;
 
-  public SpeedyToolWorldManipulator(PacketHandlerRegistry packetHandlerRegistry)
+  public SpeedyToolWorldManipulator(PacketHandlerRegistry packetHandlerRegistry, WorldHistory i_worldHistory)
   {
+    worldHistory = i_worldHistory;
     packetHandlerSpeedyToolUse = this.new PacketHandlerSpeedyToolUse();
     packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID(), packetHandlerSpeedyToolUse);
     playerTracker = new PlayerTracker();
@@ -57,25 +59,33 @@ public class SpeedyToolWorldManipulator
    */
   public void performServerAction(EntityPlayerMP entityPlayerMP, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
+    WorldServer worldServer = entityPlayerMP.getServerForPlayer();
 //    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
     switch (buttonClicked) {
       case 0: {
-        UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
-        if (undoHistory == null) return;
-        if (undoHistory.undoEntries.isEmpty()) return;
-        undoLastFill(entityPlayerMP, undoHistory.undoEntries.removeLast());
+        worldHistory.performUndo(entityPlayerMP, worldServer);
+//        UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
+//        if (undoHistory == null) return;
+//        if (undoHistory.undoEntries.isEmpty()) return;
+//        undoLastFill(entityPlayerMP, undoHistory.undoEntries.removeLast());
         return;
       }
       case 1: {
-        UndoEntry undoEntry = fillBlockSelection(entityPlayerMP, blockToPlace, blockSelection);
-        if (undoEntry == null) return;
-        UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
-        assert undoHistory != null;
+//    WorldSelectionUndo test = new WorldSelectionUndo();
+//    test.writeToWorld(worldServer, entityPlayerMP, blockToPlace, blockSelection);
 
-        undoHistory.undoEntries.addLast(undoEntry);
-        if (undoHistory.undoEntries.size() > MAXIMUM_UNDO_COUNT) {
-          undoHistory.undoEntries.removeFirst();
-        }
+        worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockToPlace, blockSelection);
+
+
+//        UndoEntry undoEntry = fillBlockSelection(entityPlayerMP, blockToPlace, blockSelection);
+//        if (undoEntry == null) return;
+//        UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
+//        assert undoHistory != null;
+//
+//        undoHistory.undoEntries.addLast(undoEntry);
+//        if (undoHistory.undoEntries.size() > MAXIMUM_UNDO_COUNT) {
+//          undoHistory.undoEntries.removeFirst();
+//        }
         return;
       }
       default: {
@@ -95,15 +105,22 @@ public class SpeedyToolWorldManipulator
   protected UndoEntry fillBlockSelection(EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
     if (blockSelection == null || blockSelection.isEmpty()) return null;
-    UndoEntry retval = createUndoInformation(entityPlayerMP.theItemInWorldManager.theWorld, blockSelection);
-    for (ChunkCoordinates cc : blockSelection) {
-      if (blockToPlace.block == null) {
-        entityPlayerMP.theItemInWorldManager.theWorld.setBlockToAir(cc.posX, cc.posY, cc.posZ);
-      } else {
-        entityPlayerMP.theItemInWorldManager.theWorld.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
-      }
-    }
-    return retval;
+
+    WorldServer worldServer = entityPlayerMP.getServerForPlayer();
+//    WorldSelectionUndo test = new WorldSelectionUndo();
+//    test.writeToWorld(worldServer, entityPlayerMP, blockToPlace, blockSelection);
+
+    worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockToPlace, blockSelection);
+
+//    UndoEntry retval = createUndoInformation(entityPlayerMP.theItemInWorldManager.theWorld, blockSelection);
+//    for (ChunkCoordinates cc : blockSelection) {
+//      if (blockToPlace.block == null) {
+//        entityPlayerMP.theItemInWorldManager.theWorld.setBlockToAir(cc.posX, cc.posY, cc.posZ);
+//      } else {
+//        entityPlayerMP.theItemInWorldManager.theWorld.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
+//      }
+//    }
+    return null;
   }
 
   /**
@@ -139,6 +156,7 @@ public class SpeedyToolWorldManipulator
   protected UndoEntry createUndoInformation(World world, List<ChunkCoordinates> blockSelection)
   {
     UndoEntry retval = new UndoEntry();
+
     for (ChunkCoordinates cc : blockSelection) {
       UndoBlock nextBlock = new UndoBlock();
       nextBlock.blockCoordinate = cc;
@@ -169,6 +187,7 @@ public class SpeedyToolWorldManipulator
   }
 
   private PacketHandlerSpeedyToolUse packetHandlerSpeedyToolUse;
+  private WorldHistory worldHistory;
 
   // undo information about a single block
   protected static class UndoBlock

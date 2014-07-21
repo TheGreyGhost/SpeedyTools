@@ -943,7 +943,7 @@ public class CloneToolsNetworkTest
   {
     public StubCloneToolServerActions(ServerVoxelSelections i_serverVoxelSelections)
     {
-      super(i_serverVoxelSelections);
+      super(i_serverVoxelSelections, null);
     }
 
 

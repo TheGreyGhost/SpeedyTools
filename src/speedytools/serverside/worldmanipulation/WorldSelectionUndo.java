@@ -1,6 +1,9 @@
 package speedytools.serverside.worldmanipulation;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
@@ -119,6 +122,86 @@ public class WorldSelectionUndo
   }
 
   /**
+   * writes the given list of blocks into the world, saving enough information to allow for a subsequent undo
+   * @param worldServer
+   */
+  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  {
+    /* algorithm is:
+       (1) create a border mask for the blocks to be written, i.e. a mask showing all voxels which are adjacent to a block in the selection
+       (2) save the world data for the fragment voxels and the border mask voxels
+       (3) write the fragment data into the world
+       (4) find out which voxels in the border mask were unaffected by the writing into the world, and remove them from the undo mask (changedBlocksMask)
+     */
+
+    if (blockSelection == null || blockSelection.isEmpty()) return;
+    ChunkCoordinates firstBlock = blockSelection.get(0);
+    int xMin = firstBlock.posX;
+    int xMax = firstBlock.posX;
+    int yMin = firstBlock.posY;
+    int yMax = firstBlock.posY;
+    int zMin = firstBlock.posZ;
+    int zMax = firstBlock.posZ;
+
+    for (ChunkCoordinates blockCoords : blockSelection) {
+      xMin = Math.min(xMin, blockCoords.posX);
+      xMax = Math.max(xMax, blockCoords.posX);
+      yMin = Math.min(yMin, blockCoords.posY);
+      yMax = Math.max(yMax, blockCoords.posY);
+      zMin = Math.min(zMin, blockCoords.posZ);
+      zMax = Math.max(zMax, blockCoords.posZ);
+    }
+    final int Y_MIN_VALID = 0;
+    final int Y_MAX_VALID = 255;
+
+    final int BORDER_WIDTH = 1;
+    xMin -= BORDER_WIDTH;
+    xMax += BORDER_WIDTH;
+    yMin = Math.max(Y_MIN_VALID, yMin - BORDER_WIDTH);
+    yMax = Math.min(Y_MAX_VALID, yMax + BORDER_WIDTH);
+    zMin -= BORDER_WIDTH;
+    zMax += BORDER_WIDTH;
+    wxOfOrigin = xMin;
+    wyOfOrigin = yMin;
+    wzOfOrigin = zMin;
+    int xSize = xMax + 1 - xMin;
+    int ySize = yMax + 1 - yMin;
+    int zSize = zMax + 1 - zMin;
+    VoxelSelection expandedSelection = new VoxelSelection(xSize, ySize, zSize);
+    for (ChunkCoordinates blockCoords : blockSelection) {
+      expandedSelection.setVoxel(blockCoords.posX - wxOfOrigin, blockCoords.posY - wyOfOrigin, blockCoords.posZ - wzOfOrigin);
+    }
+    VoxelSelection borderMask = expandedSelection.generateBorderMask();
+    expandedSelection.union(borderMask);
+
+    undoWorldFragment = new WorldFragment(xSize, ySize, zSize);
+    undoWorldFragment.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, expandedSelection);
+
+    for (ChunkCoordinates cc : blockSelection) {
+      if (blockToPlace.block == null) {
+        entityPlayerMP.theItemInWorldManager.theWorld.setBlockToAir(cc.posX, cc.posY, cc.posZ);
+      } else {
+        entityPlayerMP.theItemInWorldManager.theWorld.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
+      }
+    }
+
+    WorldFragment borderFragmentAfterWrite = new WorldFragment(borderMask.getXsize(), borderMask.getYsize(), borderMask.getZsize());
+    borderFragmentAfterWrite.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, borderMask);
+
+    for (int y = 0; y < borderMask.getYsize(); ++y) {
+      for (int x = 0; x < borderMask.getXsize(); ++x) {
+        for (int z = 0; z < borderMask.getZsize(); ++z) {
+          if (borderMask.getVoxel(x, y, z)
+                  && borderFragmentAfterWrite.doesVoxelMatch(undoWorldFragment, x, y, z)) {
+            expandedSelection.clearVoxel(x, y, z);
+          }
+        }
+      }
+    }
+    changedBlocksMask = expandedSelection;
+  }
+
+  /**
    * un-does the changes previously made by this WorldSelectionUndo, taking into account any subsequent
    *   undo layers which overlap this one
    * @param worldServer
@@ -201,7 +284,6 @@ public class WorldSelectionUndo
        2) for each voxel in the undoWorldFragment B, remove the undo information for all overlapping voxels in all preceding layers
      */
     LinkedList<WorldSelectionUndo> precedingOverlaps = new LinkedList<WorldSelectionUndo>();
-//    LinkedList<WorldSelectionUndo> subsequentOverlaps = new LinkedList<WorldSelectionUndo>();
 
     for (WorldSelectionUndo undoLayer : precedingUndoLayers) {
       if (wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
@@ -214,19 +296,6 @@ public class WorldSelectionUndo
         precedingOverlaps.add(undoLayer);
       }
     }
-
-
-//    for (WorldSelectionUndo undoLayer : subsequentUndoLayers) {
-//      if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
-//              && wyOfOrigin <= undoLayer.wyOfOrigin + undoLayer.undoWorldFragment.getyCount()
-//              && wzOfOrigin <= undoLayer.wzOfOrigin + undoLayer.undoWorldFragment.getzCount()
-//              && wxOfOrigin + undoWorldFragment.getxCount() >= undoLayer.wxOfOrigin
-//              && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
-//              && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
-//              ) {
-//        subsequentOverlaps.add(undoLayer);
-//      }
-//    }
 
     for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
       for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
@@ -243,47 +312,6 @@ public class WorldSelectionUndo
     } // for y
 
   }
-//              symbol = 'O';
-//              if (precedingUndo.changedBlocksMask.getVoxel(x + wxOfOrigin - precedingUndo.wxOfOrigin,
-//                                                           y + wyOfOrigin - precedingUndo.wyOfOrigin,
-//                                                           z + wzOfOrigin - precedingUndo.wzOfOrigin)){
-//
-//              }
-//                boolean subsequentOverlapFound = false;
-//                for (WorldSelectionUndo subsequentUndo: subsequentOverlaps) {
-//                  if (subsequentUndo.changedBlocksMask.getVoxel(x + wxOfOrigin - subsequentUndo.wxOfOrigin,
-//                                                                y + wyOfOrigin - subsequentUndo.wyOfOrigin,
-//                                                                z + wzOfOrigin - subsequentUndo.wzOfOrigin)) {
-//                    subsequentOverlapFound = true;
-//                    precedingUndo.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - precedingUndo.wxOfOrigin,
-//                                                                      y + wyOfOrigin - precedingUndo.wyOfOrigin,
-//                                                                      z + wzOfOrigin - precedingUndo.wzOfOrigin,
-//                                                                      subsequentUndo.undoWorldFragment,
-//                                                                      x + wxOfOrigin - subsequentUndo.wxOfOrigin,
-//                                                                      y + wyOfOrigin - subsequentUndo.wyOfOrigin,
-//                                                                      z + wzOfOrigin - subsequentUndo.wzOfOrigin);
-////                    subsequentUndo.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - subsequentUndo.wxOfOrigin,
-////                                                                      y + wyOfOrigin - subsequentUndo.wyOfOrigin,
-////                                                                      z + wzOfOrigin - subsequentUndo.wzOfOrigin,
-////                                                                     this.undoWorldFragment, x, y, z);
-//                    break;
-//                  }
-//                }
-//
-//                if (!subsequentOverlapFound) {
-//                  precedingUndo.undoWorldFragment.readSingleBlockFromWorld(worldServer, x + wxOfOrigin, y + wyOfOrigin, z + wzOfOrigin,
-//                                                                                        wxOfOrigin, wyOfOrigin, wzOfOrigin);
-//                }
-//                break;
-//              }
-//            }
-//          }
-////          System.out.print(symbol);
-//        }
-////        System.out.println();
-//      }
-//    }
-//  }
 
   /**
    * returns the undo metadata stored at a particular location (intended for debugging)
