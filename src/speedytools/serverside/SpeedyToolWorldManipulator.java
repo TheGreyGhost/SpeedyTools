@@ -63,7 +63,7 @@ public class SpeedyToolWorldManipulator
 //    System.out.println("performServerAction: ID, button = " + toolItemID + ", " + buttonClicked);
     switch (buttonClicked) {
       case 0: {
-        worldHistory.performUndo(entityPlayerMP, worldServer);
+        worldHistory.performComplexUndo(entityPlayerMP, worldServer);
 //        UndoHistory undoHistory = undoHistories.get(entityPlayerMP.username);
 //        if (undoHistory == null) return;
 //        if (undoHistory.undoEntries.isEmpty()) return;

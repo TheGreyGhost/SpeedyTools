@@ -154,7 +154,7 @@ public class CloneToolServerActions
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
-    boolean result = worldHistory.performUndo(player, worldServer);
+    boolean result = worldHistory.performComplexUndo(player, worldServer);
 
 //    cloneToolsNetworkServer.undoCompleted(player, undoSequenceNumber);      // todo later this will be required
     cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);

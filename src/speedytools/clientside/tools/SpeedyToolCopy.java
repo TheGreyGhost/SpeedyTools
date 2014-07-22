@@ -290,7 +290,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       case RIGHT_CLICK_UP: {
         if (inputEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
           if (inputEvent.controlKeyDown) {
-            flipSelection();
+            flipSelection(player);
           } else { // toggle selection grabbing
             hasBeenMoved = true;
             Vec3 playerPosition = player.getPosition(partialTick);  // beware, Vec3 is short-lived
@@ -455,10 +455,13 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     }
   }
 
-  private void flipSelection()
+  private void flipSelection(EntityClientPlayerMP entityClientPlayerMP)
   {
-    // todo: do something here! - later - flip depending on which way the player is looking (i.e. so flip is always left-right)
-    selectionOrientation.flipWX();
+    if (Math.abs(entityClientPlayerMP.rotationYaw) < 45 || Math.abs(entityClientPlayerMP.rotationYaw) > 135) { // looking mostly north-south
+      selectionOrientation.flipWX();
+    } else {
+      selectionOrientation.flipWZ();
+    }
   }
 
   private void rotateSelection(int rotationCountAndDirection)

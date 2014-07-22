@@ -93,14 +93,14 @@ public class WorldSelectionUndoTest
     }
 
     for (int i = ACTION_COUNT - 1; i >= 0; --i) {
-      boolean retval = worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+      boolean retval = worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
       assert (retval);
       List<WorldSelectionUndo> empty = new LinkedList<WorldSelectionUndo>();
       worldSelectionUndos.get(i).undoChanges(worldServer2, empty);
       retval = compareTestWorldServers(worldServer1, worldServer2, allRegions, true);
       assert (retval);
     }
-    boolean retval = worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    boolean retval = worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
     assert (!retval);
 
     // second test:
@@ -122,22 +122,22 @@ public class WorldSelectionUndoTest
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true) && compareTestWorldServers(worldServer2, worldServer2b, allRegions, true);
 
     List<WorldSelectionUndo> laterLayers = new LinkedList<WorldSelectionUndo>();
-    worldHistory.performUndo(entityPlayerMPTest1, worldServer2);
+    worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer2);
     laterLayers.add(worldSelectionUndos.get(3));
     worldSelectionUndos.get(1).undoChanges(worldServer2b, laterLayers);
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true) && compareTestWorldServers(worldServer2, worldServer2b, allRegions, true);
 
-    worldHistory.performUndo(entityPlayerMPTest2, worldServer1);
+    worldHistory.performComplexUndo(entityPlayerMPTest2, worldServer1);
     laterLayers.clear(); // laterLayers.add(worldSelectionUndos.get(3));
     worldSelectionUndos.get(2).undoChanges(worldServer1b, laterLayers);
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true) && compareTestWorldServers(worldServer2, worldServer2b, allRegions, true);
 
-    worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
     laterLayers.clear(); // laterLayers.add(worldSelectionUndos.get(3));
     worldSelectionUndos.get(0).undoChanges(worldServer1b, laterLayers);
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true) && compareTestWorldServers(worldServer2, worldServer2b, allRegions, true);
 
-    worldHistory.performUndo(entityPlayerMPTest2, worldServer2);
+    worldHistory.performComplexUndo(entityPlayerMPTest2, worldServer2);
     laterLayers.clear(); // laterLayers.add(worldSelectionUndos.get(3));
     worldSelectionUndos.get(3).undoChanges(worldServer2b, laterLayers);
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true) && compareTestWorldServers(worldServer2, worldServer2b, allRegions, true);
@@ -156,11 +156,11 @@ public class WorldSelectionUndoTest
 
     worldServer3 = null;
     worldServer4 = null;
-    assert worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    assert worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
     List<WorldSelectionUndo> empty = new LinkedList<WorldSelectionUndo>();
     worldSelectionUndos.get(0).undoChanges(worldServer1b, empty);
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true);
-    assert !worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    assert !worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
 
     // 4th test: 4) Delete one of the EntityPlayerMP and verify that it doesn't affect the other player's undoes
     worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
@@ -181,24 +181,24 @@ public class WorldSelectionUndoTest
 //    printTestRegionSlice("init", worldServer1b, worldServer1, allRegions, 0);
     entityPlayerMPTest2 = null;
 
-    assert worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    assert worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
 //    printTestRegionSlice("WorldHistory.performUndo", worldServer1b, worldServer1, allRegions, 0);
     worldSelectionUndos.get(4).undoChanges(worldServer1b, empty);
 //    printTestRegionSlice("worldSelectionUndos.get(4).undoChanges",worldServer1b, worldServer1, allRegions, 0);
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 
-    assert worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    assert worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
 //    printTestRegionSlice("WorldHistory.performUndo", worldServer1b, worldServer1, allRegions, 0);
     laterLayers.clear(); laterLayers.add(worldSelectionUndos.get(3));
     worldSelectionUndos.get(2).undoChanges(worldServer1b, laterLayers);
 //    printTestRegionSlice("worldSelectionUndos.get(2).undoChanges", worldServer1b, worldServer1, allRegions, 0);
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 
-    assert worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    assert worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
     worldSelectionUndos.get(1).undoChanges(worldServer1b, laterLayers);
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 
-    assert !worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    assert !worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
 
     // 5th test:
     // 5) Initialise with a small history depth, add multiple from different players, and verify that they are deleted oldest first, leaving each player with at least one.
@@ -236,23 +236,23 @@ public class WorldSelectionUndoTest
     worldSelectionUndos.get(4).writeToWorld(worldServer1b, sourceFragments.get(4), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 
-    assert worldHistory.performUndo(entityPlayerMPTest2, worldServer1);
+    assert worldHistory.performComplexUndo(entityPlayerMPTest2, worldServer1);
     laterLayers.clear();
     worldSelectionUndos.get(4).undoChanges(worldServer1b, laterLayers);
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 
-    assert worldHistory.performUndo(entityPlayerMPTest2, worldServer1);
+    assert worldHistory.performComplexUndo(entityPlayerMPTest2, worldServer1);
     laterLayers.add(worldSelectionUndos.get(3));
     worldSelectionUndos.get(2).undoChanges(worldServer1b, laterLayers);
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 
-    assert worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
+    assert worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
     laterLayers.add(worldSelectionUndos.get(1));
     worldSelectionUndos.get(0).undoChanges(worldServer1b, laterLayers);
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 
-    assert !worldHistory.performUndo(entityPlayerMPTest1, worldServer1);
-    assert !worldHistory.performUndo(entityPlayerMPTest2, worldServer1);
+    assert !worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
+    assert !worldHistory.performComplexUndo(entityPlayerMPTest2, worldServer1);
   }
 
   // returns true if the testOutputRegion in both worldServers is identical
