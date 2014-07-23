@@ -2,12 +2,6 @@ package speedytools.serverside;
 
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.TickType;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
-import speedytools.clientside.ClientSide;
-import speedytools.clientside.userinput.SpeedyToolControls;
 
 import java.util.EnumSet;
 
@@ -34,8 +28,8 @@ public class ServerTickHandler implements ITickHandler {
    */
   public void tickEnd(EnumSet<TickType> type, Object... tickData)
   {
-    ServerSide.getCloneToolsNetworkServer().tick();
-    ServerSide.getCloneToolServerActions().tick();
+    ServerSide.getSpeedyToolsNetworkServer().tick();
+    ServerSide.getSpeedyToolServerActions().tick();
     ServerSide.getServerVoxelSelections().tick();
   }
 

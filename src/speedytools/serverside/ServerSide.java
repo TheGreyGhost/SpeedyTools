@@ -17,10 +17,10 @@ public class ServerSide
   {
     packetHandlerRegistry = new PacketHandlerRegistry() ;
     serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistry);
-    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount());
-    cloneToolServerActions = new CloneToolServerActions(serverVoxelSelections, worldHistory);
-    cloneToolsNetworkServer = new CloneToolsNetworkServer(packetHandlerRegistry, cloneToolServerActions);
-    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry, worldHistory);
+    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount(), SpeedyToolsOptions.getMaxSimpleToolUndoCount());
+    speedyToolServerActions = new SpeedyToolServerActions(serverVoxelSelections, worldHistory);
+    speedyToolsNetworkServer = new SpeedyToolsNetworkServer(packetHandlerRegistry, speedyToolServerActions);
+//    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry, worldHistory);
     inGameTester = new InGameTester(packetHandlerRegistry);
     inGameStatusSimulator = new InGameStatusSimulator();
   }
@@ -33,24 +33,24 @@ public class ServerSide
   public static void shutdown()
   {
     packetHandlerRegistry = null;
-    cloneToolServerActions = null;
-    cloneToolsNetworkServer = null;
-    speedyToolWorldManipulator = null;
+    speedyToolServerActions = null;
+    speedyToolsNetworkServer = null;
+//    speedyToolWorldManipulator = null;
     serverVoxelSelections = null;
   }
 
-  public static CloneToolsNetworkServer getCloneToolsNetworkServer() {
-    return cloneToolsNetworkServer;
+  public static SpeedyToolsNetworkServer getSpeedyToolsNetworkServer() {
+    return speedyToolsNetworkServer;
   }
-  public static CloneToolServerActions getCloneToolServerActions() {
-    return cloneToolServerActions;
+  public static SpeedyToolServerActions getSpeedyToolServerActions() {
+    return speedyToolServerActions;
   }
-  public static SpeedyToolWorldManipulator getSpeedyToolWorldManipulator() {
-    return speedyToolWorldManipulator;
-  }
+//  public static SpeedyToolWorldManipulator getSpeedyToolWorldManipulator() {
+//    return speedyToolWorldManipulator;
+//  }
 
 
-  private static CloneToolsNetworkServer cloneToolsNetworkServer;
+  private static SpeedyToolsNetworkServer speedyToolsNetworkServer;
 
   public static ServerVoxelSelections getServerVoxelSelections() {
     return serverVoxelSelections;
@@ -60,8 +60,8 @@ public class ServerSide
   }
 
   private static ServerVoxelSelections serverVoxelSelections;
-  private static CloneToolServerActions cloneToolServerActions;
-  private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
+  private static SpeedyToolServerActions speedyToolServerActions;
+//  private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
   private static PacketHandlerRegistry packetHandlerRegistry;
   private static InGameTester inGameTester;
   private static InGameStatusSimulator inGameStatusSimulator;

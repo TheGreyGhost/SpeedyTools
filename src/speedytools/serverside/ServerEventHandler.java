@@ -13,13 +13,13 @@ public class ServerEventHandler
   public void worldLoad(WorldEvent.Load event)
   {
     if (!(event.world instanceof WorldServer)) return;
-    CloneToolServerActions.worldLoadEvent(event.world);
+    SpeedyToolServerActions.worldLoadEvent(event.world);
   }
 
   @ForgeSubscribe
   public void worldUnload(WorldEvent.Unload event)
   {
     if (!(event.world instanceof WorldServer)) return;
-    CloneToolServerActions.worldUnloadEvent(event.world);
+    SpeedyToolServerActions.worldUnloadEvent(event.world);
   }
 }

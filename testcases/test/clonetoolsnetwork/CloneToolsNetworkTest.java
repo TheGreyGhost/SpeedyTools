@@ -20,8 +20,8 @@ import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
-import speedytools.serverside.CloneToolServerActions;
-import speedytools.serverside.CloneToolsNetworkServer;
+import speedytools.serverside.SpeedyToolServerActions;
+import speedytools.serverside.SpeedyToolsNetworkServer;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.ServerVoxelSelections;
 
@@ -31,8 +31,8 @@ import java.util.*;
 /**
  * User: The Grey Ghost
  * Date: 20/03/14
- * This class tests for correct communication between CloneToolsNetworkClient and CloneToolsNetworkServer.  The classes tested are
- * CloneToolsNetworkClient, CloneToolsNetworkServer, Packet250CloneToolAcknowledge, Packet250CloneToolStatus, Packet250CloneToolUse,
+ * This class tests for correct communication between CloneToolsNetworkClient and SpeedyToolsNetworkServer.  The classes tested are
+ * CloneToolsNetworkClient, SpeedyToolsNetworkServer, Packet250CloneToolAcknowledge, Packet250CloneToolStatus, Packet250CloneToolUse,
  *   , ClientStatus, ServerStatus
  * The tests are based around the networkprotocols.txt specification.  It uses dummy objects to simulate network communications:
  * EntityClientPlayerMP, EntityPlayerMP, NetClientHandler, NetServerHandler.  PacketHandler is bypassed (not used)
@@ -48,7 +48,7 @@ import java.util.*;
  *
  * testSelectionMade
  * (1) Send an informSelectionMade to the server
- * (2) verify that CloneToolServerActions was called
+ * (2) verify that SpeedyToolServerActions was called
  * (3) verify that the client receives first PERFORMING_BACKUP then IDLE
  *
  * testPerformToolAction
@@ -95,8 +95,8 @@ public class CloneToolsNetworkTest
   // objects on server side (all on the same server machine)
   public static Map<String, StubNetServerHandler> stubNetServerHandler = new HashMap<String, StubNetServerHandler>();
   public static Map<String, StubEntityPlayerMP> stubEntityPlayerMP = new HashMap<String, StubEntityPlayerMP>();
-  public static StubCloneToolServerActions stubCloneToolServerActions;
-  public static CloneToolsNetworkServer networkServer;
+  public static StubSpeedyToolServerActions stubCloneToolServerActions;
+  public static SpeedyToolsNetworkServer networkServer;
   public static StubPacketHandlerServer stubPacketHandlerServer;
   public static ArrayList<String> names = new ArrayList<String>();
   public static PacketHandlerRegistry packetHandlerRegistryServer;
@@ -111,8 +111,8 @@ public class CloneToolsNetworkTest
     packetHandlerRegistryServer = new PacketHandlerRegistry();
     packetHandlerRegistryServer.changeToNonStatic();
 
-    stubCloneToolServerActions = new StubCloneToolServerActions(null);
-    networkServer = new CloneToolsNetworkServer(packetHandlerRegistryServer, stubCloneToolServerActions);
+    stubCloneToolServerActions = new StubSpeedyToolServerActions(null);
+    networkServer = new SpeedyToolsNetworkServer(packetHandlerRegistryServer, stubCloneToolServerActions);
     stubCloneToolServerActions.setupStub(networkServer);
     stubPacketHandlerServer = new StubPacketHandlerServer();
     stubPacketHandlerClient = new StubPacketHandlerClient();
@@ -939,27 +939,27 @@ public class CloneToolsNetworkTest
     public String myName;
   }
 
-  public static class StubCloneToolServerActions extends CloneToolServerActions
+  public static class StubSpeedyToolServerActions extends SpeedyToolServerActions
   {
-    public StubCloneToolServerActions(ServerVoxelSelections i_serverVoxelSelections)
+    public StubSpeedyToolServerActions(ServerVoxelSelections i_serverVoxelSelections)
     {
       super(i_serverVoxelSelections, null);
     }
 
 
-    public void setupStub(CloneToolsNetworkServer newNetworkServer) {
-      cloneToolsNetworkServer = newNetworkServer;
+    public void setupStub(SpeedyToolsNetworkServer newNetworkServer) {
+      speedyToolsNetworkServer = newNetworkServer;
     }
 
     public ResultWithReason prepareForToolAction(EntityPlayerMP player) {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
+      speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
+      speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
       ++countPrepareForToolAction;
       return ResultWithReason.success();
     }
 
     public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped) {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte) 0);
+      speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte) 0);
       lastActionSequenceNumber = sequenceNumber;
       lastToolID = toolID;
       lastXpos = xpos;
@@ -973,8 +973,8 @@ public class CloneToolsNetworkTest
     }
 
     public ResultWithReason performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber) {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
-      cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
+      speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
+      speedyToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
 
       lastActionSequenceNumber = actionSequenceNumber;
       lastUndoSequenceNumber = undoSequenceNumber;
@@ -985,7 +985,7 @@ public class CloneToolsNetworkTest
     }
 
     public ResultWithReason performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber) {
-      cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
+      speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
       lastPlayer = (StubEntityPlayerMP)player;
       lastUndoSequenceNumber = undoSequenceNumber;
       ++countPerformUndoOfLastAction;
@@ -993,7 +993,7 @@ public class CloneToolsNetworkTest
       return ResultWithReason.success();
     }
 
-    private CloneToolsNetworkServer cloneToolsNetworkServer;
+    private SpeedyToolsNetworkServer speedyToolsNetworkServer;
     public int countPerformUndoOfLastAction = 0;
     public int countPerformUndoOfCurrentAction = 0;
     public int countPerformToolAction = 0;

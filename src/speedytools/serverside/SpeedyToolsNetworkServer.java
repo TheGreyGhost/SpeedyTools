@@ -22,24 +22,24 @@ import java.util.Map;
  * (1) addPlayer when player joins, removePlayer when player leaves
  * (2) changeServerStatus to let all interested clients know what the server is doing (busy or not)
  * (3) handlePacket should be called to process incoming packets from the client
- * (4) in response to an incoming ToolAction, will call CloneToolServerActions.performToolAction.
+ * (4) in response to an incoming ToolAction, will call SpeedyToolServerActions.performToolAction.
  *     performToolAction must:
  *       a) return true/false depending on whether the action is accepted or not
  *       b) update changeServerStatus
  *       c) when the action is finished, call actionCompleted and update changeServerStatus
- * (5) in response to an incoming Undo, will call CloneToolServerActions.performUndoOfLastAction (if the client is undoing
+ * (5) in response to an incoming Undo, will call SpeedyToolServerActions.performUndoOfLastAction (if the client is undoing
  *        an action that has been completed and acknowledged), or .performUndoOfCurrentAction (if the client is undoing the
  *          action currently being performed, i.e. hasn't received a completed acknowledgement yet)
- *        The CloneToolServerActions must:
+ *        The SpeedyToolServerActions must:
  *       a) return true/false depending on whether the undo is accepted or not
  *       b) update changeServerStatus
  *       c) when the undo is finished, call undoCompleted.  actionCompleted should have been sent first.
  * (6) tick() must be called at frequent intervals to check for timeouts - at least once per second
  */
 
-public class CloneToolsNetworkServer
+public class SpeedyToolsNetworkServer
 {
-  public CloneToolsNetworkServer(PacketHandlerRegistry packetHandlerRegistry,  CloneToolServerActions i_cloneToolServerActions)
+  public SpeedyToolsNetworkServer(PacketHandlerRegistry packetHandlerRegistry, SpeedyToolServerActions i_speedyToolServerActions)
   {
     playerStatuses = new HashMap<EntityPlayerMP, ClientStatus>();
     lastAcknowledgedAction = new HashMap<EntityPlayerMP, Integer>();
@@ -49,13 +49,16 @@ public class CloneToolsNetworkServer
     lastStatusPacketTimeNS = new HashMap<EntityPlayerMP, Long>();
  //   undoNotifications = new HashMap<EntityPlayerMP, ArrayList<TimeStampSequenceNumber>>();
 
-    cloneToolServerActions = i_cloneToolServerActions;
-    cloneToolServerActions.setCloneToolsNetworkServer(this);
+    speedyToolServerActions = i_speedyToolServerActions;
+    speedyToolServerActions.setCloneToolsNetworkServer(this);
 
     packetHandlerCloneToolUse = this.new PacketHandlerCloneToolUse();
     packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID(), packetHandlerCloneToolUse);
     packetHandlerCloneToolStatus = this.new PacketHandlerCloneToolStatus();
     packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_TOOL_STATUS_ID.getPacketTypeID(), packetHandlerCloneToolStatus);
+
+    packetHandlerSpeedyToolUse = this.new PacketHandlerSpeedyToolUse();
+    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID(), packetHandlerSpeedyToolUse);
 
     playerTracker = this.new PlayerTracker();
     GameRegistry.registerPlayerTracker(playerTracker);
@@ -227,7 +230,7 @@ public class CloneToolsNetworkServer
   {
     switch (packet.getCommand()) {
       case SELECTION_MADE: {
-        cloneToolServerActions.prepareForToolAction(player);
+        speedyToolServerActions.prepareForToolAction(player);
         break;
       }
 
@@ -253,7 +256,7 @@ public class CloneToolsNetworkServer
 //          if (!foundundo) {
           ResultWithReason result = ResultWithReason.failure();
           if (serverStatus == ServerStatus.IDLE) {
-            result = cloneToolServerActions.performToolAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
+            result = speedyToolServerActions.performToolAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
                                                               packet.getQuadOrientation());
           } else {
             switch (serverStatus) {
@@ -303,7 +306,7 @@ public class CloneToolsNetworkServer
           ResultWithReason result = ResultWithReason.failure();
           if (packet.getActionToBeUndoneSequenceNumber() == null) { // undo last completed action
             if (serverStatus == ServerStatus.IDLE) {
-              result = cloneToolServerActions.performUndoOfLastAction(player, packet.getSequenceNumber());
+              result = speedyToolServerActions.performUndoOfLastAction(player, packet.getSequenceNumber());
             } else {
               switch (serverStatus) {
                 case PERFORMING_BACKUP: {
@@ -342,7 +345,7 @@ public class CloneToolsNetworkServer
                                           "");
             break;
           } else if (packet.getActionToBeUndoneSequenceNumber() == lastAcknowledgedAction.get(player)) {    // undo for a specific action we have acknowledged as starting
-            result = cloneToolServerActions.performUndoOfCurrentAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
+            result = speedyToolServerActions.performUndoOfCurrentAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
             sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
           }
         }
@@ -364,7 +367,7 @@ public class CloneToolsNetworkServer
     ClientStatus newStatus = packet.getClientStatus();
 
     if (!playerStatuses.containsKey(player)) {
-      ErrorLog.defaultLog().warning("CloneToolsNetworkServer:: Packet received from player not in playerStatuses");
+      ErrorLog.defaultLog().warning("SpeedyToolsNetworkServer:: Packet received from player not in playerStatuses");
       return;
     }
     playerStatuses.put(player, newStatus);
@@ -406,7 +409,7 @@ public class CloneToolsNetworkServer
     {
       Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
       if (toolUsePacket == null || !toolUsePacket.validForSide(Side.SERVER)) return false;
-      CloneToolsNetworkServer.this.handlePacket((EntityPlayerMP) player, toolUsePacket);
+      SpeedyToolsNetworkServer.this.handlePacket((EntityPlayerMP) player, toolUsePacket);
       return true;
     }
   }
@@ -416,22 +419,36 @@ public class CloneToolsNetworkServer
     {
       Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
       if (toolStatusPacket == null || !toolStatusPacket.validForSide(Side.SERVER)) return false;
-      CloneToolsNetworkServer.this.handlePacket((EntityPlayerMP) player, toolStatusPacket);
+      SpeedyToolsNetworkServer.this.handlePacket((EntityPlayerMP) player, toolStatusPacket);
       return true;
     }
   }
+
+  public class PacketHandlerSpeedyToolUse implements PacketHandlerRegistry.PacketHandlerMethod {
+    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
+    {
+      Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
+      if (toolUsePacket == null) return false;
+      SpeedyToolsNetworkServer.this.speedyToolServerActions.performServerSimpleAction((EntityPlayerMP) player, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
+              toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
+      return true;
+    }
+  }
+
+  private PacketHandlerSpeedyToolUse packetHandlerSpeedyToolUse;
+
 
   private class PlayerTracker implements IPlayerTracker
   {
     public void onPlayerLogin(EntityPlayer player)
     {
       EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-      CloneToolsNetworkServer.this.addPlayer(entityPlayerMP);
+      SpeedyToolsNetworkServer.this.addPlayer(entityPlayerMP);
     }
     public void onPlayerLogout(EntityPlayer player)
     {
       EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-      CloneToolsNetworkServer.this.removePlayer(entityPlayerMP);
+      SpeedyToolsNetworkServer.this.removePlayer(entityPlayerMP);
     }
     public void onPlayerChangedDimension(EntityPlayer player) {}
     public void onPlayerRespawn(EntityPlayer player) {}
@@ -457,7 +474,7 @@ public class CloneToolsNetworkServer
 
   private ServerStatus serverStatus = ServerStatus.IDLE;
   private byte serverPercentComplete = 0;
-  private CloneToolServerActions cloneToolServerActions;
+  private SpeedyToolServerActions speedyToolServerActions;
   private EntityPlayerMP playerBeingServiced;
   private PacketHandlerCloneToolUse packetHandlerCloneToolUse;
   private PacketHandlerCloneToolStatus packetHandlerCloneToolStatus;

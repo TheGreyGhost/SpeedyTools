@@ -12,7 +12,6 @@ import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.server.MinecraftServer;
 import speedytools.clientside.ClientSide;
 import speedytools.serverside.ServerSide;
-import speedytools.serverside.SpeedyToolWorldManipulator;
 
 import java.util.HashMap;
 
@@ -84,7 +83,7 @@ public class PacketHandlerRegistry implements IPacketHandler
 //          Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
 //          if (toolUsePacket != null && toolUsePacket != null && toolUsePacket.validForSide(side)) {
 //            if (side == Side.SERVER) {
-//              ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
+//              ServerSide.getSpeedyToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
 //            }
 //          } else {
 //            malformedPacketError(side, playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
@@ -96,7 +95,7 @@ public class PacketHandlerRegistry implements IPacketHandler
 //          Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
 //          if (toolStatusPacket != null && toolStatusPacket.validForSide(side)) {
 //            if (side == Side.SERVER) {
-//              ServerSide.getCloneToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolStatusPacket);
+//              ServerSide.getSpeedyToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolStatusPacket);
 //            } else {
 ////              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityClientPlayerMP)playerEntity, toolStatusPacket);
 //            }

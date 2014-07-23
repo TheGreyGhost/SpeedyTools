@@ -9,7 +9,7 @@ import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
-import speedytools.serverside.CloneToolsNetworkServer;
+import speedytools.serverside.SpeedyToolsNetworkServer;
 
 /**
  * Created by TheGreyGhost on 26/06/14.
@@ -138,7 +138,7 @@ public class InGameStatusSimulator
   /** simulate this method
    * @return null if not simulated (-> progress to real code)
    */
-  public ResultWithReason prepareForToolAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player)
+  public ResultWithReason prepareForToolAction(SpeedyToolsNetworkServer speedyToolsNetworkServer, EntityPlayerMP player)
   {
     final int TEST_BACKUP_FLAG = 1;
     if (testMode >= 20 && testMode <= 27) {
@@ -154,14 +154,14 @@ public class InGameStatusSimulator
     testInProgress = TestInProgress.PREPARE_FOR_TOOL_ACTION;
     testStartTime = System.nanoTime();
     testPlayer = player;
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, player, (byte)0);
+    speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, player, (byte)0);
     return ResultWithReason.success();
   }
 
   /** simulate this method
    * @return null if not simulated (-> progress to real code)
    */
-  public ResultWithReason performUndoOfCurrentAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
+  public ResultWithReason performUndoOfCurrentAction(SpeedyToolsNetworkServer speedyToolsNetworkServer, EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {
     final int TEST_UNDO_FLAG = 4;
     if (testMode >= 20 && testMode <= 27) {
@@ -178,15 +178,15 @@ public class InGameStatusSimulator
     testStartTime = System.nanoTime();
     testPlayer = player;
     testUndoSequenceNumber = undoSequenceNumber;
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-    cloneToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
+    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+    speedyToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
     return ResultWithReason.success();
   }
 
   /** simulate this method
    * @return null if not simulated (-> progress to real code)
    */
-  public ResultWithReason performUndoOfLastAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player, int undoSequenceNumber)
+  public ResultWithReason performUndoOfLastAction(SpeedyToolsNetworkServer speedyToolsNetworkServer, EntityPlayerMP player, int undoSequenceNumber)
   {
     final int TEST_UNDO_FLAG = 4;
     if (testMode >= 20 && testMode <= 27) {
@@ -203,14 +203,14 @@ public class InGameStatusSimulator
     testStartTime = System.nanoTime();
     testPlayer = player;
     testUndoSequenceNumber = undoSequenceNumber;
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     return ResultWithReason.success();
   }
 
   /** simulate this method
    * @return null if not simulated (-> progress to real code)
    */
-  public ResultWithReason performToolAction(CloneToolsNetworkServer cloneToolsNetworkServer, EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
+  public ResultWithReason performToolAction(SpeedyToolsNetworkServer speedyToolsNetworkServer, EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
   {
     final int TEST_ACTION_FLAG = 2;
     if (testMode >= 20 && testMode <= 27) {
@@ -227,15 +227,15 @@ public class InGameStatusSimulator
     testStartTime = System.nanoTime();
     testPlayer = player;
     testActionSequenceNumber = sequenceNumber;
-    cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
+    speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
     return ResultWithReason.success();
   }
 
   /**
    * Update the server status according to current test (use proper code, don't force)
-   * @param cloneToolsNetworkServer
+   * @param speedyToolsNetworkServer
    */
-  public void updateServerStatus(CloneToolsNetworkServer cloneToolsNetworkServer)
+  public void updateServerStatus(SpeedyToolsNetworkServer speedyToolsNetworkServer)
   {
     final long NANOSECONDS_PER_SECOND = 1000 * 1000 * 1000L;
     if (testInProgress == TestInProgress.NONE) return;
@@ -249,25 +249,25 @@ public class InGameStatusSimulator
       case PREPARE_FOR_TOOL_ACTION: {
         final long TEST_DURATION_SECONDS = 10;
         if (elapsedTime > TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND) {
-          cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
           testInProgress = TestInProgress.NONE;
           System.out.println("Server: backup completed");
         } else {
           long completion = 100 * elapsedTime / (TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND);
-          cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, testPlayer, (byte)completion);
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, testPlayer, (byte)completion);
         }
         break;
       }
       case PERFORM_TOOL_ACTION: {
         final long TEST_DURATION_SECONDS = 10;
         if (elapsedTime > TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND) {
-          cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-          cloneToolsNetworkServer.actionCompleted(testPlayer, testActionSequenceNumber);
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+          speedyToolsNetworkServer.actionCompleted(testPlayer, testActionSequenceNumber);
           System.out.println("Server: actionCompleted # " + testActionSequenceNumber);
           testInProgress = TestInProgress.NONE;
         } else {
           long completion = 100 * elapsedTime / (TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND);
-          cloneToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, testPlayer, (byte)completion);
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, testPlayer, (byte)completion);
         }
         break;
       }
@@ -275,13 +275,13 @@ public class InGameStatusSimulator
       case PERFORM_UNDO_OF_CURRENT_ACTION: {
         final long TEST_DURATION_SECONDS = 10;
         if (elapsedTime > TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND) {
-          cloneToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-          cloneToolsNetworkServer.undoCompleted(testPlayer, testUndoSequenceNumber);
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+          speedyToolsNetworkServer.undoCompleted(testPlayer, testUndoSequenceNumber);
           System.out.println("Server: undoCompleted # " + testUndoSequenceNumber);
           testInProgress = TestInProgress.NONE;
         } else {
           long completion = 100 * elapsedTime / (TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND);
-          cloneToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, testPlayer, (byte)completion);
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, testPlayer, (byte)completion);
         }
         break;
       }
