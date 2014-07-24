@@ -12,6 +12,7 @@ import speedytools.common.selections.VoxelSelection;
 import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
 
@@ -68,6 +69,7 @@ public class InGameTester
         case 9: success = performTest9(performTest, runAllTests); break;
         case 10: success = performTest10(performTest, runAllTests); break;
         case 11: success = performTest11(performTest, runAllTests); break;
+        case 12: success = performTest12(performTest); break;
         default: blankTest = true; break;
       }
       if (blankTest) {
@@ -419,6 +421,50 @@ public class InGameTester
       throw new RuntimeException(e);
     }
     return true;
+  }
+
+  /**
+   *  Test12:  use WorldSelectionUndo with a selection mask to copy a fragment asynchronously and verify it matches the synchronous copy
+   */
+  public boolean performTest12(boolean performTest)
+  {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -80;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    TestRegions testRegions = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, true);
+    if (!performTest) {
+      testRegions.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      return true;
+    }
+
+    VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegions.sourceRegion, testRegions.xSize, testRegions.ySize, testRegions.zSize);
+
+    // do a synchronous copy
+    WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
+    sourceWorldFragment.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, voxelSelection);
+
+    // do the asynchronous copy
+    WorldFragment asyncWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    AsynchronousToken token = asyncWorldFragment.readFromWorldAsynchronous(worldServer, testRegions.sourceRegion.posX,
+                                                                           testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
+    while (!token.isTaskComplete()) {
+      token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+      token.continueProcessing();
+    }
+    asyncWorldFragment.writeToWorld(worldServer, testRegions.testOutputRegion.posX,
+                                    testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, voxelSelection);
+
+    // compare the two
+    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
   }
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,

@@ -360,76 +360,177 @@ public class WorldFragment
    */
   public void readFromWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
   {
-    VoxelSelection selection = voxelSelection;
-    int setVoxelsCount;
-    if (selection == null) {
-      selection = new VoxelSelection(xCount, yCount, zCount);
-      selection.setAll();
-      setVoxelsCount = xCount * yCount * zCount;
-    } else {
-      setVoxelsCount = selection.getSetVoxelsCount();
+    AsynchronousRead dummyToken = new AsynchronousRead(worldServer, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
+    readFromWorldAsynchronous_do(worldServer, dummyToken);
+  }
+
+  /**
+   * Read a section of the world into the WorldFragment, erasing its existing contents.
+   * If the voxel selection is defined, only reads those voxels, otherwise reads the entire block
+   * Runs asynchronously: after the initial call, use the returned token to monitor and advance the task
+   *    -> repeatedly call token.setTimeToInterrupt() and token.continueProcessing()
+   * @param worldServer
+   * @param wxOrigin the world x coordinate of the [0,0,0] corner of the WorldFragment
+   * @param wyOrigin the world y coordinate of the [0,0,0] corner of the WorldFragment
+   * @param wzOrigin the world z coordinate of the [0,0,0] corner of the WorldFragment
+   * @param voxelSelection the blocks to read, or if null read the entire WorldFragment cuboid
+   * @return the token used to monitor and advance the tasks
+   */
+  public AsynchronousToken readFromWorldAsynchronous(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
+  {
+    AsynchronousRead taskToken = new AsynchronousRead(worldServer, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
+    taskToken.setTimeToInterrupt(taskToken.IMMEDIATE_TIMEOUT);
+    readFromWorldAsynchronous_do(worldServer, taskToken);
+    return taskToken;
+  }
+
+  private void readFromWorldAsynchronous_do(WorldServer worldServer, AsynchronousRead state)
+  {
+    VoxelSelection selection = state.voxelSelection;
+    int wxOrigin = state.wxOrigin;
+    int wyOrigin = state.wyOrigin;
+    int wzOrigin = state.wzOrigin;
+    if (state.getStage() == AsynchronousReadStages.SETUP) {
+      int setVoxelsCount;
+      if (selection == null) {
+        selection = new VoxelSelection(xCount, yCount, zCount);
+        selection.setAll();
+        setVoxelsCount = xCount * yCount * zCount;
+      } else {
+        setVoxelsCount = selection.getSetVoxelsCount();
+      }
+      voxelsWithStoredData = new VoxelSelection(xCount, yCount, zCount);   // starts empty, the setBlockID will fill it
+
+      final double THRESHOLD_FILL_FRACTION = 0.25;
+      if (setVoxelsCount / (double) (xCount * yCount * zCount) > THRESHOLD_FILL_FRACTION) {
+        blockDataStore = new BlockDataStoreArray(xCount, yCount, zCount);
+      } else {
+        blockDataStore = new BlockDataStoreSparse(xCount, yCount, zCount, setVoxelsCount);
+      }
+      state.setStage(AsynchronousReadStages.TILEDATA);
+      if (state.isTimeToInterrupt()) return;
     }
-    voxelsWithStoredData = new VoxelSelection(xCount, yCount, zCount);   // starts empty, the setBlockID will fill it
 
-    final double THRESHOLD_FILL_FRACTION = 0.25;
-    if (setVoxelsCount / (double)(xCount * yCount * zCount) > THRESHOLD_FILL_FRACTION) {
-      blockDataStore = new BlockDataStoreArray(xCount, yCount, zCount);
-    } else {
-      blockDataStore = new BlockDataStoreSparse(xCount, yCount, zCount, setVoxelsCount);
-    }
+    if (state.getStage() == AsynchronousReadStages.TILEDATA) {
+      int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
+      int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
 
-    int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
-    int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
+      int z = state.z;
+      int x = state.x;
+      for (; z < zCount; ++z, x = 0) {
+        for (; x < xCount; ++x) {
+          for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
+            if (selection.getVoxel(x, y, z)) {
+              int wx = x + wxOrigin;
+              int wy = y + wyOrigin;
+              int wz = z + wzOrigin;
+              int id = worldServer.getBlockId(wx, wy, wz);
+              int data = worldServer.getBlockMetadata(wx, wy, wz);
+              TileEntity tileEntity = worldServer.getBlockTileEntity(wx, wy, wz);
+              NBTTagCompound tileEntityTag = null;
+              if (tileEntity != null) {
+                tileEntityTag = new NBTTagCompound();
+                tileEntity.writeToNBT(tileEntityTag);
+              }
 
-    for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
-      for (int z = 0; z < zCount; ++z) {
-        for (int x = 0; x < xCount; ++x) {
-          if (selection.getVoxel(x, y, z)) {
-            int wx = x + wxOrigin;
-            int wy = y + wyOrigin;
-            int wz = z + wzOrigin;
-            int id = worldServer.getBlockId(wx, wy, wz);
-            int data = worldServer.getBlockMetadata(wx, wy, wz);
-            TileEntity tileEntity = worldServer.getBlockTileEntity(wx, wy, wz);
-            NBTTagCompound tileEntityTag = null;
-            if (tileEntity != null) {
-              tileEntityTag = new NBTTagCompound();
-              tileEntity.writeToNBT(tileEntityTag);
+              Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+              int lightValue = (chunk.getSavedLightValue(EnumSkyBlock.Sky, wx & 0x0f, wy, wz & 0x0f) << 4)
+                      | chunk.getSavedLightValue(EnumSkyBlock.Block, wx & 0x0f, wy, wz & 0x0f);
+              setBlockID(x, y, z, id);
+              setMetadata(x, y, z, data);
+              setTileEntityData(x, y, z, tileEntityTag);
+              setLightValue(x, y, z, (byte) lightValue);
             }
-
-            Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
-            int lightValue =   (chunk.getSavedLightValue(EnumSkyBlock.Sky, wx & 0x0f, wy, wz & 0x0f) << 4)
-                             | chunk.getSavedLightValue(EnumSkyBlock.Block, wx & 0x0f, wy, wz & 0x0f);
-            setBlockID(x, y, z, id);
-            setMetadata(x, y, z, data);
-            setTileEntityData(x, y, z, tileEntityTag);
-            setLightValue(x, y, z, (byte)lightValue);
+          } // for y
+          if (state.isTimeToInterrupt()) {
+            state.z = z;
+            state.x = x + 1;
+            return;
           }
         }
       }
+      state.setStage(AsynchronousReadStages.ENTITYDATA);
     }
 
-    final double EXPAND = 3;
-    AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxOrigin, wyOrigin, wzOrigin,
-                                                               wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount)
-                                               .expand(EXPAND, EXPAND, EXPAND);
+    if (state.getStage() == AsynchronousReadStages.ENTITYDATA) {
+      final double EXPAND = 3;
+      AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxOrigin, wyOrigin, wzOrigin,
+              wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount)
+              .expand(EXPAND, EXPAND, EXPAND);
 
-    List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
+      List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
-    for (EntityHanging entity : allHangingEntities) {
-      int x = entity.xPosition - wxOrigin;
-      int y = entity.yPosition - wyOrigin;
-      int z = entity.zPosition - wzOrigin;
+      for (EntityHanging entity : allHangingEntities) {
+        int x = entity.xPosition - wxOrigin;
+        int y = entity.yPosition - wyOrigin;
+        int z = entity.zPosition - wzOrigin;
 
-      if (selection.getVoxel(x, y, z)) {
-        NBTTagCompound tag = new NBTTagCompound();
-        entity.writeToNBTOptional(tag);
-        addEntity(x, y, z, tag);
+        if (selection.getVoxel(x, y, z)) {
+          NBTTagCompound tag = new NBTTagCompound();
+          entity.writeToNBTOptional(tag);
+          addEntity(x, y, z, tag);
+        }
       }
+      state.setStage(AsynchronousReadStages.COMPLETE);
     }
 
     return;
   }
+
+  public enum AsynchronousReadStages {SETUP, TILEDATA, ENTITYDATA, COMPLETE};
+
+  private class AsynchronousRead implements AsynchronousToken
+  {
+
+    @Override
+    public boolean isTaskComplete() {
+      return currentStage == AsynchronousReadStages.COMPLETE;
+    }
+
+    @Override
+    public boolean isTimeToInterrupt() {
+      return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
+    }
+
+    @Override
+    public void setTimeToInterrupt(long timeToStopNS) {
+      interruptTimeNS = timeToStopNS;
+    }
+
+    @Override
+    public void continueProcessing() {
+      readFromWorldAsynchronous_do(worldServer, this);
+    }
+
+    public AsynchronousRead(WorldServer i_worldServer, VoxelSelection i_voxelSelection, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin)
+    {
+      worldServer = i_worldServer;
+      wxOrigin = i_wxOrigin;
+      wyOrigin = i_wyOrigin;
+      wzOrigin = i_wzOrigin;
+      voxelSelection = i_voxelSelection;
+      currentStage = AsynchronousReadStages.SETUP;
+      interruptTimeNS = INFINITE_TIMEOUT;
+      x = 0;
+      z = 0;
+    }
+
+    public AsynchronousReadStages getStage() {return currentStage;}
+    public void setStage(AsynchronousReadStages nextStage) { currentStage = nextStage; }
+
+    public final WorldServer worldServer;
+    public final int wxOrigin;
+    public final int wyOrigin;
+    public final int wzOrigin;
+    public final VoxelSelection voxelSelection;
+
+    public int x;
+    public int z;
+
+    private AsynchronousReadStages currentStage;
+    private long interruptTimeNS;
+  }
+
 
   /**
    * Write the WorldFragment to the world
@@ -943,15 +1044,12 @@ public class WorldFragment
   private int yCount;
   private int zCount;
 
-  // data is stored in either the three byte arrays or in sparseData, depending on how much of the fragment is filled with solid blocks
-//  private boolean useSparseData;
-//  private byte blockIDbits0to7[];                                     // todo make suitable for sparse array
-//  private byte blockIDbits8to11andmetaData[];
-//  private byte lightValues[];
-//  private HashMap<Integer, Integer> sparseData;
   private BlockDataStore blockDataStore;
   private HashMap<Integer, NBTTagCompound> tileEntityData;
   private HashMap<Integer, LinkedList<NBTTagCompound>> entityData;
 
   private VoxelSelection voxelsWithStoredData;                        // each set voxel corresponds to a block with valid data.
+
+  private AsynchronousRead currentAsynchronousRead;
+
 }
