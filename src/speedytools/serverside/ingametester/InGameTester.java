@@ -71,6 +71,7 @@ public class InGameTester
         case 10: success = performTest10(performTest, runAllTests); break;
         case 11: success = performTest11(performTest, runAllTests); break;
         case 12: success = performTest12(performTest); break;
+        case 13: success = performTest13(performTest); break;
         default: blankTest = true; break;
       }
       if (blankTest) {
@@ -425,7 +426,7 @@ public class InGameTester
   }
 
   /**
-   *  Test12:  use WorldSelectionUndo with a selection mask to copy a fragment asynchronously and verify it matches the synchronous copy
+   *  Test12:  test of asynchronous WorldFragment: use WorldFragment with a selection mask to copy a fragment asynchronously and verify it matches the synchronous copy
    */
   public boolean performTest12(boolean performTest)
   {
@@ -481,6 +482,83 @@ public class InGameTester
     }
     return retval;
   }
+
+  /**
+   *  Test13:  test WorldSelectionUndo with a selection mask to copy a fragment asynchronously and verify it matches the synchronous copy, likewise the subsequent undo
+   */
+  public boolean performTest13(boolean performTest)
+  {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -120;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    TestRegions testRegions = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, true);
+    if (!performTest) {
+      testRegions.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+      return true;
+    }
+
+    VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegions.sourceRegion, testRegions.xSize, testRegions.ySize, testRegions.zSize);
+
+    // do a synchronous copy
+    WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
+    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ);
+
+    // do the asynchronous copy
+    WorldSelectionUndo asyncWorldSelectionUndo = new WorldSelectionUndo();
+    QuadOrientation identity = new QuadOrientation(0,0,1,1);
+    AsynchronousToken token = asyncWorldSelectionUndo.writeToWorldAsynchronous(worldServer, sourceWorldFragment,
+                                                                                  testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, identity);
+    while (!token.isTaskComplete()) {
+      token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+      token.continueProcessing();
+    }
+
+    // compare the two
+    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+    if (!retval) {
+      System.out.println();
+      System.out.println("Mismatch at [" + WorldFragment.lastCompareFailX + ", " + WorldFragment.lastCompareFailY + ", " + WorldFragment.lastCompareFailZ + "]");
+      System.out.println("Expected vs Actual:");
+      System.out.println(WorldFragment.lastFailureReason);
+    }
+
+    // synchronous undo
+    List<WorldSelectionUndo> dummyList = new LinkedList<WorldSelectionUndo>();
+    worldSelectionUndo.undoChanges(worldServer, dummyList);
+
+    // asynchronous undo
+    token = asyncWorldSelectionUndo.undoChangesAsynchronous(worldServer, dummyList);
+    while (!token.isTaskComplete()) {
+      token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+      token.continueProcessing();
+    }
+
+    // compare the two
+     worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+     worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+     retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+    if (!retval) {
+      System.out.println();
+      System.out.println("Mismatch at [" + WorldFragment.lastCompareFailX + ", " + WorldFragment.lastCompareFailY + ", " + WorldFragment.lastCompareFailZ + "]");
+      System.out.println("Expected vs Actual:");
+      System.out.println(WorldFragment.lastFailureReason);
+    }
+    return retval;
+  }
+
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
                                      int xOrigin, int yOrigin, int zOrigin, int xSize, int ySize, int zSize)

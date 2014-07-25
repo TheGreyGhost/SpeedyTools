@@ -28,11 +28,11 @@ import java.util.List;
  * Under some conditions, out-of-order undos will not return the world exactly to the start condition.  This arises when
  * copying the selection causes adjacent blocks to break, and these are then overwritten by an overlapping copy.
  * For example:
- * There is a torch hanging on a wall block.
- * Action A replaces a torch with a new block;
- * Action B replaces the support wall block for that torch with a ladder;
+ * There is a torch hanging on a wall block X.
+ * Action A replaces the torch with a new block;
+ * Action B replaces block X, which was supporting torch A, with a ladder;
  * undo (A) puts the torch back, but it's now next to a ladder so it breaks immediately; then
- * undo (B) replaces the support wall, but the torch has been broken and will not be replaced in this step
+ * undo (B) replaces the support wall X, but the torch has been broken and will not be replaced in this step
  * This would be relatively complicated to fix and is unlikely to arise much in practice so it won't be fixed at least for now.
  * Typical usage:
  * (1) Create an empty WorldSelectionUndo
@@ -57,7 +57,6 @@ public class WorldSelectionUndo
    * @param i_wyOfOrigin
    * @param i_wzOfOrigin
    */
-
   public void writeToWorld(WorldServer worldServer, WorldFragment fragmentToWrite, int i_wxOfOrigin, int i_wyOfOrigin, int i_wzOfOrigin)
   {
     QuadOrientation noChange = new QuadOrientation(0, 0, 1, 1);
@@ -71,8 +70,30 @@ public class WorldSelectionUndo
    * @param i_wxOfOrigin
    * @param i_wyOfOrigin
    * @param i_wzOfOrigin
+   * @param quadOrientation the orientation of the fragment to place (flip, rotate)
    */
   public void writeToWorld(WorldServer worldServer, WorldFragment fragmentToWrite, int i_wxOfOrigin, int i_wyOfOrigin, int i_wzOfOrigin, QuadOrientation quadOrientation)
+  {
+    AsynchronousWrite runToCompletionToken = new AsynchronousWrite(worldServer, fragmentToWrite, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, quadOrientation);
+    writeToWorldAsynchronous_do(worldServer, runToCompletionToken);
+  }
+
+  /**
+   * writes the given WorldFragment into the world, saving enough information to allow for a subsequent undo
+   * Runs asynchronously: after the initial call, use the returned token to monitor and advance the task
+   *    -> repeatedly call token.setTimeToInterrupt() and token.continueProcessing()
+   * @param worldServer
+   * @param quadOrientation the orientation of the fragment to place (flip, rotate)
+   */
+  public AsynchronousToken writeToWorldAsynchronous(WorldServer worldServer, WorldFragment fragmentToWrite, int i_wxOfOrigin, int i_wyOfOrigin, int i_wzOfOrigin, QuadOrientation quadOrientation)
+  {
+    AsynchronousWrite token = new AsynchronousWrite(worldServer, fragmentToWrite, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, quadOrientation);
+    token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+    writeToWorldAsynchronous_do(worldServer, token);
+    return token;
+  }
+
+  public void writeToWorldAsynchronous_do(WorldServer worldServer, AsynchronousWrite state)
   {
     /* algorithm is:
        (1) create a border mask for the fragment to be written, i.e. a mask showing all voxels which are adjacent to a set voxel in the fragment.
@@ -81,44 +102,174 @@ public class WorldSelectionUndo
        (4) find out which voxels in the border mask were unaffected by the writing into the world, and remove them from the undo mask (changedBlocksMask)
      */
 
-    final int Y_MIN_VALID = 0;
-    final int Y_MAX_VALID_PLUS_ONE = 256;
+    WorldFragment fragmentToWrite = state.fragmentToWrite;
+    QuadOrientation quadOrientation = state.quadOrientation;
+    if (state.getStage() == AsynchronousWriteStages.SETUP) {
+      final int Y_MIN_VALID = 0;
+      final int Y_MAX_VALID_PLUS_ONE = 256;
 
-    final int BORDER_WIDTH = 1;
-    Pair<Integer, Integer> wxzOriginMove = new Pair<Integer, Integer>(0, 0);
-    VoxelSelection expandedSelection = fragmentToWrite.getVoxelsWithStoredData().makeReorientedCopyWithBorder(quadOrientation, BORDER_WIDTH, wxzOriginMove);
-    VoxelSelection borderMask = expandedSelection.generateBorderMask();
-    expandedSelection.union(borderMask);
+      final int BORDER_WIDTH = 1;
+      Pair<Integer, Integer> wxzOriginMove = new Pair<Integer, Integer>(0, 0);
 
-    wxOfOrigin = i_wxOfOrigin - BORDER_WIDTH + wxzOriginMove.getFirst();
-    wyOfOrigin = i_wyOfOrigin - BORDER_WIDTH;
-    wzOfOrigin = i_wzOfOrigin - BORDER_WIDTH + wxzOriginMove.getSecond();
+      state.expandedSelection = fragmentToWrite.getVoxelsWithStoredData().makeReorientedCopyWithBorder(quadOrientation, BORDER_WIDTH, wxzOriginMove);
+      state.borderMask = state.expandedSelection.generateBorderMask();
+      state.expandedSelection.union(state.borderMask);
 
-    int wyMax = wyOfOrigin + expandedSelection.getYsize();
-    if (wyOfOrigin < Y_MIN_VALID || wyMax >= Y_MAX_VALID_PLUS_ONE) {
-      expandedSelection.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
-      borderMask.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
+      wxOfOrigin = state.wxOrigin - BORDER_WIDTH + wxzOriginMove.getFirst();
+      wyOfOrigin = state.wyOrigin - BORDER_WIDTH;
+      wzOfOrigin = state.wzOrigin - BORDER_WIDTH + wxzOriginMove.getSecond();
+
+      int wyMax = wyOfOrigin + state.expandedSelection.getYsize();
+      if (wyOfOrigin < Y_MIN_VALID || wyMax >= Y_MAX_VALID_PLUS_ONE) {
+        state.expandedSelection.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
+        state.borderMask.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
+      }
+
+      undoWorldFragment = new WorldFragment(state.expandedSelection.getXsize(), state.expandedSelection.getYsize(), state.expandedSelection.getZsize());
+      AsynchronousToken token = undoWorldFragment.readFromWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.expandedSelection);
+      state.setSubTask(token);
+      state.setStage(AsynchronousWriteStages.READ_UNDO_FRAGMENT);
+      if (state.isTimeToInterrupt()) return;
     }
 
-    undoWorldFragment = new WorldFragment(expandedSelection.getXsize(), expandedSelection.getYsize(), expandedSelection.getZsize());
-    undoWorldFragment.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, expandedSelection);
+    if (state.getStage() == AsynchronousWriteStages.READ_UNDO_FRAGMENT) {
+      boolean subTaskFinished = state.executeSubTask();
+      if (!subTaskFinished) return;
 
-    fragmentToWrite.writeToWorld(worldServer, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, null, quadOrientation);
+      //    fragmentToWrite.writeToWorld(worldServer, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, null, quadOrientation);
+      AsynchronousToken token = fragmentToWrite.writeToWorldAsynchronous(worldServer, state.wxOrigin, state.wyOrigin, state.wzOrigin, null, quadOrientation);
+      state.setSubTask(token);
+      state.setStage(AsynchronousWriteStages.WRITE_FRAGMENT);
+      if (state.isTimeToInterrupt()) return;
+    }
 
-    WorldFragment borderFragmentAfterWrite = new WorldFragment(borderMask.getXsize(), borderMask.getYsize(), borderMask.getZsize());
-    borderFragmentAfterWrite.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, borderMask);
+    if (state.getStage() == AsynchronousWriteStages.WRITE_FRAGMENT) {
+      boolean subTaskFinished = state.executeSubTask();
+      if (!subTaskFinished) return;
 
-    for (int y = 0; y < borderMask.getYsize(); ++y) {
-      for (int x = 0; x < borderMask.getXsize(); ++x) {
-        for (int z = 0; z < borderMask.getZsize(); ++z) {
-          if (borderMask.getVoxel(x, y, z)
-              && borderFragmentAfterWrite.doesVoxelMatch(undoWorldFragment, x, y, z)) {
-            expandedSelection.clearVoxel(x, y, z);
+//    borderFragmentAfterWrite.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, borderMask);
+      state.borderFragmentAfterWrite = new WorldFragment(state.borderMask.getXsize(), state.borderMask.getYsize(), state.borderMask.getZsize());
+      AsynchronousToken token = state.borderFragmentAfterWrite.readFromWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.borderMask);
+      state.setSubTask(token);
+      state.setStage(AsynchronousWriteStages.UPDATE_MASK);
+      if (state.isTimeToInterrupt()) return;
+    }
+
+    if (state.getStage() == AsynchronousWriteStages.UPDATE_MASK) {
+      boolean subTaskFinished = state.executeSubTask();
+      if (!subTaskFinished) return;
+
+      VoxelSelection borderMask = state.borderMask;
+      VoxelSelection expandedSelection = state.expandedSelection;
+      WorldFragment borderFragmentAfterWrite = state.borderFragmentAfterWrite;
+
+      for (int y = 0; y < borderMask.getYsize(); ++y) {
+        for (int x = 0; x < borderMask.getXsize(); ++x) {
+          for (int z = 0; z < borderMask.getZsize(); ++z) {
+            if (borderMask.getVoxel(x, y, z)
+                    && borderFragmentAfterWrite.doesVoxelMatch(undoWorldFragment, x, y, z)) {
+              expandedSelection.clearVoxel(x, y, z);
+            }
           }
         }
       }
+      changedBlocksMask = expandedSelection;
+      state.setStage(AsynchronousWriteStages.COMPLETE);
     }
-    changedBlocksMask = expandedSelection;
+  }
+
+  public enum AsynchronousWriteStages
+  {
+    SETUP(0.1), READ_UNDO_FRAGMENT(0.2), WRITE_FRAGMENT(0.6), UPDATE_MASK(0.1), COMPLETE(0.0);
+
+    AsynchronousWriteStages(double i_durationWeight) {durationWeight = i_durationWeight;}
+    public double durationWeight;
+  }
+
+  private class AsynchronousWrite implements AsynchronousToken
+  {
+    @Override
+    public boolean isTaskComplete() {
+      return currentStage == AsynchronousWriteStages.COMPLETE;
+    }
+
+    @Override
+    public boolean isTimeToInterrupt() {
+      return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
+    }
+
+    @Override
+    public void setTimeToInterrupt(long timeToStopNS) {
+      interruptTimeNS = timeToStopNS;
+    }
+
+    @Override
+    public void continueProcessing() {
+      writeToWorldAsynchronous_do(worldServer, this);
+    }
+
+    @Override
+    public double getFractionComplete()
+    {
+      return cumulativeCompletion + currentStage.durationWeight * stageFractionComplete;
+    }
+
+    public AsynchronousWrite(WorldServer i_worldServer, WorldFragment i_fragmentToWrite, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, QuadOrientation i_quadOrientation)
+    {
+      worldServer = i_worldServer;
+      wxOrigin = i_wxOrigin;
+      wyOrigin = i_wyOrigin;
+      wzOrigin = i_wzOrigin;
+      fragmentToWrite = i_fragmentToWrite;
+      quadOrientation = i_quadOrientation;
+      currentStage = AsynchronousWriteStages.SETUP;
+      interruptTimeNS = INFINITE_TIMEOUT;
+      stageFractionComplete = 0;
+      cumulativeCompletion = 0;
+      subTask = null;
+    }
+
+    public AsynchronousWriteStages getStage() {return currentStage;}
+    public void setStage(AsynchronousWriteStages nextStage)
+    {
+      cumulativeCompletion += currentStage.durationWeight;
+      currentStage = nextStage;
+    }
+
+    public void setSubTask(AsynchronousToken token) {subTask = token;}
+    public void setStageFractionComplete(double completionFraction)
+    {
+      assert (completionFraction >= 0 && completionFraction <= 1.0);
+      stageFractionComplete = completionFraction;
+    }
+
+    // returns true if the sub-task is finished
+    public boolean executeSubTask() {
+      if (subTask == null || subTask.isTaskComplete()) {
+        return true;
+      }
+      subTask.setTimeToInterrupt(interruptTimeNS);
+      subTask.continueProcessing();
+      stageFractionComplete = subTask.getFractionComplete();
+      return subTask.isTaskComplete();
+    }
+
+    public final WorldServer worldServer;
+    public final int wxOrigin;
+    public final int wyOrigin;
+    public final int wzOrigin;
+    public final QuadOrientation quadOrientation;
+    public final WorldFragment fragmentToWrite;
+
+    public VoxelSelection expandedSelection;
+    public VoxelSelection borderMask;
+    public WorldFragment borderFragmentAfterWrite;
+
+    private AsynchronousWriteStages currentStage;
+    private long interruptTimeNS;
+    private double stageFractionComplete;
+    private double cumulativeCompletion;
+    private AsynchronousToken subTask;
   }
 
   /**
@@ -209,6 +360,29 @@ public class WorldSelectionUndo
    */
   public void undoChanges(WorldServer worldServer, List<WorldSelectionUndo> subsequentUndoLayers)
   {
+    AsynchronousUndo runToCompletionToken = new AsynchronousUndo(worldServer, subsequentUndoLayers);
+    undoChangesAsynchronous_do(worldServer, runToCompletionToken);
+  }
+
+  /**
+   * un-does the changes previously made by this WorldSelectionUndo, taking into account any subsequent
+   *   undo layers which overlap this one
+   * Runs asynchronously: after the initial call, use the returned token to monitor and advance the task
+   *    -> repeatedly call token.setTimeToInterrupt() and token.continueProcessing()
+   * Warning - the subsequentUndoLayers must not be changed until processing is completely finished
+   * @param worldServer
+   * @param subsequentUndoLayers the list of subsequent undo layers
+   */
+  public AsynchronousToken undoChangesAsynchronous(WorldServer worldServer, List<WorldSelectionUndo> subsequentUndoLayers)
+  {
+    AsynchronousUndo token = new AsynchronousUndo(worldServer, subsequentUndoLayers);
+    token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+    undoChangesAsynchronous_do(worldServer, token);
+    return token;
+  }
+
+  public void undoChangesAsynchronous_do(WorldServer worldServer, AsynchronousUndo state)
+  {
     /* algorithm is:
        1) remove undoLayers which don't overlap the undoWorldFragment at all (quick cull on x,y,z extents)
        2) for each voxel in the undoWorldFragment, check if any subsequent undo layers overwrite it.
@@ -216,47 +390,156 @@ public class WorldSelectionUndo
           if no: set that voxel in the write mask
        3) write the undo data to the world using the write mask (of voxels not overlapped by any other layers.)
      */
-    LinkedList<WorldSelectionUndo> overlappingUndoLayers = new LinkedList<WorldSelectionUndo>();
+    if (state.getStage() == AsynchronousUndoStages.SETUP) {
+      LinkedList<WorldSelectionUndo> overlappingUndoLayers = new LinkedList<WorldSelectionUndo>();
 
-    for (WorldSelectionUndo undoLayer : subsequentUndoLayers) {
-      if (   wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
-          && wyOfOrigin <= undoLayer.wyOfOrigin + undoLayer.undoWorldFragment.getyCount()
-          && wzOfOrigin <= undoLayer.wzOfOrigin + undoLayer.undoWorldFragment.getzCount()
-          && wxOfOrigin + undoWorldFragment.getxCount() >= undoLayer.wxOfOrigin
-          && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
-          && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
-         ) {
-        overlappingUndoLayers.add(undoLayer);
+      for (WorldSelectionUndo undoLayer : state.subsequentUndoLayers) {
+        if (wxOfOrigin <= undoLayer.wxOfOrigin + undoLayer.undoWorldFragment.getxCount()
+                && wyOfOrigin <= undoLayer.wyOfOrigin + undoLayer.undoWorldFragment.getyCount()
+                && wzOfOrigin <= undoLayer.wzOfOrigin + undoLayer.undoWorldFragment.getzCount()
+                && wxOfOrigin + undoWorldFragment.getxCount() >= undoLayer.wxOfOrigin
+                && wyOfOrigin + undoWorldFragment.getyCount() >= undoLayer.wyOfOrigin
+                && wzOfOrigin + undoWorldFragment.getzCount() >= undoLayer.wzOfOrigin
+                ) {
+          overlappingUndoLayers.add(undoLayer);
+        }
       }
+      state.setOverlappingUndoLayers(overlappingUndoLayers);
+      state.worldWriteMask = new VoxelSelection(undoWorldFragment.getxCount(), undoWorldFragment.getyCount(), undoWorldFragment.getzCount());
+      state.setStage(AsynchronousUndoStages.ADJUST_MASK);
+      if (state.isTimeToInterrupt()) return;
     }
 
-    VoxelSelection worldWriteMask = new VoxelSelection(undoWorldFragment.getxCount(), undoWorldFragment.getyCount(), undoWorldFragment.getzCount());
-
-    for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
-      for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
-        for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
-          if (changedBlocksMask.getVoxel(x, y, z)) {
-            boolean writeVoxelToWorld = true;
-            for (WorldSelectionUndo undoLayer : overlappingUndoLayers) {
-              if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
-                      y + wyOfOrigin - undoLayer.wyOfOrigin,
-                      z + wzOfOrigin - undoLayer.wzOfOrigin)) {
-                writeVoxelToWorld = false;
-                undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+    if (state.getStage() == AsynchronousUndoStages.ADJUST_MASK) {
+      for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
+        for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
+          for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
+            if (changedBlocksMask.getVoxel(x, y, z)) {
+              boolean writeVoxelToWorld = true;
+              for (WorldSelectionUndo undoLayer : state.getOverlappingUndoLayers()) {
+                if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
                         y + wyOfOrigin - undoLayer.wyOfOrigin,
-                        z + wzOfOrigin - undoLayer.wzOfOrigin,
-                        this.undoWorldFragment, x, y, z);
-                break;
+                        z + wzOfOrigin - undoLayer.wzOfOrigin)) {
+                  writeVoxelToWorld = false;
+                  undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                          y + wyOfOrigin - undoLayer.wyOfOrigin,
+                          z + wzOfOrigin - undoLayer.wzOfOrigin,
+                          this.undoWorldFragment, x, y, z);
+                  break;
+                }
               }
-            }
-            if (writeVoxelToWorld) {
-              worldWriteMask.setVoxel(x, y, z);
+              if (writeVoxelToWorld) {
+                state.worldWriteMask.setVoxel(x, y, z);
+              }
             }
           }
         }
       }
+      state.setStage(AsynchronousUndoStages.UNDO);
+//      undoWorldFragment.writeToWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, worldWriteMask);
+      AsynchronousToken token = undoWorldFragment.writeToWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.worldWriteMask);
+      state.setSubTask(token);
+      if (state.isTimeToInterrupt()) return;
     }
-    undoWorldFragment.writeToWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, worldWriteMask);
+
+    if (state.getStage() == AsynchronousUndoStages.UNDO) {
+      boolean subTaskFinished = state.executeSubTask();
+      if (!subTaskFinished) return;
+      state.setStage(AsynchronousUndoStages.COMPLETE);
+    }
+  }
+
+  public enum AsynchronousUndoStages
+  {
+    SETUP(0.1), ADJUST_MASK(0.1), UNDO(0.8), COMPLETE(0.0);
+
+    AsynchronousUndoStages(double i_durationWeight) {durationWeight = i_durationWeight;}
+    public double durationWeight;
+  }
+
+  private class AsynchronousUndo implements AsynchronousToken
+  {
+    @Override
+    public boolean isTaskComplete() {
+      return currentStage == AsynchronousUndoStages.COMPLETE;
+    }
+
+    @Override
+    public boolean isTimeToInterrupt() {
+      return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
+    }
+
+    @Override
+    public void setTimeToInterrupt(long timeToStopNS) {
+      interruptTimeNS = timeToStopNS;
+    }
+
+    @Override
+    public void continueProcessing() {
+      undoChangesAsynchronous_do(worldServer, this);
+    }
+
+    @Override
+    public double getFractionComplete()
+    {
+      return cumulativeCompletion + currentStage.durationWeight * stageFractionComplete;
+    }
+
+    public AsynchronousUndo(WorldServer i_worldServer, List<WorldSelectionUndo> i_subsequentUndoLayers)
+    {
+      worldServer = i_worldServer;
+      subsequentUndoLayers = i_subsequentUndoLayers;
+      currentStage = AsynchronousUndoStages.SETUP;
+      interruptTimeNS = INFINITE_TIMEOUT;
+      stageFractionComplete = 0;
+      cumulativeCompletion = 0;
+      subTask = null;
+    }
+
+    public AsynchronousUndoStages getStage() {return currentStage;}
+    public void setStage(AsynchronousUndoStages nextStage)
+    {
+      cumulativeCompletion += currentStage.durationWeight;
+      currentStage = nextStage;
+    }
+
+    public void setSubTask(AsynchronousToken token) {subTask = token;}
+    public void setStageFractionComplete(double completionFraction)
+    {
+      assert (completionFraction >= 0 && completionFraction <= 1.0);
+      stageFractionComplete = completionFraction;
+    }
+
+    // returns true if the sub-task is finished
+    public boolean executeSubTask() {
+      if (subTask == null || subTask.isTaskComplete()) {
+        return true;
+      }
+      subTask.setTimeToInterrupt(interruptTimeNS);
+      subTask.continueProcessing();
+      stageFractionComplete = subTask.getFractionComplete();
+      return subTask.isTaskComplete();
+    }
+
+    public final WorldServer worldServer;
+    public final List<WorldSelectionUndo> subsequentUndoLayers;
+
+    public List<WorldSelectionUndo> getOverlappingUndoLayers() {
+      return overlappingUndoLayers;
+    }
+
+    public void setOverlappingUndoLayers(List<WorldSelectionUndo> overlappingUndoLayers) {
+      this.overlappingUndoLayers = overlappingUndoLayers;
+    }
+
+    public VoxelSelection worldWriteMask;
+
+    private List<WorldSelectionUndo> overlappingUndoLayers;
+    private AsynchronousUndoStages currentStage;
+    private long interruptTimeNS;
+    private double stageFractionComplete;
+    private double cumulativeCompletion;
+    private AsynchronousToken subTask;
   }
 
   /**

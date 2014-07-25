@@ -360,8 +360,8 @@ public class WorldFragment
    */
   public void readFromWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
   {
-    AsynchronousRead dummyToken = new AsynchronousRead(worldServer, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
-    readFromWorldAsynchronous_do(worldServer, dummyToken);
+    AsynchronousRead runToCompletionToken = new AsynchronousRead(worldServer, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
+    readFromWorldAsynchronous_do(worldServer, runToCompletionToken);
   }
 
   /**
@@ -588,8 +588,8 @@ public class WorldFragment
   public void writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin,
                            VoxelSelection writeMask, QuadOrientation orientation)
   {
-    AsynchronousWrite dummyToken = new AsynchronousWrite(worldServer, writeMask, wxOrigin, wyOrigin, wzOrigin, orientation);
-    writeToWorldAsynchronous_do(worldServer, dummyToken);
+    AsynchronousWrite runToCompletionToken = new AsynchronousWrite(worldServer, writeMask, wxOrigin, wyOrigin, wzOrigin, orientation);
+    writeToWorldAsynchronous_do(worldServer, runToCompletionToken);
   }
 
   /**
@@ -611,6 +611,13 @@ public class WorldFragment
     taskToken.setTimeToInterrupt(taskToken.IMMEDIATE_TIMEOUT);
     writeToWorldAsynchronous_do(worldServer, taskToken);
     return taskToken;
+  }
+
+  public AsynchronousToken writeToWorldAsynchronous(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin,
+                                                    VoxelSelection writeMask)
+  {
+    QuadOrientation noChange = new QuadOrientation(0, 0, 1, 1);
+    return writeToWorldAsynchronous(worldServer, wxOrigin, wyOrigin, wzOrigin, writeMask, noChange);
   }
 
   /**
@@ -881,7 +888,6 @@ public class WorldFragment
 
   private class AsynchronousWrite implements AsynchronousToken
   {
-
     @Override
     public boolean isTaskComplete() {
       return currentStage == AsynchronousWriteStages.COMPLETE;
