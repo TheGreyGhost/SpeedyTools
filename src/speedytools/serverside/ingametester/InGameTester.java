@@ -12,6 +12,7 @@ import speedytools.common.selections.VoxelSelection;
 import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.common.utilities.QuadOrientation;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
@@ -430,14 +431,15 @@ public class InGameTester
   {
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
 
-    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -80;
-    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -80 - (35 - 8);
+    final int XSIZE = 35; final int YSIZE = 54; final int ZSIZE = 17;
     TestRegions testRegions = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, true);
     if (!performTest) {
       testRegions.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
       worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
       worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
       return true;
     }
 
@@ -456,15 +458,28 @@ public class InGameTester
       token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
       token.continueProcessing();
     }
-    asyncWorldFragment.writeToWorld(worldServer, testRegions.testOutputRegion.posX,
-                                    testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, voxelSelection);
+
+    QuadOrientation orientation = new QuadOrientation(0,0,1,1);
+    AsynchronousToken writeToken = asyncWorldFragment.writeToWorldAsynchronous(worldServer, testRegions.testOutputRegion.posX,
+                                                                               testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, voxelSelection, orientation);
+    while (!writeToken.isTaskComplete()) {
+      writeToken.setTimeToInterrupt(writeToken.IMMEDIATE_TIMEOUT);
+      writeToken.continueProcessing();
+    }
 
     // compare the two
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
     worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
     worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
-    return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+    boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+    if (!retval) {
+      System.out.println();
+      System.out.println("Mismatch at [" + WorldFragment.lastCompareFailX + ", " + WorldFragment.lastCompareFailY + ", " + WorldFragment.lastCompareFailZ + "]");
+      System.out.println("Expected vs Actual:");
+      System.out.println(WorldFragment.lastFailureReason);
+    }
+    return retval;
   }
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,

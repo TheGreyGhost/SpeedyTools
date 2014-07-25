@@ -9,6 +9,9 @@ public interface AsynchronousToken
   // returns true if the asynchronous task has completed
   public boolean isTaskComplete();
 
+  // returns 0.0 .. 1.0 depending on how much of the task is complete
+  public double getFractionComplete();
+
   // returns true if the task should interrupt processing now
   public boolean isTimeToInterrupt();
 

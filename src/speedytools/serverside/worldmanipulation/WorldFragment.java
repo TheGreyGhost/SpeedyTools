@@ -445,6 +445,7 @@ public class WorldFragment
           if (state.isTimeToInterrupt()) {
             state.z = z;
             state.x = x + 1;
+            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
             return;
           }
         }
@@ -477,7 +478,13 @@ public class WorldFragment
     return;
   }
 
-  public enum AsynchronousReadStages {SETUP, TILEDATA, ENTITYDATA, COMPLETE};
+  public enum AsynchronousReadStages
+  {
+    SETUP(0.1), TILEDATA(0.7), ENTITYDATA(0.2), COMPLETE(0.0);
+
+    AsynchronousReadStages(double i_durationWeight) {durationWeight = i_durationWeight;}
+    public double durationWeight;   // roughly how long each stage will take - total of all stages should be 1.0
+  }
 
   private class AsynchronousRead implements AsynchronousToken
   {
@@ -502,6 +509,12 @@ public class WorldFragment
       readFromWorldAsynchronous_do(worldServer, this);
     }
 
+    @Override
+    public double getFractionComplete()
+    {
+      return cumulativeCompletion + currentStage.durationWeight * stageFractionComplete;
+    }
+
     public AsynchronousRead(WorldServer i_worldServer, VoxelSelection i_voxelSelection, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin)
     {
       worldServer = i_worldServer;
@@ -511,12 +524,24 @@ public class WorldFragment
       voxelSelection = i_voxelSelection;
       currentStage = AsynchronousReadStages.SETUP;
       interruptTimeNS = INFINITE_TIMEOUT;
+      stageFractionComplete = 0;
+      cumulativeCompletion = 0;
       x = 0;
       z = 0;
     }
 
     public AsynchronousReadStages getStage() {return currentStage;}
-    public void setStage(AsynchronousReadStages nextStage) { currentStage = nextStage; }
+    public void setStage(AsynchronousReadStages nextStage)
+    {
+      cumulativeCompletion += currentStage.durationWeight;
+      currentStage = nextStage;
+    }
+
+    public void setStageFractionComplete(double completionFraction)
+    {
+      assert (completionFraction >= 0 && completionFraction <= 1.0);
+      stageFractionComplete = completionFraction;
+    }
 
     public final WorldServer worldServer;
     public final int wxOrigin;
@@ -529,6 +554,8 @@ public class WorldFragment
 
     private AsynchronousReadStages currentStage;
     private long interruptTimeNS;
+    private double stageFractionComplete;
+    private double cumulativeCompletion;
   }
 
 
@@ -548,7 +575,6 @@ public class WorldFragment
     writeToWorld(worldServer, wxOrigin, wyOrigin, wzOrigin, writeMask, noChange);
   }
 
-
   /**
    * Write the WorldFragment to the world
    * If the voxel selection and bordermaskSelection are defined, only writes those voxels, otherwise writes the entire cuboid
@@ -562,6 +588,38 @@ public class WorldFragment
   public void writeToWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin,
                            VoxelSelection writeMask, QuadOrientation orientation)
   {
+    AsynchronousWrite dummyToken = new AsynchronousWrite(worldServer, writeMask, wxOrigin, wyOrigin, wzOrigin, orientation);
+    writeToWorldAsynchronous_do(worldServer, dummyToken);
+  }
+
+  /**
+   * Write the WorldFragment to the world
+   * If the voxel selection and bordermaskSelection are defined, only writes those voxels, otherwise writes the entire cuboid
+   * Runs asynchronously: after the initial call, use the returned token to monitor and advance the task
+   *    -> repeatedly call token.setTimeToInterrupt() and token.continueProcessing()
+  * @param worldServer
+   * @param wxOrigin the world x coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @param wyOrigin the world y coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @param wzOrigin the world z coordinate corresponding to the [0,0,0] corner of the WorldFragment
+   * @param writeMask the blocks to be written; or if null - all valid voxels in the fragment
+   * @param orientation the orientation of the fragment (flip, rotate)
+   */
+  public AsynchronousToken writeToWorldAsynchronous(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin,
+                                                    VoxelSelection writeMask, QuadOrientation orientation)
+  {
+    AsynchronousWrite taskToken = new AsynchronousWrite(worldServer, writeMask, wxOrigin, wyOrigin, wzOrigin, orientation);
+    taskToken.setTimeToInterrupt(taskToken.IMMEDIATE_TIMEOUT);
+    writeToWorldAsynchronous_do(worldServer, taskToken);
+    return taskToken;
+  }
+
+  /**
+   * Write the WorldFragment to the world
+   * If the voxel selection and bordermaskSelection are defined, only writes those voxels, otherwise writes the entire cuboid
+   * @param worldServer
+   */
+  private void writeToWorldAsynchronous_do(WorldServer worldServer, AsynchronousWrite state)
+  {
     /* the steps are
     10: delete EntityHanging to stop resource leaks / items popping out
     20: copy ID and metadata to chunk directly (chunk setBlockIDwithMetadata without the updating)
@@ -574,8 +632,13 @@ public class WorldFragment
     60: updateTick for all blocks to restart updating (causes Dispensers to dispense, but leave for now)
      */
 
-    VoxelSelection selection = voxelsWithStoredData;
+    VoxelSelection writeMask = state.writeMask;
+    int wxOrigin = state.wxOrigin;
+    int wyOrigin = state.wyOrigin;
+    int wzOrigin = state.wzOrigin;
+    QuadOrientation orientation = state.quadOrientation;
 
+    VoxelSelection selection = voxelsWithStoredData;
     if (writeMask != null) {
       assert voxelsWithStoredData.containsAllOfThisMask(writeMask);
       selection = writeMask;
@@ -586,62 +649,77 @@ public class WorldFragment
     orientation.getWXZranges(xrange, zrange);
     int wxMin = xrange.getFirst() + wxOrigin;
     int wxMaxPlusOne = xrange.getSecond() + 1 + wxOrigin;
+    int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
+    int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
     int wzMin = zrange.getFirst() + wzOrigin;
     int wzMaxPlusOne = zrange.getSecond() + 1 + wzOrigin;
 
-    final double EXPAND = 3;
-    AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxMin, wyOrigin, wzMin,
-            wxMaxPlusOne, wyOrigin + yCount, wzMaxPlusOne)
-            .expand(EXPAND, EXPAND, EXPAND);
+    if (state.getStage() == AsynchronousWriteStages.SETUP) {
+      final double EXPAND = 3;
+      AxisAlignedBB axisAlignedBB = AxisAlignedBB.getBoundingBox(wxMin, wyOrigin, wzMin,
+              wxMaxPlusOne, wyOrigin + yCount, wzMaxPlusOne)
+              .expand(EXPAND, EXPAND, EXPAND);
 
-    List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
+      List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
-    for (EntityHanging entity : allHangingEntities) {
-      int x = orientation.calcXfromWXZ(entity.xPosition - wxOrigin, entity.zPosition - wzOrigin);
-      int y = entity.yPosition - wyOrigin;
-      int z = orientation.calcZfromWXZ(entity.xPosition - wxOrigin, entity.zPosition - wzOrigin);
+      for (EntityHanging entity : allHangingEntities) {
+        int x = orientation.calcXfromWXZ(entity.xPosition - wxOrigin, entity.zPosition - wzOrigin);
+        int y = entity.yPosition - wyOrigin;
+        int z = orientation.calcZfromWXZ(entity.xPosition - wxOrigin, entity.zPosition - wzOrigin);
 
-      if (selection.getVoxel(x, y, z)) {
-        entity.setDead();
+        if (selection.getVoxel(x, y, z)) {
+          entity.setDead();
+        }
       }
+      state.setStage(AsynchronousWriteStages.WRITE_TILEDATA);
+      if (state.isTimeToInterrupt()) return;
     }
 
-    //todo: keep track of dirty chunks here
-    int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
-    int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
+    if (state.getStage() == AsynchronousWriteStages.WRITE_TILEDATA) {
+      //todo: keep track of dirty chunks here
 
-    for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
-      for (int z = 0; z < zCount; ++z) {
-        for (int x = 0; x < xCount; ++x) {
-          if (selection.getVoxel(x, y, z)) {
-            int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
-            int wy = y + wyOrigin;
-            int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
-            int blockID = getBlockID(x, y, z);
-            int blockMetadata = getMetadata(x, y, z);
-            byte lightValue = getLightValue(x, y, z);
-            NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
+      int x = state.x;
+      int z = state.z;
+      for (; z < zCount; ++z, x = 0) {
+        for (; x < xCount; ++x) {
+          for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
+            if (selection.getVoxel(x, y, z)) {
+              int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
+              int wy = y + wyOrigin;
+              int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
+              int blockID = getBlockID(x, y, z);
+              int blockMetadata = getMetadata(x, y, z);
+              byte lightValue = getLightValue(x, y, z);
+              NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
 
-            Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+              Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
 
-            chunk.removeChunkBlockTileEntity(wx & 0x0f, wy, wz & 0x0f);
+              chunk.removeChunkBlockTileEntity(wx & 0x0f, wy, wz & 0x0f);
 
-            if (orientation.isFlippedX()) {
-              blockMetadata = BlockRotateFlipHelper.flip(blockID, blockMetadata, BlockRotateFlipHelper.FlipDirection.WEST_EAST);
+              if (orientation.isFlippedX()) {
+                blockMetadata = BlockRotateFlipHelper.flip(blockID, blockMetadata, BlockRotateFlipHelper.FlipDirection.WEST_EAST);
+              }
+              for (int quadrants = orientation.getClockwiseRotationCount(); quadrants > 0; --quadrants) {
+                blockMetadata = BlockRotateFlipHelper.rotate90(blockID, blockMetadata);
+              }
+
+              boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
+              if (successful && tileEntityNBT != null) {
+                setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
+              }
+
+              setLightValue(chunk, wx, wy, wz, lightValue);
             }
-            for (int quadrants = orientation.getClockwiseRotationCount(); quadrants > 0; --quadrants) {
-              blockMetadata = BlockRotateFlipHelper.rotate90(blockID, blockMetadata);
-            }
-
-            boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
-            if (successful && tileEntityNBT != null) {
-              setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
-            }
-
-            setLightValue(chunk, wx, wy, wz, lightValue);
+          } // for y
+          if (state.isTimeToInterrupt()) {
+            state.z = z;
+            state.x = x + 1;
+            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
+            return;
           }
         }
       }
+      state.setStage(AsynchronousWriteStages.HEIGHT_AND_SKYLIGHT);
     }
 
     final int cxMin = wxMin >> 4;
@@ -651,107 +729,231 @@ public class WorldFragment
     final int czMin = wzMin >> 4;
     final int czMax = (wzMaxPlusOne - 1) >> 4;
 
-//    int cyFlags = 0;
-//    for (int cy = cyMin; cy <= cyMax; ++cy) {
-//      cyFlags |= 1 << cy;
-//    }
+    if (state.getStage() == AsynchronousWriteStages.HEIGHT_AND_SKYLIGHT) {
+      int cx = state.x;
+      int cz = state.z;
+      int xCount = cxMax - cxMin + 1;
+      int zCount = czMax - czMin + 1;
 
-    for (int cx = cxMin; cx <= cxMax; ++cx) {
-      for (int cz = czMin; cz <= czMax; ++cz) {
-        Chunk chunk = worldServer.getChunkFromChunkCoords(cx, cz);
-        chunk.generateHeightMap();
-        chunk.generateSkylightMap();
-      }
-    }
-
-    for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
-      for (int z = 0; z < zCount; ++z) {
-        for (int x = 0; x < xCount; ++x) {
-          if (selection.getVoxel(x, y, z)) {
-            int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
-            int wy = y + wyOrigin;
-            int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
-            int blockID = worldServer.getBlockId(wx, wy, wz);
-            worldServer.func_96440_m(wx, wy, wz, blockID);
-
-            worldServer.notifyBlockOfNeighborChange(wx - 1, wy, wz, blockID);
-            worldServer.notifyBlockOfNeighborChange(wx + 1, wy, wz, blockID);
-            worldServer.notifyBlockOfNeighborChange(wx, wy - 1, wz, blockID);
-            worldServer.notifyBlockOfNeighborChange(wx, wy + 1, wz, blockID);
-            worldServer.notifyBlockOfNeighborChange(wx, wy, wz - 1, blockID);
-            worldServer.notifyBlockOfNeighborChange(wx, wy, wz + 1, blockID);
+      for (; cx < xCount; ++cx, cz = 0) {
+        for (; cz < zCount; ++cz) {
+          Chunk chunk = worldServer.getChunkFromChunkCoords(cx + cxMin, cz + czMin);
+          chunk.generateHeightMap();
+          chunk.generateSkylightMap();
+          if (state.isTimeToInterrupt()) {
+            state.x = cx;
+            state.z = cz + 1;
+            state.setStageFractionComplete((cx * zCount + cz) / (double)(zCount * xCount));
+            return;
           }
         }
       }
+      state.setStage(AsynchronousWriteStages.NEIGHBOUR_CHANGE);
     }
 
-    for (int cx = cxMin; cx <= cxMax; ++cx) {
-      for (int cz = czMin; cz <= czMax; ++cz) {
-        // mark chunks for "loading" (transfer to any interested player)
-        PlayerManager playerManager = worldServer.getPlayerManager();
-        if (playerManager != null) {  // may be null during testing
-          for (Object playerEntity : worldServer.playerEntities) {
-            EntityPlayerMP entityPlayerMP = (EntityPlayerMP)playerEntity;
-            if (playerManager.isPlayerWatchingChunk(entityPlayerMP, cx, cz)) {        // todo later: this might be slow because it searches loadedChunks unnecessarily; optimise later
-              Chunk chunk = worldServer.getChunkFromChunkCoords(cx, cz);
-              ChunkCoordIntPair chunkCoordIntPair = chunk.getChunkCoordIntPair();
-              entityPlayerMP.loadedChunks.add(chunkCoordIntPair);                     // a better name for "loadedChunks" would be "dirtyChunksQueuedForSending"
+    if (state.getStage() == AsynchronousWriteStages.NEIGHBOUR_CHANGE) {
+      int x = state.x;
+      int z = state.z;
+      for (; z < zCount; ++z, x = 0) {
+        for (; x < xCount; ++x) {
+          for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
+            if (selection.getVoxel(x, y, z)) {
+              int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
+              int wy = y + wyOrigin;
+              int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
+              int blockID = worldServer.getBlockId(wx, wy, wz);
+              worldServer.func_96440_m(wx, wy, wz, blockID);
+
+              worldServer.notifyBlockOfNeighborChange(wx - 1, wy, wz, blockID);
+              worldServer.notifyBlockOfNeighborChange(wx + 1, wy, wz, blockID);
+              worldServer.notifyBlockOfNeighborChange(wx, wy - 1, wz, blockID);
+              worldServer.notifyBlockOfNeighborChange(wx, wy + 1, wz, blockID);
+              worldServer.notifyBlockOfNeighborChange(wx, wy, wz - 1, blockID);
+              worldServer.notifyBlockOfNeighborChange(wx, wy, wz + 1, blockID);
             }
           }
+          if (state.isTimeToInterrupt()) {
+            state.z = z;
+            state.x = x + 1;
+            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
+            return;
+          }
         }
+      }
+      state.setStage(AsynchronousWriteStages.SEND_CHUNKS_AND_ENTITIES);
+    }
 
-//        int xmin = Math.max(cx << 4, wxOrigin);
-//        int ymin = yClipMin + wyOrigin;
-//        int zmin = Math.max(cz << 4, wzOrigin);
-//        int xmax = Math.min((cx << 4) | 0x0f, wxOrigin + xCount - 1);
-//        int ymax = wyOrigin + yClipMaxPlusOne - 1;
-//        int zmax = Math.min((cz << 4) | 0x0f, wzOrigin + zCount - 1);
+    if (state.getStage() == AsynchronousWriteStages.SEND_CHUNKS_AND_ENTITIES) {
+      int cxOffset = state.x;
+      int czOffset = state.z;
+      int xCount = cxMax - cxMin + 1;
+      int zCount = czMax - czMin + 1;
+      for (; cxOffset < xCount; ++cxOffset, czOffset = 0) {
+        for (; czOffset < zCount; ++czOffset) {
+          int cx = cxOffset + cxMin;
+          int cz = czOffset + czMin;
+          // mark chunks for "loading" (transfer to any interested player)
+          PlayerManager playerManager = worldServer.getPlayerManager();
+          if (playerManager != null) {  // may be null during testing
+            for (Object playerEntity : worldServer.playerEntities) {
+              EntityPlayerMP entityPlayerMP = (EntityPlayerMP) playerEntity;
+              if (playerManager.isPlayerWatchingChunk(entityPlayerMP, cx, cz)) {        // todo later: this might be slow because it searches loadedChunks unnecessarily; optimise later
+                Chunk chunk = worldServer.getChunkFromChunkCoords(cx, cz);
+                ChunkCoordIntPair chunkCoordIntPair = chunk.getChunkCoordIntPair();
+                entityPlayerMP.loadedChunks.add(chunkCoordIntPair);                     // a better name for "loadedChunks" would be "dirtyChunksQueuedForSending"
+              }
+            }
+          }
 
-        int xmin = cx << 4;
-        int ymin = yClipMin + wyOrigin;
-        int zmin = cz << 4;
-        int xmax = (cx << 4) | 0x0f;
-        int ymax = wyOrigin + yClipMaxPlusOne - 1;
-        int zmax = (cz << 4) | 0x0f;
+          int xmin = cx << 4;
+          int ymin = yClipMin + wyOrigin;
+          int zmin = cz << 4;
+          int xmax = (cx << 4) | 0x0f;
+          int ymax = wyOrigin + yClipMaxPlusOne - 1;
+          int zmax = (cz << 4) | 0x0f;
 
-        for (int wx = xmin; wx <= xmax; ++wx) {
-          for (int wy = ymin; wy <= ymax; ++wy) {
-            for (int wz = zmin; wz <= zmax; ++wz) {
-              int x = orientation.calcXfromWXZ(wx - wxOrigin, wz - wzOrigin);
-              int y = wy - wyOrigin;
-              int z = orientation.calcZfromWXZ(wx - wxOrigin, wz - wzOrigin);
-              if (selection.getVoxel(x, y, z)) {
-                LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(x, y, z);
-                if (listOfEntitiesAtThisBlock != null) {
-                  for (NBTTagCompound nbtTagCompound : listOfEntitiesAtThisBlock) {
-                    Entity newEntity = spawnRotatedTranslatedEntity(worldServer, nbtTagCompound, wx, wy, wz, orientation);
-                    if (newEntity != null) {
-                      worldServer.spawnEntityInWorld(newEntity);
+          for (int wx = xmin; wx <= xmax; ++wx) {
+            for (int wy = ymin; wy <= ymax; ++wy) {
+              for (int wz = zmin; wz <= zmax; ++wz) {
+                int x = orientation.calcXfromWXZ(wx - wxOrigin, wz - wzOrigin);
+                int y = wy - wyOrigin;
+                int z = orientation.calcZfromWXZ(wx - wxOrigin, wz - wzOrigin);
+                if (selection.getVoxel(x, y, z)) {
+                  LinkedList<NBTTagCompound> listOfEntitiesAtThisBlock = getEntitiesAtBlock(x, y, z);
+                  if (listOfEntitiesAtThisBlock != null) {
+                    for (NBTTagCompound nbtTagCompound : listOfEntitiesAtThisBlock) {
+                      Entity newEntity = spawnRotatedTranslatedEntity(worldServer, nbtTagCompound, wx, wy, wz, orientation);
+                      if (newEntity != null) {
+                        worldServer.spawnEntityInWorld(newEntity);
+                      }
                     }
                   }
                 }
               }
             }
+          } // for y
+          if (state.isTimeToInterrupt()) {
+            state.z = czOffset + 1;
+            state.x = cxOffset;
+            state.setStageFractionComplete((cxOffset * zCount + czOffset) / (double)(zCount * xCount));
+            return;
           }
         }
       }
+      state.setStage(AsynchronousWriteStages.UPDATE_TICKS);
     }
 
-    for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
-      for (int z = 0; z < zCount; ++z) {
-        for (int x = 0; x < xCount; ++x) {
-          if (selection.getVoxel(x, y, z)) {
-            int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
-            int wy = y + wyOrigin;
-            int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
-            int blockID = getBlockID(x, y, z);
-            if (blockID > 0) {
-              Block.blocksList[blockID].updateTick(worldServer, wx, wy, wz, worldServer.rand);
+    if (state.getStage() == AsynchronousWriteStages.UPDATE_TICKS) {
+      int x = state.x;
+      int z = state.z;
+      for (; z < zCount; ++z, x = 0) {
+        for (; x < xCount; ++x) {
+          for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
+            if (selection.getVoxel(x, y, z)) {
+              int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
+              int wy = y + wyOrigin;
+              int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
+              int blockID = getBlockID(x, y, z);
+              if (blockID > 0) {
+                Block.blocksList[blockID].updateTick(worldServer, wx, wy, wz, worldServer.rand);
+              }
             }
+          }
+          if (state.isTimeToInterrupt()) {
+            state.x = x + 1;
+            state.z = z;
+            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
+            return;
           }
         }
       }
+      state.setStage(AsynchronousWriteStages.COMPLETE);
     }
+  }
+
+  public enum AsynchronousWriteStages
+  {
+    SETUP(0.1), WRITE_TILEDATA(0.3), HEIGHT_AND_SKYLIGHT(0.1), NEIGHBOUR_CHANGE(0.2), SEND_CHUNKS_AND_ENTITIES(0.2), UPDATE_TICKS(0.1), COMPLETE(0.0);
+
+    AsynchronousWriteStages(double i_durationWeight) {durationWeight = i_durationWeight;}
+    public double durationWeight;
+  }
+
+  private class AsynchronousWrite implements AsynchronousToken
+  {
+
+    @Override
+    public boolean isTaskComplete() {
+      return currentStage == AsynchronousWriteStages.COMPLETE;
+    }
+
+    @Override
+    public boolean isTimeToInterrupt() {
+      return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
+    }
+
+    @Override
+    public void setTimeToInterrupt(long timeToStopNS) {
+      interruptTimeNS = timeToStopNS;
+    }
+
+    @Override
+    public void continueProcessing() {
+      writeToWorldAsynchronous_do(worldServer, this);
+    }
+
+    @Override
+    public double getFractionComplete()
+    {
+      return cumulativeCompletion + currentStage.durationWeight * stageFractionComplete;
+    }
+
+    public AsynchronousWrite(WorldServer i_worldServer, VoxelSelection i_voxelSelection, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, QuadOrientation i_quadOrientation)
+    {
+      worldServer = i_worldServer;
+      wxOrigin = i_wxOrigin;
+      wyOrigin = i_wyOrigin;
+      wzOrigin = i_wzOrigin;
+      writeMask = i_voxelSelection;
+      quadOrientation = i_quadOrientation;
+      currentStage = AsynchronousWriteStages.SETUP;
+      interruptTimeNS = INFINITE_TIMEOUT;
+      stageFractionComplete = 0;
+      cumulativeCompletion = 0;
+      x = 0;
+      z = 0;
+    }
+
+    public AsynchronousWriteStages getStage() {return currentStage;}
+    public void setStage(AsynchronousWriteStages nextStage)
+    {
+      cumulativeCompletion += currentStage.durationWeight;
+      currentStage = nextStage;
+      x = 0;
+      z = 0;
+    }
+
+    public void setStageFractionComplete(double completionFraction)
+    {
+      assert (completionFraction >= 0 && completionFraction <= 1.0);
+      stageFractionComplete = completionFraction;
+    }
+
+    public final WorldServer worldServer;
+    public final int wxOrigin;
+    public final int wyOrigin;
+    public final int wzOrigin;
+    public final VoxelSelection writeMask;
+    public final QuadOrientation quadOrientation;
+
+    public int x;
+    public int z;
+
+    private AsynchronousWriteStages currentStage;
+    private long interruptTimeNS;
+    private double stageFractionComplete;
+    private double cumulativeCompletion;
+
   }
 
   /**
