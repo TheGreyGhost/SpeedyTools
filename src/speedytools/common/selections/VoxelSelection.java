@@ -23,6 +23,16 @@ public class VoxelSelection
     resize(xSize, ySize, zSize);
   }
 
+  /** deep copy
+   *
+   * @param source
+   */
+  public VoxelSelection(VoxelSelection source)
+  {
+    resize(source.xSize, source.ySize, source.zSize);
+    voxels = (BitSet)source.voxels.clone();
+  }
+
   public void clearAll()
   {
     voxels.clear();
@@ -35,7 +45,7 @@ public class VoxelSelection
 
   public void setAll()
   {
-    voxels.set(0, xsize * ysize * zsize);
+    voxels.set(0, xSize * ySize * zSize);
   }
 
   /**
@@ -46,12 +56,12 @@ public class VoxelSelection
    */
   public void setVoxel(int x, int y, int z)
   {
-    if (   x < 0 || x >= xsize
-        || y < 0 || y >= ysize
-        || z < 0 || z >= zsize) {
+    if (   x < 0 || x >= xSize
+        || y < 0 || y >= ySize
+        || z < 0 || z >= zSize) {
       return;
     }
-   voxels.set(x + xsize * (y + ysize * z));
+   voxels.set(x + xSize * (y + ySize * z));
   }
 
   /**
@@ -62,12 +72,12 @@ public class VoxelSelection
    */
   public void clearVoxel(int x, int y, int z)
   {
-    if (   x < 0 || x >= xsize
-        || y < 0 || y >= ysize
-        || z < 0 || z >= zsize) {
+    if (   x < 0 || x >= xSize
+        || y < 0 || y >= ySize
+        || z < 0 || z >= zSize) {
       return;
     }
-    voxels.clear(x + xsize * (y + ysize * z));
+    voxels.clear(x + xSize * (y + ySize * z));
   }
 
   /**
@@ -79,13 +89,13 @@ public class VoxelSelection
    */
   public boolean getVoxel(int x, int y, int z)
   {
-    if (   x < 0 || x >= xsize
-        || y < 0 || y >= ysize
-        || z < 0 || z >= zsize) {
+    if (   x < 0 || x >= xSize
+        || y < 0 || y >= ySize
+        || z < 0 || z >= zSize) {
       return false;
     }
 
-    return voxels.get(x + xsize *(y + ysize * z) );
+    return voxels.get(x + xSize *(y + ySize * z) );
   }
 
   private void resize(int x, int y, int z)
@@ -98,11 +108,11 @@ public class VoxelSelection
       y = 1;
       z = 1;
     }
-    xsize = x;
-    ysize = y;
-    zsize = z;
+    xSize = x;
+    ySize = y;
+    zSize = z;
     if (voxels == null) {
-      voxels = new BitSet(xsize * ysize * zsize);     // default to all false
+      voxels = new BitSet(xSize * ySize * zSize);     // default to all false
     } else {
       voxels.clear();
     }
@@ -117,9 +127,9 @@ public class VoxelSelection
     try {
       bos = new ByteArrayOutputStream();
       DataOutputStream outputStream = new DataOutputStream(bos);
-      outputStream.writeInt(xsize);
-      outputStream.writeInt(ysize);
-      outputStream.writeInt(zsize);
+      outputStream.writeInt(xSize);
+      outputStream.writeInt(ySize);
+      outputStream.writeInt(zSize);
 
       ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
       objectOutputStream.writeObject(voxels);
@@ -149,9 +159,9 @@ public class VoxelSelection
       ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
       Object newVoxels = objectInputStream.readObject();
       if (! (newVoxels instanceof BitSet)) return false;
-      xsize = newXsize;
-      ysize = newYsize;
-      zsize = newZsize;
+      xSize = newXsize;
+      ySize = newYsize;
+      zSize = newZsize;
       voxels = (BitSet)newVoxels;
     } catch (ClassNotFoundException cnfe) {
       ErrorLog.defaultLog().warning("Exception while VoxelSelection.readFromDataArray: " + cnfe);
@@ -173,10 +183,10 @@ public class VoxelSelection
 
   public VoxelSelection makeCopyWithEmptyBorder(int borderWidth)
   {
-    VoxelSelection copy = new VoxelSelection(xsize + 2 * borderWidth, ysize + 2 * borderWidth, zsize + 2 * borderWidth);
-    for (int x = 0; x < xsize; ++x) {
-      for (int y = 0; y < ysize; ++y) {
-        for (int z = 0; z < zsize; ++z) {
+    VoxelSelection copy = new VoxelSelection(xSize + 2 * borderWidth, ySize + 2 * borderWidth, zSize + 2 * borderWidth);
+    for (int x = 0; x < xSize; ++x) {
+      for (int y = 0; y < ySize; ++y) {
+        for (int z = 0; z < zSize; ++z) {
           if (getVoxel(x,y,z)) {
             copy.setVoxel(x + borderWidth, y + borderWidth, z + borderWidth);
           }
@@ -185,6 +195,36 @@ public class VoxelSelection
     }
     return copy;
   }
+
+  /** splits this VoxelSelection into two, in accordance with the supplied mask:
+   * voxels which are set in the mask are removed from this VoxelSelection and placed into the new VoxelSelection
+   * @param mask
+   * @param xOffsetOfMask the origin of the mask relative to the origin of this fragment
+   * @param yOffsetOfMask
+   * @param zOffsetOfMask
+   * @return a new WorldFragment containing those voxels that are also present in the mask.  Shallow copy of the original
+   */
+  public VoxelSelection splitByMask(VoxelSelection mask, int xOffsetOfMask, int yOffsetOfMask, int zOffsetOfMask)
+  {
+    VoxelSelection overlapped = new VoxelSelection(this);
+    int xSize = mask.getxSize();
+    int ySize = mask.getySize();
+    int zSize = mask.getzSize();
+    for (int x = 0; x < xSize; ++x) {
+      for (int z = 0; z < zSize; ++z) {
+        for (int y = 0; y < ySize; ++y) {
+          if (mask.getVoxel(x, y, z)) {
+            if (getVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask)) {
+              overlapped.setVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
+              this.clearVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
+            }
+          }
+        }
+      }
+    }
+    return overlapped;
+  }
+
 
   /**
    * Creates a reoriented copy of this VoxelSelection and add a border of blank voxels on all faces.
@@ -197,8 +237,8 @@ public class VoxelSelection
   {
     int wxMin = wxzOrigin.getFirst();
     int wzMin = wxzOrigin.getSecond();
-    Pair<Integer, Integer> xrange = new Pair<Integer, Integer>(wxMin, wxMin + xsize - 1);
-    Pair<Integer, Integer> zrange = new Pair<Integer, Integer>(wzMin, wzMin + zsize - 1);
+    Pair<Integer, Integer> xrange = new Pair<Integer, Integer>(wxMin, wxMin + xSize - 1);
+    Pair<Integer, Integer> zrange = new Pair<Integer, Integer>(wzMin, wzMin + zSize - 1);
     orientation.getWXZranges(xrange, zrange);
     int wxNewMin = xrange.getFirst();
     int wzNewMin = zrange.getFirst();
@@ -207,12 +247,12 @@ public class VoxelSelection
 
 
     int newXsize = (xrange.getSecond() - xrange.getFirst() + 1) + 2 * borderWidth;
-    int newYsize = ysize + 2* borderWidth;
+    int newYsize = ySize + 2* borderWidth;
     int newZsize = (zrange.getSecond() - zrange.getFirst() + 1) + 2 * borderWidth;
     VoxelSelection copy = new VoxelSelection(newXsize, newYsize, newZsize);
-    for (int x = 0; x < xsize; ++x) {
-      for (int y = 0; y < ysize; ++y) {
-        for (int z = 0; z < zsize; ++z) {
+    for (int x = 0; x < xSize; ++x) {
+      for (int y = 0; y < ySize; ++y) {
+        for (int z = 0; z < zSize; ++z) {
           if (getVoxel(x,y,z)) {
             copy.setVoxel(orientation.calcWXfromXZ(x, z) + borderWidth - wxNewMin,
                           y + borderWidth,
@@ -234,10 +274,10 @@ public class VoxelSelection
    */
   public VoxelSelection generateBorderMask()
   {
-    VoxelSelection copy = new VoxelSelection(xsize, ysize, zsize);
-    for (int x = 0; x < xsize; ++x) {
-      for (int y = 0; y < ysize; ++y) {
-        for (int z = 0; z < zsize; ++z) {
+    VoxelSelection copy = new VoxelSelection(xSize, ySize, zSize);
+    for (int x = 0; x < xSize; ++x) {
+      for (int y = 0; y < ySize; ++y) {
+        for (int z = 0; z < zSize; ++z) {
           if (!getVoxel(x, y, z)) {
             if (getVoxel(x-1, y, z) || getVoxel(x+1, y, z) || getVoxel(x, y-1, z) || getVoxel(x, y+1, z) || getVoxel(x, y, z-1) || getVoxel(x, y, z+1)) {
               copy.setVoxel(x, y, z);
@@ -256,10 +296,10 @@ public class VoxelSelection
    */
   public void clipToYrange(int yMin, int yMax)
   {
-    for (int y = 0; y < ysize; ++y) {
+    for (int y = 0; y < ySize; ++y) {
       if (y < yMin || y > yMax) {
-        for (int x = 0; x < xsize; ++x) {
-          for (int z = 0; z < zsize; ++z) {
+        for (int x = 0; x < xSize; ++x) {
+          for (int z = 0; z < zSize; ++z) {
             clearVoxel(x,y,z);
           }
         }
@@ -273,7 +313,7 @@ public class VoxelSelection
    */
   public boolean containsAllOfThisMask(VoxelSelection voxelSelection)
   {
-    assert(voxelSelection.xsize == this.xsize && voxelSelection.ysize == this.ysize && voxelSelection.zsize == this.zsize);
+    assert(voxelSelection.xSize == this.xSize && voxelSelection.ySize == this.ySize && voxelSelection.zSize == this.zSize);
     BitSet maskBitsNotInThis = (BitSet)voxelSelection.voxels.clone();
     maskBitsNotInThis.andNot(this.voxels);
     return maskBitsNotInThis.length() == 0;
@@ -285,29 +325,29 @@ public class VoxelSelection
    */
   public void union(VoxelSelection voxelSelection)
   {
-    assert(voxelSelection.xsize == this.xsize && voxelSelection.ysize == this.ysize && voxelSelection.zsize == this.zsize);
+    assert(voxelSelection.xSize == this.xSize && voxelSelection.ySize == this.ySize && voxelSelection.zSize == this.zSize);
     voxels.or(voxelSelection.voxels);
   }
 
   private BitSet voxels;
 
-  public int getXsize() {
-    return xsize;
+  public int getxSize() {
+    return xSize;
   }
 
-  public int getYsize() {
-    return ysize;
+  public int getySize() {
+    return ySize;
   }
 
-  public int getZsize() {
-    return zsize;
+  public int getzSize() {
+    return zSize;
   }
 
   public int getSetVoxelsCount()
   {
     return voxels.cardinality();
   }
-  protected int xsize;
-  protected int ysize;
-  protected int zsize;
+  protected int xSize;
+  protected int ySize;
+  protected int zSize;
 }

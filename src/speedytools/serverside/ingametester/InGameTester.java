@@ -456,7 +456,7 @@ public class InGameTester
     AsynchronousToken token = asyncWorldFragment.readFromWorldAsynchronous(worldServer, testRegions.sourceRegion.posX,
                                                                            testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
     while (!token.isTaskComplete()) {
-      token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+      token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
       token.continueProcessing();
     }
 
@@ -464,7 +464,7 @@ public class InGameTester
     AsynchronousToken writeToken = asyncWorldFragment.writeToWorldAsynchronous(worldServer, testRegions.testOutputRegion.posX,
                                                                                testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, voxelSelection, orientation);
     while (!writeToken.isTaskComplete()) {
-      writeToken.setTimeToInterrupt(writeToken.IMMEDIATE_TIMEOUT);
+      writeToken.setTimeOfInterrupt(writeToken.IMMEDIATE_TIMEOUT);
       writeToken.continueProcessing();
     }
 
@@ -516,7 +516,7 @@ public class InGameTester
     AsynchronousToken token = asyncWorldSelectionUndo.writeToWorldAsynchronous(worldServer, sourceWorldFragment,
                                                                                   testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, identity);
     while (!token.isTaskComplete()) {
-      token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+      token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
       token.continueProcessing();
     }
 
@@ -540,7 +540,7 @@ public class InGameTester
     // asynchronous undo
     token = asyncWorldSelectionUndo.undoChangesAsynchronous(worldServer, dummyList);
     while (!token.isTaskComplete()) {
-      token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+      token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
       token.continueProcessing();
     }
 

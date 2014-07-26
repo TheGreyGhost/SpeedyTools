@@ -555,7 +555,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
           } else {
             currentToolSelectionState = ToolSelectionStates.DISPLAYING_SELECTION;
             selectionGenerationState = SelectionGenerationState.IDLE;
-            selectionOrientation = new QuadOrientation(0, 0, voxelSelectionManager.getSelection().getXsize(), voxelSelectionManager.getSelection().getZsize());
+            selectionOrientation = new QuadOrientation(0, 0, voxelSelectionManager.getSelection().getxSize(), voxelSelectionManager.getSelection().getzSize());
             hasBeenMoved = false;
             selectionGrabActivated = false;
           }

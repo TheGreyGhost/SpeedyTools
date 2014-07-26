@@ -50,6 +50,19 @@ public class WorldSelectionUndo
   }
 
   /**
+   * shallow copy of a WorldSelectionUndo
+   * @param source
+   */
+  public WorldSelectionUndo(WorldSelectionUndo source)
+  {
+    wxOfOrigin = source.wxOfOrigin;
+    wyOfOrigin = source.wyOfOrigin;
+    wzOfOrigin = source.wzOfOrigin;
+    undoWorldFragment = source.undoWorldFragment;
+    changedBlocksMask = source.changedBlocksMask;
+  }
+
+  /**
    * writes the given WorldFragment into the world, saving enough information to allow for a subsequent undo
    * @param worldServer
    * @param fragmentToWrite
@@ -88,7 +101,7 @@ public class WorldSelectionUndo
   public AsynchronousToken writeToWorldAsynchronous(WorldServer worldServer, WorldFragment fragmentToWrite, int i_wxOfOrigin, int i_wyOfOrigin, int i_wzOfOrigin, QuadOrientation quadOrientation)
   {
     AsynchronousWrite token = new AsynchronousWrite(worldServer, fragmentToWrite, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, quadOrientation);
-    token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+    token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
     writeToWorldAsynchronous_do(worldServer, token);
     return token;
   }
@@ -119,13 +132,13 @@ public class WorldSelectionUndo
       wyOfOrigin = state.wyOrigin - BORDER_WIDTH;
       wzOfOrigin = state.wzOrigin - BORDER_WIDTH + wxzOriginMove.getSecond();
 
-      int wyMax = wyOfOrigin + state.expandedSelection.getYsize();
+      int wyMax = wyOfOrigin + state.expandedSelection.getySize();
       if (wyOfOrigin < Y_MIN_VALID || wyMax >= Y_MAX_VALID_PLUS_ONE) {
         state.expandedSelection.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
         state.borderMask.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
       }
 
-      undoWorldFragment = new WorldFragment(state.expandedSelection.getXsize(), state.expandedSelection.getYsize(), state.expandedSelection.getZsize());
+      undoWorldFragment = new WorldFragment(state.expandedSelection.getxSize(), state.expandedSelection.getySize(), state.expandedSelection.getzSize());
       AsynchronousToken token = undoWorldFragment.readFromWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.expandedSelection);
       state.setSubTask(token);
       state.setStage(AsynchronousWriteStages.READ_UNDO_FRAGMENT);
@@ -148,7 +161,7 @@ public class WorldSelectionUndo
       if (!subTaskFinished) return;
 
 //    borderFragmentAfterWrite.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, borderMask);
-      state.borderFragmentAfterWrite = new WorldFragment(state.borderMask.getXsize(), state.borderMask.getYsize(), state.borderMask.getZsize());
+      state.borderFragmentAfterWrite = new WorldFragment(state.borderMask.getxSize(), state.borderMask.getySize(), state.borderMask.getzSize());
       AsynchronousToken token = state.borderFragmentAfterWrite.readFromWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.borderMask);
       state.setSubTask(token);
       state.setStage(AsynchronousWriteStages.UPDATE_MASK);
@@ -163,9 +176,9 @@ public class WorldSelectionUndo
       VoxelSelection expandedSelection = state.expandedSelection;
       WorldFragment borderFragmentAfterWrite = state.borderFragmentAfterWrite;
 
-      for (int y = 0; y < borderMask.getYsize(); ++y) {
-        for (int x = 0; x < borderMask.getXsize(); ++x) {
-          for (int z = 0; z < borderMask.getZsize(); ++z) {
+      for (int y = 0; y < borderMask.getySize(); ++y) {
+        for (int x = 0; x < borderMask.getxSize(); ++x) {
+          for (int z = 0; z < borderMask.getzSize(); ++z) {
             if (borderMask.getVoxel(x, y, z)
                     && borderFragmentAfterWrite.doesVoxelMatch(undoWorldFragment, x, y, z)) {
               expandedSelection.clearVoxel(x, y, z);
@@ -199,7 +212,7 @@ public class WorldSelectionUndo
     }
 
     @Override
-    public void setTimeToInterrupt(long timeToStopNS) {
+    public void setTimeOfInterrupt(long timeToStopNS) {
       interruptTimeNS = timeToStopNS;
     }
 
@@ -248,7 +261,7 @@ public class WorldSelectionUndo
       if (subTask == null || subTask.isTaskComplete()) {
         return true;
       }
-      subTask.setTimeToInterrupt(interruptTimeNS);
+      subTask.setTimeOfInterrupt(interruptTimeNS);
       subTask.continueProcessing();
       stageFractionComplete = subTask.getFractionComplete();
       return subTask.isTaskComplete();
@@ -336,12 +349,12 @@ public class WorldSelectionUndo
       }
     }
 
-    WorldFragment borderFragmentAfterWrite = new WorldFragment(borderMask.getXsize(), borderMask.getYsize(), borderMask.getZsize());
+    WorldFragment borderFragmentAfterWrite = new WorldFragment(borderMask.getxSize(), borderMask.getySize(), borderMask.getzSize());
     borderFragmentAfterWrite.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, borderMask);
 
-    for (int y = 0; y < borderMask.getYsize(); ++y) {
-      for (int x = 0; x < borderMask.getXsize(); ++x) {
-        for (int z = 0; z < borderMask.getZsize(); ++z) {
+    for (int y = 0; y < borderMask.getySize(); ++y) {
+      for (int x = 0; x < borderMask.getxSize(); ++x) {
+        for (int z = 0; z < borderMask.getzSize(); ++z) {
           if (borderMask.getVoxel(x, y, z)
                   && borderFragmentAfterWrite.doesVoxelMatch(undoWorldFragment, x, y, z)) {
             expandedSelection.clearVoxel(x, y, z);
@@ -376,7 +389,7 @@ public class WorldSelectionUndo
   public AsynchronousToken undoChangesAsynchronous(WorldServer worldServer, List<WorldSelectionUndo> subsequentUndoLayers)
   {
     AsynchronousUndo token = new AsynchronousUndo(worldServer, subsequentUndoLayers);
-    token.setTimeToInterrupt(token.IMMEDIATE_TIMEOUT);
+    token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
     undoChangesAsynchronous_do(worldServer, token);
     return token;
   }
@@ -470,7 +483,7 @@ public class WorldSelectionUndo
     }
 
     @Override
-    public void setTimeToInterrupt(long timeToStopNS) {
+    public void setTimeOfInterrupt(long timeToStopNS) {
       interruptTimeNS = timeToStopNS;
     }
 
@@ -515,7 +528,7 @@ public class WorldSelectionUndo
       if (subTask == null || subTask.isTaskComplete()) {
         return true;
       }
-      subTask.setTimeToInterrupt(interruptTimeNS);
+      subTask.setTimeOfInterrupt(interruptTimeNS);
       subTask.continueProcessing();
       stageFractionComplete = subTask.getFractionComplete();
       return subTask.isTaskComplete();
@@ -594,6 +607,40 @@ public class WorldSelectionUndo
       } // for x
     } // for y
 
+  }
+
+  /** takes the input blocksToCheck list and removes any blocks that lie within the selection (undoWorldFragment), i.e. that
+   *    might be affected by the operation in progress.
+   * @param blocksToCheck
+   * @return a list of all blocks that aren't affected by the operation in progress
+   */
+  public List<ChunkCoordinates> excludeBlocksInSelection(List<ChunkCoordinates> blocksToCheck)
+  {
+    LinkedList<ChunkCoordinates> culledList = new LinkedList<ChunkCoordinates>();
+    for (ChunkCoordinates coordinate : blocksToCheck) {
+      if (undoWorldFragment.getVoxel(coordinate.posX - wxOfOrigin, coordinate.posY - wyOfOrigin, coordinate.posZ - wzOfOrigin)) {
+        culledList.add(coordinate);
+      }
+    }
+    return culledList;
+  }
+
+  /**
+   * Split this WorldSelectionUndo into two parts based on the supplied mask:
+   * Two WorldSelectionUndo are the result:
+   * this: all set voxels which were also present in the mask
+   * return value: all set voxels which were not present in the mask
+   * @param mask
+   * @param wxOriginMask world x,y,z of the origin of the mask
+   * @param wyOriginMask
+   * @param wzOriginMask
+   * @return
+   */
+  public WorldSelectionUndo splitByMask(VoxelSelection mask, int wxOriginMask, int wyOriginMask, int wzOriginMask)
+  {
+    WorldSelectionUndo culledCopy = new WorldSelectionUndo(this);
+    culledCopy.changedBlocksMask = changedBlocksMask.splitByMask(mask, wxOriginMask - wxOfOrigin, wyOriginMask - wyOfOrigin, wzOriginMask - wzOfOrigin);
+    return culledCopy;
   }
 
   /**

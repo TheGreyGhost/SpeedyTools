@@ -55,6 +55,21 @@ public class WorldFragment
     initialise(quadOrientation.getWXsize(), i_ycount, quadOrientation.getWZSize());
   }
 
+  /** make a shallow copy of the source fragment
+   *
+   * @param sourceFragment
+   */
+  public WorldFragment(WorldFragment sourceFragment)
+  {
+    xCount = sourceFragment.xCount;
+    yCount = sourceFragment.yCount;
+    zCount = sourceFragment.zCount;
+    blockDataStore = sourceFragment.blockDataStore;
+    tileEntityData = sourceFragment.tileEntityData;
+    entityData = sourceFragment.entityData;
+    voxelsWithStoredData = sourceFragment.voxelsWithStoredData;
+  }
+
   /** creates a WorldFragment, initially empty
    *
    * @param i_xcount
@@ -379,7 +394,7 @@ public class WorldFragment
   public AsynchronousToken readFromWorldAsynchronous(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
   {
     AsynchronousRead taskToken = new AsynchronousRead(worldServer, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
-    taskToken.setTimeToInterrupt(taskToken.IMMEDIATE_TIMEOUT);
+    taskToken.setTimeOfInterrupt(taskToken.IMMEDIATE_TIMEOUT);
     readFromWorldAsynchronous_do(worldServer, taskToken);
     return taskToken;
   }
@@ -500,7 +515,7 @@ public class WorldFragment
     }
 
     @Override
-    public void setTimeToInterrupt(long timeToStopNS) {
+    public void setTimeOfInterrupt(long timeToStopNS) {
       interruptTimeNS = timeToStopNS;
     }
 
@@ -608,7 +623,7 @@ public class WorldFragment
                                                     VoxelSelection writeMask, QuadOrientation orientation)
   {
     AsynchronousWrite taskToken = new AsynchronousWrite(worldServer, writeMask, wxOrigin, wyOrigin, wzOrigin, orientation);
-    taskToken.setTimeToInterrupt(taskToken.IMMEDIATE_TIMEOUT);
+    taskToken.setTimeOfInterrupt(taskToken.IMMEDIATE_TIMEOUT);
     writeToWorldAsynchronous_do(worldServer, taskToken);
     return taskToken;
   }
@@ -899,7 +914,7 @@ public class WorldFragment
     }
 
     @Override
-    public void setTimeToInterrupt(long timeToStopNS) {
+    public void setTimeOfInterrupt(long timeToStopNS) {
       interruptTimeNS = timeToStopNS;
     }
 
@@ -1084,6 +1099,36 @@ public class WorldFragment
       }
     }
   }
+
+//  /** splits this WorldFragment into two, in accordance with the supplied mask:
+//   * voxels which are set in the mask are removed from this WorldFragment and placed into the new WorldFragment
+//   * @param mask
+//   * @param xOffsetOfMask the origin of the mask relative to the origin of this fragment
+//   * @param yOffsetOfMask
+//   * @param zOffsetOfMask
+//   * @return a new WorldFragment containing those voxels that are also present in the mask.  Shallow copy of the original
+//   */
+//  public WorldFragment splitByMask(VoxelSelection mask, int xOffsetOfMask, int yOffsetOfMask, int zOffsetOfMask)
+//  {
+//    WorldFragment overlapped = new WorldFragment(this);
+//    overlapped.voxelsWithStoredData = new VoxelSelection(xCount, yCount, zCount);
+//    int xSize = mask.getXsize();
+//    int ySize = mask.getYsize();
+//    int zSize = mask.getZsize();
+//    for (int x = 0; x < xSize; ++x) {
+//      for (int z = 0; z < zSize; ++z) {
+//        for (int y = 0; y < ySize; ++y) {
+//          if (mask.getVoxel(x, y, z)) {
+//            if (getVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask)) {
+//              overlapped.voxelsWithStoredData.setVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
+//              voxelsWithStoredData.clearVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
+//            }
+//          }
+//        }
+//      }
+//    }
+//    return overlapped;
+//  }
 
   public static boolean setBlockIDWithMetadata(Chunk chunk, int wx, int wy, int wz, int blockID, int metaData)
   {

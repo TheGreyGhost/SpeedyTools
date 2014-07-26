@@ -1,0 +1,24 @@
+WorldHistory
+
+The world history is stored in two separate undo sequences
+1) simple (orb, sceptre, etc) - with a fixed number of undos per player
+2) complex (copy tools) - with a fixed total number of undos for all players
+
+The simple tools are placed and undone synchronously, i.e. in one operation, which does not return until it has finished
+The complex tools are placed and undone asynchronously, i.e. the operation interrupts itself periodically to allow the server
+  to perform other tasks.
+
+At most one complex operation (place or undo) can be performed at any one time.
+A simple operation can be performed while a complex operation is underway; the following rules are used to prevent conflicts
+- for a simple placement - the placement ignores any blocks which overlap the complex operation region. i.e.
+   the complex operation has a VoxelSelection corresponding to the destination of the operation, including bordermask.
+   if any of the simple placed blocks are in this voxelselection, they are skipped over.
+- for a simple undo - the undo is performed immediately for all blocks not in the complex voxelselection.  immediately after the
+    complex operation is finished, the undo is executed for the remaining blocks.
+
+Culling of excess undo ('make permanent') only occurs while no complex operation is underway.
+
+Test plan:
+1) Start an asynchronous complex placement, place a couple of simple over the top, verify the outcome is as expected
+2) Place two simple, start placing the complex to partially overlap both, undo one simple and verify only partial undo,
+   complete complex, verify outcome, undo the complex, verify outcome

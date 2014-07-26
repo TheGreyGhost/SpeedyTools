@@ -91,14 +91,14 @@ public class BlockVoxelMultiSelectorRenderer
     displayListWireFrameYZ = GLAllocation.generateDisplayLists(1);
 
     int displayListCount = 1;
-    xSize = voxelSelection.getXsize();
-    ySize = voxelSelection.getYsize();
-    zSize = voxelSelection.getZsize();
-    chunkCountX = ((voxelSelection.getXsize() - 1) / DISPLAY_LIST_XSIZE) + 1;
-    chunkCountY = ((voxelSelection.getYsize() - 1) / DISPLAY_LIST_YSIZE) + 1;
-    chunkCountZ = ((voxelSelection.getZsize() - 1) / DISPLAY_LIST_ZSIZE) + 1;
+    xSize = voxelSelection.getxSize();
+    ySize = voxelSelection.getySize();
+    zSize = voxelSelection.getzSize();
+    chunkCountX = ((voxelSelection.getxSize() - 1) / DISPLAY_LIST_XSIZE) + 1;
+    chunkCountY = ((voxelSelection.getySize() - 1) / DISPLAY_LIST_YSIZE) + 1;
+    chunkCountZ = ((voxelSelection.getzSize() - 1) / DISPLAY_LIST_ZSIZE) + 1;
 
-    if (voxelSelection.getXsize() > 0 && voxelSelection.getYsize() > 0 && voxelSelection.getZsize() > 0) {
+    if (voxelSelection.getxSize() > 0 && voxelSelection.getySize() > 0 && voxelSelection.getzSize() > 0) {
       displayListCount = chunkCountX * chunkCountY * chunkCountZ;
     }
 
@@ -110,7 +110,7 @@ public class BlockVoxelMultiSelectorRenderer
     }
     displayListCubesCount = displayListCount;
 
-    createMeshRenderLists(voxelSelection.getXsize(), voxelSelection.getYsize(), voxelSelection.getZsize());
+    createMeshRenderLists(voxelSelection.getxSize(), voxelSelection.getySize(), voxelSelection.getzSize());
 
     cxCurrent = 0;
     cyCurrent = 0;
