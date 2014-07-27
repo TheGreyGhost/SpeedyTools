@@ -134,19 +134,26 @@ public class WorldHistory
      */
   private boolean performUndo(LinkedList<UndoLayerInfo> undoHistory, EntityPlayerMP player, WorldServer worldServer)
   {
+
+    THIS IS NOT RIGHT, SHOULD ONLY STRIP OUT THE ACTIVE TASK MASK ONCE?
     Iterator<UndoLayerInfo> undoLayerInfoIterator = undoHistory.descendingIterator();
     while (undoLayerInfoIterator.hasNext()) {
       UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
       if (undoLayerInfo.worldServer.get() == worldServer
               && undoLayerInfo.entityPlayerMP.get() == player) {
+        boolean deferLayerRemoval = false;
         if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
           // if an asynch task is happening, strip out any voxels locked by the task and only undo these.
           //   the task will queue the remaining (locked) voxels for later undo
-          undoLayerInfo = currentAsynchronousTask.getUnlockedVoxelsAndScheduleLocked(undoLayerInfo);
+          UndoLayerInfo unlockedOnly = currentAsynchronousTask.getUnlockedVoxelsAndScheduleLocked(undoLayerInfo);
+          if (unlockedOnly != null) {  // null means no locked voxels so just perform undo as normal
+            undoLayerInfo = unlockedOnly;
+            deferLayerRemoval = true;
+          }
         }
         LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(undoLayerInfo.creationTime, worldServer);
         undoLayerInfo.worldSelectionUndo.undoChanges(worldServer, subsequentUndoLayers);
-        if (currentAsynchronousTask == null || currentAsynchronousTask.isTaskComplete()) {
+        if (!deferLayerRemoval) {
           undoLayerInfoIterator.remove();
         }
         return true;
@@ -353,8 +360,7 @@ public class WorldHistory
     @Override
     public void continueProcessing() {
       // first, complete the subTask (placement of the fragment)
-      // then add back all of the deferred simple undos (the ones which partially overlapped the operation in progress)
-      // then undo all of these partial undo
+      // then perform all of the deferred undos (i.e. the Voxels locked by the subTask) and remove them from the history
       // beware - further undo may be added every time we interrupt
 
       if (completed) return;
@@ -367,6 +373,8 @@ public class WorldHistory
         UndoLayerInfo queuedUndoLayerInfo = deferredSimpleUndoToPerform.remove(0);
         LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(queuedUndoLayerInfo.creationTime, queuedUndoLayerInfo.worldServer.get());
         queuedUndoLayerInfo.worldSelectionUndo.undoChanges(queuedUndoLayerInfo.worldServer.get(), subsequentUndoLayers);
+        boolean foundAndRemoved = undoLayersSimple.remove(queuedUndoLayerInfo);
+        assert (foundAndRemoved);
         if (isTimeToInterrupt()) return;
       }
 
@@ -402,6 +410,7 @@ public class WorldHistory
 
     public List<ChunkCoordinates> getUnlockedVoxels(WorldServer worldServer, List<ChunkCoordinates> blocksToCheck)
     {
+      if (undoLayerInfo == null) return blocksToCheck;
       WorldServer taskWorldServer = undoLayerInfo.worldServer.get();
       if (taskWorldServer == null || taskWorldServer != worldServer) return blocksToCheck;
       return undoLayerInfo.worldSelectionUndo.excludeBlocksInSelection(blocksToCheck);
@@ -410,10 +419,11 @@ public class WorldHistory
     /** returns an UndoLayerInfo containing only the voxels which aren't locked by the current task.
      * Also schedules the locked voxels to be undone at the end of the current task.
      * @param layerToBeSplit
-     * @return
+     * @return An UndoLayerInfo with only those Voxels not locked by the current task; null if the task hasn't locked any voxels at all
      */
     public UndoLayerInfo getUnlockedVoxelsAndScheduleLocked(UndoLayerInfo layerToBeSplit)
     {
+      if (undoLayerInfo == null) return null;
       UndoLayerInfo unlocked = new UndoLayerInfo(layerToBeSplit);
       WorldSelectionUndo taskInProgress = undoLayerInfo.worldSelectionUndo;
       unlocked.worldSelectionUndo = layerToBeSplit.worldSelectionUndo.splitByLockedVoxels(taskInProgress);
