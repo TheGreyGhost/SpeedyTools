@@ -142,7 +142,7 @@ public class WorldHistory
         if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
           // if an asynch task is happening, strip out any voxels locked by the task and only undo these.
           //   the task will queue the remaining (locked) voxels for later undo
-          undoLayerInfo = currentAsynchronousTask.splitByLockedVoxels(undoLayerInfo);
+          undoLayerInfo = currentAsynchronousTask.getUnlockedVoxelsAndScheduleLocked(undoLayerInfo);
         }
         LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(undoLayerInfo.creationTime, worldServer);
         undoLayerInfo.worldSelectionUndo.undoChanges(worldServer, subsequentUndoLayers);
@@ -363,13 +363,8 @@ public class WorldHistory
         undoLayersComplex.add(undoLayerInfo);
         undoLayerInfo = null;
       }
-      if (!deferredSimpleUndoToPerform.isEmpty()) {
-//        undoLayersSimple.addAll(deferredSimpleUndoToPerform);
-//        queuedUndo.addAll(deferredSimpleUndoToPerform);
-//        Collections.sort(undoLayersSimple);
-//      }
-//      while (!queuedUndo.isEmpty()) {
-//        UndoLayerInfo queuedUndoLayerInfo = queuedUndo.remove(0);
+      while (!deferredSimpleUndoToPerform.isEmpty()) {
+        UndoLayerInfo queuedUndoLayerInfo = deferredSimpleUndoToPerform.remove(0);
         LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(queuedUndoLayerInfo.creationTime, queuedUndoLayerInfo.worldServer.get());
         queuedUndoLayerInfo.worldSelectionUndo.undoChanges(queuedUndoLayerInfo.worldServer.get(), subsequentUndoLayers);
         if (isTimeToInterrupt()) return;
@@ -412,13 +407,19 @@ public class WorldHistory
       return undoLayerInfo.worldSelectionUndo.excludeBlocksInSelection(blocksToCheck);
     }
 
-    public UndoLayerInfo splitByLockedVoxels(UndoLayerInfo undoLayerInfo)
+    /** returns an UndoLayerInfo containing only the voxels which aren't locked by the current task.
+     * Also schedules the locked voxels to be undone at the end of the current task.
+     * @param layerToBeSplit
+     * @return
+     */
+    public UndoLayerInfo getUnlockedVoxelsAndScheduleLocked(UndoLayerInfo layerToBeSplit)
     {
-      UndoLayerInfo unlocked = new UndoLayerInfo(undoLayerInfo);
-      unlocked.worldSelectionUndo = undoLayerInfo.worldSelectionUndo.splitByMask()
-      splitByMask
+      UndoLayerInfo unlocked = new UndoLayerInfo(layerToBeSplit);
+      WorldSelectionUndo taskInProgress = undoLayerInfo.worldSelectionUndo;
+      unlocked.worldSelectionUndo = layerToBeSplit.worldSelectionUndo.splitByLockedVoxels(taskInProgress);
+      deferredSimpleUndoToPerform.add(layerToBeSplit);
+      return unlocked;
     }
-
 
     /**
      * when the current complex task is finished, add the undoLayerInfo to the simple
@@ -432,10 +433,7 @@ public class WorldHistory
 //      }
 //    }
 
-
-//    private List<UndoLayerInfo> deferredSimpleUndoLayers = new ArrayList<UndoLayerInfo>();
     private List<UndoLayerInfo> deferredSimpleUndoToPerform = new ArrayList<UndoLayerInfo>();
-    private List<UndoLayerInfo> queuedUndo = new ArrayList<UndoLayerInfo>();
 
     private boolean completed;
     private long interruptTimeNS;
@@ -459,6 +457,15 @@ public class WorldHistory
       entityPlayerMP = new WeakReference<EntityPlayerMP>(i_entityPlayerMP);
       worldSelectionUndo = i_worldSelectionUndo;
     }
+    // shallow copy!
+    public UndoLayerInfo(UndoLayerInfo source)
+    {
+      creationTime = source.creationTime;
+      worldServer = source.worldServer;
+      entityPlayerMP = source.entityPlayerMP;
+      worldSelectionUndo = source.worldSelectionUndo;
+    }
+
     public long creationTime;
     public WeakReference<WorldServer> worldServer;
     public WeakReference<EntityPlayerMP>  entityPlayerMP;

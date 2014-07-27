@@ -644,6 +644,26 @@ public class WorldSelectionUndo
   }
 
   /**
+   * Split this WorldSelectionUndo into two parts based on the supplied WorldSelectionUndo in progress
+   * Two WorldSelectionUndo are the result:
+   * this: all set voxels which were also present in the locked region
+   * return value: all set voxels which were not present in the locked region
+   * @param lockedRegion - the undo in progress which is locking the voxels
+   * @return a new WorldSelectionUndo containing only voxels which aren't in the lockedRegion
+   */
+  public WorldSelectionUndo splitByLockedVoxels(WorldSelectionUndo lockedRegion)
+  {
+    WorldSelectionUndo culledCopy = new WorldSelectionUndo(this);
+    VoxelSelection lockedMask = lockedRegion.changedBlocksMask;
+    int wxOriginMask = lockedRegion.wxOfOrigin;
+    int wyOriginMask = lockedRegion.wyOfOrigin;
+    int wzOriginMask = lockedRegion.wzOfOrigin;
+    culledCopy.changedBlocksMask = changedBlocksMask.splitByMask(lockedMask, wxOriginMask, wyOriginMask, wzOriginMask);
+    return culledCopy;
+  }
+
+
+  /**
    * returns the undo metadata stored at a particular location (intended for debugging)
    * @param wx  world coordinates
    * @param wy
