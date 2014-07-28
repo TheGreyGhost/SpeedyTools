@@ -99,7 +99,7 @@ public class WorldHistory
     }
 
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer,entityPlayerMP, blockToPlace, blockSelection);
+    worldSelectionUndo.writeToWorld(worldServer, blockToPlace, blockSelection);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, entityPlayerMP, worldSelectionUndo);
     undoLayersSimple.add(undoLayerInfo);
 
@@ -134,32 +134,34 @@ public class WorldHistory
      */
   private boolean performUndo(LinkedList<UndoLayerInfo> undoHistory, EntityPlayerMP player, WorldServer worldServer)
   {
-
-    THIS IS NOT RIGHT, SHOULD ONLY STRIP OUT THE ACTIVE TASK MASK ONCE?
+    UndoLayerInfo undoLayerFound = null;
     Iterator<UndoLayerInfo> undoLayerInfoIterator = undoHistory.descendingIterator();
-    while (undoLayerInfoIterator.hasNext()) {
+    while (undoLayerFound == null &&  undoLayerInfoIterator.hasNext()) {
       UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
       if (undoLayerInfo.worldServer.get() == worldServer
               && undoLayerInfo.entityPlayerMP.get() == player) {
-        boolean deferLayerRemoval = false;
-        if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
-          // if an asynch task is happening, strip out any voxels locked by the task and only undo these.
-          //   the task will queue the remaining (locked) voxels for later undo
-          UndoLayerInfo unlockedOnly = currentAsynchronousTask.getUnlockedVoxelsAndScheduleLocked(undoLayerInfo);
-          if (unlockedOnly != null) {  // null means no locked voxels so just perform undo as normal
-            undoLayerInfo = unlockedOnly;
-            deferLayerRemoval = true;
-          }
-        }
-        LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(undoLayerInfo.creationTime, worldServer);
-        undoLayerInfo.worldSelectionUndo.undoChanges(worldServer, subsequentUndoLayers);
-        if (!deferLayerRemoval) {
-          undoLayerInfoIterator.remove();
-        }
-        return true;
+        undoLayerFound = undoLayerInfo;
       }
     }
-    return false;
+    if (undoLayerFound == null) return false;
+
+    boolean deferLayerRemoval = false;
+    if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
+      // if an asynch task is happening, strip out any voxels locked by the task and only undo these.
+      //   the task will queue the remaining (locked) voxels for later undo
+      UndoLayerInfo unlockedOnly = currentAsynchronousTask.getUnlockedVoxelsAndScheduleLocked(undoLayerFound);
+      if (unlockedOnly != null) {  // null means no locked voxels so just perform undo as normal
+        undoLayerFound = unlockedOnly;
+        deferLayerRemoval = true;
+      }
+    }
+
+    LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(undoLayerFound.creationTime, worldServer);
+    undoLayerFound.worldSelectionUndo.undoChanges(worldServer, subsequentUndoLayers);
+    if (!deferLayerRemoval) {
+      undoHistory.remove(undoLayerFound);
+    }
+    return true;
   }
 
     /**
@@ -430,18 +432,6 @@ public class WorldHistory
       deferredSimpleUndoToPerform.add(layerToBeSplit);
       return unlocked;
     }
-
-    /**
-     * when the current complex task is finished, add the undoLayerInfo to the simple
-     */
-//    public void deferredSimpleUndo(UndoLayerInfo undoLayerInfo)
-//    {
-//      if (completed) {
-//        undoLayersSimple.add(undoLayerInfo);
-//      } else {
-//        deferredSimpleUndoLayers.add(undoLayerInfo);
-//      }
-//    }
 
     private List<UndoLayerInfo> deferredSimpleUndoToPerform = new ArrayList<UndoLayerInfo>();
 

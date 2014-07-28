@@ -3,20 +3,24 @@ package speedytools.serverside.ingametester;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
-import speedytools.common.selections.VoxelSelection;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.common.selections.VoxelSelection;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldFragment;
+import speedytools.serverside.worldmanipulation.WorldHistory;
 import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -36,8 +40,9 @@ public class InGameTester
    * Perform an automated in-game test
    * @param testNumber
    * @param performTest if true, perform test.  If false, erase results of last test / prepare for another test
+   * @param entityPlayerMP
    */
-  public void performTest(int testNumber, boolean performTest)
+  public void performTest(int testNumber, boolean performTest, EntityPlayerMP entityPlayerMP)
   {
     final int TEST_ALL = 64;
     boolean runAllTests = false;
@@ -72,6 +77,7 @@ public class InGameTester
         case 11: success = performTest11(performTest, runAllTests); break;
         case 12: success = performTest12(performTest); break;
         case 13: success = performTest13(performTest); break;
+        case 14: success = performTest14(entityPlayerMP, performTest); break;
         default: blankTest = true; break;
       }
       if (blankTest) {
@@ -559,6 +565,157 @@ public class InGameTester
     return retval;
   }
 
+  /**
+   *  Test14:  test WorldHistory for correct simple placement and undo while a complex placement is in progress.
+   *  1) place a simple  (gold) -  plyr 1
+   *  2) place a second simple (emerald)  plyr 2
+   *  3) place a third simple  (Lapiz)        plyr 1
+   *  4) start placing a complex
+   *  5) before it is finished,
+   *     6) place a fourth simple  (diamond)     plyr 2
+   *     7) undo the third simple
+   *     8) undo the first simple
+   *     9) complete the complex placement
+   *  Use testRegions[0].testOutputRegion as the working space
+   *  Use testRegions[1..9].testOutputRegions as the intermediate stages
+   *  Use testRegions[1..9].expectedOutcome as the check
+   *  Use testRegions[4].sourceRegion as the complex source; simple placements also mirrored to
+   */
+  public boolean performTest14(EntityPlayerMP entityPlayerMP, boolean performTest)
+  {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -136;
+    final int XSIZE = 4; final int YSIZE = 1; final int ZSIZE = 8;
+
+    ArrayList<TestRegions> testRegions = new ArrayList<TestRegions>();
+    for (int i = 0; i < 10; ++i) {
+      testRegions.add(new TestRegions(XORIGIN, YORIGIN, ZORIGIN - i * (ZSIZE + 1), XSIZE, YSIZE, ZSIZE, true));
+    }
+
+    if (!performTest) {
+      for (TestRegions testRegions1 : testRegions) {
+        testRegions1.drawAllTestRegionBoundaries();
+        WorldFragment worldFragmentBlank = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
+        worldFragmentBlank.readFromWorld(worldServer, testRegions1.testRegionInitialiser.posX, testRegions1.testRegionInitialiser.posY, testRegions1.testRegionInitialiser.posZ, null);
+        worldFragmentBlank.writeToWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
+      }
+      return true;
+    }
+    ArrayList<ChunkCoordinates> simple1 = new ArrayList<ChunkCoordinates>();
+    ArrayList<ChunkCoordinates> simple2 = new ArrayList<ChunkCoordinates>();
+    ArrayList<ChunkCoordinates> simple3 = new ArrayList<ChunkCoordinates>();
+    ArrayList<ChunkCoordinates> simple4 = new ArrayList<ChunkCoordinates>();
+    int x0 = testRegions.get(0).testOutputRegion.posX;
+    int y0 = testRegions.get(0).testOutputRegion.posY;
+    int z0 = testRegions.get(0).testOutputRegion.posZ;
+
+    for (int i = 0; i < 16; ++i) {
+      if ((i & 1) == 0) simple1.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4));
+      if ((i & 2) == 0) simple2.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4));
+      if ((i & 4) == 0) simple3.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4));
+      if ((i & 8) == 0) simple4.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4));
+      if ((i & 1) == 0) simple1.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4 + 4));
+      if ((i & 2) == 0) simple2.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4 + 4));
+      if ((i & 4) == 0) simple3.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4 + 4));
+      if ((i & 8) == 0) simple4.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4 + 4));
+    }
+
+    WorldFragment worldFragment = new WorldFragment(testRegions.get(0).xSize, testRegions.get(0).ySize, testRegions.get(0).zSize);
+
+    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+    BlockWithMetadata blockWithMetadata = new BlockWithMetadata();
+
+    blockWithMetadata.block = Block.blockGold; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple1);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(1).testOutputRegion.posX, testRegions.get(1).testOutputRegion.posY, testRegions.get(1).testOutputRegion.posZ, null);
+
+    blockWithMetadata.block = Block.blockEmerald; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple2);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(2).testOutputRegion.posX, testRegions.get(2).testOutputRegion.posY, testRegions.get(2).testOutputRegion.posZ, null);
+
+    blockWithMetadata.block = Block.blockLapis; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple3);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(3).testOutputRegion.posX, testRegions.get(3).testOutputRegion.posY, testRegions.get(3).testOutputRegion.posZ, null);
+
+    blockWithMetadata.block = Block.blockDiamond; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple4);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(6).testOutputRegion.posX, testRegions.get(6).testOutputRegion.posY, testRegions.get(6).testOutputRegion.posZ, null);
+
+    EntityPlayerMP entityPlayerMP2 = WorldSelectionUndoTest.EntityPlayerMPTest.createDummyInstance();
+
+    // placement 1
+    final int ARBITRARY_LARGE_DEPTH = 100;
+    WorldHistory worldHistory = new WorldHistory(ARBITRARY_LARGE_DEPTH, ARBITRARY_LARGE_DEPTH);
+    blockWithMetadata.block = Block.blockGold; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, simple1);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(1).testOutputRegion.posX, testRegions.get(1).testOutputRegion.posY, testRegions.get(1).testOutputRegion.posZ, null);
+
+    // placement 2
+    blockWithMetadata.block = Block.blockEmerald; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP2, blockWithMetadata, simple2);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(2).testOutputRegion.posX, testRegions.get(2).testOutputRegion.posY, testRegions.get(2).testOutputRegion.posZ, null);
+
+    // placement 3
+    blockWithMetadata.block = Block.blockLapis; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, simple3);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(3).testOutputRegion.posX, testRegions.get(3).testOutputRegion.posY, testRegions.get(3).testOutputRegion.posZ, null);
+
+    // placement 4 (start complex)
+    QuadOrientation orientation = new QuadOrientation(0,0,1,1);
+    WorldFragment complexWorldFragment = new WorldFragment(testRegions.get(4).xSize, testRegions.get(4).ySize, testRegions.get(4).zSize);
+    VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegions.get(4).sourceRegion, testRegions.get(4).xSize, testRegions.get(4).ySize, testRegions.get(4).zSize);
+    complexWorldFragment.readFromWorld(worldServer, testRegions.get(4).sourceRegion.posX, testRegions.get(4).sourceRegion.posY, testRegions.get(4).sourceRegion.posZ, voxelSelection);
+    AsynchronousToken token = worldHistory.writeToWorldWithUndoAsynchronous(entityPlayerMP, worldServer, complexWorldFragment, x0, y0, z0, orientation);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(4).testOutputRegion.posX, testRegions.get(4).testOutputRegion.posY, testRegions.get(4).testOutputRegion.posZ, null);
+
+    // placement 6
+    blockWithMetadata.block = Block.blockDiamond; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP2, blockWithMetadata, simple4);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(6).testOutputRegion.posX, testRegions.get(6).testOutputRegion.posY, testRegions.get(6).testOutputRegion.posZ, null);
+
+    // undo third simple
+    worldHistory.performSimpleUndo(entityPlayerMP, worldServer);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(7).testOutputRegion.posX, testRegions.get(7).testOutputRegion.posY, testRegions.get(7).testOutputRegion.posZ, null);
+
+    // undo first simple
+    worldHistory.performSimpleUndo(entityPlayerMP, worldServer);
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(8).testOutputRegion.posX, testRegions.get(8).testOutputRegion.posY, testRegions.get(8).testOutputRegion.posZ, null);
+
+    // complete the complex placement
+    while (!token.isTaskComplete()) {
+      token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
+      token.continueProcessing();
+    }
+    worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(9).testOutputRegion.posX, testRegions.get(9).testOutputRegion.posY, testRegions.get(9).testOutputRegion.posZ, null);
+
+    boolean retval = true;
+//    // compare the two
+//    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+//    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+//    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
+//    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+//    boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+//    if (!retval) {
+//      System.out.println();
+//      System.out.println("Mismatch at [" + WorldFragment.lastCompareFailX + ", " + WorldFragment.lastCompareFailY + ", " + WorldFragment.lastCompareFailZ + "]");
+//      System.out.println("Expected vs Actual:");
+//      System.out.println(WorldFragment.lastFailureReason);
+//    }
+
+    return retval;
+  }
+
+
+
+
+
+
+
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
                                      int xOrigin, int yOrigin, int zOrigin, int xSize, int ySize, int zSize)
@@ -697,7 +854,7 @@ public class InGameTester
     {
       Packet250SpeedyIngameTester toolIngameTesterPacket = Packet250SpeedyIngameTester.createPacket250SpeedyIngameTester(packet);
       if (toolIngameTesterPacket == null) return false;
-      InGameTester.this.performTest(toolIngameTesterPacket.getWhichTest(), toolIngameTesterPacket.isPerformTest());
+      InGameTester.this.performTest(toolIngameTesterPacket.getWhichTest(), toolIngameTesterPacket.isPerformTest(), (EntityPlayerMP)player);
       return true;
     }
   }

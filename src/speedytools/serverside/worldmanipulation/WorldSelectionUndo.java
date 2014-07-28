@@ -1,6 +1,5 @@
 package speedytools.serverside.worldmanipulation;
 
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
@@ -289,7 +288,7 @@ public class WorldSelectionUndo
    * writes the given list of blocks into the world, saving enough information to allow for a subsequent undo
    * @param worldServer
    */
-  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void writeToWorld(WorldServer worldServer, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
     /* algorithm is:
        (1) create a border mask for the blocks to be written, i.e. a mask showing all voxels which are adjacent to a block in the selection
@@ -343,9 +342,9 @@ public class WorldSelectionUndo
 
     for (ChunkCoordinates cc : blockSelection) {
       if (blockToPlace.block == null) {
-        entityPlayerMP.theItemInWorldManager.theWorld.setBlockToAir(cc.posX, cc.posY, cc.posZ);
+        worldServer.setBlockToAir(cc.posX, cc.posY, cc.posZ);
       } else {
-        entityPlayerMP.theItemInWorldManager.theWorld.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
+        worldServer.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block.blockID, blockToPlace.metaData, 1+2);
       }
     }
 
