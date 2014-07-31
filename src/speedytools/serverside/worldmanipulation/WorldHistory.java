@@ -4,6 +4,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.QuadOrientation;
 
 import java.lang.ref.WeakReference;
@@ -97,7 +98,7 @@ public class WorldHistory
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
       blockSelection = currentAsynchronousTask.getUnlockedVoxels(worldServer, blockSelection);
     }
-
+    if (blockSelection.isEmpty()) return;
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
     worldSelectionUndo.writeToWorld(worldServer, blockToPlace, blockSelection);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, entityPlayerMP, worldSelectionUndo);
@@ -136,10 +137,10 @@ public class WorldHistory
   {
     UndoLayerInfo undoLayerFound = null;
     Iterator<UndoLayerInfo> undoLayerInfoIterator = undoHistory.descendingIterator();
-    while (undoLayerFound == null &&  undoLayerInfoIterator.hasNext()) {
+    while (undoLayerFound == null && undoLayerInfoIterator.hasNext()) {
       UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
       if (undoLayerInfo.worldServer.get() == worldServer
-              && undoLayerInfo.entityPlayerMP.get() == player) {
+          && undoLayerInfo.entityPlayerMP.get() == player) {
         undoLayerFound = undoLayerInfo;
       }
     }
@@ -410,6 +411,12 @@ public class WorldHistory
       return subTask.isTaskComplete();
     }
 
+    public VoxelSelectionWithOrigin getLockedRegion()
+    {
+      if (subTask == null || subTask.isTaskComplete()) return null;
+      return subTask.getLockedRegion();
+    }
+
     public List<ChunkCoordinates> getUnlockedVoxels(WorldServer worldServer, List<ChunkCoordinates> blocksToCheck)
     {
       if (undoLayerInfo == null) return blocksToCheck;
@@ -427,8 +434,9 @@ public class WorldHistory
     {
       if (undoLayerInfo == null) return null;
       UndoLayerInfo unlocked = new UndoLayerInfo(layerToBeSplit);
-      WorldSelectionUndo taskInProgress = undoLayerInfo.worldSelectionUndo;
-      unlocked.worldSelectionUndo = layerToBeSplit.worldSelectionUndo.splitByLockedVoxels(taskInProgress);
+      VoxelSelectionWithOrigin lockedRegion = getLockedRegion();
+      if (lockedRegion == null) return null;
+      unlocked.worldSelectionUndo = layerToBeSplit.worldSelectionUndo.splitByLockedVoxels(lockedRegion);
       deferredSimpleUndoToPerform.add(layerToBeSplit);
       return unlocked;
     }

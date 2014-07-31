@@ -17,6 +17,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.BlockRotateFlipHelper;
 import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
@@ -530,6 +531,12 @@ public class WorldFragment
       return cumulativeCompletion + currentStage.durationWeight * stageFractionComplete;
     }
 
+    public VoxelSelectionWithOrigin getLockedRegion()
+    {
+      if (isTaskComplete()) return null;
+      return new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, voxelSelection);
+    }
+
     public AsynchronousRead(WorldServer i_worldServer, VoxelSelection i_voxelSelection, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin)
     {
       worldServer = i_worldServer;
@@ -960,6 +967,13 @@ public class WorldFragment
       stageFractionComplete = completionFraction;
     }
 
+    public VoxelSelectionWithOrigin getLockedRegion()
+    {
+      if (isTaskComplete()) return null;
+      return new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, writeMask);
+    }
+
+
     public final WorldServer worldServer;
     public final int wxOrigin;
     public final int wyOrigin;
@@ -1303,6 +1317,6 @@ public class WorldFragment
 
   private VoxelSelection voxelsWithStoredData;                        // each set voxel corresponds to a block with valid data.
 
-  private AsynchronousRead currentAsynchronousRead;
+//  private AsynchronousRead currentAsynchronousRead;
 
 }

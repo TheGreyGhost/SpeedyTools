@@ -18,6 +18,13 @@ public class VoxelSelectionWithOrigin extends VoxelSelection
     wzOrigin = i_wzOrigin;
   }
 
+  public VoxelSelectionWithOrigin(int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, VoxelSelection i_voxelSelection) {
+    super(i_voxelSelection);
+    wxOrigin = i_wxOrigin;
+    wyOrigin = i_wyOrigin;
+    wzOrigin = i_wzOrigin;
+  }
+
   public void setOrigin(int newWxOrigin, int newWyOrigin, int newWzOrigin)
   {
     wxOrigin = newWxOrigin; wyOrigin = newWyOrigin; wzOrigin = newWzOrigin;

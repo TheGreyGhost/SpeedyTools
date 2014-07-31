@@ -4,6 +4,7 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
 
@@ -123,19 +124,21 @@ public class WorldSelectionUndo
       final int BORDER_WIDTH = 1;
       Pair<Integer, Integer> wxzOriginMove = new Pair<Integer, Integer>(0, 0);
 
-      state.expandedSelection = fragmentToWrite.getVoxelsWithStoredData().makeReorientedCopyWithBorder(quadOrientation, BORDER_WIDTH, wxzOriginMove);
-      state.borderMask = state.expandedSelection.generateBorderMask();
-      state.expandedSelection.union(state.borderMask);
+      VoxelSelection voxelSelection = fragmentToWrite.getVoxelsWithStoredData().makeReorientedCopyWithBorder(quadOrientation, BORDER_WIDTH, wxzOriginMove);
+      state.borderMask = voxelSelection.generateBorderMask();
+      voxelSelection.union(state.borderMask);
 
       wxOfOrigin = state.wxOrigin - BORDER_WIDTH + wxzOriginMove.getFirst();
       wyOfOrigin = state.wyOrigin - BORDER_WIDTH;
       wzOfOrigin = state.wzOrigin - BORDER_WIDTH + wxzOriginMove.getSecond();
 
-      int wyMax = wyOfOrigin + state.expandedSelection.getySize();
+      int wyMax = wyOfOrigin + voxelSelection.getySize();
       if (wyOfOrigin < Y_MIN_VALID || wyMax >= Y_MAX_VALID_PLUS_ONE) {
-        state.expandedSelection.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
+        voxelSelection.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
         state.borderMask.clipToYrange(Y_MIN_VALID - wyOfOrigin, Y_MAX_VALID_PLUS_ONE - 1 - wyOfOrigin);
       }
+
+      state.expandedSelection = new VoxelSelectionWithOrigin(wxOfOrigin, wyOfOrigin, wzOfOrigin, voxelSelection);
 
       undoWorldFragment = new WorldFragment(state.expandedSelection.getxSize(), state.expandedSelection.getySize(), state.expandedSelection.getzSize());
       AsynchronousToken token = undoWorldFragment.readFromWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.expandedSelection);
@@ -266,6 +269,12 @@ public class WorldSelectionUndo
       return subTask.isTaskComplete();
     }
 
+    public VoxelSelectionWithOrigin getLockedRegion()
+    {
+      if (isTaskComplete()) return null;
+      return expandedSelection;
+    }
+
     public final WorldServer worldServer;
     public final int wxOrigin;
     public final int wyOrigin;
@@ -273,7 +282,7 @@ public class WorldSelectionUndo
     public final QuadOrientation quadOrientation;
     public final WorldFragment fragmentToWrite;
 
-    public VoxelSelection expandedSelection;
+    public VoxelSelectionWithOrigin expandedSelection;
     public VoxelSelection borderMask;
     public WorldFragment borderFragmentAfterWrite;
 
@@ -533,6 +542,12 @@ public class WorldSelectionUndo
       return subTask.isTaskComplete();
     }
 
+    public VoxelSelectionWithOrigin getLockedRegion()
+    {
+      if (isTaskComplete()) return null;
+      return new VoxelSelectionWithOrigin(wxOfOrigin, wyOfOrigin, wzOfOrigin, changedBlocksMask);
+    }
+
     public final WorldServer worldServer;
     public final List<WorldSelectionUndo> subsequentUndoLayers;
 
@@ -643,21 +658,20 @@ public class WorldSelectionUndo
   }
 
   /**
-   * Split this WorldSelectionUndo into two parts based on the supplied WorldSelectionUndo in progress
+   * Split this WorldSelectionUndo into two parts based on the supplied locked VoxelSelection region in progress
    * Two WorldSelectionUndo are the result:
    * this: all set voxels which were also present in the locked region
    * return value: all set voxels which were not present in the locked region
    * @param lockedRegion - the undo in progress which is locking the voxels
    * @return a new WorldSelectionUndo containing only voxels which aren't in the lockedRegion
    */
-  public WorldSelectionUndo splitByLockedVoxels(WorldSelectionUndo lockedRegion)
+  public WorldSelectionUndo splitByLockedVoxels(VoxelSelectionWithOrigin lockedRegion)
   {
     WorldSelectionUndo culledCopy = new WorldSelectionUndo(this);
-    VoxelSelection lockedMask = lockedRegion.changedBlocksMask;
-    int wxOriginMask = lockedRegion.wxOfOrigin;
-    int wyOriginMask = lockedRegion.wyOfOrigin;
-    int wzOriginMask = lockedRegion.wzOfOrigin;
-    culledCopy.changedBlocksMask = changedBlocksMask.splitByMask(lockedMask, wxOriginMask, wyOriginMask, wzOriginMask);
+    int wxOffsetMask = lockedRegion.getWxOrigin() - wxOfOrigin;
+    int wyOffsetMask = lockedRegion.getWyOrigin() - wyOfOrigin;
+    int wzOffsetMask = lockedRegion.getWzOrigin() - wzOfOrigin;
+    culledCopy.changedBlocksMask = changedBlocksMask.splitByMask(lockedRegion, wxOffsetMask, wyOffsetMask, wzOffsetMask);
     return culledCopy;
   }
 

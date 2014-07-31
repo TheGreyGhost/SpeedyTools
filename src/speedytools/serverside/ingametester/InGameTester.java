@@ -622,22 +622,28 @@ public class InGameTester
     }
 
     WorldFragment worldFragment = new WorldFragment(testRegions.get(0).xSize, testRegions.get(0).ySize, testRegions.get(0).zSize);
+    WorldFragment worldFragmentBlank = new WorldFragment(testRegions.get(0).xSize, testRegions.get(0).ySize, testRegions.get(0).zSize);
+    worldFragmentBlank.readFromWorld(worldServer, testRegions.get(0).testRegionInitialiser.posX, testRegions.get(0).testRegionInitialiser.posY, testRegions.get(0).testRegionInitialiser.posZ, null);
 
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
     BlockWithMetadata blockWithMetadata = new BlockWithMetadata();
 
+    worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Block.blockGold; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple1);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(1).testOutputRegion.posX, testRegions.get(1).testOutputRegion.posY, testRegions.get(1).testOutputRegion.posZ, null);
 
+    worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Block.blockEmerald; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple2);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(2).testOutputRegion.posX, testRegions.get(2).testOutputRegion.posY, testRegions.get(2).testOutputRegion.posZ, null);
 
+    worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Block.blockLapis; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple3);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(3).testOutputRegion.posX, testRegions.get(3).testOutputRegion.posY, testRegions.get(3).testOutputRegion.posZ, null);
 
+    worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Block.blockDiamond; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple4);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(6).testOutputRegion.posX, testRegions.get(6).testOutputRegion.posY, testRegions.get(6).testOutputRegion.posZ, null);
@@ -709,13 +715,6 @@ public class InGameTester
 
     return retval;
   }
-
-
-
-
-
-
-
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
                                      int xOrigin, int yOrigin, int zOrigin, int xSize, int ySize, int zSize)

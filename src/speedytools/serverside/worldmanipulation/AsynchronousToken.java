@@ -1,5 +1,7 @@
 package speedytools.serverside.worldmanipulation;
 
+import speedytools.common.selections.VoxelSelectionWithOrigin;
+
 /**
  * User: The Grey Ghost
  * Date: 24/07/2014
@@ -32,6 +34,9 @@ public interface AsynchronousToken
 
   // continue processing until interrupt is reached
   public void continueProcessing();
+
+  // returns a voxel selection corresponding to the region locked by this task; null = none
+  public VoxelSelectionWithOrigin getLockedRegion();
 
   public final long INFINITE_TIMEOUT = 0L;
   public final long IMMEDIATE_TIMEOUT = -1L;
