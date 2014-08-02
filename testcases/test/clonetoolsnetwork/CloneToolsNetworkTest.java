@@ -100,7 +100,7 @@ public class CloneToolsNetworkTest
   public static StubPacketHandlerServer stubPacketHandlerServer;
   public static ArrayList<String> names = new ArrayList<String>();
   public static PacketHandlerRegistry packetHandlerRegistryServer;
-  public static QuadOrientation dummyQuadOrientation = new QuadOrientation(0, 0, 1, 1);
+  public static QuadOrientation dummyQuadOrientation = new QuadOrientation(0, 0, 1, 1).rotateClockwise(3);
 
   public static final int NUMBER_OF_CLIENTS = 5;
 
@@ -113,7 +113,7 @@ public class CloneToolsNetworkTest
 
     stubCloneToolServerActions = new StubSpeedyToolServerActions(null);
     networkServer = new SpeedyToolsNetworkServer(packetHandlerRegistryServer, stubCloneToolServerActions);
-    stubCloneToolServerActions.setupStub(networkServer);
+    stubCloneToolServerActions.setupStub(networkServer, packetHandlerRegistryServer);
     stubPacketHandlerServer = new StubPacketHandlerServer();
     stubPacketHandlerClient = new StubPacketHandlerClient();
     names.clear();
@@ -947,10 +947,12 @@ public class CloneToolsNetworkTest
     }
 
 
-    public void setupStub(SpeedyToolsNetworkServer newNetworkServer) {
+    public void setupStub(SpeedyToolsNetworkServer newNetworkServer, PacketHandlerRegistry packetHandlerRegistry) {
       speedyToolsNetworkServer = newNetworkServer;
+      serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistry);
     }
 
+    @Override
     public ResultWithReason prepareForToolAction(EntityPlayerMP player) {
       speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, null, (byte) 0);
       speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
@@ -958,20 +960,22 @@ public class CloneToolsNetworkTest
       return ResultWithReason.success();
     }
 
-    public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, byte rotationCount, boolean flipped) {
+    @Override
+    public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation) {
       speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte) 0);
       lastActionSequenceNumber = sequenceNumber;
       lastToolID = toolID;
       lastXpos = xpos;
       lastYpos = ypos;
       lastZpos = zpos;
-      lastRotationCount = rotationCount;
-      lastFlipped = flipped;
+      lastRotationCount = quadOrientation.getClockwiseRotationCount();
+      lastFlipped = quadOrientation.isFlippedX();
       ++countPerformToolAction;
 //      System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos + "], rotated:" + clockwiseRotationCount + ", flipped:" + flipped);
       return ResultWithReason.success();
     }
 
+    @Override
     public ResultWithReason performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber) {
       speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
       speedyToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
@@ -984,6 +988,7 @@ public class CloneToolsNetworkTest
       return ResultWithReason.success();
     }
 
+    @Override
     public ResultWithReason performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber) {
       speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte) 0);
       lastPlayer = (StubEntityPlayerMP)player;

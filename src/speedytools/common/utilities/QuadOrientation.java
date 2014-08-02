@@ -144,58 +144,63 @@ public class QuadOrientation
   /**
    * Flip the quad left-right in the world coordinates i.e wxneg becomes wxpos
    */
-  public void flipWX()
+  public QuadOrientation flipWX()
   {
     if ((clockwiseRotationCount & 1) == 0) {
       flipX();
     } else {
       flipZ();
     }
+    return this;
   }
 
   /**
    * Flip the quad front-back in the world coordinates  i.e wzneg becomes wzpos
    */
-  public void flipWZ()
+  public QuadOrientation flipWZ()
   {
     if ((clockwiseRotationCount & 1) == 0) {
       flipZ();
     } else {
       flipX();
     }
+    return this;
   }
 
   private final int [] FLIP_X_NEW_INDEX = {4, 7, 6, 5, 0, 3, 2, 1};
   /** flip the quad left-right i.e xneg becomes xpos
    */
-  public void flipX()
+  public QuadOrientation flipX()
   {
     transformationIndex = FLIP_X_NEW_INDEX[transformationIndex];
     flippedX = (transformationIndex & 4) != 0;
     clockwiseRotationCount = (byte)(transformationIndex & 3);
     calculateOriginTransformed();
+    return this;
   }
 
   private final int [] FLIP_Z_NEW_INDEX = {6, 5, 4, 7, 2, 1, 0, 3};
   /** flip the quad front-back i.e zneg becomes zpos
    */
-  public void flipZ()
+  public QuadOrientation flipZ()
   {
     transformationIndex = FLIP_Z_NEW_INDEX[transformationIndex];
     flippedX = (transformationIndex & 4) != 0;
     clockwiseRotationCount = (byte)(transformationIndex & 3);
     calculateOriginTransformed();
+    return this;
   }
 
   /**
    * rotate the quad by 0, 90, 180, or 270 degrees
    * @param rotationCount the number of quadrants to rotate clockwise
    */
-  public void rotateClockwise(int rotationCount)
+  public QuadOrientation rotateClockwise(int rotationCount)
   {
     clockwiseRotationCount = (byte)((clockwiseRotationCount + rotationCount) & 3);
     transformationIndex = (flippedX ? 4 : 0) | (clockwiseRotationCount & 3);
     calculateOriginTransformed();
+    return this;
   }
 
   public byte getClockwiseRotationCount() {

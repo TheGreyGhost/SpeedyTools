@@ -56,6 +56,7 @@ public class WorldHistory
                                    QuadOrientation quadOrientation)
   {
     AsynchronousToken token = writeToWorldWithUndoAsynchronous(player, worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation);
+    if (token == null) return;
     token.setTimeOfInterrupt(token.INFINITE_TIMEOUT);
     token.continueProcessing();
   }
@@ -80,13 +81,10 @@ public class WorldHistory
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
     AsynchronousToken subToken = worldSelectionUndo.writeToWorldAsynchronous(worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, player, worldSelectionUndo);
-    currentAsynchronousTask = new AsynchronousWrite(subToken, undoLayerInfo);
+    currentAsynchronousTask = new AsynchronousWriteOrUndo(AsynchronousActionType.WRITE, subToken, undoLayerInfo);
 
     return currentAsynchronousTask;
-
     // once the operation is complete, the token will add the undoLayerInfo to the complex list
-
-//    worldSelectionUndo.writeToWorld(worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation);
   }
 
   /** write the given fragment to the World, storing undo information in the "simple tools" history
@@ -114,39 +112,42 @@ public class WorldHistory
    * @return true for success, or failure if either no undo found or if an asynchronous task is currently running
    */
   public boolean performComplexUndo(EntityPlayerMP player, WorldServer worldServer) {
-    if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) return false;
-
-    return performUndo(undoLayersComplex, player, worldServer);
+    AsynchronousToken token = performComplexUndoAsynchronous(player, worldServer);
+    if (token == null) return false;
+    token.setTimeOfInterrupt(token.INFINITE_TIMEOUT);
+    token.continueProcessing();
+    return true;
   }
 
-  /** perform simple undo action for the given player - finds the most recent simple action that they did in the current WorldServer
+  /** perform complex undo action for the given player - finds the most recent complex action that they did in the current WorldServer
+   *    * Runs asynchronously: after the initial call, use the returned token to monitor and advance the task
+   *    -> repeatedly call token.setTimeToInterrupt() and token.continueProcessing()
+   * @param player
+   * @param worldServer
+   * @return the asynchronous token for further processing, or null if no undo found or a complex operation is already in progress
+   */
+  public AsynchronousToken performComplexUndoAsynchronous(EntityPlayerMP player, WorldServer worldServer) {
+    if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) return null;
+
+    UndoLayerInfo undoLayerFound = getMostRecentUndo(undoLayersComplex, player, worldServer);
+    if (undoLayerFound == null) return null;
+
+    LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(undoLayerFound.creationTime, worldServer);
+    AsynchronousToken subToken = undoLayerFound.worldSelectionUndo.undoChangesAsynchronous(worldServer, subsequentUndoLayers);
+    currentAsynchronousTask = new AsynchronousWriteOrUndo(AsynchronousActionType.UNDO, subToken, undoLayerFound);
+
+    return currentAsynchronousTask;
+  }
+
+  /** perform simple undo action for the given player - finds the most recent simple action that they did in the given WorldServer
    * @param player
    * @param worldServer
    * @return true for success, or failure if no undo found
    */
   public boolean performSimpleUndo(EntityPlayerMP player, WorldServer worldServer) {
-    return performUndo(undoLayersSimple, player, worldServer);
-  }
-
-    /** perform undo action for the given player - finds the most recent action that they did in the current WorldServer
-     * @param player
-     * @param worldServer
-     * @return true for success, or failure if no undo found
-     */
-  private boolean performUndo(LinkedList<UndoLayerInfo> undoHistory, EntityPlayerMP player, WorldServer worldServer)
-  {
-    UndoLayerInfo undoLayerFound = null;
-    Iterator<UndoLayerInfo> undoLayerInfoIterator = undoHistory.descendingIterator();
-    while (undoLayerFound == null && undoLayerInfoIterator.hasNext()) {
-      UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
-      if (undoLayerInfo.worldServer.get() == worldServer
-          && undoLayerInfo.entityPlayerMP.get() == player
-          && !undoLayerInfo.undoHasCommenced    ) {
-        undoLayerFound = undoLayerInfo;
-        undoLayerFound.undoHasCommenced = true;  // prevent future performUndo from finding this undo (in case of deferred removal)
-      }
-    }
+    UndoLayerInfo undoLayerFound = getMostRecentUndo(undoLayersSimple, player, worldServer);
     if (undoLayerFound == null) return false;
+    undoLayerFound.undoHasCommenced = true;  // prevent future performUndo from finding this undo (in case of deferred removal)
 
     boolean deferLayerRemoval = false;
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
@@ -162,9 +163,30 @@ public class WorldHistory
     LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(undoLayerFound.creationTime, worldServer);
     undoLayerFound.worldSelectionUndo.undoChanges(worldServer, subsequentUndoLayers);
     if (!deferLayerRemoval) {
-      undoHistory.remove(undoLayerFound);
+      undoLayersSimple.remove(undoLayerFound);
     }
     return true;
+  }
+
+  /** find the most recent undo entry, in the given undoHistory, for the given player and worldServer
+   * @param undoHistory
+   * @param player
+   * @param worldServer
+   * @return the undo entry, or null if none found
+   */
+  private UndoLayerInfo getMostRecentUndo(LinkedList<UndoLayerInfo> undoHistory, EntityPlayerMP player, WorldServer worldServer)
+  {
+    UndoLayerInfo undoLayerFound = null;
+    Iterator<UndoLayerInfo> undoLayerInfoIterator = undoHistory.descendingIterator();
+    while (undoLayerFound == null && undoLayerInfoIterator.hasNext()) {
+      UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
+      if (undoLayerInfo.worldServer.get() == worldServer
+              && undoLayerInfo.entityPlayerMP.get() == player
+              && !undoLayerInfo.undoHasCommenced    ) {
+        undoLayerFound = undoLayerInfo;
+      }
+    }
+    return undoLayerFound;
   }
 
     /**
@@ -345,7 +367,9 @@ public class WorldHistory
     return collatedList;
   }
 
-  private class AsynchronousWrite implements AsynchronousToken
+  enum AsynchronousActionType {WRITE, UNDO};
+
+  private class AsynchronousWriteOrUndo implements AsynchronousToken
   {
     @Override
     public boolean isTaskComplete() {
@@ -371,7 +395,17 @@ public class WorldHistory
       if (completed) return;
       if (!executeSubTask()) return;
       if (undoLayerInfo != null) {
-        undoLayersComplex.add(undoLayerInfo);
+        switch (asynchronousActionType) {
+          case WRITE: {
+            undoLayersComplex.add(undoLayerInfo);
+            break;
+          }
+          case UNDO: {
+            undoLayersComplex.remove(undoLayerInfo);
+            break;
+          }
+          default: assert false : "Invalid asynchronousActionType: " + asynchronousActionType;
+        }
         undoLayerInfo = null;
       }
       while (!deferredSimpleUndoToPerform.isEmpty()) {
@@ -383,8 +417,8 @@ public class WorldHistory
         if (isTimeToInterrupt()) return;
       }
 
-      cullUndoLayers(undoLayersComplex, maximumSimpleDepthPerPlayer, maximumComplexDepth);
       completed = true;
+      cullUndoLayers(undoLayersComplex, maximumSimpleDepthPerPlayer, maximumComplexDepth);
     }
 
     @Override
@@ -393,13 +427,14 @@ public class WorldHistory
       return fractionComplete;
     }
 
-    public AsynchronousWrite(AsynchronousToken i_subTask, UndoLayerInfo i_undoLayerInfo)
+    public AsynchronousWriteOrUndo(AsynchronousActionType i_actionType, AsynchronousToken i_subTask, UndoLayerInfo i_undoLayerInfo)
     {
       subTask = i_subTask;
       undoLayerInfo = i_undoLayerInfo;
       interruptTimeNS = INFINITE_TIMEOUT;
       fractionComplete = 0;
       completed = false;
+      asynchronousActionType = i_actionType;
     }
 
     // returns true if the sub-task is finished
@@ -475,9 +510,10 @@ public class WorldHistory
     private double fractionComplete;
     private AsynchronousToken subTask;
     private UndoLayerInfo undoLayerInfo;
+    private AsynchronousActionType asynchronousActionType;
   }
 
-  private AsynchronousWrite currentAsynchronousTask;
+  private AsynchronousWriteOrUndo currentAsynchronousTask;
 
   private LinkedList<UndoLayerInfo> undoLayersComplex = new LinkedList<UndoLayerInfo>();    // cloning tools
   private LinkedList<UndoLayerInfo> undoLayersSimple = new LinkedList<UndoLayerInfo>();     // instant tools

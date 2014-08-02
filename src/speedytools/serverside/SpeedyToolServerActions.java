@@ -11,6 +11,7 @@ import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
+import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 
@@ -183,11 +184,11 @@ public class SpeedyToolServerActions
     speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
-    boolean result = worldHistory.performComplexUndo(player, worldServer);
+    AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServer);
 
 //    speedyToolsNetworkServer.undoCompleted(player, undoSequenceNumber);      // todo later this will be required
     speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-    if (result) {
+    if (result == null) {
       return ResultWithReason.success();
     } else {
       return ResultWithReason.failure("There are no more spells to undo...");
@@ -236,5 +237,5 @@ public class SpeedyToolServerActions
   private static MinecraftSaveFolderBackups minecraftSaveFolderBackups;
   private static SpeedyToolsNetworkServer speedyToolsNetworkServer;
   private WorldHistory worldHistory;
-  private ServerVoxelSelections serverVoxelSelections;
+  protected ServerVoxelSelections serverVoxelSelections;  // protected for test stub
 }

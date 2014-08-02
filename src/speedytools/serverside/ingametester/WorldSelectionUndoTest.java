@@ -91,6 +91,7 @@ public class WorldSelectionUndoTest
       worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(i), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
       worldSelectionUndos.add(new WorldSelectionUndo());
       worldSelectionUndos.get(i).writeToWorld(worldServer2, sourceFragments.get(i), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+//      printTestRegionSlice("Assemble" + i, worldServer1, worldServer2, allRegions, 0);
     }
 
     for (int i = ACTION_COUNT - 1; i >= 0; --i) {
@@ -98,6 +99,7 @@ public class WorldSelectionUndoTest
       assert (retval);
       List<WorldSelectionUndo> empty = new LinkedList<WorldSelectionUndo>();
       worldSelectionUndos.get(i).undoChanges(worldServer2, empty);
+//      printTestRegionSlice("Disassemble" + i, worldServer1, worldServer2, allRegions, 0);
       retval = compareTestWorldServers(worldServer1, worldServer2, allRegions, true);
       assert (retval);
     }

@@ -546,7 +546,7 @@ public class WorldSelectionUndo
 
     public VoxelSelectionWithOrigin getLockedRegion()
     {
-      if (currentStage == AsynchronousUndoStages.SETUP || isTaskComplete()) return null;
+      if (isTaskComplete()) return null;
       return new VoxelSelectionWithOrigin(wxOfOrigin, wyOfOrigin, wzOfOrigin, changedBlocksMask);
     }
 
