@@ -631,27 +631,28 @@ public class InGameTester
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Block.blockGold; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple1);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(1).testOutputRegion.posX, testRegions.get(1).testOutputRegion.posY, testRegions.get(1).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(1).sourceRegion.posX, testRegions.get(1).sourceRegion.posY, testRegions.get(1).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Block.blockEmerald; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple2);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(2).testOutputRegion.posX, testRegions.get(2).testOutputRegion.posY, testRegions.get(2).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(2).sourceRegion.posX, testRegions.get(2).sourceRegion.posY, testRegions.get(2).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Block.blockLapis; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple3);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(3).testOutputRegion.posX, testRegions.get(3).testOutputRegion.posY, testRegions.get(3).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(3).sourceRegion.posX, testRegions.get(3).sourceRegion.posY, testRegions.get(3).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Block.blockDiamond; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple4);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(6).testOutputRegion.posX, testRegions.get(6).testOutputRegion.posY, testRegions.get(6).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(6).sourceRegion.posX, testRegions.get(6).sourceRegion.posY, testRegions.get(6).sourceRegion.posZ, null);
 
     EntityPlayerMP entityPlayerMP2 = WorldSelectionUndoTest.EntityPlayerMPTest.createDummyInstance();
 
     // placement 1
     final int ARBITRARY_LARGE_DEPTH = 100;
+    worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     WorldHistory worldHistory = new WorldHistory(ARBITRARY_LARGE_DEPTH, ARBITRARY_LARGE_DEPTH);
     blockWithMetadata.block = Block.blockGold; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, simple1);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
@@ -700,18 +701,23 @@ public class InGameTester
     worldFragment.writeToWorld(worldServer, testRegions.get(9).testOutputRegion.posX, testRegions.get(9).testOutputRegion.posY, testRegions.get(9).testOutputRegion.posZ, null);
 
     boolean retval = true;
-//    // compare the two
-//    WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-//    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
-//    WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-//    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
-//    boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
-//    if (!retval) {
-//      System.out.println();
-//      System.out.println("Mismatch at [" + WorldFragment.lastCompareFailX + ", " + WorldFragment.lastCompareFailY + ", " + WorldFragment.lastCompareFailZ + "]");
-//      System.out.println("Expected vs Actual:");
-//      System.out.println(WorldFragment.lastFailureReason);
-//    }
+    // compare the two
+
+    for (TestRegions checkRegion : testRegions) {
+      checkRegion.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentExpectedOutcome = new WorldFragment(checkRegion.xSize, checkRegion.ySize, checkRegion.zSize);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, checkRegion.expectedOutcome.posX, checkRegion.expectedOutcome.posY, checkRegion.expectedOutcome.posZ, null);
+      WorldFragment worldFragmentActualOutcome = new WorldFragment(checkRegion.xSize, checkRegion.ySize, checkRegion.zSize);
+      worldFragmentActualOutcome.readFromWorld(worldServer, checkRegion.testOutputRegion.posX, checkRegion.testOutputRegion.posY, checkRegion.testOutputRegion.posZ, null);
+      boolean thisretval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+      if (!thisretval) {
+        System.out.println();
+        System.out.println("Mismatch at [" + WorldFragment.lastCompareFailX + ", " + WorldFragment.lastCompareFailY + ", " + WorldFragment.lastCompareFailZ + "]");
+        System.out.println("Expected vs Actual:");
+        System.out.println(WorldFragment.lastFailureReason);
+      }
+      retval = retval && thisretval;
+    }
 
     return retval;
   }

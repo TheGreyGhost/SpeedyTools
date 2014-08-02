@@ -37,6 +37,10 @@ import java.util.List;
  * (2b) various set() to manipulate the fragment's contents
  * (3) various get() to retrieve the fragment's contents
  * (4) writeToWorld() to write the fragment into the world.
+ *
+ * The read and write can be executed asynchronously if desired; in this case
+ *  after the initial call, use the returned token to monitor and advance the task
+ *    -> repeatedly call token.setTimeToInterrupt() and token.continueProcessing()
  */
 public class WorldFragment
 {
@@ -56,7 +60,7 @@ public class WorldFragment
     initialise(quadOrientation.getWXsize(), i_ycount, quadOrientation.getWZSize());
   }
 
-  /** make a shallow copy of the source fragment
+  /** make a SHALLOW copy of the source fragment
    *
    * @param sourceFragment
    */
@@ -533,7 +537,8 @@ public class WorldFragment
 
     public VoxelSelectionWithOrigin getLockedRegion()
     {
-      if (isTaskComplete()) return null;
+      if (currentStage == AsynchronousReadStages.SETUP || isTaskComplete()) return null;
+      assert (voxelSelection != null);
       return new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, voxelSelection);
     }
 
@@ -625,6 +630,7 @@ public class WorldFragment
    * @param wzOrigin the world z coordinate corresponding to the [0,0,0] corner of the WorldFragment
    * @param writeMask the blocks to be written; or if null - all valid voxels in the fragment
    * @param orientation the orientation of the fragment (flip, rotate)
+   * @return returns a token used to monitor and advance the asynchronous task
    */
   public AsynchronousToken writeToWorldAsynchronous(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin,
                                                     VoxelSelection writeMask, QuadOrientation orientation)
@@ -936,13 +942,13 @@ public class WorldFragment
       return cumulativeCompletion + currentStage.durationWeight * stageFractionComplete;
     }
 
-    public AsynchronousWrite(WorldServer i_worldServer, VoxelSelection i_voxelSelection, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, QuadOrientation i_quadOrientation)
+    public AsynchronousWrite(WorldServer i_worldServer, VoxelSelection i_writeMask, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, QuadOrientation i_quadOrientation)
     {
       worldServer = i_worldServer;
       wxOrigin = i_wxOrigin;
       wyOrigin = i_wyOrigin;
       wzOrigin = i_wzOrigin;
-      writeMask = i_voxelSelection;
+      writeMask = i_writeMask;
       quadOrientation = i_quadOrientation;
       currentStage = AsynchronousWriteStages.SETUP;
       interruptTimeNS = INFINITE_TIMEOUT;
@@ -950,6 +956,7 @@ public class WorldFragment
       cumulativeCompletion = 0;
       x = 0;
       z = 0;
+      lockedRegion = (writeMask == null) ? voxelsWithStoredData : writeMask;
     }
 
     public AsynchronousWriteStages getStage() {return currentStage;}
@@ -970,7 +977,7 @@ public class WorldFragment
     public VoxelSelectionWithOrigin getLockedRegion()
     {
       if (isTaskComplete()) return null;
-      return new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, writeMask);
+      return new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, lockedRegion);
     }
 
 
@@ -988,7 +995,7 @@ public class WorldFragment
     private long interruptTimeNS;
     private double stageFractionComplete;
     private double cumulativeCompletion;
-
+    private final VoxelSelection lockedRegion;
   }
 
   /**
@@ -1013,7 +1020,7 @@ public class WorldFragment
    * @param orientation
    * @return
    */
-  public Entity spawnRotatedTranslatedEntity(WorldServer worldServer, NBTTagCompound nbtTagCompound, int wx, int wy, int wz, QuadOrientation orientation)
+  private Entity spawnRotatedTranslatedEntity(WorldServer worldServer, NBTTagCompound nbtTagCompound, int wx, int wy, int wz, QuadOrientation orientation)
   {
     nbtTagCompound.setInteger("TileX", wx);
     nbtTagCompound.setInteger("TileY", wy);

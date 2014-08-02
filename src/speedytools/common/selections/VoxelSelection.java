@@ -197,32 +197,35 @@ public class VoxelSelection
   }
 
   /** splits this VoxelSelection into two, in accordance with the supplied mask:
-   * voxels which are set in the mask are removed from this VoxelSelection and placed into the new VoxelSelection
+   * For each set voxel in this:
+   * 1) if the mask is clear, the voxel is removed from this and added to the return value
+   * 2) if the mask is set, the voxel remains in this
    * @param mask
    * @param xOffsetOfMask the origin of the mask relative to the origin of this fragment
    * @param yOffsetOfMask
    * @param zOffsetOfMask
-   * @return a new WorldFragment containing those voxels that are also present in the mask.  Shallow copy of the original
+   * @return a new VoxelSelection containing those voxels that aren't also present in the mask.
    */
   public VoxelSelection splitByMask(VoxelSelection mask, int xOffsetOfMask, int yOffsetOfMask, int zOffsetOfMask)
   {
-    VoxelSelection overlapped = new VoxelSelection(this);
+    VoxelSelection notOverlapped = new VoxelSelection(this);
+    notOverlapped.clearAll();
     int xSize = mask.getxSize();
     int ySize = mask.getySize();
     int zSize = mask.getzSize();
     for (int x = 0; x < xSize; ++x) {
       for (int z = 0; z < zSize; ++z) {
         for (int y = 0; y < ySize; ++y) {
-          if (mask.getVoxel(x, y, z)) {
-            if (getVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask)) {
-              overlapped.setVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
+          if (getVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask)) {
+            if (!mask.getVoxel(x, y, z)) {
+              notOverlapped.setVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
               this.clearVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
             }
           }
         }
       }
     }
-    return overlapped;
+    return notOverlapped;
   }
 
 

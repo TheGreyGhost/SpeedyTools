@@ -35,7 +35,7 @@ public interface AsynchronousToken
   // continue processing until interrupt is reached
   public void continueProcessing();
 
-  // returns a voxel selection corresponding to the region locked by this task; null = none
+  // returns a voxel selection corresponding to the world region locked by this task; null = none
   public VoxelSelectionWithOrigin getLockedRegion();
 
   public final long INFINITE_TIMEOUT = 0L;

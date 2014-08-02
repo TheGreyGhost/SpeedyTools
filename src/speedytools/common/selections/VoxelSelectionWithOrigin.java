@@ -42,6 +42,41 @@ public class VoxelSelectionWithOrigin extends VoxelSelection
     return wzOrigin;
   }
 
+  /**
+   * sets this voxel in world coordinates (or does nothing if wx,wy,wz out of range)
+   * @param wx
+   * @param wy
+   * @param wz
+   */
+  public void setVoxelWXYZ(int wx, int wy, int wz)
+  {
+    setVoxel(wx - wxOrigin, wy - wyOrigin, wz - wzOrigin);
+  }
+
+  /**
+   * clears this voxel in world coordinates (or does nothing if wx,wy,wz out of range)
+   * @param wx
+   * @param wy
+   * @param wz
+   */
+  public void clearVoxelWXYZ(int wx, int wy, int wz)
+  {
+    clearVoxel(wx - wxOrigin, wy - wyOrigin, wz - wzOrigin);
+  }
+
+  /**
+   * gets the value of this voxel in world coordinates (or does nothing if wx,wy,wz out of range)
+   * @param wx
+   * @param wy
+   * @param wz
+   * @return the voxel state, or false if wx, wy, or wz is out of range
+   */
+  public boolean getVoxelWXYZ(int wx, int wy, int wz)
+  {
+    return getVoxel(wx - wxOrigin, wy - wyOrigin, wz - wzOrigin);
+  }
+
+
   /** serialise the VoxelSelectionWithOrigin to a byte array
    * @return the serialised VoxelSelection, or null for failure
    */

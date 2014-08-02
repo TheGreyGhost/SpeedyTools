@@ -80,7 +80,7 @@ public class WorldHistory
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
     AsynchronousToken subToken = worldSelectionUndo.writeToWorldAsynchronous(worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, player, worldSelectionUndo);
-    currentAsynchronousTask = new AsynchronousOperation(subToken, undoLayerInfo);
+    currentAsynchronousTask = new AsynchronousWrite(subToken, undoLayerInfo);
 
     return currentAsynchronousTask;
 
@@ -96,7 +96,7 @@ public class WorldHistory
   public void writeToWorldWithUndo(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
-      blockSelection = currentAsynchronousTask.getUnlockedVoxels(worldServer, blockSelection);
+      blockSelection = currentAsynchronousTask.cullLockedVoxels(worldServer, blockSelection);
     }
     if (blockSelection.isEmpty()) return;
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
@@ -140,8 +140,10 @@ public class WorldHistory
     while (undoLayerFound == null && undoLayerInfoIterator.hasNext()) {
       UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
       if (undoLayerInfo.worldServer.get() == worldServer
-          && undoLayerInfo.entityPlayerMP.get() == player) {
+          && undoLayerInfo.entityPlayerMP.get() == player
+          && !undoLayerInfo.undoHasCommenced    ) {
         undoLayerFound = undoLayerInfo;
+        undoLayerFound.undoHasCommenced = true;  // prevent future performUndo from finding this undo (in case of deferred removal)
       }
     }
     if (undoLayerFound == null) return false;
@@ -150,7 +152,7 @@ public class WorldHistory
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
       // if an asynch task is happening, strip out any voxels locked by the task and only undo these.
       //   the task will queue the remaining (locked) voxels for later undo
-      UndoLayerInfo unlockedOnly = currentAsynchronousTask.getUnlockedVoxelsAndScheduleLocked(undoLayerFound);
+      UndoLayerInfo unlockedOnly = currentAsynchronousTask.removeLockedVoxelsAndScheduleForLaterExecution(undoLayerFound);
       if (unlockedOnly != null) {  // null means no locked voxels so just perform undo as normal
         undoLayerFound = unlockedOnly;
         deferLayerRemoval = true;
@@ -343,7 +345,7 @@ public class WorldHistory
     return collatedList;
   }
 
-  private class AsynchronousOperation implements AsynchronousToken
+  private class AsynchronousWrite implements AsynchronousToken
   {
     @Override
     public boolean isTaskComplete() {
@@ -391,7 +393,7 @@ public class WorldHistory
       return fractionComplete;
     }
 
-    public AsynchronousOperation(AsynchronousToken i_subTask, UndoLayerInfo i_undoLayerInfo)
+    public AsynchronousWrite(AsynchronousToken i_subTask, UndoLayerInfo i_undoLayerInfo)
     {
       subTask = i_subTask;
       undoLayerInfo = i_undoLayerInfo;
@@ -417,28 +419,53 @@ public class WorldHistory
       return subTask.getLockedRegion();
     }
 
-    public List<ChunkCoordinates> getUnlockedVoxels(WorldServer worldServer, List<ChunkCoordinates> blocksToCheck)
+    /**
+     * remove all blocks from the placement list which are locked by the current task
+     * @param worldServer
+     * @param blocksToCheck
+     * @return
+     */
+    public List<ChunkCoordinates> cullLockedVoxels(WorldServer worldServer, List<ChunkCoordinates> blocksToCheck)
     {
       if (undoLayerInfo == null) return blocksToCheck;
+      VoxelSelectionWithOrigin lockedRegion = getLockedRegion();
+      if (lockedRegion == null) return blocksToCheck;
+
       WorldServer taskWorldServer = undoLayerInfo.worldServer.get();
       if (taskWorldServer == null || taskWorldServer != worldServer) return blocksToCheck;
-      return undoLayerInfo.worldSelectionUndo.excludeBlocksInSelection(blocksToCheck);
+
+      LinkedList<ChunkCoordinates> culledList = new LinkedList<ChunkCoordinates>();
+      for (ChunkCoordinates coordinate : blocksToCheck) {
+        if (!lockedRegion.getVoxelWXYZ(coordinate.posX, coordinate.posY, coordinate.posZ)) {
+          culledList.add(coordinate);
+        }
+      }
+      return culledList;
     }
 
-    /** returns an UndoLayerInfo containing only the voxels which aren't locked by the current task.
-     * Also schedules the locked voxels to be undone at the end of the current task.
+    /**
+     * Used when performing a simple undo at the same time as a complex task is taking place.
+     * The simple undo is split into two parts:
+     * 1) a portion that can be performed immediately (not locked by the complex task)
+     * 2) a portion that will be performed after the complex task is finished
+     * After the call, layerToBeSplit will contain only the voxels locked by the current task
+     * These locked voxels are scheduled to be undone at the end of the current task.
+     * The unlocked voxels, which can be executed immediately, are placed in the return value
      * @param layerToBeSplit
-     * @return An UndoLayerInfo with only those Voxels not locked by the current task; null if the task hasn't locked any voxels at all
+     * @return a new undo layer which contains only unlocked voxels.  Shallow copy of original!  Might have no voxels at all.  If null, there is no locked
+     *         region and the undo hasn't been scheduled for later
      */
-    public UndoLayerInfo getUnlockedVoxelsAndScheduleLocked(UndoLayerInfo layerToBeSplit)
+    public UndoLayerInfo removeLockedVoxelsAndScheduleForLaterExecution(UndoLayerInfo layerToBeSplit)
     {
       if (undoLayerInfo == null) return null;
-      UndoLayerInfo unlocked = new UndoLayerInfo(layerToBeSplit);
+      UndoLayerInfo unlockedVoxelsOnly = new UndoLayerInfo(layerToBeSplit);
+
       VoxelSelectionWithOrigin lockedRegion = getLockedRegion();
       if (lockedRegion == null) return null;
-      unlocked.worldSelectionUndo = layerToBeSplit.worldSelectionUndo.splitByLockedVoxels(lockedRegion);
-      deferredSimpleUndoToPerform.add(layerToBeSplit);
-      return unlocked;
+
+      unlockedVoxelsOnly.worldSelectionUndo = layerToBeSplit.worldSelectionUndo.splitByLockedVoxels(lockedRegion);
+      deferredSimpleUndoToPerform.add(layerToBeSplit);    // only the locked voxels remain
+      return unlockedVoxelsOnly;
     }
 
     private List<UndoLayerInfo> deferredSimpleUndoToPerform = new ArrayList<UndoLayerInfo>();
@@ -450,7 +477,7 @@ public class WorldHistory
     private UndoLayerInfo undoLayerInfo;
   }
 
-  private AsynchronousOperation currentAsynchronousTask;
+  private AsynchronousWrite currentAsynchronousTask;
 
   private LinkedList<UndoLayerInfo> undoLayersComplex = new LinkedList<UndoLayerInfo>();    // cloning tools
   private LinkedList<UndoLayerInfo> undoLayersSimple = new LinkedList<UndoLayerInfo>();     // instant tools
@@ -472,12 +499,14 @@ public class WorldHistory
       worldServer = source.worldServer;
       entityPlayerMP = source.entityPlayerMP;
       worldSelectionUndo = source.worldSelectionUndo;
+      undoHasCommenced = false;
     }
 
     public long creationTime;
     public WeakReference<WorldServer> worldServer;
     public WeakReference<EntityPlayerMP>  entityPlayerMP;
     public WorldSelectionUndo worldSelectionUndo;
+    boolean undoHasCommenced;  // set to true once the player has commenced this undo
 
     @Override
     public int compareTo(UndoLayerInfo objectToCompareAgainst)

@@ -50,7 +50,7 @@ public class WorldSelectionUndo
   }
 
   /**
-   * shallow copy of a WorldSelectionUndo
+   * SHALLOW copy of a WorldSelectionUndo
    * @param source
    */
   public WorldSelectionUndo(WorldSelectionUndo source)
@@ -61,6 +61,8 @@ public class WorldSelectionUndo
     undoWorldFragment = source.undoWorldFragment;
     changedBlocksMask = source.changedBlocksMask;
   }
+
+
 
   /**
    * writes the given WorldFragment into the world, saving enough information to allow for a subsequent undo
@@ -271,7 +273,7 @@ public class WorldSelectionUndo
 
     public VoxelSelectionWithOrigin getLockedRegion()
     {
-      if (isTaskComplete()) return null;
+      if (currentStage == AsynchronousWriteStages.SETUP || isTaskComplete()) return null;
       return expandedSelection;
     }
 
@@ -544,7 +546,7 @@ public class WorldSelectionUndo
 
     public VoxelSelectionWithOrigin getLockedRegion()
     {
-      if (isTaskComplete()) return null;
+      if (currentStage == AsynchronousUndoStages.SETUP || isTaskComplete()) return null;
       return new VoxelSelectionWithOrigin(wxOfOrigin, wyOfOrigin, wzOfOrigin, changedBlocksMask);
     }
 
@@ -623,58 +625,57 @@ public class WorldSelectionUndo
 
   }
 
-  /** takes the input blocksToCheck list and removes any blocks that lie within the selection (undoWorldFragment), i.e. that
-   *    might be affected by the operation in progress.
-   * @param blocksToCheck
-   * @return a list of all blocks that aren't affected by the operation in progress
-   */
-  public List<ChunkCoordinates> excludeBlocksInSelection(List<ChunkCoordinates> blocksToCheck)
-  {
-    LinkedList<ChunkCoordinates> culledList = new LinkedList<ChunkCoordinates>();
-    for (ChunkCoordinates coordinate : blocksToCheck) {
-      if (undoWorldFragment.getVoxel(coordinate.posX - wxOfOrigin, coordinate.posY - wyOfOrigin, coordinate.posZ - wzOfOrigin)) {
-        culledList.add(coordinate);
-      }
-    }
-    return culledList;
-  }
+//  /** takes the input blocksToCheck list and removes any blocks that lie within the selection (undoWorldFragment), i.e. that
+//   *    might be affected by the operation in progress.
+//   * @param blocksToCheck
+//   * @return a list of all blocks that aren't affected by the operation in progress
+//   */
+//  private List<ChunkCoordinates> excludeLockedVoxels(List<ChunkCoordinates> blocksToCheck)
+//  {
+//    LinkedList<ChunkCoordinates> culledList = new LinkedList<ChunkCoordinates>();
+//    for (ChunkCoordinates coordinate : blocksToCheck) {
+//      if (changedBlocksMask.getVoxel(coordinate.posX - wxOfOrigin, coordinate.posY - wyOfOrigin, coordinate.posZ - wzOfOrigin)) {
+//        culledList.add(coordinate);
+//      }
+//    }
+//    return culledList;
+//  }
+
+//  /**
+//   * Split this WorldSelectionUndo into two parts based on the supplied mask:
+//   * Two WorldSelectionUndo are the result:
+//   * this: all set voxels which were also present in the mask
+//   * return value: all set voxels which were not present in the mask
+//   * @param mask
+//   * @param wxOriginMask world x,y,z of the origin of the mask
+//   * @param wyOriginMask
+//   * @param wzOriginMask
+//   * @return
+//   */
+//  public WorldSelectionUndo splitByMask(VoxelSelection mask, int wxOriginMask, int wyOriginMask, int wzOriginMask)
+//  {
+//    WorldSelectionUndo culledCopy = new WorldSelectionUndo(this);
+//    culledCopy.changedBlocksMask = changedBlocksMask.splitByMask(mask, wxOriginMask - wxOfOrigin, wyOriginMask - wyOfOrigin, wzOriginMask - wzOfOrigin);
+//    return culledCopy;
+//  }
 
   /**
-   * Split this WorldSelectionUndo into two parts based on the supplied mask:
-   * Two WorldSelectionUndo are the result:
-   * this: all set voxels which were also present in the mask
-   * return value: all set voxels which were not present in the mask
-   * @param mask
-   * @param wxOriginMask world x,y,z of the origin of the mask
-   * @param wyOriginMask
-   * @param wzOriginMask
-   * @return
-   */
-  public WorldSelectionUndo splitByMask(VoxelSelection mask, int wxOriginMask, int wyOriginMask, int wzOriginMask)
-  {
-    WorldSelectionUndo culledCopy = new WorldSelectionUndo(this);
-    culledCopy.changedBlocksMask = changedBlocksMask.splitByMask(mask, wxOriginMask - wxOfOrigin, wyOriginMask - wyOfOrigin, wzOriginMask - wzOfOrigin);
-    return culledCopy;
-  }
-
-  /**
-   * Split this WorldSelectionUndo into two parts based on the supplied locked VoxelSelection region in progress
+   * Split this WorldSelectionUndo into two parts based on the supplied locked VoxelSelection region
    * Two WorldSelectionUndo are the result:
    * this: all set voxels which were also present in the locked region
    * return value: all set voxels which were not present in the locked region
-   * @param lockedRegion - the undo in progress which is locking the voxels
-   * @return a new WorldSelectionUndo containing only voxels which aren't in the lockedRegion
+   * @param lockedRegion - the locked Region to split on
+   * @return a new WorldSelectionUndo containing only voxels which aren't in the lockedRegion - shallow copy only
    */
   public WorldSelectionUndo splitByLockedVoxels(VoxelSelectionWithOrigin lockedRegion)
   {
-    WorldSelectionUndo culledCopy = new WorldSelectionUndo(this);
+    WorldSelectionUndo unlockedVoxelsCopy = new WorldSelectionUndo(this);
     int wxOffsetMask = lockedRegion.getWxOrigin() - wxOfOrigin;
     int wyOffsetMask = lockedRegion.getWyOrigin() - wyOfOrigin;
     int wzOffsetMask = lockedRegion.getWzOrigin() - wzOfOrigin;
-    culledCopy.changedBlocksMask = changedBlocksMask.splitByMask(lockedRegion, wxOffsetMask, wyOffsetMask, wzOffsetMask);
-    return culledCopy;
+    unlockedVoxelsCopy.changedBlocksMask = changedBlocksMask.splitByMask(lockedRegion, wxOffsetMask, wyOffsetMask, wzOffsetMask);
+    return unlockedVoxelsCopy;
   }
-
 
   /**
    * returns the undo metadata stored at a particular location (intended for debugging)
