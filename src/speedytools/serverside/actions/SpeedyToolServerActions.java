@@ -1,18 +1,21 @@
-package speedytools.serverside;
+package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
+import speedytools.serverside.ServerSide;
+import speedytools.serverside.ServerVoxelSelections;
+import speedytools.serverside.SpeedyToolsNetworkServer;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
-import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 
 import java.nio.file.Path;
@@ -97,8 +100,20 @@ public class SpeedyToolServerActions
 
   public static final long ONE_SECOND_AS_NS = 1000 * 1000 * 1000;
 
+  /**
+   * Starts a complex (asynchronous) action.  It will be progressed automatically whenever tick() is called.
+   * @param player
+   * @param sequenceNumber
+   * @param toolID
+   * @param xpos
+   * @param ypos
+   * @param zpos
+   * @param quadOrientation
+   * @return
+   */
   public ResultWithReason performComplexAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
   {
+    assert (!isAsynchronousActionInProgress());
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos
                        + "], rotated:" + quadOrientation.getClockwiseRotationCount() + ", flippedX:" + quadOrientation.isFlippedX());
 
@@ -121,16 +136,20 @@ public class SpeedyToolServerActions
       if (resultWithReason != null) return resultWithReason;
     }
 
-    speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte)0);
-
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
-    WorldFragment worldFragment = new WorldFragment(voxelSelection.getxSize(), voxelSelection.getySize(), voxelSelection.getzSize());
-    worldFragment.readFromWorld(worldServer, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
-                                             voxelSelection);
-    worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos, quadOrientation);
-    speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-//    speedyToolsNetworkServer.actionCompleted(player, sequenceNumber);  // todo - later this will be required
+    AsynchronousToken token = new AsynchronousActionPlacement(speedyToolsNetworkServer, worldServer, player, worldHistory,voxelSelection,
+                                                              sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+    token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
+    token.continueProcessing();
+    asynchronousTaskInProgress = token;
+
+//    WorldFragment worldFragment = new WorldFragment(voxelSelection.getxSize(), voxelSelection.getySize(), voxelSelection.getzSize());
+//    worldFragment.readFromWorld(worldServer, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
+//                                             voxelSelection);
+//    worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos, quadOrientation);
+//    speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+////    speedyToolsNetworkServer.actionCompleted(player, sequenceNumber);
 
     return ResultWithReason.success();
   }
@@ -186,12 +205,10 @@ public class SpeedyToolServerActions
 
     AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServer);
 
-//    speedyToolsNetworkServer.undoCompleted(player, undoSequenceNumber);      // todo later this will be required
-    speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
     if (result == null) {
-      return ResultWithReason.success();
-    } else {
       return ResultWithReason.failure("There are no more spells to undo...");
+    } else {
+      return ResultWithReason.success();
     }
 //    getTestDoSomethingStartTime = System.nanoTime();
 //    testDoSomethingTime = getTestDoSomethingStartTime + 7 * ONE_SECOND_AS_NS;
@@ -203,6 +220,26 @@ public class SpeedyToolServerActions
     if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {
       ServerSide.getInGameStatusSimulator().updateServerStatus(speedyToolsNetworkServer);
     }
+
+    long stopTimeNS = System.nanoTime() + SpeedyToolsOptions.getMaxServerBusyTimeMS() * 1000L * 1000L;
+
+    if (asynchronousTaskInProgress != null && !asynchronousTaskInProgress.isTaskComplete()) {
+      asynchronousTaskInProgress.setTimeOfInterrupt(stopTimeNS);
+      asynchronousTaskInProgress.continueProcessing();
+    }
+
+//    if (asynchronousUndoInProgress != null && !asynchronousUndoInProgress.isTaskComplete()) {
+//      asynchronousUndoInProgress.setTimeOfInterrupt(stopTimeNS);
+//      asynchronousUndoInProgress.continueProcessing();
+//      if (asynchronousUndoInProgress.isTaskComplete()) {
+//        speedyToolsNetworkServer.undoCompleted(player, undoSequenceNumber);      // todo later this will be required
+//        speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+//      } else {
+//        speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, asynchronousTaskEntityPlayerMP,
+//                                                    (byte) (100 * asynchronousUndoInProgress.getFractionComplete()));
+//      }
+//    }
+
   }
 
   int testUndoSequenceNumber = -1;
@@ -234,8 +271,26 @@ public class SpeedyToolServerActions
     // for now - don't need to do anything
   }
 
+  // return true if an asynchronous action is in progress - backup, complex placement, complex undo
+  public boolean isAsynchronousActionInProgress()
+  {
+    if (asynchronousTaskInProgress != null && !asynchronousTaskInProgress.isTaskComplete()) return true;
+//    if (asynchronousUndoInProgress != null && !asynchronousUndoInProgress.isTaskComplete()) return true;
+//    if (asynchronousPlacementInProgress != null && !asynchronousPlacementInProgress.isTaskComplete()) return true;
+    return false;
+  }
+
   private static MinecraftSaveFolderBackups minecraftSaveFolderBackups;
   private static SpeedyToolsNetworkServer speedyToolsNetworkServer;
   private WorldHistory worldHistory;
   protected ServerVoxelSelections serverVoxelSelections;  // protected for test stub
+
+  private AsynchronousToken asynchronousTaskInProgress;
+//  private AsynchronousToken asynchronousUndoInProgress;
+//  private int asynchronousUndoSequenceNumber;
+//  private AsynchronousToken asynchronousPlacementInProgress;
+//  private int asynchronousPlacementSequenceNumber;
+//  private EntityPlayerMP asynchronousTaskEntityPlayerMP;
+
+
 }

@@ -49,4 +49,11 @@ public class SpeedyToolsOptions
 
   // The packet size of the fragments to use when sending a Selection to the server
   public static int getSelectionPacketFragmentSize() {return 3000;}
+
+  // The length of maximum length of time per tick we will use for asynchronous tasks on the client
+  public static long getMaxClientBusyTimeMS() {return 25;}
+
+  // The length of maximum length of time per tick we will use for asynchronous tasks on the server
+  public static long getMaxServerBusyTimeMS() {return 25;}
+
 }

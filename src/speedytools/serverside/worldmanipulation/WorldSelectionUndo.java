@@ -117,6 +117,8 @@ public class WorldSelectionUndo
        (4) find out which voxels in the border mask were unaffected by the writing into the world, and remove them from the undo mask (changedBlocksMask)
      */
 
+//    System.out.println("WorldSelectionUndo stage: " + state.getStage() + " fractionComplete:" + state.getFractionComplete()); // todo remove
+
     WorldFragment fragmentToWrite = state.fragmentToWrite;
     QuadOrientation quadOrientation = state.quadOrientation;
     if (state.getStage() == AsynchronousWriteStages.SETUP) {

@@ -20,7 +20,7 @@ import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
-import speedytools.serverside.SpeedyToolServerActions;
+import speedytools.serverside.actions.SpeedyToolServerActions;
 import speedytools.serverside.SpeedyToolsNetworkServer;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.ServerVoxelSelections;

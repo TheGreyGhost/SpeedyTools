@@ -445,6 +445,7 @@ public class WorldHistory
       subTask.setTimeOfInterrupt(interruptTimeNS);
       subTask.continueProcessing();
       fractionComplete = subTask.getFractionComplete();
+//      System.out.println("AsynchronousWriteOrUndo fractionComplete:" + fractionComplete); // todo remove
       return subTask.isTaskComplete();
     }
 

@@ -520,7 +520,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
   @Override
   public void performTick(World world) {
     checkInvariants();
-    final long MAX_TIME_IN_NS = 20 * 1000 * 1000L;
+    final long MAX_TIME_IN_NS = SpeedyToolsOptions.getMaxClientBusyTimeMS() * 1000L * 1000L;
     final float VOXEL_MAX_COMPLETION = 75.0F;
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
       switch (selectionGenerationState) {

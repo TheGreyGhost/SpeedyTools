@@ -10,6 +10,7 @@ import speedytools.common.network.Packet250CloneToolAcknowledge.Acknowledgement;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.ResultWithReason;
+import speedytools.serverside.actions.SpeedyToolServerActions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -286,9 +287,9 @@ public class SpeedyToolsNetworkServer
             }
           }
           sendAcknowledgementWithReason(player, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, Acknowledgement.NOUPDATE, 0, result.getReason());
-          if (result.succeeded()) {
-            actionCompleted(player, sequenceNumber);             // todo: later - remove this when async
-          }
+//          if (result.succeeded()) {
+//            actionCompleted(player, sequenceNumber);             // todo: later - remove this when async
+//          }
         }
         break;
       }
