@@ -1,5 +1,6 @@
 package speedytools.clientside;
 
+import cpw.mods.fml.relauncher.Side;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
@@ -7,7 +8,11 @@ import speedytools.clientside.rendering.SpeedyToolSounds;
 import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.network.NetworkTrafficMonitor;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.common.utilities.ErrorLog;
+
+import java.io.IOException;
 
 /**
  * User: The Grey Ghost
@@ -27,6 +32,17 @@ public class ClientSide
     speedyToolSounds = new SpeedyToolSounds();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
     undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+    String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
+    if (SpeedyToolsOptions.getNetworkLoggingActive()) {
+      try {
+        networkTrafficMonitor = new NetworkTrafficMonitor(Side.CLIENT, SpeedyToolsOptions.getNetworkLoggingDirectory().toPath(), NETWORK_LOG_FILENAME_STEM);
+      } catch (IOException ioe) {
+        ErrorLog.defaultLog().warning("Couldn't create a NetworkTrafficMonitor because:" + ioe);
+        networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
+      }
+    } else {
+      networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
+    }
   }
 
 /*
@@ -38,6 +54,9 @@ public class ClientSide
 
   public static CloneToolsNetworkClient getCloneToolsNetworkClient() {
     return cloneToolsNetworkClient;
+  }
+  public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
+    return networkTrafficMonitor;
   }
 
   public static CloneToolsNetworkClient cloneToolsNetworkClient;
@@ -54,8 +73,22 @@ public class ClientSide
     return globalTickCount;
   }
 
-  public static void tick() { ++globalTickCount;}
+  public static void tick()
+  {
+    ++globalTickCount;
+    getCloneToolsNetworkClient().tick();
+
+    if (globalTickCount % SpeedyToolsOptions.getNetworkLoggingPeriodInTicks() == 0) {
+      try {
+        ClientSide.getNetworkTrafficMonitor().log();
+      } catch (IOException ioe) {
+        ErrorLog.defaultLog().warning("Failed to log network traffic due to:" + ioe);
+      }
+    }
+  }
 
   private static int globalTickCount = 0;
 
+
+  private static NetworkTrafficMonitor networkTrafficMonitor;
 }

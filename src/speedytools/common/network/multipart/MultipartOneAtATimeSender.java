@@ -100,6 +100,7 @@ public class MultipartOneAtATimeSender
   }
 
   private static final int ACKNOWLEDGEMENT_WAIT_MS = 100;  // minimum ms elapsed between sending a packet and expecting an acknowledgement
+  private static final int MAX_UNACKNOWLEDGED_SEGMENTS = 20; // if we have this many unacknowledged segments, don't send any more until some are acknowledged    //todo implement
   private static final int MS_TO_NS = 1000000;
 
   /**
@@ -245,7 +246,7 @@ public class MultipartOneAtATimeSender
   }
 
   private final int MAX_ABORTED_PACKET_COUNT = 100;  // retain this many aborted packet IDs
-  private final long ABORT_RESEND_DELAY_NS = 1000 * 1000 * 1000;  // how often to resend abort packets if no response recvd.
+  private final long ABORT_RESEND_DELAY_NS = 1000 * 1000 * 1000L;  // how often to resend abort packets if no response recvd.
   /**
    * should be called frequently to handle sending of segments within packet, etc
    */

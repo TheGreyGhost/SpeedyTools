@@ -256,7 +256,7 @@ public class SpeedyToolsNetworkServer
 //          if (!foundundo) {
           ResultWithReason result = ResultWithReason.failure();
           if (serverStatus == ServerStatus.IDLE) {
-            result = speedyToolServerActions.performToolAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
+            result = speedyToolServerActions.performComplexAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
                                                               packet.getQuadOrientation());
           } else {
             switch (serverStatus) {
@@ -306,7 +306,7 @@ public class SpeedyToolsNetworkServer
           ResultWithReason result = ResultWithReason.failure();
           if (packet.getActionToBeUndoneSequenceNumber() == null) { // undo last completed action
             if (serverStatus == ServerStatus.IDLE) {
-              result = speedyToolServerActions.performUndoOfLastAction(player, packet.getSequenceNumber());
+              result = speedyToolServerActions.performUndoOfLastComplexAction(player, packet.getSequenceNumber());
             } else {
               switch (serverStatus) {
                 case PERFORMING_BACKUP: {
@@ -345,7 +345,7 @@ public class SpeedyToolsNetworkServer
                                           "");
             break;
           } else if (packet.getActionToBeUndoneSequenceNumber() == lastAcknowledgedAction.get(player)) {    // undo for a specific action we have acknowledged as starting
-            result = speedyToolServerActions.performUndoOfCurrentAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
+            result = speedyToolServerActions.performUndoOfCurrentComplexAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
             sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
           }
         }
@@ -429,7 +429,7 @@ public class SpeedyToolsNetworkServer
     {
       Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
       if (toolUsePacket == null) return false;
-      SpeedyToolsNetworkServer.this.speedyToolServerActions.performServerSimpleAction((EntityPlayerMP) player, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
+      SpeedyToolsNetworkServer.this.speedyToolServerActions.performSimpleAction((EntityPlayerMP) player, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
               toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
       return true;
     }

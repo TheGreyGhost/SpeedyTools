@@ -1,10 +1,13 @@
 package speedytools.common;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraftforge.common.MinecraftForge;
+import speedytools.clientside.ClientSide;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.items.RegistryForItems;
+import speedytools.common.network.NetworkTrafficMonitor;
 import speedytools.serverside.ServerEventHandler;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.ServerTickHandler;
@@ -41,4 +44,18 @@ public class CommonProxy {
     MinecraftForge.EVENT_BUS.register(new ServerEventHandler());
     TickRegistry.registerTickHandler(new ServerTickHandler(), Side.SERVER);
   }
+
+  /**
+   * Gets the NetworkTrafficMonitor used to monitor network traffic on the current side
+   * @return
+   */
+  public NetworkTrafficMonitor getNetworkTrafficMonitorForSide()
+  {
+    if (FMLCommonHandler.instance().getSide() == Side.CLIENT) {
+      return ClientSide.getNetworkTrafficMonitor();
+    } else {
+      return ServerSide.getNetworkTrafficMonitor();
+    }
+  }
+
 }

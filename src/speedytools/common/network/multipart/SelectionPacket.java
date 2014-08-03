@@ -3,6 +3,7 @@ package speedytools.common.network.multipart;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
@@ -28,8 +29,6 @@ import java.io.*;
  */
 public class SelectionPacket extends MultipartPacket
 {
-  public static final int SEGMENT_SIZE = 30000;
-
   /**
    * Creates a new SelectionPacket for the supplied selection
    * @param selection
@@ -37,6 +36,8 @@ public class SelectionPacket extends MultipartPacket
    */
   public static SelectionPacket createSenderPacket(BlockVoxelMultiSelector selection)
   {
+    final int SEGMENT_SIZE = SpeedyToolsOptions.getSelectionPacketFragmentSize();
+
     SelectionPacket newPacket = new SelectionPacket(PacketHandlerRegistry.CHANNEL_NAME, Side.CLIENT, Packet250Types.PACKET250_SELECTION_PACKET.getPacketTypeID(), SEGMENT_SIZE);
     ByteArrayOutputStream bos = selection.writeToBytes();
     if (bos == null) return null;

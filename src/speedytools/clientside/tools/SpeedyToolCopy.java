@@ -421,7 +421,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     } else {
       toolState = ToolState.PERFORMING_UNDO_FROM_FULL;
     }
-    ResultWithReason result = cloneToolsNetworkClient.performToolUndo();
+    ResultWithReason result = cloneToolsNetworkClient.performComplexToolUndo();
     if (result.succeeded()) {
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
     } else {
@@ -442,11 +442,11 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     }
 
     Vec3 selectionPosition = getSelectionPosition(player, partialTick, false);
-    ResultWithReason result = cloneToolsNetworkClient.performToolAction(itemSpeedyCopy.itemID,
-                                                                Math.round((float)selectionPosition.xCoord),
-                                                                Math.round((float)selectionPosition.yCoord),
-                                                                Math.round((float)selectionPosition.zCoord),
-                                                                selectionOrientation);
+    ResultWithReason result = cloneToolsNetworkClient.performComplexToolAction(itemSpeedyCopy.itemID,
+            Math.round((float) selectionPosition.xCoord),
+            Math.round((float) selectionPosition.yCoord),
+            Math.round((float) selectionPosition.zCoord),
+            selectionOrientation);
     if (result.succeeded()) {
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
       toolState = ToolState.PERFORMING_ACTION;
@@ -841,9 +841,15 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
 //        infoToUpdate.idle = activePowerUp.isIdle();
 //      }
 
-      infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999 && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE);
+      float serverReadiness = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
+      float selectionSending = (selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.COMPLETED)
+                               ? 100 :  selectionPacketSender.getCurrentPacketPercentComplete();
+
+      infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999
+                                           && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE
+                                           && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.COMPLETED );
       infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
-      infoToUpdate.readinessPercent = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
+      infoToUpdate.readinessPercent = Math.min(serverReadiness, selectionSending);
       infoToUpdate.cursorType = RenderCursorStatus.CursorRenderInfo.CursorType.COPY;
       infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
 

@@ -94,11 +94,10 @@ public class CloneToolsNetworkClient
    * @param x
    * @param y
    * @param z
-   * @param clockwiseRotationCount number of quadrants rotated clockwise
-   * @param flippedX true if flipped left-right
+   * @param quadOrientation the flipped and rotation status of the placement
    * @return true for success, false otherwise
    */
-  public ResultWithReason performToolAction(int toolID, int x, int y, int z, QuadOrientation quadOrientation)
+  public ResultWithReason performComplexToolAction(int toolID, int x, int y, int z, QuadOrientation quadOrientation)
   {
     ResultWithReason result = isReadyToPerformAction();
     if (!result.succeeded()) return result;
@@ -120,6 +119,7 @@ public class CloneToolsNetworkClient
    */
   private ResultWithReason isReadyToPerformAction() {return isReadyToPerform(true);}
   private ResultWithReason isReadyToPerformUndo() {return isReadyToPerform(false);}
+
   private ResultWithReason isReadyToPerform(boolean isAction)
   {
     switch (serverStatus) {
@@ -155,7 +155,7 @@ public class CloneToolsNetworkClient
  * undoes the last action (or the action currently in progress)
  * @return true for success, false otherwise
  */
-  public ResultWithReason performToolUndo()
+  public ResultWithReason performComplexToolUndo()
   {
     ResultWithReason result = isReadyToPerformUndo();
     if (!result.succeeded()) return result;

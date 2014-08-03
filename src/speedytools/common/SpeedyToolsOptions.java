@@ -2,6 +2,8 @@ package speedytools.common;
 
 import net.minecraft.client.Minecraft;
 
+import java.io.File;
+
 /**
  * User: The Grey Ghost
  * Date: 10/03/14
@@ -28,6 +30,14 @@ public class SpeedyToolsOptions
   // if true - enabled the in-game testing tools
   public static boolean getTesterToolsEnabled() { return true;}
 
+  // if true - logging of the network activity is active
+  public static boolean getNetworkLoggingActive() { return true;}
+  public static File getNetworkLoggingDirectory()
+  {
+    return Minecraft.getMinecraft().mcDataDir;
+  }
+  public static int getNetworkLoggingPeriodInTicks() {return 20 * 10;}
+
   // the time that the in-game error message should stay on the screen
   public static long getErrorMessageDisplayDurationNS() { return 5 * 1000 * 1000 * 1000L; }
 
@@ -36,4 +46,7 @@ public class SpeedyToolsOptions
     int renderDistanceBlocks = 64 << 3 - renderDistanceSetting;
     return Math.min(400, renderDistanceBlocks);
   }
+
+  // The packet size of the fragments to use when sending a Selection to the server
+  public static int getSelectionPacketFragmentSize() {return 3000;}
 }

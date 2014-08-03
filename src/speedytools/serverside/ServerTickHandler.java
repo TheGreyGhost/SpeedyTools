@@ -28,9 +28,8 @@ public class ServerTickHandler implements ITickHandler {
    */
   public void tickEnd(EnumSet<TickType> type, Object... tickData)
   {
-    ServerSide.getSpeedyToolsNetworkServer().tick();
-    ServerSide.getSpeedyToolServerActions().tick();
-    ServerSide.getServerVoxelSelections().tick();
+    ServerSide.tick();
+
   }
 
 
@@ -39,4 +38,5 @@ public class ServerTickHandler implements ITickHandler {
     return "ServerTickHandler";
   }
 
+  private int tickCount;
 }

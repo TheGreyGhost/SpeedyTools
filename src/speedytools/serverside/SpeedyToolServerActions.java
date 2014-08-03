@@ -64,7 +64,7 @@ public class SpeedyToolServerActions
    * @param blockToPlace the Block and metadata to fill the selection with (buttonClicked = 1 only)
    * @param blockSelection the blocks in the selection to be filled (buttonClicked = 1 only)
    */
-  public void performServerSimpleAction(EntityPlayerMP entityPlayerMP, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void performSimpleAction(EntityPlayerMP entityPlayerMP, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
     WorldServer worldServer = entityPlayerMP.getServerForPlayer();
     switch (buttonClicked) {
@@ -97,7 +97,7 @@ public class SpeedyToolServerActions
 
   public static final long ONE_SECOND_AS_NS = 1000 * 1000 * 1000;
 
-  public ResultWithReason performToolAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
+  public ResultWithReason performComplexAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
   {
     System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos
                        + "], rotated:" + quadOrientation.getClockwiseRotationCount() + ", flippedX:" + quadOrientation.isFlippedX());
@@ -146,7 +146,7 @@ public class SpeedyToolServerActions
 //    return true;
 //  }
 
-  public ResultWithReason performUndoOfCurrentAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
+  public ResultWithReason performUndoOfCurrentComplexAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {
     System.out.println("Server: Tool Undo Current Action received: action sequenceNumber " + actionSequenceNumber + ", undo seq number " + undoSequenceNumber);
     if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
@@ -157,7 +157,7 @@ public class SpeedyToolServerActions
 
     // we're currently still synchronous undo so this is not relevant yet; just call performUndoOfLastAction instead
 
-    return performUndoOfLastAction(player, undoSequenceNumber);
+    return performUndoOfLastComplexAction(player, undoSequenceNumber);
 
 //    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
 //    speedyToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
@@ -171,7 +171,7 @@ public class SpeedyToolServerActions
 //    return ResultWithReason.success();
   }
 
-  public ResultWithReason performUndoOfLastAction(EntityPlayerMP player, int undoSequenceNumber)
+  public ResultWithReason performUndoOfLastComplexAction(EntityPlayerMP player, int undoSequenceNumber)
   {
     System.out.println("Server: Tool Undo Last Completed Action received, undo seq number " + undoSequenceNumber);
 

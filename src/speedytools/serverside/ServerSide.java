@@ -1,10 +1,15 @@
 package speedytools.serverside;
 
+import cpw.mods.fml.relauncher.Side;
 import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.network.NetworkTrafficMonitor;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.common.utilities.ErrorLog;
 import speedytools.serverside.ingametester.InGameStatusSimulator;
 import speedytools.serverside.ingametester.InGameTester;
 import speedytools.serverside.worldmanipulation.WorldHistory;
+
+import java.io.IOException;
 
 /**
  * User: The Grey Ghost
@@ -23,6 +28,18 @@ public class ServerSide
 //    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry, worldHistory);
     inGameTester = new InGameTester(packetHandlerRegistry);
     inGameStatusSimulator = new InGameStatusSimulator();
+
+    String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
+    if (SpeedyToolsOptions.getNetworkLoggingActive()) {
+      try {
+        networkTrafficMonitor = new NetworkTrafficMonitor(Side.SERVER, SpeedyToolsOptions.getNetworkLoggingDirectory().toPath(), NETWORK_LOG_FILENAME_STEM);
+      } catch (IOException ioe) {
+        ErrorLog.defaultLog().warning("Couldn't create a NetworkTrafficMonitor because:" + ioe);
+        networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
+      }
+    } else {
+      networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
+    }
   }
 
   public static void initialiseForJTest()
@@ -37,7 +54,35 @@ public class ServerSide
     speedyToolsNetworkServer = null;
 //    speedyToolWorldManipulator = null;
     serverVoxelSelections = null;
+    try {
+      networkTrafficMonitor.closeAll();
+    } catch (IOException ioe) {
+      // do nothing
+    }
   }
+
+  public static int getGlobalTickCount() {
+    return globalTickCount;
+  }
+
+  public static void tick()
+  {
+    ++globalTickCount;
+
+    getSpeedyToolsNetworkServer().tick();
+    getSpeedyToolServerActions().tick();
+    getServerVoxelSelections().tick();
+
+    if (globalTickCount % SpeedyToolsOptions.getNetworkLoggingPeriodInTicks() == 0) {
+      try {
+        ServerSide.getNetworkTrafficMonitor().log();
+      } catch (IOException ioe) {
+        ErrorLog.defaultLog().warning("Failed to log network traffic due to:" + ioe);
+      }
+    }
+  }
+
+  private static int globalTickCount = 0;
 
   public static SpeedyToolsNetworkServer getSpeedyToolsNetworkServer() {
     return speedyToolsNetworkServer;
@@ -48,7 +93,6 @@ public class ServerSide
 //  public static SpeedyToolWorldManipulator getSpeedyToolWorldManipulator() {
 //    return speedyToolWorldManipulator;
 //  }
-
 
   private static SpeedyToolsNetworkServer speedyToolsNetworkServer;
 
@@ -67,4 +111,9 @@ public class ServerSide
   private static InGameStatusSimulator inGameStatusSimulator;
   private static WorldHistory worldHistory;
 
+  public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
+    return networkTrafficMonitor;
+  }
+
+  private static NetworkTrafficMonitor networkTrafficMonitor;
 }
