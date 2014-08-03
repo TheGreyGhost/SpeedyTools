@@ -200,8 +200,9 @@ public class SpeedyToolServerActions
       if (resultWithReason != null) return resultWithReason;
     }
 
-    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
+    AsynchronousToken token = new AsynchronousActionUndo(speedyToolsNetworkServer, worldServer, player, worldHistory);
+    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
 
     AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServer);
 

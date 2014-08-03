@@ -20,6 +20,9 @@ public interface AsynchronousToken
   // returns true if the asynchronous task has completed
   public boolean isTaskComplete();
 
+  // returns true if the asynchronous task has been aborted
+  public boolean isTaskAborted();
+
   // returns 0.0 .. 1.0 depending on how much of the task is complete
   public double getFractionComplete();
 
@@ -34,6 +37,9 @@ public interface AsynchronousToken
 
   // continue processing until interrupt is reached
   public void continueProcessing();
+
+  // abort the processing as cleanly as possible
+  public void abortProcessing();
 
   // returns a voxel selection corresponding to the world region locked by this task; null = none
   public VoxelSelectionWithOrigin getLockedRegion();

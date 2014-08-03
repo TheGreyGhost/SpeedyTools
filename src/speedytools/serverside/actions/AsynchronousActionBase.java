@@ -24,12 +24,16 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
     fractionComplete = 0;
     cumulativeTaskDurationWeight = 0.0;
     completed = false;
+    aborted = false;
   }
 
   @Override
   public boolean isTaskComplete() {
     return completed;
   }
+
+  @Override
+  public boolean isTaskAborted() { return aborted;}
 
   @Override
   public boolean isTimeToInterrupt() {
@@ -76,6 +80,7 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
   }
 
   protected boolean completed;
+  protected boolean aborted;
   protected long interruptTimeNS;
   protected double fractionComplete;
   protected SpeedyToolsNetworkServer speedyToolsNetworkServer;
