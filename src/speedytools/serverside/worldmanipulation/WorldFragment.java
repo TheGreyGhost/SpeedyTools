@@ -515,6 +515,11 @@ public class WorldFragment
     }
 
     @Override
+    public boolean isTaskAborted() {
+      return aborted;
+    }
+
+    @Override
     public boolean isTimeToInterrupt() {
       return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
     }
@@ -527,6 +532,14 @@ public class WorldFragment
     @Override
     public void continueProcessing() {
       readFromWorldAsynchronous_do(worldServer, this);
+    }
+
+    @Override
+    public void abortProcessing()
+    {
+      initialise(xCount, yCount, zCount);
+      currentStage = AsynchronousReadStages.COMPLETE;
+      aborted = true;
     }
 
     @Override
@@ -553,6 +566,7 @@ public class WorldFragment
       interruptTimeNS = INFINITE_TIMEOUT;
       stageFractionComplete = 0;
       cumulativeCompletion = 0;
+      aborted = false;
       x = 0;
       z = 0;
     }
@@ -583,6 +597,7 @@ public class WorldFragment
     private long interruptTimeNS;
     private double stageFractionComplete;
     private double cumulativeCompletion;
+    private boolean aborted;
   }
 
 
@@ -922,6 +937,11 @@ public class WorldFragment
     }
 
     @Override
+    public boolean isTaskAborted() {
+      return aborted;
+    }
+
+    @Override
     public boolean isTimeToInterrupt() {
       return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
     }
@@ -942,6 +962,13 @@ public class WorldFragment
       return cumulativeCompletion + currentStage.durationWeight * stageFractionComplete;
     }
 
+    @Override
+    public void abortProcessing()
+    {
+      currentStage = AsynchronousWriteStages.COMPLETE;
+      aborted = true;
+    }
+
     public AsynchronousWrite(WorldServer i_worldServer, VoxelSelection i_writeMask, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, QuadOrientation i_quadOrientation)
     {
       worldServer = i_worldServer;
@@ -954,6 +981,7 @@ public class WorldFragment
       interruptTimeNS = INFINITE_TIMEOUT;
       stageFractionComplete = 0;
       cumulativeCompletion = 0;
+      aborted = false;
       x = 0;
       z = 0;
       lockedRegion = (writeMask == null) ? voxelsWithStoredData : writeMask;
@@ -996,6 +1024,7 @@ public class WorldFragment
     private double stageFractionComplete;
     private double cumulativeCompletion;
     private final VoxelSelection lockedRegion;
+    private boolean aborted;
   }
 
   /**

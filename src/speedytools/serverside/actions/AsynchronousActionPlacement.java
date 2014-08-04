@@ -30,18 +30,21 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
     zpos = i_zpos;
     quadOrientation = i_quadOrientation;
     currentStage = ActionStage.SETUP;
-    for (ActionStage actionStage : ActionStage.values()) {
-      ticksPerStage.put(actionStage, 0);
-      milliSecondsPerStage.put(actionStage, 0.0);
-    }
+//    for (ActionStage actionStage : ActionStage.values()) {
+//      ticksPerStage.put(actionStage, 0);
+//      milliSecondsPerStage.put(actionStage, 0.0);
+//    }
   }
 
   @Override
   public void continueProcessing() {
     long timeIn = System.nanoTime();
-    ActionStage entryStage = currentStage;
+//    ActionStage entryStage = currentStage;
     switch (currentStage) {
       case SETUP: {
+        if (aborting) {
+          completed = true;sdak;jkdjgsd??
+        }
         speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, entityPlayerMP, (byte)0);
         sourceWorldFragment = new WorldFragment(sourceVoxelSelection.getxSize(), sourceVoxelSelection.getySize(), sourceVoxelSelection.getzSize());
         AsynchronousToken token = sourceWorldFragment.readFromWorldAsynchronous(worldServer,
@@ -68,9 +71,9 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
         sourceWorldFragment = null;
         sourceVoxelSelection = null;
         speedyToolsNetworkServer.actionCompleted(entityPlayerMP, sequenceNumber);
-        for (ActionStage actionStage : ActionStage.values()) {
-          System.out.println(actionStage + ":" + ticksPerStage.get(actionStage) + " -> " + milliSecondsPerStage.get(actionStage));
-        }
+//        for (ActionStage actionStage : ActionStage.values()) {
+//          System.out.println(actionStage + ":" + ticksPerStage.get(actionStage) + " -> " + milliSecondsPerStage.get(actionStage));
+//        }
         break;
       }
       case COMPLETE: { // do nothing
@@ -82,8 +85,8 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
     }
     if (!completed) {
       double elapsedMS = (System.nanoTime() - timeIn) / 1.0E6;
-      ticksPerStage.put(entryStage, 1 + ticksPerStage.get(entryStage));
-      milliSecondsPerStage.put(entryStage, milliSecondsPerStage.get(entryStage) + elapsedMS);
+//      ticksPerStage.put(entryStage, 1 + ticksPerStage.get(entryStage));
+//      milliSecondsPerStage.put(entryStage, milliSecondsPerStage.get(entryStage) + elapsedMS);
 //      System.out.println(getFractionComplete());
       speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, entityPlayerMP,
                                                   (byte) (100 * getFractionComplete()));
@@ -105,6 +108,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
   WorldFragment sourceWorldFragment;
   VoxelSelectionWithOrigin sourceVoxelSelection;
 
-  EnumMap<ActionStage, Integer> ticksPerStage = new EnumMap<ActionStage, Integer>(ActionStage.class);
-  EnumMap<ActionStage, Double> milliSecondsPerStage = new EnumMap<ActionStage, Double>(ActionStage.class);
+//  EnumMap<ActionStage, Integer> ticksPerStage = new EnumMap<ActionStage, Integer>(ActionStage.class);
+//  EnumMap<ActionStage, Double> milliSecondsPerStage = new EnumMap<ActionStage, Double>(ActionStage.class);
 }

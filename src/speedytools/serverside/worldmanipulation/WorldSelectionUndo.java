@@ -115,6 +115,9 @@ public class WorldSelectionUndo
        (2) save the world data for the fragment voxels and the border mask voxels
        (3) write the fragment data into the world
        (4) find out which voxels in the border mask were unaffected by the writing into the world, and remove them from the undo mask (changedBlocksMask)
+
+       When aborting:
+       If we haven't gotten to the WRITING yet, just erase the changedBlocksMask.  Otherwise, abort the WRITE SUBTASK and proceed with the remaining stages as normal
      */
 
 //    System.out.println("WorldSelectionUndo stage: " + state.getStage() + " fractionComplete:" + state.getFractionComplete()); // todo remove
@@ -122,6 +125,11 @@ public class WorldSelectionUndo
     WorldFragment fragmentToWrite = state.fragmentToWrite;
     QuadOrientation quadOrientation = state.quadOrientation;
     if (state.getStage() == AsynchronousWriteStages.SETUP) {
+      if (state.amIaborting()) {
+        state.setStage(AsynchronousWriteStages.COMPLETE);
+        changedBlocksMask = new VoxelSelection(1, 1, 1);
+        return;
+      }
       final int Y_MIN_VALID = 0;
       final int Y_MAX_VALID_PLUS_ONE = 256;
 
@@ -152,8 +160,16 @@ public class WorldSelectionUndo
     }
 
     if (state.getStage() == AsynchronousWriteStages.READ_UNDO_FRAGMENT) {
+      if (state.amIaborting()) {
+        state.subTask.abortProcessing();
+      }
       boolean subTaskFinished = state.executeSubTask();
       if (!subTaskFinished) return;
+      if (state.amIaborting()) {
+        state.setStage(AsynchronousWriteStages.COMPLETE);
+        changedBlocksMask = new VoxelSelection(1, 1, 1);
+        return;
+      }
 
       //    fragmentToWrite.writeToWorld(worldServer, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, null, quadOrientation);
       AsynchronousToken token = fragmentToWrite.writeToWorldAsynchronous(worldServer, state.wxOrigin, state.wyOrigin, state.wzOrigin, null, quadOrientation);
@@ -163,6 +179,9 @@ public class WorldSelectionUndo
     }
 
     if (state.getStage() == AsynchronousWriteStages.WRITE_FRAGMENT) {
+      if (state.amIaborting()) {
+        state.subTask.abortProcessing();
+      }
       boolean subTaskFinished = state.executeSubTask();
       if (!subTaskFinished) return;
 
@@ -213,6 +232,11 @@ public class WorldSelectionUndo
     }
 
     @Override
+    public boolean isTaskAborted() {
+      return aborting && isTaskComplete();
+    }
+
+    @Override
     public boolean isTimeToInterrupt() {
       return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
     }
@@ -225,6 +249,11 @@ public class WorldSelectionUndo
     @Override
     public void continueProcessing() {
       writeToWorldAsynchronous_do(worldServer, this);
+    }
+
+    @Override
+    public void abortProcessing() {    // allow the task to continue, but some steps will be cut short
+      aborting = true;
     }
 
     @Override
@@ -273,6 +302,8 @@ public class WorldSelectionUndo
       return subTask.isTaskComplete();
     }
 
+    public boolean amIaborting() {return aborting;}
+
     public VoxelSelectionWithOrigin getLockedRegion()
     {
       if (currentStage == AsynchronousWriteStages.SETUP || isTaskComplete()) return null;
@@ -295,6 +326,7 @@ public class WorldSelectionUndo
     private double stageFractionComplete;
     private double cumulativeCompletion;
     private AsynchronousToken subTask;
+    private boolean aborting = false;
   }
 
   /**
@@ -436,38 +468,43 @@ public class WorldSelectionUndo
     }
 
     if (state.getStage() == AsynchronousUndoStages.ADJUST_MASK) {
-      for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
-        for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
-          for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
-            if (changedBlocksMask.getVoxel(x, y, z)) {
-              boolean writeVoxelToWorld = true;
-              for (WorldSelectionUndo undoLayer : state.getOverlappingUndoLayers()) {
-                if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
-                        y + wyOfOrigin - undoLayer.wyOfOrigin,
-                        z + wzOfOrigin - undoLayer.wzOfOrigin)) {
-                  writeVoxelToWorld = false;
-                  undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+      if (!state.amIaborting()) {
+        for (int y = 0; y < undoWorldFragment.getyCount(); ++y) {
+          for (int x = 0; x < undoWorldFragment.getxCount(); ++x) {
+            for (int z = 0; z < undoWorldFragment.getzCount(); ++z) {
+              if (changedBlocksMask.getVoxel(x, y, z)) {
+                boolean writeVoxelToWorld = true;
+                for (WorldSelectionUndo undoLayer : state.getOverlappingUndoLayers()) {
+                  if (undoLayer.changedBlocksMask.getVoxel(x + wxOfOrigin - undoLayer.wxOfOrigin,
                           y + wyOfOrigin - undoLayer.wyOfOrigin,
-                          z + wzOfOrigin - undoLayer.wzOfOrigin,
-                          this.undoWorldFragment, x, y, z);
-                  break;
+                          z + wzOfOrigin - undoLayer.wzOfOrigin)) {
+                    writeVoxelToWorld = false;
+                    undoLayer.undoWorldFragment.copyVoxelContents(x + wxOfOrigin - undoLayer.wxOfOrigin,
+                            y + wyOfOrigin - undoLayer.wyOfOrigin,
+                            z + wzOfOrigin - undoLayer.wzOfOrigin,
+                            this.undoWorldFragment, x, y, z);
+                    break;
+                  }
                 }
-              }
-              if (writeVoxelToWorld) {
-                state.worldWriteMask.setVoxel(x, y, z);
+                if (writeVoxelToWorld) {
+                  state.worldWriteMask.setVoxel(x, y, z);
+                }
               }
             }
           }
         }
-      }
-      state.setStage(AsynchronousUndoStages.UNDO);
+        AsynchronousToken token = undoWorldFragment.writeToWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.worldWriteMask);
+        state.setSubTask(token);
+      }  // !amIaborting()
 //      undoWorldFragment.writeToWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, worldWriteMask);
-      AsynchronousToken token = undoWorldFragment.writeToWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.worldWriteMask);
-      state.setSubTask(token);
+      state.setStage(AsynchronousUndoStages.UNDO);
       if (state.isTimeToInterrupt()) return;
     }
 
     if (state.getStage() == AsynchronousUndoStages.UNDO) {
+      if (state.amIaborting()) {
+        state.subTask.abortProcessing();
+      }
       boolean subTaskFinished = state.executeSubTask();
       if (!subTaskFinished) return;
       state.setStage(AsynchronousUndoStages.COMPLETE);
@@ -490,6 +527,11 @@ public class WorldSelectionUndo
     }
 
     @Override
+    public boolean isTaskAborted() {
+      return aborting && isTaskComplete();
+    }
+
+    @Override
     public boolean isTimeToInterrupt() {
       return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
     }
@@ -501,7 +543,13 @@ public class WorldSelectionUndo
 
     @Override
     public void continueProcessing() {
+
       undoChangesAsynchronous_do(worldServer, this);
+    }
+
+    @Override
+    public void abortProcessing() {
+      aborting = true;
     }
 
     @Override
@@ -534,6 +582,8 @@ public class WorldSelectionUndo
       assert (completionFraction >= 0 && completionFraction <= 1.0);
       stageFractionComplete = completionFraction;
     }
+
+    public boolean amIaborting() {return aborting;}
 
     // returns true if the sub-task is finished
     public boolean executeSubTask() {
@@ -571,6 +621,7 @@ public class WorldSelectionUndo
     private double stageFractionComplete;
     private double cumulativeCompletion;
     private AsynchronousToken subTask;
+    private boolean aborting = false;
   }
 
   /**

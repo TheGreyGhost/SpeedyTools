@@ -377,6 +377,11 @@ public class WorldHistory
     }
 
     @Override
+    public boolean isTaskAborted() {
+      return aborting && isTaskComplete();
+    }
+
+    @Override
     public boolean isTimeToInterrupt() {
       return (interruptTimeNS == IMMEDIATE_TIMEOUT || (interruptTimeNS != INFINITE_TIMEOUT && System.nanoTime() >= interruptTimeNS));
     }
@@ -388,7 +393,7 @@ public class WorldHistory
 
     @Override
     public void continueProcessing() {
-      // first, complete the subTask (placement of the fragment)
+      // first, complete the subTask (placement or undo of the fragment)
       // then perform all of the deferred undos (i.e. the Voxels locked by the subTask) and remove them from the history
       // beware - further undo may be added every time we interrupt
 
@@ -422,6 +427,11 @@ public class WorldHistory
     }
 
     @Override
+    public void abortProcessing() {
+      aborting = true;
+    }
+
+    @Override
     public double getFractionComplete()
     {
       return fractionComplete;
@@ -441,6 +451,9 @@ public class WorldHistory
     public boolean executeSubTask() {
       if (subTask == null || subTask.isTaskComplete()) {
         return true;
+      }
+      if (aborting) {
+        subTask.abortProcessing();
       }
       subTask.setTimeOfInterrupt(interruptTimeNS);
       subTask.continueProcessing();
@@ -512,6 +525,7 @@ public class WorldHistory
     private AsynchronousToken subTask;
     private UndoLayerInfo undoLayerInfo;
     private AsynchronousActionType asynchronousActionType;
+    private boolean aborting = false;
   }
 
   private AsynchronousWriteOrUndo currentAsynchronousTask;

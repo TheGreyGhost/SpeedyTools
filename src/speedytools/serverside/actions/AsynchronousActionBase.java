@@ -24,7 +24,6 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
     fractionComplete = 0;
     cumulativeTaskDurationWeight = 0.0;
     completed = false;
-    aborted = false;
   }
 
   @Override
@@ -33,7 +32,7 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
   }
 
   @Override
-  public boolean isTaskAborted() { return aborted;}
+  public boolean isTaskAborted() { return aborting && isTaskComplete();}
 
   @Override
   public boolean isTimeToInterrupt() {
@@ -43,6 +42,11 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
   @Override
   public void setTimeOfInterrupt(long timeToStopNS) {
     interruptTimeNS = timeToStopNS;
+  }
+
+  @Override
+  public void abortProcessing() {
+    aborting = true;
   }
 
   @Override
@@ -80,7 +84,7 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
   }
 
   protected boolean completed;
-  protected boolean aborted;
+  protected boolean aborting = false;
   protected long interruptTimeNS;
   protected double fractionComplete;
   protected SpeedyToolsNetworkServer speedyToolsNetworkServer;

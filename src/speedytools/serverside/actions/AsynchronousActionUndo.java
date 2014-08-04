@@ -90,6 +90,11 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
     }
   }
 
+  @Override
+  public void abortProcessing() {
+
+  }
+
   public enum ActionStage {
     SETUP(0.0), READ(0.3), WRITE(0.7), COMPLETE(0.0);
     ActionStage(double i_durationWeight) {durationWeight = i_durationWeight;}
