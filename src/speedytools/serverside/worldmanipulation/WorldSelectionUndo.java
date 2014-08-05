@@ -100,7 +100,8 @@ public class WorldSelectionUndo
    * @param worldServer
    * @param quadOrientation the orientation of the fragment to place (flip, rotate)
    */
-  public AsynchronousToken writeToWorldAsynchronous(WorldServer worldServer, WorldFragment fragmentToWrite, int i_wxOfOrigin, int i_wyOfOrigin, int i_wzOfOrigin, QuadOrientation quadOrientation)
+  public AsynchronousToken writeToWorldAsynchronous(WorldServer worldServer, WorldFragment fragmentToWrite, int i_wxOfOrigin, int i_wyOfOrigin, int i_wzOfOrigin, QuadOrientation quadOrientation,
+                                                    UniqueTokenID transactionID)
   {
     AsynchronousWrite token = new AsynchronousWrite(worldServer, fragmentToWrite, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, quadOrientation);
     token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
@@ -310,6 +311,11 @@ public class WorldSelectionUndo
       return expandedSelection;
     }
 
+    @Override
+    public UniqueTokenID getUniqueTokenID() {
+      return uniqueTokenID;
+    }
+
     public final WorldServer worldServer;
     public final int wxOrigin;
     public final int wyOrigin;
@@ -327,6 +333,7 @@ public class WorldSelectionUndo
     private double cumulativeCompletion;
     private AsynchronousToken subTask;
     private boolean aborting = false;
+    private final UniqueTokenID uniqueTokenID = new UniqueTokenID();
   }
 
   /**
@@ -543,7 +550,6 @@ public class WorldSelectionUndo
 
     @Override
     public void continueProcessing() {
-
       undoChangesAsynchronous_do(worldServer, this);
     }
 
@@ -602,6 +608,11 @@ public class WorldSelectionUndo
       return new VoxelSelectionWithOrigin(wxOfOrigin, wyOfOrigin, wzOfOrigin, changedBlocksMask);
     }
 
+    @Override
+    public UniqueTokenID getUniqueTokenID() {
+      return uniqueTokenID;
+    }
+
     public final WorldServer worldServer;
     public final List<WorldSelectionUndo> subsequentUndoLayers;
 
@@ -622,6 +633,7 @@ public class WorldSelectionUndo
     private double cumulativeCompletion;
     private AsynchronousToken subTask;
     private boolean aborting = false;
+    private final UniqueTokenID uniqueTokenID = new UniqueTokenID();
   }
 
   /**

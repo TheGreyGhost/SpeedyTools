@@ -555,6 +555,11 @@ public class WorldFragment
       return new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, voxelSelection);
     }
 
+    @Override
+    public UniqueTokenID getUniqueTokenID() {
+      return uniqueTokenID;
+    }
+
     public AsynchronousRead(WorldServer i_worldServer, VoxelSelection i_voxelSelection, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin)
     {
       worldServer = i_worldServer;
@@ -598,6 +603,7 @@ public class WorldFragment
     private double stageFractionComplete;
     private double cumulativeCompletion;
     private boolean aborted;
+    private final UniqueTokenID uniqueTokenID = new UniqueTokenID();
   }
 
 
@@ -1008,6 +1014,10 @@ public class WorldFragment
       return new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, lockedRegion);
     }
 
+    @Override
+    public UniqueTokenID getUniqueTokenID() {
+      return uniqueTokenID;
+    }
 
     public final WorldServer worldServer;
     public final int wxOrigin;
@@ -1025,6 +1035,7 @@ public class WorldFragment
     private double cumulativeCompletion;
     private final VoxelSelection lockedRegion;
     private boolean aborted;
+    private final UniqueTokenID uniqueTokenID = new UniqueTokenID();
   }
 
   /**

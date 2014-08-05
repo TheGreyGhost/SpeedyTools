@@ -40,7 +40,7 @@ When the user performs an action, the client assigns it a unique, strictly ascen
    If the server receives a sequencenumber it has already processed:
      1) if this was the last action it performed for this client, it will send the appropriate action acknowledge packet again
      2) if subsequent actions have been performed, it will ignore it.
-   If the server receives a sequencenumber for which is has already received an undo, it will reject it.
+   If the server receives a sequencenumber for which it has already received an undo, it will reject it.
    It the server receives a sequencenumber older than one it has previously received, it will reject it.
 
 When the user performs an undo:

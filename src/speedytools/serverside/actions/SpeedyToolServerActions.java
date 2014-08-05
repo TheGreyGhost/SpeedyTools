@@ -138,8 +138,8 @@ public class SpeedyToolServerActions
 
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
-    AsynchronousToken token = new AsynchronousActionPlacement(speedyToolsNetworkServer, worldServer, player, worldHistory,voxelSelection,
-                                                              sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+    AsynchronousActionPlacement token = new AsynchronousActionPlacement(speedyToolsNetworkServer, worldServer, player, worldHistory,voxelSelection,
+                                                                        sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
     token.continueProcessing();
     asynchronousTaskInProgress = token;
@@ -175,6 +175,10 @@ public class SpeedyToolServerActions
     }
 
     // we're currently still synchronous undo so this is not relevant yet; just call performUndoOfLastAction instead
+    if (asynchronousTaskInProgress != null && !asynchronousTaskInProgress.isTaskComplete()) {
+      asynchronousTaskInProgress.rollback(undoSequenceNumber);
+    }
+
 
     return performUndoOfLastComplexAction(player, undoSequenceNumber);
 
@@ -204,7 +208,7 @@ public class SpeedyToolServerActions
     AsynchronousToken token = new AsynchronousActionUndo(speedyToolsNetworkServer, worldServer, player, worldHistory);
     speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
 
-    AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServer);
+    AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServer, null);
 
     if (result == null) {
       return ResultWithReason.failure("There are no more spells to undo...");
@@ -286,7 +290,7 @@ public class SpeedyToolServerActions
   private WorldHistory worldHistory;
   protected ServerVoxelSelections serverVoxelSelections;  // protected for test stub
 
-  private AsynchronousToken asynchronousTaskInProgress;
+  private AsynchronousActionBase asynchronousTaskInProgress;
 //  private AsynchronousToken asynchronousUndoInProgress;
 //  private int asynchronousUndoSequenceNumber;
 //  private AsynchronousToken asynchronousPlacementInProgress;

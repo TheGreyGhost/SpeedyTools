@@ -48,7 +48,7 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
                                                            sourceVoxelSelection.getWxOrigin(), sourceVoxelSelection.getWyOrigin(), sourceVoxelSelection.getWzOrigin(),
                                                            sourceVoxelSelection);
         currentStage = ActionStage.READ;
-        setSubTask(token, currentStage.durationWeight);
+        setSubTask(token, currentStage.durationWeight, false);
         break;
       }
       case READ: {
@@ -56,7 +56,7 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
         AsynchronousToken token = worldHistory.writeToWorldWithUndoAsynchronous(entityPlayerMP, worldServer, sourceWorldFragment, xpos, ypos, zpos, quadOrientation);
         currentStage = ActionStage.WRITE;
         if (token != null) {
-          setSubTask(token, currentStage.durationWeight);
+          setSubTask(token, currentStage.durationWeight, false);
         }
         break;
       }

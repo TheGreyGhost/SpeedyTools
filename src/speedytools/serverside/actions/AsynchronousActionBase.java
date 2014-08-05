@@ -5,6 +5,7 @@ import net.minecraft.world.WorldServer;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.serverside.SpeedyToolsNetworkServer;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
+import speedytools.serverside.worldmanipulation.UniqueTokenID;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 
 /**
@@ -49,6 +50,16 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
     aborting = true;
   }
 
+  /** attempt to rollback the changes being made by the current action.
+   *
+   * @param i_rollbackSequenceNumber
+   */
+  public void rollback(int i_rollbackSequenceNumber)
+  {
+    rollingBack = true;
+    rollbackSequenceNumber = i_rollbackSequenceNumber;
+  }
+
   @Override
   public double getFractionComplete()
   {
@@ -57,14 +68,24 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
 
   public VoxelSelectionWithOrigin getLockedRegion() {return null;}
 
+  @Override
+  public UniqueTokenID getUniqueTokenID() {
+    return transactionID;
+  }
+
   /**
    * Set the task to be executed next
    * @param token the next task
    * @param taskDurationWeight the estimated relative duration of this task as a fraction of the whole task duration; 0.0 - 1.0;
+   * @param resetCumulativeDuration
    */
-  public void setSubTask(AsynchronousToken token, double taskDurationWeight)
+  public void setSubTask(AsynchronousToken token, double taskDurationWeight, boolean resetCumulativeDuration)
   {
-    cumulativeTaskDurationWeight += subTaskDurationWeight;
+    if (resetCumulativeDuration) {
+      cumulativeTaskDurationWeight = 0;
+    } else {
+      cumulativeTaskDurationWeight += subTaskDurationWeight;
+    }
     subTaskDurationWeight = taskDurationWeight;
     subTask = token;
   }
@@ -83,8 +104,23 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
     return subTask.isTaskComplete();
   }
 
+  /** abort the current subTask (keep executing until acknowledged)
+   * @return true if subTask is completed
+   */
+  public boolean executeAbortSubTask()
+  {
+    if (subTask.isTaskComplete()) return true;
+    subTask.abortProcessing();
+    subTask.setTimeOfInterrupt(interruptTimeNS);
+    subTask.continueProcessing();
+    double stageCompletion = subTask.isTaskComplete() ? 1.0 : subTask.getFractionComplete();
+    fractionComplete = cumulativeTaskDurationWeight + subTaskDurationWeight * stageCompletion;
+    return subTask.isTaskComplete();
+  }
+
   protected boolean completed;
   protected boolean aborting = false;
+  protected boolean rollingBack = false;
   protected long interruptTimeNS;
   protected double fractionComplete;
   protected SpeedyToolsNetworkServer speedyToolsNetworkServer;
@@ -92,8 +128,9 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
   protected WorldHistory worldHistory;
   protected EntityPlayerMP entityPlayerMP;
   protected int sequenceNumber;
+  protected int rollbackSequenceNumber;
   private AsynchronousToken subTask;
   private double subTaskDurationWeight;
   private double cumulativeTaskDurationWeight;
-
+  private final UniqueTokenID transactionID = new UniqueTokenID();
 }

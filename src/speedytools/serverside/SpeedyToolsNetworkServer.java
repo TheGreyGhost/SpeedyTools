@@ -258,7 +258,7 @@ public class SpeedyToolsNetworkServer
           ResultWithReason result = ResultWithReason.failure();
           if (serverStatus == ServerStatus.IDLE) {
             result = speedyToolServerActions.performComplexAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
-                                                              packet.getQuadOrientation());
+                                                                  packet.getQuadOrientation());
           } else {
             switch (serverStatus) {
               case PERFORMING_BACKUP: {
@@ -347,7 +347,9 @@ public class SpeedyToolsNetworkServer
             break;
           } else if (packet.getActionToBeUndoneSequenceNumber() == lastAcknowledgedAction.get(player)) {    // undo for a specific action we have acknowledged as starting
             result = speedyToolServerActions.performUndoOfCurrentComplexAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
-            sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
+//            sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
+            sendAcknowledgementWithReason(player, Acknowledgement.COMPLETED, lastAcknowledgedAction.get(player),
+                    (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
           }
         }
         break;

@@ -55,7 +55,7 @@ public class WorldHistory
   public void writeToWorldWithUndo(EntityPlayerMP player, WorldServer worldServer, WorldFragment fragmentToWrite, int wxOfOrigin, int wyOfOrigin, int wzOfOrigin,
                                    QuadOrientation quadOrientation)
   {
-    AsynchronousToken token = writeToWorldWithUndoAsynchronous(player, worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation);
+    AsynchronousToken token = writeToWorldWithUndoAsynchronous(player, worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation, null);
     if (token == null) return;
     token.setTimeOfInterrupt(token.INFINITE_TIMEOUT);
     token.continueProcessing();
@@ -74,14 +74,14 @@ public class WorldHistory
    * @return the asynchronous token for further processing, or null if a complex operation is already in progress
    */
   public AsynchronousToken writeToWorldWithUndoAsynchronous(EntityPlayerMP player, WorldServer worldServer, WorldFragment fragmentToWrite, int wxOfOrigin, int wyOfOrigin, int wzOfOrigin,
-                                                                QuadOrientation quadOrientation)
+                                                            QuadOrientation quadOrientation, UniqueTokenID transactionID)
   {
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) return null; // only one complex task at once!
 
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    AsynchronousToken subToken = worldSelectionUndo.writeToWorldAsynchronous(worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation);
+    AsynchronousToken subToken = worldSelectionUndo.writeToWorldAsynchronous(worldServer, fragmentToWrite, wxOfOrigin, wyOfOrigin, wzOfOrigin, quadOrientation, transactionID);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, player, worldSelectionUndo);
-    currentAsynchronousTask = new AsynchronousWriteOrUndo(AsynchronousActionType.WRITE, subToken, undoLayerInfo);
+    currentAsynchronousTask = new AsynchronousWriteOrUndo(AsynchronousActionType.WRITE, subToken, undoLayerInfo, transactionID);
 
     return currentAsynchronousTask;
     // once the operation is complete, the token will add the undoLayerInfo to the complex list
@@ -112,7 +112,7 @@ public class WorldHistory
    * @return true for success, or failure if either no undo found or if an asynchronous task is currently running
    */
   public boolean performComplexUndo(EntityPlayerMP player, WorldServer worldServer) {
-    AsynchronousToken token = performComplexUndoAsynchronous(player, worldServer);
+    AsynchronousToken token = performComplexUndoAsynchronous(player, worldServer, null);
     if (token == null) return false;
     token.setTimeOfInterrupt(token.INFINITE_TIMEOUT);
     token.continueProcessing();
@@ -124,17 +124,23 @@ public class WorldHistory
    *    -> repeatedly call token.setTimeToInterrupt() and token.continueProcessing()
    * @param player
    * @param worldServer
+   * @param transactionID if not null, perform the undo with the given transactionID, if it still exists.
    * @return the asynchronous token for further processing, or null if no undo found or a complex operation is already in progress
    */
-  public AsynchronousToken performComplexUndoAsynchronous(EntityPlayerMP player, WorldServer worldServer) {
+  public AsynchronousToken performComplexUndoAsynchronous(EntityPlayerMP player, WorldServer worldServer, UniqueTokenID transactionID) {
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) return null;
 
-    UndoLayerInfo undoLayerFound = getMostRecentUndo(undoLayersComplex, player, worldServer);
+    UndoLayerInfo undoLayerFound = null;
+    if (transactionID != null) {
+      undoLayerFound = getSpecificUndo(undoLayersComplex, player, worldServer, transactionID);
+    } else {
+      undoLayerFound = getMostRecentUndo(undoLayersComplex, player, worldServer);
+    }
     if (undoLayerFound == null) return null;
 
     LinkedList<WorldSelectionUndo> subsequentUndoLayers = collateSubsequentUndoLayersAllHistories(undoLayerFound.creationTime, worldServer);
     AsynchronousToken subToken = undoLayerFound.worldSelectionUndo.undoChangesAsynchronous(worldServer, subsequentUndoLayers);
-    currentAsynchronousTask = new AsynchronousWriteOrUndo(AsynchronousActionType.UNDO, subToken, undoLayerFound);
+    currentAsynchronousTask = new AsynchronousWriteOrUndo(AsynchronousActionType.UNDO, subToken, undoLayerFound, null);
 
     return currentAsynchronousTask;
   }
@@ -189,7 +195,29 @@ public class WorldHistory
     return undoLayerFound;
   }
 
-    /**
+  /** find the most recent undo entry, in the given undoHistory, for the given player and worldServer
+   * @param undoHistory
+   * @param player
+   * @param worldServer
+   * @return the undo entry, or null if none found
+   */
+  private UndoLayerInfo getSpecificUndo(LinkedList<UndoLayerInfo> undoHistory, EntityPlayerMP player, WorldServer worldServer, UniqueTokenID transactionID)
+  {
+    UndoLayerInfo undoLayerFound = null;
+    Iterator<UndoLayerInfo> undoLayerInfoIterator = undoHistory.descendingIterator();
+    while (undoLayerFound == null && undoLayerInfoIterator.hasNext()) {
+      UndoLayerInfo undoLayerInfo = undoLayerInfoIterator.next();
+      if (undoLayerInfo.transactionID.equals(transactionID)
+          && undoLayerInfo.worldServer.get() == worldServer
+          && undoLayerInfo.entityPlayerMP.get() == player
+          && !undoLayerInfo.undoHasCommenced    ) {
+        undoLayerFound = undoLayerInfo;
+      }
+    }
+    return undoLayerFound;
+  }
+
+  /**
      * removes the specified player from the history.
      * Optional, since any entityPlayerMP entries in the history which become invalid will eventually be removed automatically.
      * @param entityPlayerMP
@@ -402,11 +430,14 @@ public class WorldHistory
       if (undoLayerInfo != null) {
         switch (asynchronousActionType) {
           case WRITE: {
+            undoLayerInfo.transactionID = transactionID;
             undoLayersComplex.add(undoLayerInfo);
             break;
           }
           case UNDO: {
-            undoLayersComplex.remove(undoLayerInfo);
+            if (!aborting) {
+              undoLayersComplex.remove(undoLayerInfo);
+            }
             break;
           }
           default: assert false : "Invalid asynchronousActionType: " + asynchronousActionType;
@@ -437,7 +468,7 @@ public class WorldHistory
       return fractionComplete;
     }
 
-    public AsynchronousWriteOrUndo(AsynchronousActionType i_actionType, AsynchronousToken i_subTask, UndoLayerInfo i_undoLayerInfo)
+    public AsynchronousWriteOrUndo(AsynchronousActionType i_actionType, AsynchronousToken i_subTask, UndoLayerInfo i_undoLayerInfo, UniqueTokenID i_transactionID)
     {
       subTask = i_subTask;
       undoLayerInfo = i_undoLayerInfo;
@@ -445,6 +476,7 @@ public class WorldHistory
       fractionComplete = 0;
       completed = false;
       asynchronousActionType = i_actionType;
+      transactionID = i_transactionID;
     }
 
     // returns true if the sub-task is finished
@@ -466,6 +498,11 @@ public class WorldHistory
     {
       if (subTask == null || subTask.isTaskComplete()) return null;
       return subTask.getLockedRegion();
+    }
+
+    @Override
+    public UniqueTokenID getUniqueTokenID() {
+      return uniqueTokenID;
     }
 
     /**
@@ -526,6 +563,8 @@ public class WorldHistory
     private UndoLayerInfo undoLayerInfo;
     private AsynchronousActionType asynchronousActionType;
     private boolean aborting = false;
+    private final UniqueTokenID uniqueTokenID = new UniqueTokenID();
+    private UniqueTokenID transactionID = null;
   }
 
   private AsynchronousWriteOrUndo currentAsynchronousTask;
@@ -542,7 +581,17 @@ public class WorldHistory
       worldServer = new WeakReference<WorldServer>(i_worldServer);
       entityPlayerMP = new WeakReference<EntityPlayerMP>(i_entityPlayerMP);
       worldSelectionUndo = i_worldSelectionUndo;
+//      creatingTaskID = null;
     }
+
+//    public UndoLayerInfo(long i_creationTime, WorldServer i_worldServer, EntityPlayerMP i_entityPlayerMP, WorldSelectionUndo i_worldSelectionUndo, UniqueTokenID i_creatingTaskID)
+//    {
+//     this(i_creationTime, i_worldServer, i_entityPlayerMP, i_worldSelectionUndo);
+////     creatingTaskID = i_creatingTaskID;
+//    }
+
+//    public void setCreatingTaskID(UniqueTokenID newCreatingTaskID) {creatingTaskID = newCreatingTaskID;}
+
     // shallow copy!
     public UndoLayerInfo(UndoLayerInfo source)
     {
@@ -550,6 +599,7 @@ public class WorldHistory
       worldServer = source.worldServer;
       entityPlayerMP = source.entityPlayerMP;
       worldSelectionUndo = source.worldSelectionUndo;
+//      creatingTaskID = source.creatingTaskID;
       undoHasCommenced = false;
     }
 
@@ -557,7 +607,9 @@ public class WorldHistory
     public WeakReference<WorldServer> worldServer;
     public WeakReference<EntityPlayerMP>  entityPlayerMP;
     public WorldSelectionUndo worldSelectionUndo;
+    public UniqueTokenID transactionID;
     boolean undoHasCommenced;  // set to true once the player has commenced this undo
+//    public UniqueTokenID creatingTaskID;
 
     @Override
     public int compareTo(UndoLayerInfo objectToCompareAgainst)

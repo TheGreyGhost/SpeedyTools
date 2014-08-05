@@ -44,6 +44,9 @@ public interface AsynchronousToken
   // returns a voxel selection corresponding to the world region locked by this task; null = none
   public VoxelSelectionWithOrigin getLockedRegion();
 
+  // returns a unique ID for this token
+  public UniqueTokenID getUniqueTokenID();
+
   public final long INFINITE_TIMEOUT = 0L;
   public final long IMMEDIATE_TIMEOUT = -1L;
 }

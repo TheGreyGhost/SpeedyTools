@@ -10,8 +10,6 @@ import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 
-import java.util.EnumMap;
-
 /**
  * User: The Grey Ghost
  * Date: 3/08/2014
@@ -38,28 +36,33 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
 
   @Override
   public void continueProcessing() {
+    if (aborting) {
+      continueAborting();
+      return;
+    }
+    if (rollingBack) {
+      continueRollingBack();
+      return;
+    }
     long timeIn = System.nanoTime();
 //    ActionStage entryStage = currentStage;
     switch (currentStage) {
       case SETUP: {
-        if (aborting) {
-          completed = true;sdak;jkdjgsd??
-        }
         speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, entityPlayerMP, (byte)0);
         sourceWorldFragment = new WorldFragment(sourceVoxelSelection.getxSize(), sourceVoxelSelection.getySize(), sourceVoxelSelection.getzSize());
         AsynchronousToken token = sourceWorldFragment.readFromWorldAsynchronous(worldServer,
                                                            sourceVoxelSelection.getWxOrigin(), sourceVoxelSelection.getWyOrigin(), sourceVoxelSelection.getWzOrigin(),
                                                            sourceVoxelSelection);
         currentStage = ActionStage.READ;
-        setSubTask(token, currentStage.durationWeight);
+        setSubTask(token, currentStage.durationWeight, false);
         break;
       }
       case READ: {
         if (!executeSubTask()) break;
-        AsynchronousToken token = worldHistory.writeToWorldWithUndoAsynchronous(entityPlayerMP, worldServer, sourceWorldFragment, xpos, ypos, zpos, quadOrientation);
+        AsynchronousToken token = worldHistory.writeToWorldWithUndoAsynchronous(entityPlayerMP, worldServer, sourceWorldFragment, xpos, ypos, zpos, quadOrientation, getUniqueTokenID());
         currentStage = ActionStage.WRITE;
         if (token != null) {
-          setSubTask(token, currentStage.durationWeight);
+          setSubTask(token, currentStage.durationWeight, false);
         }
         break;
       }
@@ -77,6 +80,7 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
         break;
       }
       case COMPLETE: { // do nothing
+        completed = true;
         break;
       }
       default: {
@@ -84,17 +88,109 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       }
     }
     if (!completed) {
-      double elapsedMS = (System.nanoTime() - timeIn) / 1.0E6;
-//      ticksPerStage.put(entryStage, 1 + ticksPerStage.get(entryStage));
-//      milliSecondsPerStage.put(entryStage, milliSecondsPerStage.get(entryStage) + elapsedMS);
-//      System.out.println(getFractionComplete());
+//      double elapsedMS = (System.nanoTime() - timeIn) / 1.0E6;
+////      ticksPerStage.put(entryStage, 1 + ticksPerStage.get(entryStage));
+////      milliSecondsPerStage.put(entryStage, milliSecondsPerStage.get(entryStage) + elapsedMS);
+////      System.out.println(getFractionComplete());
       speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, entityPlayerMP,
                                                   (byte) (100 * getFractionComplete()));
     }
   }
 
+  private void continueAborting() {
+    switch (currentStage) {
+      case SETUP: {
+        currentStage = ActionStage.COMPLETE;
+        completed = true;
+        break;
+      }
+      case READ: {
+        if (executeAbortSubTask()) break;
+        currentStage = ActionStage.COMPLETE;
+        break;
+      }
+      case WRITE: {
+        if (executeAbortSubTask()) break;
+        currentStage = ActionStage.COMPLETE;
+        speedyToolsNetworkServer.actionCompleted(entityPlayerMP, sequenceNumber);
+
+//        for (ActionStage actionStage : ActionStage.values()) {
+//          System.out.println(actionStage + ":" + ticksPerStage.get(actionStage) + " -> " + milliSecondsPerStage.get(actionStage));
+//        }
+        break;
+      }
+      case ROLLBACK: {
+        if (executeAbortSubTask()) break;
+        currentStage = ActionStage.COMPLETE;
+        speedyToolsNetworkServer.undoCompleted(entityPlayerMP, sequenceNumber);
+        break;
+      }
+      case COMPLETE: { // do nothing
+        if (!completed) {
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
+          sourceWorldFragment = null;
+          sourceVoxelSelection = null;
+          completed = true;
+        }
+        break;
+      }
+      default: {
+        assert false : "Invalid currentStage : " + currentStage;
+      }
+    }
+  }
+
+  private void continueRollingBack() {
+    switch (currentStage) {
+      case SETUP: {
+        currentStage = ActionStage.COMPLETE;
+        completed = true;
+        break;
+      }
+      case READ: {
+        if (!executeAbortSubTask()) break;
+        currentStage = ActionStage.COMPLETE;
+        break;
+      }
+      case WRITE: {
+        if (!executeAbortSubTask()) break;
+        AsynchronousToken token = worldHistory.performComplexUndoAsynchronous(entityPlayerMP, worldServer, getUniqueTokenID());  // rollback the placement we just completed.
+        if (token == null ) {
+          speedyToolsNetworkServer.undoCompleted(entityPlayerMP, rollbackSequenceNumber);
+          currentStage = ActionStage.COMPLETE;
+        } else {
+          setSubTask(token, currentStage.durationWeight, true);
+          currentStage = ActionStage.ROLLBACK;
+        }
+        break;
+      }
+      case ROLLBACK: {
+        if (!executeSubTask()) break;
+        speedyToolsNetworkServer.undoCompleted(entityPlayerMP, rollbackSequenceNumber);
+        break;
+      }
+      case COMPLETE: { // do nothing
+        if (!completed) {
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
+          sourceWorldFragment = null;
+          sourceVoxelSelection = null;
+          completed = true;
+        }
+        break;
+      }
+      default: {
+        assert false : "Invalid currentStage : " + currentStage;
+      }
+    }
+    if (!completed) {
+      speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, entityPlayerMP,
+              (byte) (100 * getFractionComplete()));
+    }
+  }
+
+
   public enum ActionStage {
-    SETUP(0.0), READ(0.3), WRITE(0.7), COMPLETE(0.0);
+    SETUP(0.0), READ(0.3), WRITE(0.7), COMPLETE(0.0), ROLLBACK(1.0);
     ActionStage(double i_durationWeight) {durationWeight = i_durationWeight;}
     public double durationWeight;
   }
@@ -107,6 +203,7 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
   private ActionStage currentStage;
   WorldFragment sourceWorldFragment;
   VoxelSelectionWithOrigin sourceVoxelSelection;
+
 
 //  EnumMap<ActionStage, Integer> ticksPerStage = new EnumMap<ActionStage, Integer>(ActionStage.class);
 //  EnumMap<ActionStage, Double> milliSecondsPerStage = new EnumMap<ActionStage, Double>(ActionStage.class);
