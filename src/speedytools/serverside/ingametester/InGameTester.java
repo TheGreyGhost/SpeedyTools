@@ -520,7 +520,8 @@ public class InGameTester
     WorldSelectionUndo asyncWorldSelectionUndo = new WorldSelectionUndo();
     QuadOrientation identity = new QuadOrientation(0,0,1,1);
     AsynchronousToken token = asyncWorldSelectionUndo.writeToWorldAsynchronous(worldServer, sourceWorldFragment,
-                                                                                  testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, identity);
+                                                                                  testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ,
+                                                                                  identity, null);
     while (!token.isTaskComplete()) {
       token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
       token.continueProcessing();
@@ -673,7 +674,7 @@ public class InGameTester
     WorldFragment complexWorldFragment = new WorldFragment(testRegions.get(4).xSize, testRegions.get(4).ySize, testRegions.get(4).zSize);
     VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegions.get(4).sourceRegion, testRegions.get(4).xSize, testRegions.get(4).ySize, testRegions.get(4).zSize);
     complexWorldFragment.readFromWorld(worldServer, testRegions.get(4).sourceRegion.posX, testRegions.get(4).sourceRegion.posY, testRegions.get(4).sourceRegion.posZ, voxelSelection);
-    AsynchronousToken token = worldHistory.writeToWorldWithUndoAsynchronous(entityPlayerMP, worldServer, complexWorldFragment, x0, y0, z0, orientation);
+    AsynchronousToken token = worldHistory.writeToWorldWithUndoAsynchronous(entityPlayerMP, worldServer, complexWorldFragment, x0, y0, z0, orientation, null);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(4).testOutputRegion.posX, testRegions.get(4).testOutputRegion.posY, testRegions.get(4).testOutputRegion.posZ, null);
 

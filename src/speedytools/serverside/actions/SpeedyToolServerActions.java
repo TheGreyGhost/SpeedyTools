@@ -177,8 +177,8 @@ public class SpeedyToolServerActions
     // we're currently still synchronous undo so this is not relevant yet; just call performUndoOfLastAction instead
     if (asynchronousTaskInProgress != null && !asynchronousTaskInProgress.isTaskComplete()) {
       asynchronousTaskInProgress.rollback(undoSequenceNumber);
+      return ResultWithReason.success();
     }
-
 
     return performUndoOfLastComplexAction(player, undoSequenceNumber);
 
@@ -205,12 +205,15 @@ public class SpeedyToolServerActions
     }
 
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
-    AsynchronousToken token = new AsynchronousActionUndo(speedyToolsNetworkServer, worldServer, player, worldHistory);
-    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
+    AsynchronousActionBase token = new AsynchronousActionUndo(speedyToolsNetworkServer, worldServer, player, worldHistory, undoSequenceNumber);
+//    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
 
-    AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServer, null);
+//    AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServer, null);
 
-    if (result == null) {
+    token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
+    token.continueProcessing();
+    asynchronousTaskInProgress = token;
+    if (token.isTaskAborted()) {
       return ResultWithReason.failure("There are no more spells to undo...");
     } else {
       return ResultWithReason.success();

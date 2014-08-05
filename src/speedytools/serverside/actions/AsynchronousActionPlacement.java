@@ -69,18 +69,19 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       case WRITE: {
         if (!executeSubTask()) break;
         currentStage = ActionStage.COMPLETE;
-        completed = true;
-        speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-        sourceWorldFragment = null;
-        sourceVoxelSelection = null;
-        speedyToolsNetworkServer.actionCompleted(entityPlayerMP, sequenceNumber);
 //        for (ActionStage actionStage : ActionStage.values()) {
 //          System.out.println(actionStage + ":" + ticksPerStage.get(actionStage) + " -> " + milliSecondsPerStage.get(actionStage));
 //        }
         break;
       }
       case COMPLETE: { // do nothing
-        completed = true;
+        if (!completed) {
+          speedyToolsNetworkServer.actionCompleted(entityPlayerMP, sequenceNumber);
+          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+          sourceWorldFragment = null;
+          sourceVoxelSelection = null;
+          completed = true;
+        }
         break;
       }
       default: {
@@ -101,7 +102,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
     switch (currentStage) {
       case SETUP: {
         currentStage = ActionStage.COMPLETE;
-        completed = true;
         break;
       }
       case READ: {
@@ -112,7 +112,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       case WRITE: {
         if (executeAbortSubTask()) break;
         currentStage = ActionStage.COMPLETE;
-        speedyToolsNetworkServer.actionCompleted(entityPlayerMP, sequenceNumber);
 
 //        for (ActionStage actionStage : ActionStage.values()) {
 //          System.out.println(actionStage + ":" + ticksPerStage.get(actionStage) + " -> " + milliSecondsPerStage.get(actionStage));
@@ -122,11 +121,14 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       case ROLLBACK: {
         if (executeAbortSubTask()) break;
         currentStage = ActionStage.COMPLETE;
-        speedyToolsNetworkServer.undoCompleted(entityPlayerMP, sequenceNumber);
         break;
       }
       case COMPLETE: { // do nothing
         if (!completed) {
+          speedyToolsNetworkServer.actionCompleted(entityPlayerMP, sequenceNumber);
+          if (rollingBack) {
+            speedyToolsNetworkServer.undoCompleted(entityPlayerMP, rollbackSequenceNumber);
+          }
           speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
           sourceWorldFragment = null;
           sourceVoxelSelection = null;
@@ -144,7 +146,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
     switch (currentStage) {
       case SETUP: {
         currentStage = ActionStage.COMPLETE;
-        completed = true;
         break;
       }
       case READ: {
@@ -156,7 +157,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
         if (!executeAbortSubTask()) break;
         AsynchronousToken token = worldHistory.performComplexUndoAsynchronous(entityPlayerMP, worldServer, getUniqueTokenID());  // rollback the placement we just completed.
         if (token == null ) {
-          speedyToolsNetworkServer.undoCompleted(entityPlayerMP, rollbackSequenceNumber);
           currentStage = ActionStage.COMPLETE;
         } else {
           setSubTask(token, currentStage.durationWeight, true);
@@ -166,11 +166,12 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       }
       case ROLLBACK: {
         if (!executeSubTask()) break;
-        speedyToolsNetworkServer.undoCompleted(entityPlayerMP, rollbackSequenceNumber);
+        currentStage = ActionStage.COMPLETE;
         break;
       }
       case COMPLETE: { // do nothing
         if (!completed) {
+          speedyToolsNetworkServer.undoCompleted(entityPlayerMP, rollbackSequenceNumber);
           speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
           sourceWorldFragment = null;
           sourceVoxelSelection = null;
