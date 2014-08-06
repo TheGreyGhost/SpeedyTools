@@ -3,7 +3,6 @@ package speedytools.serverside.actions;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
-import speedytools.serverside.SpeedyToolsNetworkServer;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.UniqueTokenID;
 import speedytools.serverside.worldmanipulation.WorldHistory;
@@ -14,9 +13,8 @@ import speedytools.serverside.worldmanipulation.WorldHistory;
  */
 public abstract class AsynchronousActionBase implements AsynchronousToken
 {
-  public AsynchronousActionBase(SpeedyToolsNetworkServer i_speedyToolsNetworkServer, WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory, int i_sequenceNumber)
+  public AsynchronousActionBase(WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory, int i_sequenceNumber)
   {
-    speedyToolsNetworkServer = i_speedyToolsNetworkServer;
     worldServer = i_worldServer;
     entityPlayerMP = i_player;
     worldHistory = i_worldHistory;
@@ -123,7 +121,6 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
   protected boolean rollingBack = false;
   protected long interruptTimeNS;
   protected double fractionComplete;
-  protected SpeedyToolsNetworkServer speedyToolsNetworkServer;
   protected WorldServer worldServer;
   protected WorldHistory worldHistory;
   protected EntityPlayerMP entityPlayerMP;

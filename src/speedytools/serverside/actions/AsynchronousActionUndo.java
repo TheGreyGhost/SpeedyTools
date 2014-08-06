@@ -2,7 +2,6 @@ package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
-import speedytools.common.network.ServerStatus;
 import speedytools.serverside.SpeedyToolsNetworkServer;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldHistory;
@@ -16,7 +15,7 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
   public AsynchronousActionUndo(SpeedyToolsNetworkServer i_speedyToolsNetworkServer, WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory,
                                 int i_undoSequenceNumber)
   {
-    super(i_speedyToolsNetworkServer, i_worldServer, i_player, i_worldHistory, i_undoSequenceNumber);
+    super(i_worldServer, i_player, i_worldHistory, i_undoSequenceNumber);
     currentStage = ActionStage.SETUP;
   }
 
@@ -30,7 +29,6 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
           currentStage = ActionStage.COMPLETE;
           break;
         }
-        speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, entityPlayerMP, (byte)0);
         currentStage = ActionStage.UNDO;
         setSubTask(token, currentStage.durationWeight, false);
         break;
@@ -42,8 +40,6 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
       }
       case COMPLETE: {
         if (!completed) {
-          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-          speedyToolsNetworkServer.undoCompleted(entityPlayerMP, sequenceNumber);
           completed = true;
         }
         break;
@@ -51,10 +47,6 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
       default: {
         assert false : "Invalid currentStage : " + currentStage;
       }
-    }
-    if (!completed) {
-      speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, entityPlayerMP,
-                                                  (byte) (100 * getFractionComplete()));
     }
   }
 

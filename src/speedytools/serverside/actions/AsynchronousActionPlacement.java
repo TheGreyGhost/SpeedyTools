@@ -2,10 +2,8 @@ package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
-import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.QuadOrientation;
-import speedytools.serverside.SpeedyToolsNetworkServer;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldHistory;
@@ -16,11 +14,11 @@ import speedytools.serverside.worldmanipulation.WorldHistory;
  */
 public class AsynchronousActionPlacement extends AsynchronousActionBase
 {
-  public AsynchronousActionPlacement(SpeedyToolsNetworkServer i_speedyToolsNetworkServer, WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory,
+  public AsynchronousActionPlacement(WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory,
                                      VoxelSelectionWithOrigin i_voxelSelection,
                                      int i_sequenceNumber, int i_toolID, int i_xpos, int i_ypos, int i_zpos, QuadOrientation i_quadOrientation)
   {
-    super(i_speedyToolsNetworkServer, i_worldServer, i_player, i_worldHistory, i_sequenceNumber);
+    super(i_worldServer, i_player, i_worldHistory, i_sequenceNumber);
     sourceVoxelSelection = i_voxelSelection;
     toolID = i_toolID;
     xpos = i_xpos;
@@ -48,7 +46,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
 //    ActionStage entryStage = currentStage;
     switch (currentStage) {
       case SETUP: {
-        speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, entityPlayerMP, (byte)0);
         sourceWorldFragment = new WorldFragment(sourceVoxelSelection.getxSize(), sourceVoxelSelection.getySize(), sourceVoxelSelection.getzSize());
         AsynchronousToken token = sourceWorldFragment.readFromWorldAsynchronous(worldServer,
                                                            sourceVoxelSelection.getWxOrigin(), sourceVoxelSelection.getWyOrigin(), sourceVoxelSelection.getWzOrigin(),
@@ -76,8 +73,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       }
       case COMPLETE: { // do nothing
         if (!completed) {
-          speedyToolsNetworkServer.actionCompleted(entityPlayerMP, sequenceNumber);
-          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
           sourceWorldFragment = null;
           sourceVoxelSelection = null;
           completed = true;
@@ -87,14 +82,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       default: {
         assert false : "Invalid currentStage : " + currentStage;
       }
-    }
-    if (!completed) {
-//      double elapsedMS = (System.nanoTime() - timeIn) / 1.0E6;
-////      ticksPerStage.put(entryStage, 1 + ticksPerStage.get(entryStage));
-////      milliSecondsPerStage.put(entryStage, milliSecondsPerStage.get(entryStage) + elapsedMS);
-////      System.out.println(getFractionComplete());
-      speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, entityPlayerMP,
-                                                  (byte) (100 * getFractionComplete()));
     }
   }
 
@@ -125,11 +112,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       }
       case COMPLETE: { // do nothing
         if (!completed) {
-          speedyToolsNetworkServer.actionCompleted(entityPlayerMP, sequenceNumber);
-          if (rollingBack) {
-            speedyToolsNetworkServer.undoCompleted(entityPlayerMP, rollbackSequenceNumber);
-          }
-          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
           sourceWorldFragment = null;
           sourceVoxelSelection = null;
           completed = true;
@@ -171,8 +153,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       }
       case COMPLETE: { // do nothing
         if (!completed) {
-          speedyToolsNetworkServer.undoCompleted(entityPlayerMP, rollbackSequenceNumber);
-          speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
           sourceWorldFragment = null;
           sourceVoxelSelection = null;
           completed = true;
@@ -182,10 +162,6 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
       default: {
         assert false : "Invalid currentStage : " + currentStage;
       }
-    }
-    if (!completed) {
-      speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, entityPlayerMP,
-              (byte) (100 * getFractionComplete()));
     }
   }
 
