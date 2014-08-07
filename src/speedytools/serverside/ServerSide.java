@@ -10,7 +10,9 @@ import speedytools.serverside.ingametester.InGameStatusSimulator;
 import speedytools.serverside.ingametester.InGameTester;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * User: The Grey Ghost
@@ -33,7 +35,9 @@ public class ServerSide
     String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
     if (SpeedyToolsOptions.getNetworkLoggingActive()) {
       try {
-        networkTrafficMonitor = new NetworkTrafficMonitor(Side.SERVER, SpeedyToolsOptions.getNetworkLoggingDirectory().toPath(), NETWORK_LOG_FILENAME_STEM);
+        File loggingDirectory = SpeedyToolsOptions.getNetworkLoggingDirectory();
+        Path loggingPath = loggingDirectory == null ? null : loggingDirectory.toPath();
+        networkTrafficMonitor = new NetworkTrafficMonitor(Side.SERVER, loggingPath, NETWORK_LOG_FILENAME_STEM);
       } catch (IOException ioe) {
         ErrorLog.defaultLog().warning("Couldn't create a NetworkTrafficMonitor because:" + ioe);
         networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();

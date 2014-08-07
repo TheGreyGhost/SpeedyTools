@@ -109,7 +109,7 @@ public class WorldSelectionUndo
     return token;
   }
 
-  public void writeToWorldAsynchronous_do(WorldServer worldServer, AsynchronousWrite state)
+  private void writeToWorldAsynchronous_do(WorldServer worldServer, AsynchronousWrite state)
   {
     /* algorithm is:
        (1) create a border mask for the fragment to be written, i.e. a mask showing all voxels which are adjacent to a set voxel in the fragment.

@@ -78,6 +78,8 @@ public class InGameTester
         case 12: success = performTest12(performTest); break;
         case 13: success = performTest13(performTest); break;
         case 14: success = performTest14(entityPlayerMP, performTest); break;
+        case 15: success = performTest15(entityPlayerMP, performTest); break;
+        case 16: success = performTest16(entityPlayerMP, performTest); break;
         default: blankTest = true; break;
       }
       if (blankTest) {
@@ -723,7 +725,110 @@ public class InGameTester
     return retval;
   }
 
-  public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
+  /**
+   *  Test15:  test WorldSelectionUndo for correct handling of abort during placement
+   *  1) Using IMMEDIATE_TIMEOUT, abort a complex placement partway through
+   *  2) Test that the undo of the aborted placement restores the original correctly.
+   *  3) keep increasing the number of calls to continueProcessing() until all abort stages have been checked.
+   *  Make a copy of each aborted place, before undoing, for visualisation purposes
+   */
+  public boolean performTest15(EntityPlayerMP entityPlayerMP, boolean performTest) {
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+
+    final int XORIGIN = 1; final int YORIGIN = 4; final int ZORIGIN = -240;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 8;
+
+    TestRegions testRegion = new TestRegions(XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE, true);
+
+    if (!performTest) {
+      testRegion.drawAllTestRegionBoundaries();
+      WorldFragment worldFragmentBlank = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
+      worldFragmentBlank.readFromWorld(worldServer, testRegion.testRegionInitialiser.posX, testRegion.testRegionInitialiser.posY, testRegion.testRegionInitialiser.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegion.expectedOutcome.posX, testRegion.expectedOutcome.posY, testRegion.expectedOutcome.posZ, null);
+      return true;
+    }
+
+    int numberOfExecutes = 0;
+    boolean maximumExecutesReached = false;
+
+    while (!maximumExecutesReached) {
+      WorldFragment worldFragmentInitial = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
+      worldFragmentInitial.readFromWorld(worldServer, testRegion.testRegionInitialiser.posX, testRegion.testRegionInitialiser.posY, testRegion.testRegionInitialiser.posZ, null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
+      WorldFragment worldFragmentSource = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
+      VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegion.sourceRegion, testRegion.xSize, testRegion.ySize, testRegion.zSize);
+      worldFragmentSource.readFromWorld(worldServer, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
+
+      QuadOrientation orientation = new QuadOrientation(0, 0, 1, 1);
+      WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+      AsynchronousToken token = worldSelectionUndo.writeToWorldAsynchronous(worldServer, worldFragmentSource,
+              testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ,
+              orientation, null);
+      for (int i = 0; i < numberOfExecutes; ++i) {
+        token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
+        token.continueProcessing();
+      }
+      if (token.isTaskComplete()) maximumExecutesReached = true;
+      token.abortProcessing();
+
+      // make a copy of the aborted fragment
+      WorldFragment inProgress = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
+      inProgress.readFromWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
+      inProgress.writeToWorld(worldServer, testRegion.testOutputRegion.posX + (numberOfExecutes % 10) * (XSIZE + 1), testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ - ZSIZE - 1, null);
+
+      // undo the aborted fragment
+      while (!token.isTaskAborted()) {
+        token.setTimeOfInterrupt(AsynchronousToken.INFINITE_TIMEOUT);
+        token.continueProcessing();
+      }
+
+      List<WorldSelectionUndo> subsequents = new LinkedList<WorldSelectionUndo>();
+      token = worldSelectionUndo.undoChangesAsynchronous(worldServer, subsequents);
+      token.setTimeOfInterrupt(AsynchronousToken.INFINITE_TIMEOUT);
+      token.continueProcessing();
+      assert token.isTaskComplete();
+
+      WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegion.expectedOutcome.posX, testRegion.expectedOutcome.posY, testRegion.expectedOutcome.posZ, null);
+      WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
+      boolean thisretval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
+      if (!thisretval) {
+        System.out.println();
+        System.out.println("Mismatch at [" + WorldFragment.lastCompareFailX + ", " + WorldFragment.lastCompareFailY + ", " + WorldFragment.lastCompareFailZ + "]");
+        System.out.println("Expected vs Actual:");
+        System.out.println(WorldFragment.lastFailureReason);
+        return false;
+      }
+      ++numberOfExecutes;
+      if (numberOfExecutes == 102) {
+        numberOfExecutes = numberOfExecutes;  // breakpoint here!
+      }
+    }
+    return true;
+  }
+  /**
+   *  Test15:  test WorldHistory for correct simple placement and undo while a complex placement is in progress.
+   *  1) place a simple  (gold) -  plyr 1
+   *  2) place a second simple (emerald)  plyr 2
+   *  3) place a third simple  (Lapiz)        plyr 1
+   *  4) start placing a complex
+   *  5) before it is finished,
+   *     6) place a fourth simple  (diamond)     plyr 2
+   *     7) undo the third simple
+   *     8) undo the first simple
+   *     9) complete the complex placement
+   *  Use testRegions[0].testOutputRegion as the working space
+   *  Use testRegions[1..9].testOutputRegions as the intermediate stages
+   *  Use testRegions[1..9].expectedOutcome as the check
+   *  Use testRegions[4].sourceRegion as the complex source; simple placements also mirrored to
+   */
+  public boolean performTest16(EntityPlayerMP entityPlayerMP, boolean performTest) {
+    return false;
+  }
+
+      public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
                                      int xOrigin, int yOrigin, int zOrigin, int xSize, int ySize, int zSize)
   {
     TestRegions testRegions = new TestRegions(xOrigin, yOrigin, zOrigin, xSize, ySize, zSize, !expectedMatchesSource);

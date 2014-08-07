@@ -336,9 +336,9 @@ public class SpeedyToolsNetworkServer
               }
             }
             sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
-            if (result.succeeded()) {
-              undoCompleted(player, sequenceNumber);             // todo: later - remove this when async
-            }
+//            if (result.succeeded()) {
+//              undoCompleted(player, sequenceNumber);             // todo: later - remove this when async
+//            }
             break;
           } else if (packet.getActionToBeUndoneSequenceNumber() > lastAcknowledgedAction.get(player)    ) {  // undo for an action we haven't received yet
             sendAcknowledgementWithReason(player, Acknowledgement.REJECTED, packet.getActionToBeUndoneSequenceNumber(),

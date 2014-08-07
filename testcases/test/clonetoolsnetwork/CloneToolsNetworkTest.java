@@ -372,7 +372,7 @@ public class CloneToolsNetworkTest
     result = processAllServers();
     Assert.assertTrue(result);
     result = (stubCloneToolServerActions.lastToolID == 161) && (stubCloneToolServerActions.lastXpos == 12345) && (stubCloneToolServerActions.lastYpos == -35135) && (stubCloneToolServerActions.lastZpos == 230)
-            && (stubCloneToolServerActions.lastRotationCount == 0) && (stubCloneToolServerActions.lastFlipped == true);
+            && (stubCloneToolServerActions.lastRotationCount == 3) && (stubCloneToolServerActions.lastFlipped == false);
     Assert.assertTrue("Action Data correct", result);
     Assert.assertTrue(testClient3.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT);
     Assert.assertTrue(testClient0.peekCurrentActionStatus() == CloneToolsNetworkClient.ActionStatus.NONE_PENDING);

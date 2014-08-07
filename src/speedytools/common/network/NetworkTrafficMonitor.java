@@ -40,21 +40,22 @@ public class NetworkTrafficMonitor
   {
     final boolean SHOULD_APPEND = false;
     whichSide = i_whichSide;
-    for (PacketLocation packetLocation : PacketLocation.values()) {
-      String filename = logfileStem + "-" + whichSide.toString() + "-" + packetLocation.toString() + ".log";
-      FileWriter fileWriter = new FileWriter(logFileDirectory.resolve(filename).toString(), SHOULD_APPEND);
-      logFiles.put(packetLocation, fileWriter);
-      fileWriter.write("Time, Count, Size");
-      for (int i = 0; i < MAX_PACKET_ID_PLUS_ONE; ++i) {
-        fileWriter.write("\t" + i);
+    if (logFileDirectory != null) {
+      for (PacketLocation packetLocation : PacketLocation.values()) {
+        String filename = logfileStem + "-" + whichSide.toString() + "-" + packetLocation.toString() + ".log";
+        FileWriter fileWriter = new FileWriter(logFileDirectory.resolve(filename).toString(), SHOULD_APPEND);
+        logFiles.put(packetLocation, fileWriter);
+        fileWriter.write("Time, Count, Size");
+        for (int i = 0; i < MAX_PACKET_ID_PLUS_ONE; ++i) {
+          fileWriter.write("\t" + i);
+        }
+        fileWriter.write("\t");
+        for (int i = 0; i < MAX_PACKET_ID_PLUS_ONE; ++i) {
+          fileWriter.write("\t" + i);
+        }
+        fileWriter.write("\n");
       }
-      fileWriter.write("\t");
-      for (int i = 0; i < MAX_PACKET_ID_PLUS_ONE; ++i) {
-        fileWriter.write("\t" + i);
-      }
-      fileWriter.write("\n");
     }
-
     resetTally();
   }
 
@@ -81,16 +82,18 @@ public class NetworkTrafficMonitor
 
     for (PacketLocation packetLocation : PacketLocation.values()) {
       FileWriter fileWriter = logFiles.get(packetLocation);
-      fileWriter.write(nowAsString);
-      for (int i = 0; i < MAX_PACKET_ID_PLUS_ONE; ++i) {
-        fileWriter.write("\t" + packetCount.get(packetLocation)[i]);
+      if (fileWriter != null) {
+        fileWriter.write(nowAsString);
+        for (int i = 0; i < MAX_PACKET_ID_PLUS_ONE; ++i) {
+          fileWriter.write("\t" + packetCount.get(packetLocation)[i]);
+        }
+        fileWriter.write("\t");
+        for (int i = 0; i < MAX_PACKET_ID_PLUS_ONE; ++i) {
+          fileWriter.write("\t" + packetSize.get(packetLocation)[i]);
+        }
+        fileWriter.write("\n");
+        fileWriter.flush();
       }
-      fileWriter.write("\t");
-      for (int i = 0; i < MAX_PACKET_ID_PLUS_ONE; ++i) {
-        fileWriter.write("\t" + packetSize.get(packetLocation)[i]);
-      }
-      fileWriter.write("\n");
-      fileWriter.flush();
     }
 
   }
@@ -98,7 +101,9 @@ public class NetworkTrafficMonitor
   public void closeAll() throws IOException
   {
     for (PacketLocation packetLocation : PacketLocation.values()) {
-      logFiles.get(packetLocation).close();
+      if (logFiles.containsKey(packetLocation)) {
+        logFiles.get(packetLocation).close();
+      }
     }
   }
 

@@ -34,6 +34,7 @@ public class SpeedyToolsOptions
   public static boolean getNetworkLoggingActive() { return true;}
   public static File getNetworkLoggingDirectory()
   {
+    if (Minecraft.getMinecraft() == null) return null;
     return Minecraft.getMinecraft().mcDataDir;
   }
   public static int getNetworkLoggingPeriodInTicks() {return 20 * 10;}

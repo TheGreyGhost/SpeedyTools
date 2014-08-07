@@ -20,7 +20,7 @@ public interface AsynchronousToken
   // returns true if the asynchronous task has completed
   public boolean isTaskComplete();
 
-  // returns true if the asynchronous task has been aborted
+  // returns true if the asynchronous task has been fully aborted (finished aborting)
   public boolean isTaskAborted();
 
   // returns 0.0 .. 1.0 depending on how much of the task is complete
