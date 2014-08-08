@@ -8,6 +8,7 @@ import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.QuadOrientation;
 
 /**
@@ -74,7 +75,7 @@ public class RendererSolidSelection implements RendererElement
       int renderDistanceBlocks = SpeedyToolsOptions.getRenderDistanceInBlocks();
       if (renderInfo.selectorRenderer != null) {
         renderInfo.selectorRenderer.renderSelection(playerRelativeToSelectionOrigin, renderDistanceBlocks,
-                                                    renderInfo.selectionOrientation);         // todo: later - maybe - clip by frustrum
+                                                    renderInfo.selectionOrientation, renderInfo.renderColour);         // todo: later - maybe - clip by frustrum
       }
     } finally {
       GL11.glPopAttrib();
@@ -97,6 +98,7 @@ public class RendererSolidSelection implements RendererElement
     public double draggedSelectionOriginY;
     public double draggedSelectionOriginZ;
     public boolean opaque;                        // if false, make partially transparent
+    public Colour renderColour;
     public QuadOrientation selectionOrientation;
   }
 

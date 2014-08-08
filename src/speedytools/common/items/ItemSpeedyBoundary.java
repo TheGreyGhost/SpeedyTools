@@ -8,7 +8,7 @@ import net.minecraft.util.*;
 import java.util.HashMap;
 import java.util.List;
 
-public class ItemSpeedyBoundary extends ItemSpeedyClonerBase
+public class ItemSpeedyBoundary extends ItemComplexBase
 {
   public ItemSpeedyBoundary(int id) {
     super(id);

@@ -1,7 +1,5 @@
 package speedytools.clientside.userinput;
 
-import speedytools.clientside.tools.SpeedyToolCopy;
-
 /**
  * Manages the state of a "Power up" object (eg for animation purposes)
  * - start of charging up, progress of charge, release of charge

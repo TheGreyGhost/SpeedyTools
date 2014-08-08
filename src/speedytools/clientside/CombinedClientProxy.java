@@ -10,7 +10,6 @@ import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
-import speedytools.serverside.ServerEventHandler;
 
 /**
  * CombinedClientProxy is used to set up the mod and start it running when installed on a standalone client.
@@ -86,16 +85,38 @@ public class CombinedClientProxy extends CommonProxy {
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
 
-    ClientSide.activeTool.registerToolType(RegistryForItems.itemCloneCopy,
-            new SpeedyToolCopy(RegistryForItems.itemCloneCopy,
+    SelectionPacketSender selectionPacketSenderComplex = new SelectionPacketSender(ClientSide.packetHandlerRegistry, ClientSide.packetSenderClient);
+
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexCopy,
+            new SpeedyToolComplexCopy(RegistryForItems.itemComplexCopy,
+                                      ClientSide.speedyToolRenderers,
+                                      ClientSide.speedyToolSounds,
+                                      ClientSide.undoManagerComplex,
+                                      ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
+                                      selectionPacketSenderComplex
+                                    )
+            );
+
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexDelete,
+            new SpeedyToolComplexDelete(RegistryForItems.itemComplexDelete,
                     ClientSide.speedyToolRenderers,
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerComplex,
                     ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
-                    ClientSide.packetHandlerRegistry,
-                    ClientSide.packetSenderClient
+                    selectionPacketSenderComplex
             )
-            );
+    );
+
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexMove,
+            new SpeedyToolComplexMove(RegistryForItems.itemComplexMove,
+                    ClientSide.speedyToolRenderers,
+                    ClientSide.speedyToolSounds,
+                    ClientSide.undoManagerComplex,
+                    ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
+                    selectionPacketSenderComplex
+            )
+    );
+
     if (SpeedyToolsOptions.getTesterToolsEnabled()) {
       ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyTester,
               new SpeedyToolTester(RegistryForItems.itemSpeedyTester,

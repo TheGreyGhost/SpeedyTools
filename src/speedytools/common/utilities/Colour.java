@@ -42,5 +42,11 @@ public class Colour
   public static final Colour GREENYELLOW_20 = new Colour(0.5F, 1.0F, 0, 0.2F);
   public static final Colour PINK_100 = new Colour(240.0F/255, 106.0F/255, 200.0F/255, 1.0F);
   public static final Colour RED_100 = new Colour(1.0F, 0.0F, 0.0F, 1.0F);
+  public static final Colour GREEN_100 = new Colour(0.0F, 1.0F, 0.0F, 1.0F);
+  public static final Colour BLUE_100 = new Colour(0.0F, 0.0F, 1.0F, 1.0F);
+  public static final Colour PINK_40 = new Colour(240.0F/255, 106.0F/255, 200.0F/255, 0.4F);
+  public static final Colour LIGHTGREEN_40 = new Colour(0.4F, 1.0F, 0.4F, 0.4F);
+  public static final Colour LIGHTBLUE_40 = new Colour(0.4F, 0.4F, 1.0F, 0.4F);
+  public static final Colour LIGHTRED_40 = new Colour(1.0F, 0.4F, 0.4F, 0.4F);
 }
 

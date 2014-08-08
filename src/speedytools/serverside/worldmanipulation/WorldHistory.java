@@ -145,6 +145,19 @@ public class WorldHistory
     return currentAsynchronousTask;
   }
 
+  /** get the unique transaction ID for the undo that will be performed next
+   *
+   * @param player
+   * @param worldServer
+   * @return null if no undo found
+   */
+  public UniqueTokenID getTransactionIDForNextComplexUndo(EntityPlayerMP player, WorldServer worldServer)
+  {
+    UndoLayerInfo undoLayerFound = getMostRecentUndo(undoLayersComplex, player, worldServer);
+    if (undoLayerFound == null) return null;
+    return undoLayerFound.transactionID;
+  }
+
   /** perform simple undo action for the given player - finds the most recent simple action that they did in the given WorldServer
    * @param player
    * @param worldServer
@@ -301,17 +314,22 @@ public class WorldHistory
     }
 
     HashMap<EntityPlayerMP, Integer> playerUndoCount = new HashMap<EntityPlayerMP, Integer>();
+    HashSet<UniqueTokenID> uniqueTransactions = new HashSet<UniqueTokenID>();
     for (UndoLayerInfo undoLayerInfo : historyToCull) {
-      EntityPlayerMP entityPlayerMP = undoLayerInfo.entityPlayerMP.get();
-      assert (entityPlayerMP != null);
-      if (!playerUndoCount.containsKey(entityPlayerMP)) {
-        playerUndoCount.put(entityPlayerMP, 1);
-      } else {
-        playerUndoCount.put(entityPlayerMP, playerUndoCount.get(entityPlayerMP) + 1);
+      if (!uniqueTransactions.contains(undoLayerInfo.transactionID)) {
+        uniqueTransactions.add(undoLayerInfo.transactionID);
+        EntityPlayerMP entityPlayerMP = undoLayerInfo.entityPlayerMP.get();
+        assert (entityPlayerMP != null);
+        if (!playerUndoCount.containsKey(entityPlayerMP)) {
+          playerUndoCount.put(entityPlayerMP, 1);
+        } else {
+          playerUndoCount.put(entityPlayerMP, playerUndoCount.get(entityPlayerMP) + 1);
+        }
       }
     }
 
-    int layersToDelete = historyToCull.size() - targetTotalSize;
+    int transactionCount = uniqueTransactions.size();
+    int layersToDelete = transactionCount - targetTotalSize;
 
     for (Integer layerCount : playerUndoCount.values()) {      // account for layers which will be deleted due to per-player limits
       if (layerCount > maxUndoPerPlayer) {
@@ -319,19 +337,23 @@ public class WorldHistory
       }
     }
 
+    HashSet<UniqueTokenID> deletedTransactions = new HashSet<UniqueTokenID>();
     Iterator<UndoLayerInfo> excessIterator = historyToCull.iterator();
     while (excessIterator.hasNext()) {
       UndoLayerInfo undoLayerInfo = excessIterator.next();
       EntityPlayerMP entityPlayerMP = undoLayerInfo.entityPlayerMP.get();
       assert (entityPlayerMP != null);
       if (playerUndoCount.get(entityPlayerMP) > 1 && (layersToDelete > 0 || playerUndoCount.get(entityPlayerMP) > maxUndoPerPlayer)) {
-        LinkedList<WorldSelectionUndo> precedingUndoLayers = collatePrecedingUndoLayersAllHistories(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
-        undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers);
-        excessIterator.remove();
+        deletedTransactions.add(undoLayerInfo.transactionID);
         if (playerUndoCount.get(entityPlayerMP) <= maxUndoPerPlayer) {
           --layersToDelete;
         }
         playerUndoCount.put(entityPlayerMP, playerUndoCount.get(entityPlayerMP) - 1);
+      }
+      if (deletedTransactions.contains(undoLayerInfo.transactionID)) {
+        LinkedList<WorldSelectionUndo> precedingUndoLayers = collatePrecedingUndoLayersAllHistories(undoLayerInfo.creationTime, undoLayerInfo.worldServer.get());
+        undoLayerInfo.worldSelectionUndo.makePermanent(undoLayerInfo.worldServer.get(), precedingUndoLayers);
+        excessIterator.remove();
       }
     }
   }
@@ -476,7 +498,7 @@ public class WorldHistory
       fractionComplete = 0;
       completed = false;
       asynchronousActionType = i_actionType;
-      transactionID = i_transactionID;
+      transactionID = (i_transactionID == null) ? new UniqueTokenID() : i_transactionID;
     }
 
     // returns true if the sub-task is finished
@@ -581,6 +603,7 @@ public class WorldHistory
       worldServer = new WeakReference<WorldServer>(i_worldServer);
       entityPlayerMP = new WeakReference<EntityPlayerMP>(i_entityPlayerMP);
       worldSelectionUndo = i_worldSelectionUndo;
+      transactionID = new UniqueTokenID();  // default; might be replaced later
 //      creatingTaskID = null;
     }
 

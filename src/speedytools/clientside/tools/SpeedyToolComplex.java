@@ -12,11 +12,10 @@ import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
-import speedytools.common.items.ItemSpeedyCopy;
+import speedytools.common.items.ItemComplexBase;
 import speedytools.common.network.ClientStatus;
-import speedytools.common.network.PacketHandlerRegistry;
-import speedytools.common.network.PacketSender;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.common.utilities.UsefulConstants;
@@ -42,14 +41,13 @@ import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
  *   e) When an undo is in progress: the progress meter
  *
  */
-public class SpeedyToolCopy extends SpeedyToolComplexBase
+public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 {
-  public SpeedyToolCopy(ItemSpeedyCopy i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
-                        CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary,
-                        PacketHandlerRegistry packetHandlerRegistry,
-                        PacketSender packetSender) {
+  public SpeedyToolComplex(ItemComplexBase i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
+                           CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary,
+                           SelectionPacketSender i_selectionPacketSender) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);
-    itemSpeedyCopy = i_parentItem;
+    itemComplexCopy = i_parentItem;
     speedyToolBoundary = i_speedyToolBoundary;
     boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
@@ -57,7 +55,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     cursorRenderInfoUpdateLink = this.new CursorRenderInfoLink();
     statusMessageRenderInfoUpdateLink = this.new StatusMessageRenderInfoLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
-    selectionPacketSender = new SelectionPacketSender(packetHandlerRegistry, packetSender);
+    selectionPacketSender = i_selectionPacketSender;
   }
 
   @Override
@@ -238,9 +236,13 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     return true;
   }
 
-  /** Is the tool currently busy with something?
-   * @return true if busy, false if not
-   */
+  protected abstract RenderCursorStatus.CursorRenderInfo.CursorType getCursorType();
+
+  protected abstract Colour getSelectionRenderColour();
+
+    /** Is the tool currently busy with something?
+     * @return true if busy, false if not
+     */
   private boolean iAmBusy()
   {
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
@@ -343,7 +345,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     if (currentToolSelectionState != ToolSelectionStates.NO_SELECTION) return false;
     updateBoundaryCornersFromToolBoundary();
 
-    MovingObjectPosition target = itemSpeedyCopy.rayTraceLineOfSight(player.worldObj, player);
+    MovingObjectPosition target = itemComplexCopy.rayTraceLineOfSight(player.worldObj, player);
 
     final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
     blockUnderCursor = null;
@@ -449,7 +451,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     }
 
     Vec3 selectionPosition = getSelectionPosition(player, partialTick, false);
-    ResultWithReason result = cloneToolsNetworkClient.performComplexToolAction(itemSpeedyCopy.itemID,
+    ResultWithReason result = cloneToolsNetworkClient.performComplexToolAction(itemComplexCopy.itemID,
             Math.round((float) selectionPosition.xCoord),
             Math.round((float) selectionPosition.yCoord),
             Math.round((float) selectionPosition.zCoord),
@@ -716,6 +718,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
       infoToUpdate.draggedSelectionOriginY = selectionPosition.yCoord;
       infoToUpdate.draggedSelectionOriginZ = selectionPosition.zCoord;
       infoToUpdate.opaque = hasBeenMoved;
+      infoToUpdate.renderColour = SpeedyToolComplex.this.getSelectionRenderColour();
       infoToUpdate.selectionOrientation = selectionOrientation;
       return true;
     }
@@ -857,7 +860,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
                                            && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.COMPLETED );
       infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
       infoToUpdate.readinessPercent = Math.min(serverReadiness, selectionSending);
-      infoToUpdate.cursorType = RenderCursorStatus.CursorRenderInfo.CursorType.COPY;
+      infoToUpdate.cursorType = SpeedyToolComplex.this.getCursorType();
       infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
 
 //      System.out.println("CurserRenderInfoLink - refresh.  Idle=" + infoToUpdate.idle +
@@ -888,7 +891,7 @@ public class SpeedyToolCopy extends SpeedyToolComplexBase
     }
   }
 
-  private ItemSpeedyCopy itemSpeedyCopy;
+  private ItemComplexBase itemComplexCopy;
 
   private void checkInvariants()
   {

@@ -17,8 +17,9 @@ public class RegistryForItems
   public static ItemSpeedyTool itemSpeedySceptre;
   public static ItemSpeedyTool itemSpeedyOrb;
   public static ItemSpeedyBoundary itemSpeedyBoundary;
-  public static ItemSpeedyCopy itemCloneCopy;
-
+  public static ItemComplexCopy itemComplexCopy;
+  public static ItemComplexDelete itemComplexDelete;
+  public static ItemComplexMove itemComplexMove;
   public static ItemSpeedyTester itemSpeedyTester;
 
   public static void initialise()
@@ -29,24 +30,30 @@ public class RegistryForItems
     itemSpeedySceptre = new ItemSpeedySceptre(START_ITEM+2);
     itemSpeedyOrb = new ItemSpeedyOrb(START_ITEM+3);
     itemSpeedyBoundary = new ItemSpeedyBoundary(START_ITEM+4);
-    itemCloneCopy = new ItemSpeedyCopy(START_ITEM+5);
+    itemComplexCopy = new ItemComplexCopy(START_ITEM+5);
+    itemComplexDelete = new ItemComplexDelete(START_ITEM+6);
+    itemComplexMove = new ItemComplexMove(START_ITEM+7);
 
     GameRegistry.registerItem(itemSpeedyWandStrong, itemSpeedyWandStrong.getUnlocalizedName());
     GameRegistry.registerItem(itemSpeedyWandWeak, itemSpeedyWandWeak.getUnlocalizedName());
     GameRegistry.registerItem(itemSpeedySceptre, itemSpeedySceptre.getUnlocalizedName());
     GameRegistry.registerItem(itemSpeedyOrb, itemSpeedyOrb.getUnlocalizedName());
     GameRegistry.registerItem(itemSpeedyBoundary, itemSpeedyBoundary.getUnlocalizedName());
-    GameRegistry.registerItem(itemCloneCopy, itemCloneCopy.getUnlocalizedName());
+    GameRegistry.registerItem(itemComplexCopy, itemComplexCopy.getUnlocalizedName());
+    GameRegistry.registerItem(itemComplexDelete, itemComplexDelete.getUnlocalizedName());
+    GameRegistry.registerItem(itemComplexMove, itemComplexMove.getUnlocalizedName());
 
     LanguageRegistry.addName(itemSpeedyWandWeak, "Wand of Non-destructive Linear Conjuration");
     LanguageRegistry.addName(itemSpeedyWandStrong, "Wand of Destructive Linear Conjuration");
     LanguageRegistry.addName(itemSpeedySceptre, "Enchanted Sceptre of Contour Extrusion");
     LanguageRegistry.addName(itemSpeedyOrb, "Orb of Transmutation");
     LanguageRegistry.addName(itemSpeedyBoundary, "Sorcerous Claw of Boundary Creation");
-    LanguageRegistry.addName(itemCloneCopy, "Staff of Duplication");
+    LanguageRegistry.addName(itemComplexCopy, "Staff of Duplication");
+    LanguageRegistry.addName(itemComplexDelete, "Staff of Destruction");
+    LanguageRegistry.addName(itemComplexMove, "Staff of Relocation");
 
     if (SpeedyToolsOptions.getTesterToolsEnabled()) {
-      itemSpeedyTester = new ItemSpeedyTester(START_ITEM+6);
+      itemSpeedyTester = new ItemSpeedyTester(START_ITEM+8);
       GameRegistry.registerItem(itemSpeedyTester, itemSpeedyTester.getUnlocalizedName());
       LanguageRegistry.addName(itemSpeedyTester, "In-game tester");
     }

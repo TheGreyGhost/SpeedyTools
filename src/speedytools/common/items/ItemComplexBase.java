@@ -17,9 +17,9 @@ import java.util.*;
  * User: The Grey Ghost
  * Date: 2/11/13
  */
-public abstract class ItemSpeedyClonerBase extends ItemSpeedyTool
+public abstract class ItemComplexBase extends ItemSpeedyTool
 {
-  public ItemSpeedyClonerBase(int id) {
+  public ItemComplexBase(int id) {
     super(id);
     setCreativeTab(CreativeTabs.tabTools);
     setMaxDamage(-1);                         // not damageable
@@ -28,7 +28,7 @@ public abstract class ItemSpeedyClonerBase extends ItemSpeedyTool
   public static boolean isAcloneTool(int itemID)
   {
     return (   itemID == RegistryForItems.itemSpeedyBoundary.itemID
-            || itemID == RegistryForItems.itemCloneCopy.itemID);
+            || itemID == RegistryForItems.itemComplexCopy.itemID);
   }
 
   /**
@@ -95,7 +95,7 @@ public abstract class ItemSpeedyClonerBase extends ItemSpeedyTool
     // these keep track of the currently selected block, for when the tool is used
   protected static ChunkCoordinates currentlySelectedBlock = null;
 //  protected static Item currentlySelectedTool = null;
-  protected static Deque<ItemSpeedyClonerBase> undoSoundsHistory = new LinkedList<ItemSpeedyClonerBase>();
+  protected static Deque<ItemComplexBase> undoSoundsHistory = new LinkedList<ItemComplexBase>();
 
   protected static ChunkCoordinates boundaryCorner1 = null;
   protected static ChunkCoordinates boundaryCorner2 = null;

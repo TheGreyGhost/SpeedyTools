@@ -288,8 +288,8 @@ public class RenderCursorStatus implements RendererElement
     double ringColourIntensity = 0;
     Colour lineColour = Colour.BLACK_40;
     switch (renderInfo.cursorType) {
-      case COPY: { lineColour = Colour.GREEN_20; break;}
-      case MOVE: { lineColour = Colour.YELLOW_20; break;}
+      case COPY: { lineColour = Colour.GREEN_100; break;}
+      case MOVE: { lineColour = Colour.BLUE_100; break;}
       case DELETE: { lineColour = Colour.RED_100; break;}
       default: assert false : "illegal cursorType:" + renderInfo.cursorType;
     }
@@ -408,8 +408,9 @@ public class RenderCursorStatus implements RendererElement
         taskCompletionRingAngle = Math.max(taskCompletionRingAngle, INITIAL_TASK_COMPLETION_ANGLE);
 //        System.out.println("taskCompletionRingAngle:" + taskCompletionRingAngle + "; targetTaskCompletionRingAngle:" + targetTaskCompletionRingAngle);
       } else {
-        lastRotationPosition = (lastRotationPosition + 180) % 360;
-        rotationPosition = (rotationPosition + 180) % 360;
+        rotationOffset =  (lastDegreesOfRotation + 180) - (  (lastDegreesOfRotation + 180) % 360.0);
+        lastRotationPosition = lastDegreesOfRotation + 180 - rotationOffset;
+        rotationPosition = degreesOfRotation + 180 - rotationOffset;
         if ((lastRotationPosition <= taskCompletionRingAngle && rotationPosition >= taskCompletionRingAngle)
                 || (lastRotationPosition <= taskCompletionRingAngle + 360 && rotationPosition >= taskCompletionRingAngle + 360)) {
           taskCompletionRingAngle = Math.min(rotationPosition, targetTaskCompletionRingAngle);

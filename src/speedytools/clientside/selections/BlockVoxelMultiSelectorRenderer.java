@@ -172,7 +172,7 @@ public class BlockVoxelMultiSelectorRenderer
    * render the current selection (must have called createRenderList previously).  Caller should set gLTranslatef so that the player's eyes are at [0,0,0]
    * playerRelativePos is position of the player relative to the minimum [x,y,z] corner of the VoxelSelection
    */
-  public void renderSelection(Vec3 playerRelativePos, int blockRenderDistance, QuadOrientation quadOrientation)
+  public void renderSelection(Vec3 playerRelativePos, int blockRenderDistance, QuadOrientation quadOrientation, Colour colour)
   {
     if (displayListCubesBase == 0) {
       return;
@@ -215,7 +215,7 @@ public class BlockVoxelMultiSelectorRenderer
         for (int cy = CY_MIN; cy <= CY_MAX; ++cy) {
           for (int cx = CX_MIN; cx <= CX_MAX; ++cx) {
             for (int cz = CZ_MIN; cz <= CZ_MAX; ++cz) {
-              GL11.glColor4f(Colour.PINK_100.R, Colour.PINK_100.G, Colour.PINK_100.B, 0.4F);
+              GL11.glColor4f(colour.R, colour.G, colour.B, colour.A);
               GL11.glCallList(getDisplayListIndex(cx, cy, cz));
             }
           }

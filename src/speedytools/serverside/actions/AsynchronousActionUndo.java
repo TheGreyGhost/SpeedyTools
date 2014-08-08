@@ -4,6 +4,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
 import speedytools.serverside.network.SpeedyToolsNetworkServer;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
+import speedytools.serverside.worldmanipulation.UniqueTokenID;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 
 /**
@@ -23,7 +24,8 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
   public void continueProcessing() {
     switch (currentStage) {
       case SETUP: {
-        AsynchronousToken token = worldHistory.performComplexUndoAsynchronous(entityPlayerMP, worldServer, null);
+        transactionToUndo = worldHistory.getTransactionIDForNextComplexUndo(entityPlayerMP, worldServer);
+        AsynchronousToken token = worldHistory.performComplexUndoAsynchronous(entityPlayerMP, worldServer, transactionToUndo);
         if (token == null) {
           abortProcessing();
           currentStage = ActionStage.COMPLETE;
@@ -35,7 +37,12 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
       }
       case UNDO: {
         if (!executeSubTask()) break;
-        currentStage = ActionStage.COMPLETE;
+        AsynchronousToken token = worldHistory.performComplexUndoAsynchronous(entityPlayerMP, worldServer, transactionToUndo);  // repeat for any other undo
+        if (token == null) {
+          currentStage = ActionStage.COMPLETE;
+        } else {
+          setSubTask(token, currentStage.durationWeight, true);
+        }
         break;
       }
       case COMPLETE: {
@@ -62,5 +69,5 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
   }
 
   private ActionStage currentStage;
-
+  private UniqueTokenID transactionToUndo;
 }

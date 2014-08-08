@@ -7,8 +7,10 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
+import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.ServerSide;
@@ -123,8 +125,18 @@ public class SpeedyToolServerActions
 
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
-    AsynchronousActionCopy token = new AsynchronousActionCopy(worldServer, player, worldHistory, voxelSelection,
-                                                                        sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+    AsynchronousActionBase token;
+    if (toolID == RegistryForItems.itemComplexCopy.itemID) {
+      token = new AsynchronousActionCopy(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+    } else if (toolID == RegistryForItems.itemComplexDelete.itemID) {
+      token = new AsynchronousActionDelete(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+    } else if (toolID == RegistryForItems.itemComplexMove.itemID) {
+      token = new AsynchronousActionMove(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+    } else {
+      ErrorLog.defaultLog().warning("Invalid toolID received in performComplexAction:" + toolID);
+      return ResultWithReason.failure();
+    }
+
     token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
     speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte) 0);
     token.continueProcessing();
