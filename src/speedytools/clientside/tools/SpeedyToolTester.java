@@ -89,6 +89,11 @@ public class SpeedyToolTester extends SpeedyTool
     return true;
   }
 
+  @Override
+  public void resetTool() {
+    // do nothing....
+  }
+
   /** The user is now holding this tool, prepare it
    * @return
    */

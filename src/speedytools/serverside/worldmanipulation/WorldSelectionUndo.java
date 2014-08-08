@@ -172,7 +172,7 @@ public class WorldSelectionUndo
         return;
       }
 
-      //    fragmentToWrite.writeToWorld(worldServer, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, null, quadOrientation);
+      //    fragmentToWrite.writeToWorld(worldServerReader, i_wxOfOrigin, i_wyOfOrigin, i_wzOfOrigin, null, quadOrientation);
       AsynchronousToken token = fragmentToWrite.writeToWorldAsynchronous(worldServer, state.wxOrigin, state.wyOrigin, state.wzOrigin, null, quadOrientation);
       state.setSubTask(token);
       state.setStage(AsynchronousWriteStages.WRITE_FRAGMENT);
@@ -186,7 +186,7 @@ public class WorldSelectionUndo
       boolean subTaskFinished = state.executeSubTask();
       if (!subTaskFinished) return;
 
-//    borderFragmentAfterWrite.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, borderMask);
+//    borderFragmentAfterWrite.readFromWorld(worldServerReader, wxOfOrigin, wyOfOrigin, wzOfOrigin, borderMask);
       state.borderFragmentAfterWrite = new WorldFragment(state.borderMask.getxSize(), state.borderMask.getySize(), state.borderMask.getzSize());
       AsynchronousToken token = state.borderFragmentAfterWrite.readFromWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.borderMask);
       state.setSubTask(token);
@@ -503,7 +503,7 @@ public class WorldSelectionUndo
         AsynchronousToken token = undoWorldFragment.writeToWorldAsynchronous(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, state.worldWriteMask);
         state.setSubTask(token);
       }  // !amIaborting()
-//      undoWorldFragment.writeToWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, worldWriteMask);
+//      undoWorldFragment.writeToWorld(worldServerReader, wxOfOrigin, wyOfOrigin, wzOfOrigin, worldWriteMask);
       state.setStage(AsynchronousUndoStages.UNDO);
       if (state.isTimeToInterrupt()) return;
     }

@@ -123,7 +123,7 @@ public class SpeedyToolServerActions
 
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
-    AsynchronousActionPlacement token = new AsynchronousActionPlacement(worldServer, player, worldHistory, voxelSelection,
+    AsynchronousActionCopy token = new AsynchronousActionCopy(worldServer, player, worldHistory, voxelSelection,
                                                                         sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
     speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte) 0);
@@ -134,9 +134,9 @@ public class SpeedyToolServerActions
     asynchronousTaskEntityPlayerMP = player;
 
 //    WorldFragment worldFragment = new WorldFragment(voxelSelection.getxSize(), voxelSelection.getySize(), voxelSelection.getzSize());
-//    worldFragment.readFromWorld(worldServer, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
+//    worldFragment.readFromWorld(worldServerReader, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
 //                                             voxelSelection);
-//    worldHistory.writeToWorldWithUndo(player, worldServer, worldFragment, xpos, ypos, zpos, quadOrientation);
+//    worldHistory.writeToWorldWithUndo(player, worldServerReader, worldFragment, xpos, ypos, zpos, quadOrientation);
 //    speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
 ////    speedyToolsNetworkServer.actionCompleted(player, sequenceNumber);
 
@@ -200,7 +200,7 @@ public class SpeedyToolServerActions
     AsynchronousActionBase token = new AsynchronousActionUndo(speedyToolsNetworkServer, worldServer, player, worldHistory, undoSequenceNumber);
 //    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
 
-//    AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServer, null);
+//    AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServerReader, null);
 
     asynchronousTaskActionType = ActionType.UNDO;
     asynchronousTaskSequenceNumber = undoSequenceNumber;

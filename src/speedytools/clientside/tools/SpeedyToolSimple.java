@@ -134,6 +134,13 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     return true;
   }
 
+  @Override
+  public void resetTool()
+  {
+    // nothing - no state information stored
+  }
+
+
   /**
    * This class is used to provide information to the WireFrame Renderer when it needs it:
    * The Renderer calls refreshRenderInfo, which copies the relevant information from the tool.

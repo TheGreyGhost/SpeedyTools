@@ -61,7 +61,6 @@ public class ClientTickHandler implements ITickHandler {
       inputUsed = ClientSide.activeTool.processUserInput(player, 1.0F, ClientSide.userInput);
     }
 
-
     ClientSide.activeTool.performTick(player.getEntityWorld());
 
     /*

@@ -66,6 +66,11 @@ public abstract class SpeedyTool
    */
   public abstract boolean update(World world, EntityClientPlayerMP player, float partialTick);
 
+  /**
+   *  resets the tool state eg has a selection, moving selection, etc.
+   */
+  public abstract void resetTool();
+
   protected boolean iAmActive;
   protected SpeedyToolRenderers speedyToolRenderers;
   protected SpeedyToolSounds speedyToolSounds;

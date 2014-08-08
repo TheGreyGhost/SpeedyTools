@@ -372,16 +372,21 @@ public class WorldFragment
   /**
    * Read a section of the world into the WorldFragment, erasing its existing contents.
    * If the voxel selection is defined, only reads those voxels, otherwise reads the entire block
-   * @param worldServer
+   * @param worldServerReader
    * @param wxOrigin the world x coordinate of the [0,0,0] corner of the WorldFragment
    * @param wyOrigin the world y coordinate of the [0,0,0] corner of the WorldFragment
    * @param wzOrigin the world z coordinate of the [0,0,0] corner of the WorldFragment
    * @param voxelSelection the blocks to read, or if null read the entire WorldFragment cuboid
    */
+  public void readFromWorld(WorldServerReader worldServerReader, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
+  {
+    AsynchronousRead runToCompletionToken = new AsynchronousRead(worldServerReader, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
+    readFromWorldAsynchronous_do(worldServerReader, runToCompletionToken);
+  }
+
   public void readFromWorld(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
   {
-    AsynchronousRead runToCompletionToken = new AsynchronousRead(worldServer, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
-    readFromWorldAsynchronous_do(worldServer, runToCompletionToken);
+    readFromWorld(new WorldServerReader(worldServer), wxOrigin, wyOrigin, wzOrigin, voxelSelection);
   }
 
   /**
@@ -389,22 +394,27 @@ public class WorldFragment
    * If the voxel selection is defined, only reads those voxels, otherwise reads the entire block
    * Runs asynchronously: after the initial call, use the returned token to monitor and advance the task
    *    -> repeatedly call token.setTimeToInterrupt() and token.continueProcessing()
-   * @param worldServer
+   * @param worldServerReader
    * @param wxOrigin the world x coordinate of the [0,0,0] corner of the WorldFragment
    * @param wyOrigin the world y coordinate of the [0,0,0] corner of the WorldFragment
    * @param wzOrigin the world z coordinate of the [0,0,0] corner of the WorldFragment
    * @param voxelSelection the blocks to read, or if null read the entire WorldFragment cuboid
    * @return the token used to monitor and advance the tasks
    */
-  public AsynchronousToken readFromWorldAsynchronous(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
+  public AsynchronousToken readFromWorldAsynchronous(WorldServerReader worldServerReader, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
   {
-    AsynchronousRead taskToken = new AsynchronousRead(worldServer, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
+    AsynchronousRead taskToken = new AsynchronousRead(worldServerReader, voxelSelection, wxOrigin, wyOrigin, wzOrigin);
     taskToken.setTimeOfInterrupt(taskToken.IMMEDIATE_TIMEOUT);
-    readFromWorldAsynchronous_do(worldServer, taskToken);
+    readFromWorldAsynchronous_do(worldServerReader, taskToken);
     return taskToken;
   }
 
-  private void readFromWorldAsynchronous_do(WorldServer worldServer, AsynchronousRead state)
+  public AsynchronousToken readFromWorldAsynchronous(WorldServer worldServer, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
+  {
+    return readFromWorldAsynchronous(new WorldServerReader(worldServer), wxOrigin, wyOrigin, wzOrigin, voxelSelection);
+  }
+
+  private void readFromWorldAsynchronous_do(WorldServerReader worldServerReader, AsynchronousRead state)
   {
     VoxelSelection selection = state.voxelSelection;
     int wxOrigin = state.wxOrigin;
@@ -444,16 +454,16 @@ public class WorldFragment
               int wx = x + wxOrigin;
               int wy = y + wyOrigin;
               int wz = z + wzOrigin;
-              int id = worldServer.getBlockId(wx, wy, wz);
-              int data = worldServer.getBlockMetadata(wx, wy, wz);
-              TileEntity tileEntity = worldServer.getBlockTileEntity(wx, wy, wz);
+              int id = worldServerReader.getBlockId(wx, wy, wz);
+              int data = worldServerReader.getBlockMetadata(wx, wy, wz);
+              TileEntity tileEntity = worldServerReader.getBlockTileEntity(wx, wy, wz);
               NBTTagCompound tileEntityTag = null;
               if (tileEntity != null) {
                 tileEntityTag = new NBTTagCompound();
                 tileEntity.writeToNBT(tileEntityTag);
               }
 
-              Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+              Chunk chunk = worldServerReader.getChunkFromChunkCoords(wx >> 4, wz >> 4);
               int lightValue = (chunk.getSavedLightValue(EnumSkyBlock.Sky, wx & 0x0f, wy, wz & 0x0f) << 4)
                       | chunk.getSavedLightValue(EnumSkyBlock.Block, wx & 0x0f, wy, wz & 0x0f);
               setBlockID(x, y, z, id);
@@ -479,7 +489,7 @@ public class WorldFragment
               wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount)
               .expand(EXPAND, EXPAND, EXPAND);
 
-      List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
+      List<EntityHanging> allHangingEntities = worldServerReader.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
       for (EntityHanging entity : allHangingEntities) {
         int x = entity.xPosition - wxOrigin;
@@ -531,7 +541,7 @@ public class WorldFragment
 
     @Override
     public void continueProcessing() {
-      readFromWorldAsynchronous_do(worldServer, this);
+      readFromWorldAsynchronous_do(worldServerReader, this);
     }
 
     @Override
@@ -560,9 +570,9 @@ public class WorldFragment
       return uniqueTokenID;
     }
 
-    public AsynchronousRead(WorldServer i_worldServer, VoxelSelection i_voxelSelection, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin)
+    public AsynchronousRead(WorldServerReader i_worldServerReader, VoxelSelection i_voxelSelection, int i_wxOrigin, int i_wyOrigin, int i_wzOrigin)
     {
-      worldServer = i_worldServer;
+      worldServerReader = i_worldServerReader;
       wxOrigin = i_wxOrigin;
       wyOrigin = i_wyOrigin;
       wzOrigin = i_wzOrigin;
@@ -589,7 +599,7 @@ public class WorldFragment
       stageFractionComplete = completionFraction;
     }
 
-    public final WorldServer worldServer;
+    public final WorldServerReader worldServerReader;
     public final int wxOrigin;
     public final int wyOrigin;
     public final int wzOrigin;

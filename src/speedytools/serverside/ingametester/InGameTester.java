@@ -13,11 +13,10 @@ import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.Packet250SpeedyIngameTester;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
-import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.QuadOrientation;
-import speedytools.serverside.actions.AsynchronousActionPlacement;
+import speedytools.serverside.actions.AsynchronousActionCopy;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldHistory;
@@ -199,9 +198,9 @@ public class InGameTester
       WorldFragment worldFragmentInitial = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
       worldFragmentInitial.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
       worldFragmentInitial.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
-//      worldFragmentInitial.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+//      worldFragmentInitial.readFromWorld(worldServerReader, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
       return true;
     }
 
@@ -290,9 +289,9 @@ public class InGameTester
       worldFragmentInitial.writeToWorld(worldServer, testRegions3.testOutputRegion.posX, testRegions3.testOutputRegion.posY, testRegions3.testOutputRegion.posZ, null);
       worldFragmentInitial.writeToWorld(worldServer, testRegions3.expectedOutcome.posX, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ, null);
 
-//      worldFragmentInitial.writeToWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServer, testRegions3.expectedOutcome.posX, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions3.expectedOutcome.posX, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ, null);
 
       ChunkCoordinates sourceFragOrigin = new ChunkCoordinates(testRegions2.sourceRegion);
       sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
@@ -303,11 +302,11 @@ public class InGameTester
       sourceWorldFragment2.writeToWorld(worldServer, testRegions3.expectedOutcome.posX + 1, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ + 1, null);
 
 //      WorldFragment sourceWorldFragment3 = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
-//      sourceWorldFragment3.readFromWorld(worldServer, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
-//      sourceWorldFragment3.writeToWorld(worldServer, testRegions3.expectedOutcome.posX+1,  testRegions3.expectedOutcome.posY,  testRegions3.expectedOutcome.posZ+1, null);
-//      worldFragmentInitial.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+//      sourceWorldFragment3.readFromWorld(worldServerReader, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
+//      sourceWorldFragment3.writeToWorld(worldServerReader, testRegions3.expectedOutcome.posX+1,  testRegions3.expectedOutcome.posY,  testRegions3.expectedOutcome.posZ+1, null);
+//      worldFragmentInitial.readFromWorld(worldServerReader, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
       whichStep9 = 0;
       return true;
     }
@@ -847,7 +846,7 @@ public class InGameTester
       worldFragmentInitial.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
 //      WorldFragment worldFragmentSource = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
       VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegion.sourceRegion, testRegion.xSize, testRegion.ySize, testRegion.zSize);
-//      worldFragmentSource.readFromWorld(worldServer, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
+//      worldFragmentSource.readFromWorld(worldServerReader, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
 
       QuadOrientation orientation = new QuadOrientation(0, 0, 1, 1);
 
@@ -856,7 +855,7 @@ public class InGameTester
       int sequenceNumber = 13;
       int toolID = 0;
       VoxelSelectionWithOrigin voxelSelectionWithOrigin = new VoxelSelectionWithOrigin(testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
-      AsynchronousActionPlacement token = new AsynchronousActionPlacement(worldServer, entityPlayerMP, worldHistory, voxelSelectionWithOrigin,
+      AsynchronousActionCopy token = new AsynchronousActionCopy(worldServer, entityPlayerMP, worldHistory, voxelSelectionWithOrigin,
                             sequenceNumber, toolID, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, orientation);
       for (int i = 0; i < numberOfExecutes; ++i) {
         token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);

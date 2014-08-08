@@ -12,11 +12,11 @@ import speedytools.serverside.worldmanipulation.WorldHistory;
  * User: The Grey Ghost
  * Date: 3/08/2014
  */
-public class AsynchronousActionPlacement extends AsynchronousActionBase
+public class AsynchronousActionCopy extends AsynchronousActionBase
 {
-  public AsynchronousActionPlacement(WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory,
-                                     VoxelSelectionWithOrigin i_voxelSelection,
-                                     int i_sequenceNumber, int i_toolID, int i_xpos, int i_ypos, int i_zpos, QuadOrientation i_quadOrientation)
+  public AsynchronousActionCopy(WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory,
+                                VoxelSelectionWithOrigin i_voxelSelection,
+                                int i_sequenceNumber, int i_toolID, int i_xpos, int i_ypos, int i_zpos, QuadOrientation i_quadOrientation)
   {
     super(i_worldServer, i_player, i_worldHistory, i_sequenceNumber);
     sourceVoxelSelection = i_voxelSelection;

@@ -39,6 +39,12 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
   @Override
   public abstract boolean update(World world, EntityClientPlayerMP player, float partialTick);
 
+  @Override
+  public void resetTool() {
+    boundaryCorner1 = null;
+    boundaryCorner2 = null;
+  }
+
   /**
    * Check to see if the player's cursor is on one of the faces of the boundary field.
    * @param player

@@ -174,7 +174,7 @@ public class WorldHistory
     return true;
   }
 
-  /** find the most recent undo entry, in the given undoHistory, for the given player and worldServer
+  /** find the most recent undo entry, in the given undoHistory, for the given player and worldServerReader
    * @param undoHistory
    * @param player
    * @param worldServer
@@ -195,7 +195,7 @@ public class WorldHistory
     return undoLayerFound;
   }
 
-  /** find the most recent undo entry, in the given undoHistory, for the given player and worldServer
+  /** find the most recent undo entry, in the given undoHistory, for the given player and worldServerReader
    * @param undoHistory
    * @param player
    * @param worldServer
@@ -237,8 +237,8 @@ public class WorldHistory
   }
 
   /**
-   * removes the specified worldServer from the history.
-   * Optional, since any worldServer entries in the history which become invalid will eventually be removed automatically.
+   * removes the specified worldServerReader from the history.
+   * Optional, since any worldServerReader entries in the history which become invalid will eventually be removed automatically.
    * @param worldServer
    */
   public void removeWorldServer(WorldServer worldServer)
@@ -337,9 +337,9 @@ public class WorldHistory
   }
 
   /**
-   * collates a list of undo layers with a creation time after the given time, for the given worldServer
+   * collates a list of undo layers with a creation time after the given time, for the given worldServerReader
    * @param creationTime only collate layers with a creation time > this value
-   * @param worldServerToMatch the worldServer to match against
+   * @param worldServerToMatch the worldServerReader to match against
    * @return a list of matching WorldSelectionUndo in ascending order of time.
    */
   private LinkedList<WorldSelectionUndo> collateSubsequentUndoLayersAllHistories(long creationTime, WorldServer worldServerToMatch)
@@ -367,9 +367,9 @@ public class WorldHistory
   }
 
   /**
-   * collates a list of undo layers with a creation time before the given time, for the given worldServer
+   * collates a list of undo layers with a creation time before the given time, for the given worldServerReader
    * @param creationTime only collate layers with a creation time < this value
-   * @param worldServerToMatch the worldServer to match against
+   * @param worldServerToMatch the worldServerReader to match against
    * @return a list of matching WorldSelectionUndo in descending order of time.
    */
   private LinkedList<WorldSelectionUndo> collatePrecedingUndoLayersAllHistories(long creationTime, WorldServer worldServerToMatch) {

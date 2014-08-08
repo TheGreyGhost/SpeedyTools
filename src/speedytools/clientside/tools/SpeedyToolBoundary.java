@@ -137,6 +137,10 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     }
     itemSpeedyBoundary.setCurrentIcon(itemIcon);
 
+    if (boundaryCorner1 == null || boundaryCorner2 == null) {
+      boundaryGrabActivated = false;
+    }
+
     // if boundary field active: calculate the face where the cursor is
     if (boundaryCorner1 != null  && boundaryCorner2 != null) {
       MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);

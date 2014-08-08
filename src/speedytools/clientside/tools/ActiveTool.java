@@ -80,6 +80,13 @@ public class ActiveTool
     }
   }
 
+  public void resetAllTools()
+  {
+    for (SpeedyTool tool : toolTypeRegistry.values()) {
+      tool.resetTool();
+    }
+  }
+
 
   public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput)
   {
