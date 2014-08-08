@@ -80,7 +80,7 @@ public class MinecraftSaveFolderBackups
         announceOnChat("Created new world backup:" + newBackupPath.getFileName());
         deletedBackupPath = storedBackups.cullSurplus();     // ignore any failure to cull.
         if (deletedBackupPath != null) {
-          announceOnChat("Deleted  old world backup:" + deletedBackupPath.getFileName());
+          announceOnChat("Deleted old world backup:" + deletedBackupPath.getFileName());
         }
       }
       boolean savedOK;

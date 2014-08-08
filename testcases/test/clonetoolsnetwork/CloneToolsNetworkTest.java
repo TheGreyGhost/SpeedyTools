@@ -21,7 +21,7 @@ import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.actions.SpeedyToolServerActions;
-import speedytools.serverside.SpeedyToolsNetworkServer;
+import speedytools.serverside.network.SpeedyToolsNetworkServer;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.ServerVoxelSelections;
 

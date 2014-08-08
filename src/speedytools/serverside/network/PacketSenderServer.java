@@ -1,4 +1,4 @@
-package speedytools.serverside;
+package speedytools.serverside.network;
 
 import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.common.network.Player;

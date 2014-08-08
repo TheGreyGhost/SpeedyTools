@@ -391,6 +391,7 @@ public class RenderCursorStatus implements RendererElement
     }
 
     // every time the wheel sweeps past the target ring angle, extend the ring to the new completion point
+    // there are two sweep points on the wheel, at 0 and at 180
     if (drawTaskCompletionRing) {
       double rotationOffset = lastDegreesOfRotation - (lastDegreesOfRotation % 360.0);
       double lastRotationPosition = lastDegreesOfRotation - rotationOffset;
@@ -398,13 +399,22 @@ public class RenderCursorStatus implements RendererElement
 //      System.out.println("rotationOffset=" + rotationOffset + "; lastRotationPosition=" + lastRotationPosition + "; rotationPosition=" + rotationPosition);
 //      System.out.println("taskCompletionRingAngle:"+ taskCompletionRingAngle + "; targetTaskCompletionRingAngle:" + targetTaskCompletionRingAngle);
 //      System.out.println("rotationPosition:" + rotationPosition);
-      if ((lastRotationPosition <= taskCompletionRingAngle && rotationPosition >= taskCompletionRingAngle)
-           || (lastRotationPosition <= taskCompletionRingAngle + 360 && rotationPosition >= taskCompletionRingAngle + 360) ) {
-              // swept over the current ring position - check near 0 and also near 360
 
+      // swept over the current ring position - check near 0 and also near 360; repeat check for the 180 degree point on the wheel too
+
+      if ((lastRotationPosition <= taskCompletionRingAngle && rotationPosition >= taskCompletionRingAngle)
+              || (lastRotationPosition <= taskCompletionRingAngle + 360 && rotationPosition >= taskCompletionRingAngle + 360)) {
         taskCompletionRingAngle = Math.min(rotationPosition, targetTaskCompletionRingAngle);
         taskCompletionRingAngle = Math.max(taskCompletionRingAngle, INITIAL_TASK_COMPLETION_ANGLE);
 //        System.out.println("taskCompletionRingAngle:" + taskCompletionRingAngle + "; targetTaskCompletionRingAngle:" + targetTaskCompletionRingAngle);
+      } else {
+        lastRotationPosition = (lastRotationPosition + 180) % 360;
+        rotationPosition = (rotationPosition + 180) % 360;
+        if ((lastRotationPosition <= taskCompletionRingAngle && rotationPosition >= taskCompletionRingAngle)
+                || (lastRotationPosition <= taskCompletionRingAngle + 360 && rotationPosition >= taskCompletionRingAngle + 360)) {
+          taskCompletionRingAngle = Math.min(rotationPosition, targetTaskCompletionRingAngle);
+          taskCompletionRingAngle = Math.max(taskCompletionRingAngle, INITIAL_TASK_COMPLETION_ANGLE);
+        }
       }
     }
 
@@ -625,6 +635,6 @@ public class RenderCursorStatus implements RendererElement
     tessellator.draw();
   }
 
-  private final ResourceLocation octoStarTexture = new ResourceLocation("speedytools", "textures/other/octostar.png");
+  private final ResourceLocation octoStarTexture = new ResourceLocation("speedytools", "textures/other/octostar-double.png");
   private final ResourceLocation ringTexture = new ResourceLocation("speedytools", "textures/other/octoring.png");
 }

@@ -54,6 +54,7 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
    */
   public void rollback(int i_rollbackSequenceNumber)
   {
+    startRollback = true;
     rollingBack = true;
     rollbackSequenceNumber = i_rollbackSequenceNumber;
   }
@@ -119,6 +120,7 @@ public abstract class AsynchronousActionBase implements AsynchronousToken
   protected boolean completed;
   protected boolean aborting = false;
   protected boolean rollingBack = false;
+  protected boolean startRollback = false;
   protected long interruptTimeNS;
   protected double fractionComplete;
   protected WorldServer worldServer;

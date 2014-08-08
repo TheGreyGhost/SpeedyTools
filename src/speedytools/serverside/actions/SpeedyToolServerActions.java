@@ -13,7 +13,7 @@ import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.ServerVoxelSelections;
-import speedytools.serverside.SpeedyToolsNetworkServer;
+import speedytools.serverside.network.SpeedyToolsNetworkServer;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldHistory;
@@ -123,7 +123,7 @@ public class SpeedyToolServerActions
 
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
-    AsynchronousActionPlacement token = new AsynchronousActionPlacement(worldServer, player, worldHistory,voxelSelection,
+    AsynchronousActionPlacement token = new AsynchronousActionPlacement(worldServer, player, worldHistory, voxelSelection,
                                                                         sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
     speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_YOUR_ACTION, player, (byte) 0);
@@ -225,6 +225,7 @@ public class SpeedyToolServerActions
     }
 
     long stopTimeNS = System.nanoTime() + SpeedyToolsOptions.getMaxServerBusyTimeMS() * 1000L * 1000L;
+    final int STATUS_UPDATE_PERIOD_TICKS = 10;
 
     if (asynchronousTaskInProgress != null && !asynchronousTaskInProgress.isTaskComplete()) {
       asynchronousTaskInProgress.setTimeOfInterrupt(stopTimeNS);
@@ -237,7 +238,7 @@ public class SpeedyToolServerActions
           speedyToolsNetworkServer.undoCompleted(asynchronousTaskEntityPlayerMP, asynchronousTaskSequenceNumber);
         }
         asynchronousTaskInProgress = null;
-      } else {  // task not complete
+      } else if (0 == (ServerSide.getGlobalTickCount() % STATUS_UPDATE_PERIOD_TICKS)) {  // task not complete
         speedyToolsNetworkServer.changeServerStatus((asynchronousTaskActionType == ActionType.ACTION) ? ServerStatus.PERFORMING_YOUR_ACTION : ServerStatus.UNDOING_YOUR_ACTION,
                 asynchronousTaskEntityPlayerMP,
                 (byte) (100 * asynchronousTaskInProgress.getFractionComplete()));

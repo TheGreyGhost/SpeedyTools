@@ -125,6 +125,10 @@ public class AsynchronousActionPlacement extends AsynchronousActionBase
   }
 
   private void continueRollingBack() {
+    if (startRollback && currentStage == ActionStage.COMPLETE) {  // force a rollback even if we have finished the task
+      currentStage = ActionStage.WRITE;
+    }
+    startRollback = false;
     switch (currentStage) {
       case SETUP: {
         currentStage = ActionStage.COMPLETE;

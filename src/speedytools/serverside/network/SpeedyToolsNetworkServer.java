@@ -1,4 +1,4 @@
-package speedytools.serverside;
+package speedytools.serverside.network;
 
 import cpw.mods.fml.common.IPlayerTracker;
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -10,6 +10,7 @@ import speedytools.common.network.Packet250CloneToolAcknowledge.Acknowledgement;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.ResultWithReason;
+import speedytools.serverside.ServerSide;
 import speedytools.serverside.actions.SpeedyToolServerActions;
 
 import java.util.HashMap;
@@ -229,6 +230,7 @@ public class SpeedyToolsNetworkServer
    */
   public void handlePacket(EntityPlayerMP player, Packet250CloneToolUse packet)
   {
+    System.out.println("SpeedyToolsNetworkServer.handlePacket:" + packet.getCommand());
     switch (packet.getCommand()) {
       case SELECTION_MADE: {
         speedyToolServerActions.prepareForToolAction(player);

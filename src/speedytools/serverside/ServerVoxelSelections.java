@@ -13,6 +13,7 @@ import speedytools.common.network.multipart.MultipartPacket;
 import speedytools.common.network.multipart.SelectionPacket;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.serverside.network.PacketSenderServer;
 
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;

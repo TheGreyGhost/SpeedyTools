@@ -2,7 +2,7 @@ package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
-import speedytools.serverside.SpeedyToolsNetworkServer;
+import speedytools.serverside.network.SpeedyToolsNetworkServer;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 

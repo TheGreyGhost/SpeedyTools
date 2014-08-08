@@ -157,14 +157,13 @@ public class CloneToolsNetworkClient
  */
   public ResultWithReason performComplexToolUndo()
   {
-    ResultWithReason result = isReadyToPerformUndo();
-    if (!result.succeeded()) return result;
-
     Packet250CloneToolUse packet;
 
     if (lastActionStatus == ActionStatus.PROCESSING || lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT) {
       packet = Packet250CloneToolUse.cancelCurrentAction(currentUndoSequenceNumber, currentActionSequenceNumber);
     } else {
+      ResultWithReason result = isReadyToPerformUndo();
+      if (!result.succeeded()) return result;
       packet = Packet250CloneToolUse.performToolUndo(currentUndoSequenceNumber);
   }
   lastUndoPacket = packet.getPacket250CustomPayload();

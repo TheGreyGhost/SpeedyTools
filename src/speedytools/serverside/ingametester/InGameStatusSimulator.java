@@ -9,7 +9,7 @@ import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
-import speedytools.serverside.SpeedyToolsNetworkServer;
+import speedytools.serverside.network.SpeedyToolsNetworkServer;
 
 /**
  * Created by TheGreyGhost on 26/06/14.
