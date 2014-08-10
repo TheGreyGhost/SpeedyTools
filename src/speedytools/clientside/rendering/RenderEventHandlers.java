@@ -1,6 +1,7 @@
 package speedytools.clientside.rendering;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
@@ -22,18 +23,26 @@ public class RenderEventHandlers
    */
   @ForgeSubscribe
   public void renderOverlayPre(RenderGameOverlayEvent.Pre event) {
-    if (event.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
-    if (!ClientSide.activeTool.toolIsActive()) {
-      return;
-    }
-    if (ClientSide.speedyToolRenderers.areAnyRendersInThisPhase(RendererElement.RenderPhase.CROSSHAIRS)) {
-      float partialTick = event.partialTicks;
-      ClientSide.speedyToolRenderers.renderOverlay(RendererElement.RenderPhase.CROSSHAIRS, event.resolution, ClientSide.getGlobalTickCount(), partialTick);
-      event.setCanceled(true);
+    if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS) {
+      if (!ClientSide.activeTool.toolIsActive()) {
+        return;
+      }
+      if (ClientSide.speedyToolRenderers.areAnyRendersInThisPhase(RendererElement.RenderPhase.CROSSHAIRS)) {
+        float partialTick = event.partialTicks;
+        ClientSide.speedyToolRenderers.renderOverlay(RendererElement.RenderPhase.CROSSHAIRS, event.resolution, ClientSide.getGlobalTickCount(), partialTick);
+        event.setCanceled(true);
+      }
+    } else if (event.type == RenderGameOverlayEvent.ElementType.HOTBAR) {
+      ScaledResolution res = event.resolution;
+      int width = res.getScaledWidth();
+      int height = res.getScaledHeight();
+      RenderHotbarCurrentItem.getInstance().renderHotbar(width, height, event.partialTicks);
     }
 
     return;
   }
+
+
 
 //    EntityPlayer player = Minecraft.getMinecraft().thePlayer;
 //    ItemStack currentItem = player.inventory.getCurrentItem();
@@ -75,7 +84,7 @@ public class RenderEventHandlers
     float partialTick = event.partialTicks;
 
     EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
-    ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
+    ClientSide.activeTool.updateForThisFrame(player.getEntityWorld(), entityClientPlayerMP, partialTick);
     ClientSide.speedyToolRenderers.renderWorld(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
 
 

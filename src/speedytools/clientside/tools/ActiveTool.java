@@ -55,16 +55,17 @@ public class ActiveTool
 
   /**
    * update the currently selected tool's state based on the player selected items; where the player is looking; etc
+   * To be called per render frame
    * No effect if not active.
    * @param world
    * @param player
    * @param partialTick
    * @return
    */
-  public boolean update(World world, EntityClientPlayerMP player, float partialTick)
+  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
   {
     if (activeTool != null) {
-      activeTool.update(world, player, partialTick);
+      activeTool.updateForThisFrame(world, player, partialTick);
     }
     return true;
   }

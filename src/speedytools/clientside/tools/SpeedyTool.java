@@ -64,7 +64,7 @@ public abstract class SpeedyTool
    * @param partialTick
    * @return
    */
-  public abstract boolean update(World world, EntityClientPlayerMP player, float partialTick);
+  public abstract boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick);
 
   /**
    *  resets the tool state eg has a selection, moving selection, etc.

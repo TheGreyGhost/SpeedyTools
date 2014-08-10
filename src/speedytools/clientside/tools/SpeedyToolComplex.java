@@ -339,7 +339,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //  public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
 
   @Override
-  public boolean update(World world, EntityClientPlayerMP player, float partialTick)
+  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
   {
     checkInvariants();
     if (currentToolSelectionState != ToolSelectionStates.NO_SELECTION) return false;
@@ -529,6 +529,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   @Override
   public void performTick(World world) {
     checkInvariants();
+    super.performTick(world);
+    updateGrabRenderTick(selectionGrabActivated && currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION);
 
 //    RegistryForItems.itemComplexCopy.setRenderHorizontal(selectionGrabActivated);  // todo make this generic for other tools too
 

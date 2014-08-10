@@ -1,5 +1,6 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.AxisAlignedBB;
@@ -37,12 +38,28 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
   public abstract boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput);
 
   @Override
-  public abstract boolean update(World world, EntityClientPlayerMP player, float partialTick);
+  public abstract boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick);
 
   @Override
   public void resetTool() {
     boundaryCorner1 = null;
     boundaryCorner2 = null;
+  }
+
+  /**
+   * Update the item renderer based on whether the player is grabbing the selection or not
+   * Call once per tick
+   * @param grabbing true if player is grabbing
+   */
+
+  protected void updateGrabRenderTick(boolean grabbing)
+  {
+    final float GRAB_SWING_POSITION = 0.7F;
+    if (grabbing) {
+      EntityClientPlayerMP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
+      entityClientPlayerMP.swingProgress = GRAB_SWING_POSITION;
+      entityClientPlayerMP.prevSwingProgress = GRAB_SWING_POSITION;
+    }
   }
 
   /**

@@ -54,7 +54,7 @@ public class ItemEventHandler {
     float partialTick = event.partialTicks;
 
     EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
-    ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
+    ClientSide.activeTool.updateForThisFrame(player.getEntityWorld(), entityClientPlayerMP, partialTick);
     ClientSide.speedyToolRenderers.renderWorld(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
 
     /*

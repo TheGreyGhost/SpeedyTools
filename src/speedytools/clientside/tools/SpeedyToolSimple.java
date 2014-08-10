@@ -91,7 +91,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick
    * @return
    */
-  public boolean update(World world, EntityClientPlayerMP player, float partialTick)
+  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
   {
     if (!iAmActive) return false;
     ItemStack currentItem = player.inventory.getCurrentItem();
@@ -101,7 +101,8 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     // the block to be placed is the one to the left of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;
 
-    ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == 0) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot-1);
+    final int MAX_HOTBAR_SLOT = 8;
+    ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == MAX_HOTBAR_SLOT) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot + 1);
     currentBlockToPlace = getPlacedBlockFromItemStack(itemStackToPlace);
 
     MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);

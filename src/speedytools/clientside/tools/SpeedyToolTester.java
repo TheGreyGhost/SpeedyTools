@@ -84,7 +84,7 @@ public class SpeedyToolTester extends SpeedyTool
    * @param partialTick
    * @return
    */
-  public boolean update(World world, EntityClientPlayerMP player, float partialTick)
+  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
   {
     return true;
   }

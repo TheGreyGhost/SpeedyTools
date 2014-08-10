@@ -48,6 +48,17 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     return true;
   }
 
+  /** called once per tick on the client side while the user is holding an ItemCloneTool
+   * used to:
+   * (1) background generation of a selection, if it has been initiated
+   * (2) start transmission of the selection, if it has just been completed
+   * (3) acknowledge (get) the action and undo statuses
+   */
+  @Override
+  public void performTick(World world) {
+    updateGrabRenderTick(boundaryGrabActivated);
+  }
+
   @Override
   public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput) {
     if (!iAmActive) return false;
@@ -119,7 +130,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
    * @return
    */
   @Override
-  public boolean update(World world, EntityClientPlayerMP player, float partialTick) {
+  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick) {
     // update icon renderer
 
     ItemSpeedyBoundary.IconNames itemIcon = ItemSpeedyBoundary.IconNames.BLANK;
