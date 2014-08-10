@@ -1,28 +1,10 @@
 package speedytools.common.items;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.network.PacketDispatcher;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
-import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.*;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.item.Item;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.GL11;
-import speedytools.clientside.selections.BlockMultiSelector;
-import speedytools.clientside.rendering.SelectionBoxRenderer;
-import speedytools.common.blocks.BlockWithMetadata;
-import speedytools.common.network.Packet250SpeedyToolUse;
-
-import java.io.IOException;
-import java.util.*;
+import speedytools.clientside.ClientSide;
 
 /**
  * User: The Grey Ghost
@@ -32,7 +14,7 @@ public abstract class ItemSpeedyTool extends Item
 {
   public ItemSpeedyTool(int id) {
     super(id);
-    setCreativeTab(CreativeTabs.tabTools);
+    setCreativeTab(ClientSide.tabSpeedyTools);
     setMaxDamage(-1);                         // not damageable
   }
 

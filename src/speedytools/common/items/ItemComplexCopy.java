@@ -34,13 +34,15 @@ public class ItemComplexCopy extends ItemComplexBase
   @Override
   public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List textList, boolean useAdvancedItemTooltips)
   {
-    textList.add("Right click: create selection");
-    textList.add("Right hold: drag selection");
-    textList.add("Left click: undo selection");
-    textList.add("Right 2x click: copy selection");
-    textList.add("Left 2x click: undo copy");
+    textList.add("Right click: select blocks,");
+    textList.add("       then: toggle drag on/off");
+    textList.add("Left click: deselect");
+    textList.add("Right hold: place the copy");
+    textList.add("Left hold: undo copy");
+    textList.add("Mouse wheel: rotate selection");
+    textList.add("CTRL+right: flip selection");
   }
 
-
+  private boolean renderHorizontal;
 }
 

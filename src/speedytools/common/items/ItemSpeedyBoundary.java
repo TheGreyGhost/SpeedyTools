@@ -60,9 +60,8 @@ public class ItemSpeedyBoundary extends ItemComplexBase
   public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List textList, boolean useAdvancedItemTooltips)
   {
     textList.add("Right click: place boundary");
-    textList.add("             markers (x2), then");
-    textList.add(" Right button hold: move around");
-    textList.add("             to drag boundary");
+    textList.add("             markers (x2),");
+    textList.add("       then: toggle drag on/off");
     textList.add("Left click: remove all markers");
   }
 

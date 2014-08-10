@@ -34,12 +34,13 @@ public class ItemComplexMove extends ItemComplexBase
   @Override
   public void addInformation(ItemStack itemStack, EntityPlayer entityPlayer, List textList, boolean useAdvancedItemTooltips)
   {
-    textList.add("Right click: select blocks");
+    textList.add("Right click: select blocks,");
+    textList.add("       then: toggle drag on/off");
     textList.add("Left click: deselect");
-    textList.add("Right hold: move blocks");
-    textList.add("Left hold: undo move");
-    textList.add("Mouse wheel: rotate");
-    textList.add("CTRL+right: flip");
+    textList.add("Right hold: move selection");
+    textList.add("Left hold: undo move selection");
+    textList.add("Mouse wheel: rotate selection");
+    textList.add("CTRL+right: flip selection");
   }
 
 

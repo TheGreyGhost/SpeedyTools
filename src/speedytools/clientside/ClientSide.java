@@ -1,6 +1,9 @@
 package speedytools.clientside;
 
+import cpw.mods.fml.common.registry.LanguageRegistry;
 import cpw.mods.fml.relauncher.Side;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.item.ItemStack;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
@@ -8,6 +11,7 @@ import speedytools.clientside.rendering.SpeedyToolSounds;
 import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.NetworkTrafficMonitor;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.utilities.ErrorLog;
@@ -21,7 +25,18 @@ import java.io.IOException;
  */
 public class ClientSide
 {
-  public static void initialise()
+  public static void preInitialise()
+  {
+    tabSpeedyTools = new CreativeTabs("tabSpeedyTools") {
+      public ItemStack getIconItemStack() {
+        return new ItemStack(RegistryForItems.itemSpeedySceptre, 1, 0);
+      }
+    };
+    LanguageRegistry.instance().addStringLocalization("itemGroup.tabSpeedyTools", "en_US", "Build Faster");
+
+  }
+
+  public static void postInitialise()
   {
     packetHandlerRegistry = new PacketHandlerRegistry();
     packetSenderClient = new  PacketSenderClient();
@@ -32,6 +47,7 @@ public class ClientSide
     speedyToolSounds = new SpeedyToolSounds();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
     undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+
     String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
     if (SpeedyToolsOptions.getNetworkLoggingActive()) {
       try {
@@ -43,6 +59,8 @@ public class ClientSide
     } else {
       networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
     }
+
+
   }
 
 /*
@@ -68,6 +86,8 @@ public class ClientSide
   public static SpeedyToolSounds speedyToolSounds;
   public static PacketSenderClient packetSenderClient;
   public static PacketHandlerRegistry packetHandlerRegistry;
+
+  public static CreativeTabs tabSpeedyTools;
 
   public static int getGlobalTickCount() {
     return globalTickCount;

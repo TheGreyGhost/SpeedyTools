@@ -24,6 +24,7 @@ public class CombinedClientProxy extends CommonProxy {
   @Override
   public void preInit()
   {
+    ClientSide.preInitialise();
     super.preInit();
   }
 
@@ -43,6 +44,7 @@ public class CombinedClientProxy extends CommonProxy {
   @Override
   public void postInit()
   {
+    ClientSide.postInitialise();
     super.postInit();
     SpeedyToolControls.initialiseInterceptors();
 //    MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
@@ -52,7 +54,6 @@ public class CombinedClientProxy extends CommonProxy {
     TickRegistry.registerTickHandler(new ClientTickHandler(), Side.CLIENT);
 
     MinecraftForge.EVENT_BUS.register(new ClientEventHandler());
-    ClientSide.initialise();
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong,
                                            new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
