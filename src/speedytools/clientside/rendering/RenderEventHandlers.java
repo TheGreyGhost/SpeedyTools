@@ -37,6 +37,7 @@ public class RenderEventHandlers
       int width = res.getScaledWidth();
       int height = res.getScaledHeight();
       RenderHotbarCurrentItem.getInstance().renderHotbar(width, height, event.partialTicks);
+      event.setCanceled(true);
     }
 
     return;

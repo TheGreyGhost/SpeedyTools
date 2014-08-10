@@ -3,6 +3,7 @@ package speedytools.clientside.rendering;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
@@ -43,14 +44,29 @@ public class RenderHotbarCurrentItem
     mc.renderEngine.bindTexture(WIDGETS);
 
     InventoryPlayer inventoryPlayer = mc.thePlayer.inventory;
-    guiIngame.drawTexturedModalRect(width / 2 - 91, height - 22, 0, 0, 182, 22);
+    final int HOTBAR_WIDTH = 182;
+    final int HOTBAR_HALF_WIDTH = HOTBAR_WIDTH / 2;
+    final int HOTBAR_HEIGHT = 22;
+    final int SLOT_WIDTH = 20;
+    final int VANILLA_FRAME_MIN_U = 0;
+    final int VANILLA_FRAME_MIN_V = 22;
+    final int VANILLA_FRAME_WIDTH = 24;
+    final int VANILLA_FRAME_HEIGHT = 22;
+    final int DOUBLE_FRAME_WIDTH = 44;
+    final int DOUBLE_FRAME_HEIGHT = 22;
+    guiIngame.drawTexturedModalRect(width / 2 - HOTBAR_HALF_WIDTH, height - HOTBAR_HEIGHT, 0, 0, HOTBAR_WIDTH, HOTBAR_HEIGHT);
+
+    ItemStack itemstack = inventoryPlayer.mainInventory[0];
+    renderDoubleSizeSelector = (itemstack == null);
 
     if (renderDoubleSizeSelector) {
       mc.renderEngine.bindTexture(doubleSelectorTexture);
-      guiIngame.drawTexturedModalRect(width / 2 - 91 - 1 + inventoryPlayer.currentItem * 20, height - 22 - 1, 0, 22, 24, 22);
+      double zLevel = -90.0;   // copied from vanilla
+      drawTexturedRectangle(width / 2 - HOTBAR_HALF_WIDTH - 1 + inventoryPlayer.currentItem * SLOT_WIDTH, height - HOTBAR_HEIGHT - 1, zLevel, DOUBLE_FRAME_WIDTH, DOUBLE_FRAME_HEIGHT);
       mc.renderEngine.bindTexture(WIDGETS);
     } else {
-      guiIngame.drawTexturedModalRect(width / 2 - 91 - 1 + inventoryPlayer.currentItem * 20, height - 22 - 1, 0, 22, 24, 22);
+      guiIngame.drawTexturedModalRect(width / 2 - HOTBAR_HALF_WIDTH - 1 + inventoryPlayer.currentItem * SLOT_WIDTH, height - HOTBAR_HEIGHT - 1,
+              VANILLA_FRAME_MIN_U, VANILLA_FRAME_MIN_V, VANILLA_FRAME_WIDTH, VANILLA_FRAME_HEIGHT);
     }
 
     GL11.glDisable(GL11.GL_BLEND);
@@ -95,6 +111,24 @@ public class RenderHotbarCurrentItem
 
       itemRenderer.renderItemOverlayIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), itemstack, x, y);
     }
+  }
+
+  /**
+   * Draws a textured rectangle at the given z-value, using the entire texture. Args: x, y, z, width, height
+   */
+  private void drawTexturedRectangle(double x, double y, double z, double width, double height)
+  {
+    double ICON_MIN_U = 0.0;
+    double ICON_MAX_U = 1.0;
+    double ICON_MIN_V = 0.0;
+    double ICON_MAX_V = 1.0;
+    Tessellator tessellator = Tessellator.instance;
+    tessellator.startDrawingQuads();
+    tessellator.addVertexWithUV(    x + 0, y + height, z,  ICON_MIN_U, ICON_MAX_V);
+    tessellator.addVertexWithUV(x + width, y + height, z,  ICON_MAX_U, ICON_MAX_V);
+    tessellator.addVertexWithUV(x + width,      y + 0, z,  ICON_MAX_U, ICON_MIN_V);
+    tessellator.addVertexWithUV(    x + 0,      y + 0, z,  ICON_MIN_U, ICON_MIN_V);
+    tessellator.draw();
   }
 
   protected static final RenderItem itemRenderer = new RenderItem();
