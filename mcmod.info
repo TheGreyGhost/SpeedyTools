@@ -1,7 +1,7 @@
 [{
     "modid": "speedytoolsmod",
     "name": "Build Faster Mod",
-    "description": "Build Faster!  Place multiple blocks, copy and paste!  Undo your mistakes!",
+    "description": "Build Faster!  Place multiple blocks with one click! Copy and paste!  Undo your mistakes!",
     "version": "2.0.0",
     "mcversion": "1.6.4",
     "url": "https://github.com/TheGreyGhost/SpeedyTools",
