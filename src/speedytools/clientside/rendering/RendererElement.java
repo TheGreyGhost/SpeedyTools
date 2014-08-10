@@ -2,6 +2,10 @@ package speedytools.clientside.rendering;
 
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.World;
+import net.minecraftforge.event.Event;
+
+import java.util.Collection;
 
 /**
  * User: The Grey Ghost
@@ -25,6 +29,21 @@ public interface RendererElement
    */
   public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick);
   public boolean renderInThisPhase(RenderPhase renderPhase);
+
+  /**
+   * Which events is this RendererElement interested in?
+   * @return a collection of events that the Renderer wants to receive.
+   */
+  public Collection<Class<? extends Event>> eventsToReceive();
+
+  /**
+   * render this element in response to the given event
+   * @param world
+   * @param player
+   * @param animationTickCount
+   * @param partialTick
+   */
+  public void render(Event event, World world, EntityPlayer player, int animationTickCount, float partialTick);
 
   public enum RenderPhase {
     CROSSHAIRS, WORLD,

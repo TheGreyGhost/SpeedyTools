@@ -4,7 +4,13 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.event.Event;
 import org.lwjgl.opengl.GL11;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * User: The Grey Ghost
@@ -28,6 +34,32 @@ public class RendererBoundaryField implements RendererElement
   public boolean renderInThisPhase(RenderPhase renderPhase)
   {
     return (renderPhase == RenderPhase.WORLD);
+  }
+
+  /**
+   * Which events is this RendererElement interested in?
+   *
+   * @return a collection of events that the Renderer wants to receive.
+   */
+  @Override
+  public Collection<Class<? extends Event>> eventsToReceive() {
+    ArrayList<Class<? extends Event>> retval = new ArrayList<Class<? extends Event>>();
+    retval.add(RenderWorldLastEvent.class);
+    return retval;
+  }
+
+  /**
+   * render this element in response to the given event
+   *
+   * @param event
+   * @param world
+   * @param player
+   * @param animationTickCount
+   * @param partialTick
+   */
+  @Override
+  public void render(Event event, World world, EntityPlayer player, int animationTickCount, float partialTick) {
+
   }
 
   @Override
