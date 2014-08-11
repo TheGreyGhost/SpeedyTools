@@ -19,7 +19,7 @@ public interface RendererElement
    * @param animationTickCount
    * @param partialTick
    */
-  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick);
+//  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick);
 
   /** renders an element on the overlay
    * @param renderPhase
@@ -27,8 +27,8 @@ public interface RendererElement
    * @param animationTickCount
    * @param partialTick
    */
-  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick);
-  public boolean renderInThisPhase(RenderPhase renderPhase);
+//  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick);
+//  public boolean renderInThisPhase(RenderPhase renderPhase);
 
   /**
    * Which events is this RendererElement interested in?
@@ -38,15 +38,12 @@ public interface RendererElement
 
   /**
    * render this element in response to the given event
-   * @param world
-   * @param player
-   * @param animationTickCount
    * @param partialTick
    */
-  public void render(Event event, World world, EntityPlayer player, int animationTickCount, float partialTick);
+  public void render(Event event, float partialTick);
 
-  public enum RenderPhase {
-    CROSSHAIRS, WORLD,
-  }
+//  public enum RenderPhase {
+//    CROSSHAIRS, WORLD,
+//  }
 
 }

@@ -43,59 +43,59 @@ public class ItemEventHandler {
    *
    * @param event
    */
-//  @ForgeSubscribe
-  public void drawSelectionBox(RenderWorldLastEvent event)
-  {
-    RenderGlobal context = event.context;
-    assert(context.mc.renderViewEntity instanceof EntityPlayer);
-    EntityPlayer player = (EntityPlayer)context.mc.renderViewEntity;
-
-    //ItemStack currentItem = player.inventory.getCurrentItem();         //
-    float partialTick = event.partialTicks;
-
-    EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
-    ClientSide.activeTool.updateForThisFrame(player.getEntityWorld(), entityClientPlayerMP, partialTick);
-    ClientSide.speedyToolRenderers.renderWorld(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
-
-    /*
-
-    boolean speedyToolHeld = currentItem != null && ItemSpeedyTool.isAspeedyTool(currentItem.itemID);
-    boolean cloneToolHeld = currentItem != null && ItemCloneTool.isAcloneTool(currentItem.itemID);
-    if (!speedyToolHeld && !cloneToolHeld) return;
-
-
-    if (speedyToolHeld) {
-
-      ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)currentItem.getItem();
-
-      // the block to be placed is the one to the left of the tool in the hotbar
-      int currentlySelectedHotbarSlot = player.inventory.currentItem;
-      ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == 0) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot-1);
-      BlockWithMetadata blockToPlace = ItemSpeedyTool.getPlacedBlockFromItemStack(itemStackToPlace);
-
-      MovingObjectPosition target = itemSpeedyTool.rayTraceLineOfSight(player.worldObj, player);
-      List<ChunkCoordinates> selection = itemSpeedyTool.selectBlocks(target, player, currentItem, itemStackToPlace, partialTick);
-
-      ItemSpeedyTool.setCurrentToolSelection(itemSpeedyTool, blockToPlace, selection);
-
-      if (selection.isEmpty()) return;
-
-      EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
-      ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
-      ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, partialTick);
-      //itemSpeedyTool.renderSelection(player, partialTick);
-
-    }
-
-    if (cloneToolHeld) {
-      ItemCloneTool itemCloneTool = (ItemCloneTool)currentItem.getItem();
-
-      MovingObjectPosition target = itemCloneTool.rayTraceLineOfSight(player.worldObj, player);
-      itemCloneTool.highlightBlocks(target, player, currentItem, partialTick);
-      itemCloneTool.renderBlockHighlight(player, partialTick);
-      itemCloneTool.renderBoundaryField(player, partialTick);
-    }
-    */
-  }
+////  @ForgeSubscribe
+//  public void drawSelectionBox(RenderWorldLastEvent event)
+//  {
+//    RenderGlobal context = event.context;
+//    assert(context.mc.renderViewEntity instanceof EntityPlayer);
+//    EntityPlayer player = (EntityPlayer)context.mc.renderViewEntity;
+//
+//    //ItemStack currentItem = player.inventory.getCurrentItem();         //
+//    float partialTick = event.partialTicks;
+//
+//    EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
+//    ClientSide.activeTool.updateForThisFrame(player.getEntityWorld(), entityClientPlayerMP, partialTick);
+////    ClientSide.speedyToolRenderers.renderWorld(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
+//
+//    /*
+//
+//    boolean speedyToolHeld = currentItem != null && ItemSpeedyTool.isAspeedyTool(currentItem.itemID);
+//    boolean cloneToolHeld = currentItem != null && ItemCloneTool.isAcloneTool(currentItem.itemID);
+//    if (!speedyToolHeld && !cloneToolHeld) return;
+//
+//
+//    if (speedyToolHeld) {
+//
+//      ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)currentItem.getItem();
+//
+//      // the block to be placed is the one to the left of the tool in the hotbar
+//      int currentlySelectedHotbarSlot = player.inventory.currentItem;
+//      ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == 0) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot-1);
+//      BlockWithMetadata blockToPlace = ItemSpeedyTool.getPlacedBlockFromItemStack(itemStackToPlace);
+//
+//      MovingObjectPosition target = itemSpeedyTool.rayTraceLineOfSight(player.worldObj, player);
+//      List<ChunkCoordinates> selection = itemSpeedyTool.selectBlocks(target, player, currentItem, itemStackToPlace, partialTick);
+//
+//      ItemSpeedyTool.setCurrentToolSelection(itemSpeedyTool, blockToPlace, selection);
+//
+//      if (selection.isEmpty()) return;
+//
+//      EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
+//      ClientSide.activeTool.update(player.getEntityWorld(), entityClientPlayerMP, partialTick);
+//      ClientSide.speedyToolRenderers.render(RendererElement.RenderPhase.WORLD, player, partialTick);
+//      //itemSpeedyTool.renderSelection(player, partialTick);
+//
+//    }
+//
+//    if (cloneToolHeld) {
+//      ItemCloneTool itemCloneTool = (ItemCloneTool)currentItem.getItem();
+//
+//      MovingObjectPosition target = itemCloneTool.rayTraceLineOfSight(player.worldObj, player);
+//      itemCloneTool.highlightBlocks(target, player, currentItem, partialTick);
+//      itemCloneTool.renderBlockHighlight(player, partialTick);
+//      itemCloneTool.renderBoundaryField(player, partialTick);
+//    }
+//    */
+//  }
 
 }

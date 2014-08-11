@@ -10,6 +10,9 @@ public abstract class ItemComplexBase extends ItemSpeedyTool
     super(id);
   }
 
+  @Override
+  public boolean usesAdjacentBlockInHotbar() {return false;}
+
 //  public static boolean isAcloneTool(int itemID)
 //  {
 //    return (   itemID == RegistryForItems.itemSpeedyBoundary.itemID

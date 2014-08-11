@@ -1,9 +1,12 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 import net.minecraftforge.event.Event;
+import speedytools.clientside.ClientSide;
 
 import java.util.*;
 
@@ -29,69 +32,74 @@ public class SpeedyToolRenderers
 
     // construct a map of the renderers to be called for each event
     renderElements1.clear();
-    for (RendererElement rendererElement : newRendererElements) {
-      Collection<Class<? extends Event>> eventsToRegisterFor = rendererElement.eventsToReceive();
-      for (Class<? extends Event> event : eventsToRegisterFor) {
-        List<RendererElement> currentEntries = renderElements1.get(event);
-        if (currentEntries == null) {
-          currentEntries = new LinkedList<RendererElement>();
+    if (newRendererElements != null) {
+      for (RendererElement rendererElement : newRendererElements) {
+        Collection<Class<? extends Event>> eventsToRegisterFor = rendererElement.eventsToReceive();
+        if (eventsToRegisterFor != null) {
+          for (Class<? extends Event> event : eventsToRegisterFor) {
+            List<RendererElement> currentEntries = renderElements1.get(event);
+            if (currentEntries == null) {
+              currentEntries = new LinkedList<RendererElement>();
+            }
+            currentEntries.add(rendererElement);
+            renderElements1.put(event, currentEntries);
+          }
         }
-        currentEntries.add(rendererElement);
-        renderElements1.put(event, currentEntries);
       }
     }
   }
 
-  public void render(Event event, World world, EntityPlayer player, int animationTickCount, float partialTick)
+  public void render(Event event, float partialTick)
   {
     Collection<RendererElement> renderElements = renderElements1.get(event.getClass());
+    if (renderElements == null) return;
     for (RendererElement rendererElement : renderElements) {
-      rendererElement.render(event, world, player, animationTickCount, partialTick);
+      rendererElement.render(event, partialTick);
     }
   }
 
-  /**
-   * Do any of the renderers draw something in this phase?
-   * @param renderPhase
-   * @return
-   */
-  public boolean areAnyRendersInThisPhase(RendererElement.RenderPhase renderPhase)
-  {
-    for (RendererElement rendererElement : rendererElements) {
-      if (rendererElement.renderInThisPhase(renderPhase)) return true;
-    }
-    return false;
-  }
+//  /**
+//   * Do any of the renderers draw something in this phase?
+//   * @param renderPhase
+//   * @return
+//   */
+//  public boolean areAnyRendersInThisPhase(RendererElement.RenderPhase renderPhase)
+//  {
+//    for (RendererElement rendererElement : rendererElements) {
+//      if (rendererElement.renderInThisPhase(renderPhase)) return true;
+//    }
+//    return false;
+//  }
 
-  /**
-   * Render all elements which draw something in this phase
-   * @param renderPhase
-   * @param player
-   * @param partialTick
-   */
-  public void renderWorld(RendererElement.RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
-  {
-    for (RendererElement rendererElement : rendererElements) {
-      if (rendererElement.renderInThisPhase(renderPhase)) {
-        rendererElement.renderWorld(renderPhase, player, animationTickCount, partialTick);
-      }
-    }
-  }
+//  /**
+//   * Render all elements which draw something in this phase
+//   * @param renderPhase
+//   * @param player
+//   * @param partialTick
+//   */
+//  public void renderWorld(RendererElement.RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+//  {
+//    for (RendererElement rendererElement : rendererElements) {
+//      if (rendererElement.renderInThisPhase(renderPhase)) {
+//        rendererElement.renderWorld(renderPhase, player, animationTickCount, partialTick);
+//      }
+//    }
+//  }
 
-  /**
-   * Render all elements which draw something in this phase
-   * @param renderPhase
-   * @param scaledResolution
-   * @param partialTick
-   */
-  public void renderOverlay(RendererElement.RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
-  {
-    for (RendererElement rendererElement : rendererElements) {
-      if (rendererElement.renderInThisPhase(renderPhase)) {
-        rendererElement.renderOverlay(renderPhase, scaledResolution, animationTickCount, partialTick);
-      }
-    }
-  }
+//  /**
+//   * Render all elements which draw something in this phase
+//   * @param renderPhase
+//   * @param scaledResolution
+//   * @param partialTick
+//   */
+//  public void renderOverlay(RendererElement.RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
+//  {
+//    for (RendererElement rendererElement : rendererElements) {
+//      if (rendererElement.renderInThisPhase(renderPhase)) {
+//        rendererElement.renderOverlay(renderPhase, scaledResolution, animationTickCount, partialTick);
+//      }
+//    }
+//  }
 
   private Collection<RendererElement> rendererElements;
 

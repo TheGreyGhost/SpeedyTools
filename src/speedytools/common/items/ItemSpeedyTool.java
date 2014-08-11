@@ -30,4 +30,10 @@ public abstract class ItemSpeedyTool extends Item
     return this.getMovingObjectPositionFromPlayer(world, entityPlayer, true);
   }
 
+  /**
+   * does this tool use the adjacent block in the hotbar?
+   * @return
+   */
+  public boolean usesAdjacentBlockInHotbar() {return true;}
+
 }

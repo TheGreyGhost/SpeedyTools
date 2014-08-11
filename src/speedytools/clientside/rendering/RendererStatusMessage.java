@@ -5,10 +5,16 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.event.Event;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+import speedytools.clientside.ClientSide;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.UsefulFunctions;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * User: The Grey Ghost
@@ -22,21 +28,33 @@ public class RendererStatusMessage implements RendererElement
     animationState = AnimationState.NONE;
   }
 
+//  @Override
+//  public boolean renderInThisPhase(RenderPhase renderPhase) {
+//    return (renderPhase == RenderPhase.CROSSHAIRS);
+//  }
+
   @Override
-  public boolean renderInThisPhase(RenderPhase renderPhase) {
-    return (renderPhase == RenderPhase.CROSSHAIRS);
+  public Collection<Class<? extends Event>> eventsToReceive() {
+    ArrayList<Class<? extends Event>> retval = new ArrayList<Class<? extends Event>>();
+    retval.add(RenderGameOverlayEvent.Pre.class);
+    return retval;
   }
 
   @Override
-  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick) {
-    assert false : "invalid render phase: " + renderPhase;
+  public void render(Event event, float partialTick) {
+    RenderGameOverlayEvent.Pre fullEvent = (RenderGameOverlayEvent.Pre)event;
+    renderOverlay(fullEvent.resolution, ClientSide.getGlobalTickCount(), partialTick);
   }
 
-  @Override
-  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick) {
+//  @Override
+//  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick) {
+//    assert false : "invalid render phase: " + renderPhase;
+//  }
+
+  public void renderOverlay(ScaledResolution scaledResolution, int animationTickCount, float partialTick) {
     final double FADE_IN_DURATION_TICKS = 20;
     final double FADE_OUT_DURATION_TICKS = 10;
-    if (renderPhase != RenderPhase.CROSSHAIRS) return;
+//    if (renderPhase != RenderPhase.CROSSHAIRS) return;
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
     if (!shouldIRender) return;
 

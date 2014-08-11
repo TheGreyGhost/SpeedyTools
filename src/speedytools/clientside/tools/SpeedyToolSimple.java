@@ -13,10 +13,7 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
-import speedytools.clientside.rendering.RendererElement;
-import speedytools.clientside.rendering.RendererWireframeSelection;
-import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.blocks.BlockWithMetadata;
@@ -38,6 +35,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);
     wireframeRendererUpdateLink = this.new SimpleWireframeRendererLink();
+    hotbarRenderInfoUpdateLink = this.new HotbarRenderInfoUpdateLink();
   }
 
   /**
@@ -118,6 +116,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   {
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
+    rendererElements.add(new RendererHotbarCurrentItem(hotbarRenderInfoUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
     iAmActive = true;
     return true;
@@ -153,6 +152,22 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     {
       infoToUpdate.currentlySelectedBlocks = currentlySelectedBlocks;
       return true;
+    }
+  }
+
+  /**
+   * This class is used to provide information to the Boundary Field Renderer when it needs it.
+   * The information is taken from the reference to the SpeedyToolBoundary.
+   */
+  public class HotbarRenderInfoUpdateLink implements RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink
+  {
+    @Override
+    public boolean refreshRenderInfo(RendererHotbarCurrentItem.HotbarRenderInfo infoToUpdate, ItemStack currentlyHeldItem) {
+      if (currentlyHeldItem == null || !(currentlyHeldItem.getItem() instanceof ItemSpeedyTool)) {
+        return false;
+      }
+      ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool) currentlyHeldItem.getItem();
+      return itemSpeedyTool.usesAdjacentBlockInHotbar();
     }
   }
 
@@ -327,5 +342,5 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   }
   protected List<ChunkCoordinates> currentlySelectedBlocks;
   protected BlockWithMetadata currentBlockToPlace;
-
+  private RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink hotbarRenderInfoUpdateLink;
 }

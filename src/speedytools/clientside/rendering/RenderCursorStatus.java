@@ -6,9 +6,16 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.event.Event;
 import org.lwjgl.opengl.GL11;
+import speedytools.clientside.ClientSide;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.UsefulFunctions;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Created by TheGreyGhost on 9/05/14.
@@ -28,17 +35,31 @@ public class RenderCursorStatus implements RendererElement
     renderInfo = new CursorRenderInfo();
   }
 
+//  @Override
+//  public boolean renderInThisPhase(RenderPhase renderPhase)
+//  {
+//    return (renderPhase == RenderPhase.CROSSHAIRS);
+//  }
+
   @Override
-  public boolean renderInThisPhase(RenderPhase renderPhase)
-  {
-    return (renderPhase == RenderPhase.CROSSHAIRS);
+  public Collection<Class<? extends Event>> eventsToReceive() {
+    ArrayList<Class<? extends Event>> retval = new ArrayList<Class<? extends Event>>();
+    retval.add(RenderGameOverlayCrosshairsEvent.class);
+    return retval;
   }
 
   @Override
-  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
-  {
-    assert false : "invalid render phase: " + renderPhase;
+  public void render(Event event, float partialTick) {
+    RenderGameOverlayCrosshairsEvent fullEvent = (RenderGameOverlayCrosshairsEvent)event;
+    boolean renderedSomething = renderOverlay(fullEvent.resolution, ClientSide.getGlobalTickCount(), partialTick);
+    if (renderedSomething) event.setCanceled(true);
   }
+
+//  @Override
+//  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+//  {
+//    assert false : "invalid render phase: " + renderPhase;
+//  }
 
   /**
    * renders the 'power up' cursor.  See CursorRenderInfo for the various controls
@@ -46,12 +67,12 @@ public class RenderCursorStatus implements RendererElement
    * @param animationTickCount
    * @param partialTick
    */
-  @Override
-  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
+
+  public boolean renderOverlay(ScaledResolution scaledResolution, int animationTickCount, float partialTick)
   {
-    if (renderPhase != RenderPhase.CROSSHAIRS) return;
+//    if (renderPhase != RenderPhase.CROSSHAIRS) return;
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
-    if (!shouldIRender) return;
+    if (!shouldIRender) return false;
 
 //    final int SPIN_DOWN_RING_COMPLETION_TICKS = 0;
     final int SPIN_DOWN_STAR_SHRINK_TICKS = 20;
@@ -138,46 +159,7 @@ public class RenderCursorStatus implements RendererElement
       }
       if (performTransition) animationState = renderInfo.animationState;
     }
-//    switch (animationState) {
-//      case IDLE: {
-//        if (!renderInfo.idle) {
-//          animationState = AnimationState.SPIN_UP;
-//          spinStartTick = animationCounter;
-//        }
-//        break;
-//      }
-//      case SPIN_UP: {
-//        if (renderInfo.performingTask) {
-//          animationState = AnimationState.SPINNING;
-//          taskCompletionRingAngle = INITIAL_TASK_COMPLETION_ANGLE;
-//          spindownInitialTaskCompletionRingAngle = taskCompletionRingAngle;
-//        } else if (renderInfo.idle) {
-//          animationState = AnimationState.SPIN_DOWN;
-//          spindownCompletionTickCount = animationCounter + SPIN_DOWN_STAR_SHRINK_TICKS * starSize;   // + SPIN_DOWN_RING_COMPLETION_TICKS
-//        }
-//        break;
-//      }
-//      case SPINNING: {
-//        if (!renderInfo.performingTask) {
-//          if (taskCompletionRingAngle >= renderInfo.taskCompletionPercent * 360.0/100.0 - 1.0 ) {   // don't start spindown until the completion ring is fully drawn
-//            animationState = AnimationState.SPIN_DOWN;
-//            spindownCompletionTickCount = animationCounter + SPIN_DOWN_TOTAL_DURATION_TICKS;
-//          }
-//        }
-//        break;
-//      }
-//      case SPIN_DOWN: {
-//        if (renderInfo.idle) {
-//          if (animationCounter >= spindownCompletionTickCount) {
-//            animationState = AnimationState.IDLE;
-//          }
-//        } else {
-//          animationState = AnimationState.SPIN_UP;
-//        }
-//        break;
-//      }
-//      default: assert false : "illegal animationState:" + animationState;
-//    }
+
 
 /*
     what the cursor should do:
@@ -223,47 +205,6 @@ public class RenderCursorStatus implements RendererElement
       The completion ring is drawn in segments; updated once every full rotation: every time the "home" point on the star sweeps past, it draws the completion ring
         further to the current completion position.
 */
-
-//    switch (animationState) {
-//      case IDLE: {
-//        if (!renderInfo.idle) {
-//          animationState = AnimationState.SPIN_UP;
-//          spinStartTick = animationCounter;
-//        }
-//        break;
-//      }
-//      case SPIN_UP: {
-//        if (renderInfo.performingTask) {
-//          animationState = AnimationState.SPINNING;
-//          taskCompletionRingAngle = INITIAL_TASK_COMPLETION_ANGLE;
-//          spindownInitialTaskCompletionRingAngle = taskCompletionRingAngle;
-//        } else if (renderInfo.idle) {
-//          animationState = AnimationState.SPIN_DOWN;
-//          spindownCompletionTickCount = animationCounter + SPIN_DOWN_STAR_SHRINK_TICKS * starSize;   // + SPIN_DOWN_RING_COMPLETION_TICKS
-//        }
-//        break;
-//      }
-//      case SPINNING: {
-//        if (!renderInfo.performingTask) {
-//          if (taskCompletionRingAngle >= renderInfo.taskCompletionPercent * 360.0/100.0 - 1.0 ) {   // don't start spindown until the completion ring is fully drawn
-//            animationState = AnimationState.SPIN_DOWN;
-//            spindownCompletionTickCount = animationCounter + SPIN_DOWN_TOTAL_DURATION_TICKS;
-//          }
-//        }
-//        break;
-//      }
-//      case SPIN_DOWN: {
-//        if (renderInfo.idle) {
-//          if (animationCounter >= spindownCompletionTickCount) {
-//            animationState = AnimationState.IDLE;
-//          }
-//        } else {
-//          animationState = AnimationState.SPIN_UP;
-//        }
-//        break;
-//      }
-//      default: assert false : "illegal animationState:" + animationState;
-//    }
 
     final float Z_LEVEL_FROM_GUI_IN_GAME_FORGE = -90.0F;            // taken from GuiInGameForge.renderCrossHairs
     final double CROSSHAIR_ICON_WIDTH = 88;
@@ -315,7 +256,7 @@ public class RenderCursorStatus implements RendererElement
             vanillaSpinStartTick = animationCounter;
           }
           renderCrossHairs(scaledResolution, cursorAngle, progressAngle);
-          return;
+          return true;
         }
         break;
       }
@@ -463,6 +404,7 @@ public class RenderCursorStatus implements RendererElement
     } finally {
       GL11.glPopAttrib();
     }
+    return true;
   }
 
   /**  The CursorRenderInfoUpdateLink and CursorRenderInfo are used to retrieve the necessary information for rendering from the current tool

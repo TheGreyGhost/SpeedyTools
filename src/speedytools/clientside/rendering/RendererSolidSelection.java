@@ -2,14 +2,22 @@ package speedytools.clientside.rendering;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.event.Event;
 import org.lwjgl.opengl.GL11;
+import speedytools.clientside.ClientSide;
 import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.QuadOrientation;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * User: The Grey Ghost
@@ -28,17 +36,33 @@ public class RendererSolidSelection implements RendererElement
     infoProvider = i_infoProvider;
     renderInfo = new SolidSelectionRenderInfo();
   }
+//  @Override
+//  public boolean renderInThisPhase(RenderPhase renderPhase)
+//  {
+//    return (renderPhase == RenderPhase.WORLD);
+//  }
+
   @Override
-  public boolean renderInThisPhase(RenderPhase renderPhase)
-  {
-    return (renderPhase == RenderPhase.WORLD);
+  public Collection<Class<? extends Event>> eventsToReceive() {
+    ArrayList<Class<? extends Event>> retval = new ArrayList<Class<? extends Event>>();
+    retval.add(RenderWorldLastEvent.class);
+    return retval;
   }
 
   @Override
-  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
-  {
-    assert false : "invalid render phase: " + renderPhase;
+  public void render(Event event, float partialTick) {
+    RenderWorldLastEvent fullEvent = (RenderWorldLastEvent)event;
+    RenderGlobal context = fullEvent.context;
+    assert(context.mc.renderViewEntity instanceof EntityPlayer);
+    EntityPlayer player = (EntityPlayer)context.mc.renderViewEntity;
+    renderWorld(player, ClientSide.getGlobalTickCount(), partialTick);
   }
+
+//  @Override
+//  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
+//  {
+//    assert false : "invalid render phase: " + renderPhase;
+//  }
 
   /**
    * render the boundary field if there is one selected
@@ -46,8 +70,7 @@ public class RendererSolidSelection implements RendererElement
    * @param animationTickCount
    * @param partialTick
    */
-  @Override
-  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+  public void renderWorld(EntityPlayer player, int animationTickCount, float partialTick)
   {
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, player, partialTick);
     if (!shouldIRender) return;

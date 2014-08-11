@@ -1,13 +1,18 @@
 package speedytools.clientside.rendering;
 
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.event.Event;
 import org.lwjgl.opengl.GL11;
+import speedytools.clientside.ClientSide;
 import speedytools.common.utilities.Colour;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 /**
@@ -29,20 +34,35 @@ public class RendererWireframeSelection implements RendererElement
 
   public final int SELECTION_BOX_STYLE = 0; //0 = cube, 1 = cube with cross on each side
 
+//  @Override
+//  public boolean renderInThisPhase(RenderPhase renderPhase)
+//  {
+//    return (renderPhase == RenderPhase.WORLD);
+//  }
+
   @Override
-  public boolean renderInThisPhase(RenderPhase renderPhase)
-  {
-    return (renderPhase == RenderPhase.WORLD);
+  public Collection<Class<? extends Event>> eventsToReceive() {
+    ArrayList<Class<? extends Event>> retval = new ArrayList<Class<? extends Event>>();
+    retval.add(RenderWorldLastEvent.class);
+    return retval;
   }
 
   @Override
-  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
-  {
-    assert false : "invalid render phase: " + renderPhase;
+  public void render(Event event, float partialTick) {
+    RenderWorldLastEvent fullEvent = (RenderWorldLastEvent)event;
+    RenderGlobal context = fullEvent.context;
+    assert(context.mc.renderViewEntity instanceof EntityPlayer);
+    EntityPlayer player = (EntityPlayer)context.mc.renderViewEntity;
+    renderWorld(player, ClientSide.getGlobalTickCount(), partialTick);
   }
 
-  @Override
-  public void renderWorld(RenderPhase renderPhase, EntityPlayer player, int animationTickCount, float partialTick)
+//  @Override
+//  public void renderOverlay(RenderPhase renderPhase, ScaledResolution scaledResolution, int animationTickCount, float partialTick)
+//  {
+//    assert false : "invalid render phase: " + renderPhase;
+//  }
+
+  public void renderWorld(EntityPlayer player, int animationTickCount, float partialTick)
   {
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
     if (!shouldIRender) return;

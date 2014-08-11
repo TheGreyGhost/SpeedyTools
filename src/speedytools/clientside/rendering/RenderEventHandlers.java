@@ -1,5 +1,6 @@
 package speedytools.clientside.rendering;
 
+import com.sun.deploy.util.SessionState;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.RenderGlobal;
@@ -23,22 +24,41 @@ public class RenderEventHandlers
    */
   @ForgeSubscribe
   public void renderOverlayPre(RenderGameOverlayEvent.Pre event) {
-    if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS) {
-      if (!ClientSide.activeTool.toolIsActive()) {
-        return;
-      }
-      if (ClientSide.speedyToolRenderers.areAnyRendersInThisPhase(RendererElement.RenderPhase.CROSSHAIRS)) {
-        float partialTick = event.partialTicks;
-        ClientSide.speedyToolRenderers.renderOverlay(RendererElement.RenderPhase.CROSSHAIRS, event.resolution, ClientSide.getGlobalTickCount(), partialTick);
-        event.setCanceled(true);
-      }
-    } else if (event.type == RenderGameOverlayEvent.ElementType.HOTBAR) {
-      ScaledResolution res = event.resolution;
-      int width = res.getScaledWidth();
-      int height = res.getScaledHeight();
-      RenderHotbarCurrentItem.getInstance().renderHotbar(width, height, event.partialTicks);
-      event.setCanceled(true);
+    if (!ClientSide.activeTool.toolIsActive()) {
+      return;
     }
+
+    if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS) {
+      RenderGameOverlayCrosshairsEvent renderGameOverlayCrosshairsEvent = new RenderGameOverlayCrosshairsEvent(event);
+      ClientSide.speedyToolRenderers.render(renderGameOverlayCrosshairsEvent, event.partialTicks);
+      event.setCanceled(renderGameOverlayCrosshairsEvent.isCanceled());
+//      if (ClientSide.speedyToolRenderers.areAnyRendersInThisPhase(RendererElement.RenderPhase.CROSSHAIRS)) {
+//        float partialTick = event.partialTicks;
+//        ClientSide.speedyToolRenderers.renderOverlay(RendererElement.RenderPhase.CROSSHAIRS, event.resolution, ClientSide.getGlobalTickCount(), partialTick);
+//        event.setCanceled(true);
+//      }
+    } else if (event.type == RenderGameOverlayEvent.ElementType.HOTBAR) {
+      RenderGameOverlayHotbarEvent renderGameOverlayHotbarEvent = new RenderGameOverlayHotbarEvent(event);
+      ClientSide.speedyToolRenderers.render(renderGameOverlayHotbarEvent, event.partialTicks);
+      event.setCanceled(renderGameOverlayHotbarEvent.isCanceled());
+    }
+
+//    if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS) {
+//      if (!ClientSide.activeTool.toolIsActive()) {
+//        return;
+//      }
+//      if (ClientSide.speedyToolRenderers.areAnyRendersInThisPhase(RendererElement.RenderPhase.CROSSHAIRS)) {
+//        float partialTick = event.partialTicks;
+//        ClientSide.speedyToolRenderers.renderOverlay(RendererElement.RenderPhase.CROSSHAIRS, event.resolution, ClientSide.getGlobalTickCount(), partialTick);
+//        event.setCanceled(true);
+//      }
+//    } else if (event.type == RenderGameOverlayEvent.ElementType.HOTBAR) {
+//      ClientSide.speedyToolRenderers.render(event, event.partialTicks);
+//      ScaledResolution res = event.resolution;
+//      int width = res.getScaledWidth();
+//      int height = res.getScaledHeight();
+//      RendererHotbarCurrentItem.getInstance().renderHotbar(width, height, event.partialTicks);
+//      event.setCanceled(true);
 
     return;
   }
@@ -80,14 +100,14 @@ public class RenderEventHandlers
     RenderGlobal context = event.context;
     assert(context.mc.renderViewEntity instanceof EntityPlayer);
     EntityPlayer player = (EntityPlayer)context.mc.renderViewEntity;
+    EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
 
     //ItemStack currentItem = player.inventory.getCurrentItem();         //
     float partialTick = event.partialTicks;
 
-    EntityClientPlayerMP entityClientPlayerMP = (EntityClientPlayerMP)player;
     ClientSide.activeTool.updateForThisFrame(player.getEntityWorld(), entityClientPlayerMP, partialTick);
-    ClientSide.speedyToolRenderers.renderWorld(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
-
+//    ClientSide.speedyToolRenderers.renderWorld(RendererElement.RenderPhase.WORLD, player, ClientSide.getGlobalTickCount(), partialTick);
+    ClientSide.speedyToolRenderers.render(event, partialTick);
 
 /*
     if (speedyToolHeld) {
