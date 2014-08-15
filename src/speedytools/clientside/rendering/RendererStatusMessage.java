@@ -36,13 +36,13 @@ public class RendererStatusMessage implements RendererElement
   @Override
   public Collection<Class<? extends Event>> eventsToReceive() {
     ArrayList<Class<? extends Event>> retval = new ArrayList<Class<? extends Event>>();
-    retval.add(RenderGameOverlayEvent.Pre.class);
+    retval.add(RenderGameOverlayCrosshairsEvent.class);
     return retval;
   }
 
   @Override
   public void render(Event event, float partialTick) {
-    RenderGameOverlayEvent.Pre fullEvent = (RenderGameOverlayEvent.Pre)event;
+    RenderGameOverlayCrosshairsEvent fullEvent = (RenderGameOverlayCrosshairsEvent)event;
     renderOverlay(fullEvent.resolution, ClientSide.getGlobalTickCount(), partialTick);
   }
 
