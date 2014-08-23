@@ -2,7 +2,6 @@ package speedytools.clientside.tools;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -14,7 +13,6 @@ import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.ItemComplexBase;
-import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.ClientStatus;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.Colour;
@@ -468,7 +466,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   private void flipSelection(EntityClientPlayerMP entityClientPlayerMP)
   {
-    if (Math.abs(entityClientPlayerMP.rotationYaw) < 45 || Math.abs(entityClientPlayerMP.rotationYaw) > 135) { // looking mostly north-south
+    float modulusYaw =  MathHelper.wrapAngleTo180_float(entityClientPlayerMP.rotationYaw);
+
+    if (Math.abs(modulusYaw) < 45 || Math.abs(modulusYaw) > 135) { // looking mostly north-south
       selectionOrientation.flipWX();
     } else {
       selectionOrientation.flipWZ();
