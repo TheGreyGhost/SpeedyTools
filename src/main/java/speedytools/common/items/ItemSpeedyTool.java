@@ -7,13 +7,13 @@ import net.minecraft.world.World;
 import speedytools.clientside.ClientSide;
 
 /**
- * User: The Grey Ghost
- * Date: 2/11/13
- */
+* User: The Grey Ghost
+* Date: 2/11/13
+*/
 public abstract class ItemSpeedyTool extends Item
 {
-  public ItemSpeedyTool(int id) {
-    super(id);
+  public ItemSpeedyTool() {
+    super();
     setCreativeTab(ClientSide.tabSpeedyTools);
     setMaxDamage(-1);                         // not damageable
   }

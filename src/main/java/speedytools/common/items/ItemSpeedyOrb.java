@@ -1,25 +1,19 @@
 package speedytools.common.items;
 
-import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.MovingObjectPosition;
+import speedytools.SpeedyToolsMod;
 
 import java.util.List;
 
 public class ItemSpeedyOrb extends ItemSpeedyTool {
-  public ItemSpeedyOrb(int id) {
-    super(id);
+  public static final String NAME = "simpleorb";
+  public ItemSpeedyOrb() {
+    super();
     setMaxStackSize(64);
-    setUnlocalizedName("SpeedyOrb");
+    setUnlocalizedName(NAME);
+    setTextureName(SpeedyToolsMod.prependModID("orbicon"));
     setFull3D();                              // setting this flag causes the trowel to render vertically in 3rd person view, like a pickaxe
-  }
-
-  @Override
-  public void registerIcons(IconRegister iconRegister)
-  {
-    itemIcon = iconRegister.registerIcon("speedytools:orbicon");
   }
 
   /**

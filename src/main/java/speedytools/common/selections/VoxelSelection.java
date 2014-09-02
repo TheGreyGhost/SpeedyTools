@@ -135,7 +135,7 @@ public class VoxelSelection
       objectOutputStream.writeObject(voxels);
       objectOutputStream.close();
     } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Exception while converting VoxelSelection toDataArray:" + ioe);
+      ErrorLog.defaultLog().debug("Exception while converting VoxelSelection toDataArray:" + ioe);
       bos = null;
     }
     return bos;
@@ -164,10 +164,10 @@ public class VoxelSelection
       zSize = newZsize;
       voxels = (BitSet)newVoxels;
     } catch (ClassNotFoundException cnfe) {
-      ErrorLog.defaultLog().warning("Exception while VoxelSelection.readFromDataArray: " + cnfe);
+      ErrorLog.defaultLog().debug("Exception while VoxelSelection.readFromDataArray: " + cnfe);
       return false;
     } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Exception while VoxelSelection.readFromDataArray: " + ioe);
+      ErrorLog.defaultLog().debug("Exception while VoxelSelection.readFromDataArray: " + ioe);
       return false;
     }
     return true;

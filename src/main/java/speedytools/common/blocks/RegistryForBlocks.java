@@ -5,9 +5,9 @@ import cpw.mods.fml.common.registry.LanguageRegistry;
 import net.minecraft.block.material.Material;
 
 /**
- * creates and contains the instances of all of this mod's custom Blocks
- * the instances are created manually in order to control the creation time and order
- */
+* creates and contains the instances of all of this mod's custom Blocks
+* the instances are created manually in order to control the creation time and order
+*/
 public class RegistryForBlocks
 {
   // custom blocks
@@ -15,10 +15,8 @@ public class RegistryForBlocks
 
   public static void initialise()
   {
-    final int START_BLOCK = 2142;
-    blockSelectionFog = (BlockSelectionFog)(new BlockSelectionFog(START_BLOCK, Material.air).setUnlocalizedName("selectionfog").setTextureName("speedytools:selectionfog"));
-
-    GameRegistry.registerBlock(blockSelectionFog, blockSelectionFog.getUnlocalizedName());
+    blockSelectionFog = new BlockSelectionFog(Material.air);
+    GameRegistry.registerBlock(blockSelectionFog, blockSelectionFog.NAME);
 
     LanguageRegistry.addName(blockSelectionFog, "Selection Fog");
   }

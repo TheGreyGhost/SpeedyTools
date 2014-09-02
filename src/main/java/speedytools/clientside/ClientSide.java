@@ -1,22 +1,16 @@
 package speedytools.clientside;
 
 import cpw.mods.fml.common.registry.LanguageRegistry;
-import cpw.mods.fml.relauncher.Side;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import speedytools.clientside.network.CloneToolsNetworkClient;
-import speedytools.clientside.network.PacketSenderClient;
-import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.rendering.SpeedyToolSounds;
-import speedytools.clientside.tools.ActiveTool;
+//import speedytools.clientside.network.CloneToolsNetworkClient;
+//import speedytools.clientside.network.PacketSenderClient;
+//import speedytools.clientside.rendering.SpeedyToolRenderers;
+//import speedytools.clientside.rendering.SpeedyToolSounds;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
-import speedytools.common.network.NetworkTrafficMonitor;
-import speedytools.common.network.PacketHandlerRegistry;
-import speedytools.common.utilities.ErrorLog;
-
-import java.io.IOException;
 
 /**
  * User: The Grey Ghost
@@ -28,9 +22,12 @@ public class ClientSide
   public static void preInitialise()
   {
     tabSpeedyTools = new CreativeTabs("tabSpeedyTools") {
+      @Override
       public ItemStack getIconItemStack() {
         return new ItemStack(RegistryForItems.itemSpeedySceptre, 1, 0);
       }
+      @Override
+      public Item getTabIconItem() {return RegistryForItems.itemSpeedySceptre;}
     };
     LanguageRegistry.instance().addStringLocalization("itemGroup.tabSpeedyTools", "en_US", "Build Faster");
 
@@ -38,27 +35,27 @@ public class ClientSide
 
   public static void postInitialise()
   {
-    packetHandlerRegistry = new PacketHandlerRegistry();
-    packetSenderClient = new  PacketSenderClient();
-    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
-    speedyToolRenderers = new SpeedyToolRenderers();
-    activeTool = new ActiveTool();
+//    packetHandlerRegistry = new PacketHandlerRegistry();
+//    packetSenderClient = new  PacketSenderClient();
+//    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
+//    speedyToolRenderers = new SpeedyToolRenderers();
+//    activeTool = new ActiveTool();
     userInput = new UserInput();
-    speedyToolSounds = new SpeedyToolSounds();
+//    speedyToolSounds = new SpeedyToolSounds();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
     undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
 
     String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
-    if (SpeedyToolsOptions.getNetworkLoggingActive()) {
-      try {
-        networkTrafficMonitor = new NetworkTrafficMonitor(Side.CLIENT, SpeedyToolsOptions.getNetworkLoggingDirectory().toPath(), NETWORK_LOG_FILENAME_STEM);
-      } catch (IOException ioe) {
-        ErrorLog.defaultLog().warning("Couldn't create a NetworkTrafficMonitor because:" + ioe);
-        networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
-      }
-    } else {
-      networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
-    }
+//    if (SpeedyToolsOptions.getNetworkLoggingActive()) {
+//      try {
+//        networkTrafficMonitor = new NetworkTrafficMonitor(Side.CLIENT, SpeedyToolsOptions.getNetworkLoggingDirectory().toPath(), NETWORK_LOG_FILENAME_STEM);
+//      } catch (IOException ioe) {
+//        ErrorLog.defaultLog().warning("Couldn't create a NetworkTrafficMonitor because:" + ioe);
+//        networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
+//      }
+//    } else {
+//      networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
+//    }
 
 
   }
@@ -70,22 +67,22 @@ public class ClientSide
   }
 */
 
-  public static CloneToolsNetworkClient getCloneToolsNetworkClient() {
-    return cloneToolsNetworkClient;
-  }
-  public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
-    return networkTrafficMonitor;
-  }
+//  public static CloneToolsNetworkClient getCloneToolsNetworkClient() {
+//    return cloneToolsNetworkClient;
+//  }
+//  public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
+//    return networkTrafficMonitor;
+//  }
 
-  public static CloneToolsNetworkClient cloneToolsNetworkClient;
-  public static SpeedyToolRenderers speedyToolRenderers;
-  public static ActiveTool activeTool;
+//  public static CloneToolsNetworkClient cloneToolsNetworkClient;
+//  public static SpeedyToolRenderers speedyToolRenderers;
+//  public static ActiveTool activeTool;
   public static UserInput userInput;
   public static UndoManagerClient undoManagerSimple;
   public static UndoManagerClient undoManagerComplex;
-  public static SpeedyToolSounds speedyToolSounds;
-  public static PacketSenderClient packetSenderClient;
-  public static PacketHandlerRegistry packetHandlerRegistry;
+//  public static SpeedyToolSounds speedyToolSounds;
+//  public static PacketSenderClient packetSenderClient;
+//  public static PacketHandlerRegistry packetHandlerRegistry;
 
   public static CreativeTabs tabSpeedyTools;
 
@@ -96,19 +93,19 @@ public class ClientSide
   public static void tick()
   {
     ++globalTickCount;
-    getCloneToolsNetworkClient().tick();
+//    getCloneToolsNetworkClient().tick();
 
-    if (globalTickCount % SpeedyToolsOptions.getNetworkLoggingPeriodInTicks() == 0) {
-      try {
-        ClientSide.getNetworkTrafficMonitor().log();
-      } catch (IOException ioe) {
-        ErrorLog.defaultLog().warning("Failed to log network traffic due to:" + ioe);
-      }
-    }
+//    if (globalTickCount % SpeedyToolsOptions.getNetworkLoggingPeriodInTicks() == 0) {
+//      try {
+//        ClientSide.getNetworkTrafficMonitor().log();
+//      } catch (IOException ioe) {
+//        ErrorLog.defaultLog().warning("Failed to log network traffic due to:" + ioe);
+//      }
+//    }
   }
 
   private static int globalTickCount = 0;
 
 
-  private static NetworkTrafficMonitor networkTrafficMonitor;
+//  private static NetworkTrafficMonitor networkTrafficMonitor;
 }

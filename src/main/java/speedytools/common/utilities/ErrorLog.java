@@ -1,19 +1,19 @@
 package speedytools.common.utilities;
 
 import cpw.mods.fml.common.FMLLog;
-
-import java.io.IOException;
-import java.util.logging.*;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
- * User: The Grey Ghost
- * Date: 1/03/14
- * wrapper to interchangably replace static FMLLog calls with a logger for unit testing
- * usage:
- * ErrorLog.defaultLog().log(etc) instead of FMLLog.log(etc)
- * ErrorLog.defaultLog().severe (etc)
- * Defaults to FMLLog.  To change this, call ErrorLog.setDefaultErrorLogger
- */
+* User: The Grey Ghost
+* Date: 1/03/14
+* wrapper to interchangably replace static FMLLog calls with a logger for unit testing
+* usage:
+* ErrorLog.defaultLog().log(etc) instead of FMLLog.log(etc)
+* ErrorLog.defaultLog().severe (etc)
+* Defaults to FMLLog.  To change this, call ErrorLog.setDefaultErrorLogger
+*/
 public class ErrorLog
 {
   public static ErrorLog defaultLog() {
@@ -31,21 +31,21 @@ public class ErrorLog
    */
   public static void setLogFileAsDefault(String logfilename)
   {
-    Logger logger = Logger.getLogger("Default");
-    logger.setLevel(Level.INFO);
-    FileHandler fileTxt;
-    try {
-      fileTxt = new FileHandler(logfilename);
-    } catch (IOException e) {
-      setDefaultErrorLogger(logger);
-      return;
-    }
-    fileTxt.setFormatter(new SimpleFormatter());
-    for (Handler handler : logger.getHandlers()) {
-      logger.removeHandler(handler);
-    }
-    logger.addHandler(fileTxt);
-    logger.setUseParentHandlers(false);
+    Logger logger = LogManager.getLogger("Default");
+//    logger.setLevel(Level.INFO);
+//    FileHandler fileTxt;
+//    try {
+//      fileTxt = new FileHandler(logfilename);
+//    } catch (IOException e) {
+//      setDefaultErrorLogger(logger);
+//      return;
+//    }
+//    fileTxt.setFormatter(new SimpleFormatter());
+//    for (Handler handler : logger.getHandlers()) {
+//      logger.removeHandler(handler);
+//    }
+//    logger.addHandler(fileTxt);
+//    logger.setUseParentHandlers(false);
     setDefaultErrorLogger(logger);
   }
 
@@ -99,14 +99,14 @@ public class ErrorLog
       }
     }
 
-    public  void severe(String format, Object... data)
+    public void severe(String format, Object... data)
     {
-      log(Level.SEVERE, format, data);
+      log(Level.FATAL, format, data);
     }
 
-    public  void warning(String format, Object... data)
+    public void debug(String format, Object... data)
     {
-      log(Level.WARNING, format, data);
+      log(Level.DEBUG, format, data);
     }
 
     public  void info(String format, Object... data)
@@ -114,18 +114,4 @@ public class ErrorLog
       log(Level.INFO, format, data);
     }
 
-    public  void fine(String format, Object... data)
-    {
-      log(Level.FINE, format, data);
-    }
-
-    public  void finer(String format, Object... data)
-    {
-      log(Level.FINER, format, data);
-    }
-
-    public  void finest(String format, Object... data)
-    {
-      log(Level.FINEST, format, data);
-    }
 }

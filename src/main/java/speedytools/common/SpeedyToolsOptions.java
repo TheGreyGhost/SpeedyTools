@@ -43,7 +43,7 @@ public class SpeedyToolsOptions
   public static long getErrorMessageDisplayDurationNS() { return 5 * 1000 * 1000 * 1000L; }
 
   public static int getRenderDistanceInBlocks() {
-    int renderDistanceSetting = Minecraft.getMinecraft().gameSettings.renderDistance;
+    int renderDistanceSetting = Minecraft.getMinecraft().gameSettings.renderDistanceChunks;
     int renderDistanceBlocks = 64 << 3 - renderDistanceSetting;
     return Math.min(400, renderDistanceBlocks);
   }

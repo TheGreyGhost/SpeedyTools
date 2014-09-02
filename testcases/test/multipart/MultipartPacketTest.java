@@ -405,7 +405,7 @@ public class MultipartPacketTest
 
         return result ? newPacket : null;
       } catch (IOException ioe) {
-        ErrorLog.defaultLog().warning("Failed to createReceiverPacket, due to exception " + ioe.toString());
+        ErrorLog.defaultLog().debug("Failed to createReceiverPacket, due to exception " + ioe.toString());
         return null;
       }
     }

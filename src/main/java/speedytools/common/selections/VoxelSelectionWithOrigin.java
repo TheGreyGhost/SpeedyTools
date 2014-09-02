@@ -93,7 +93,7 @@ public class VoxelSelectionWithOrigin extends VoxelSelection
       ByteArrayOutputStream bosVoxelSelection = super.writeToBytes();
       bosVoxelSelection.writeTo(bos);
     } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Exception while converting VoxelSelectionWithOrigin writeToBytes:" + ioe);
+      ErrorLog.defaultLog().debug("Exception while converting VoxelSelectionWithOrigin writeToBytes:" + ioe);
       bos = null;
     }
 
@@ -121,7 +121,7 @@ public class VoxelSelectionWithOrigin extends VoxelSelection
       wyOrigin = newWyOrigin;
       wzOrigin = newWzOrigin;
     } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Exception while VoxelSelectionWithOrigin.readFromBytes: " + ioe);
+      ErrorLog.defaultLog().debug("Exception while VoxelSelectionWithOrigin.readFromBytes: " + ioe);
       return false;
     }
     return true;
