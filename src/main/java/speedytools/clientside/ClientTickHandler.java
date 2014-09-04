@@ -34,8 +34,7 @@ public class ClientTickHandler  {
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player != null) {
       ItemStack heldItem = player.getHeldItem();
-//      boolean speedyToolHeld = ClientSide.activeTool.setHeldItem(heldItem);  todo testing only
-      boolean speedyToolHeld = (heldItem != null);  //todo testing only
+      boolean speedyToolHeld = ClientSide.activeTool.setHeldItem(heldItem);
 
       SpeedyToolControls.enableClickInterception(speedyToolHeld);
       if (speedyToolHeld) {
@@ -57,13 +56,13 @@ public class ClientTickHandler  {
     if (player == null) return;
 
     boolean inputUsed = false;                  //todo testing only
-//    if (ClientSide.activeTool.toolIsActive()) {
-//      long timeNow = System.nanoTime();
-//      ClientSide.userInput.updateButtonStates(SpeedyToolControls.attackButtonInterceptor.isKeyDown(), SpeedyToolControls.useItemButtonInterceptor.isKeyDown(), timeNow);
-//      inputUsed = ClientSide.activeTool.processUserInput(player, 1.0F, ClientSide.userInput);
-//    }
-//
-//    ClientSide.activeTool.performTick(player.getEntityWorld());
+    if (ClientSide.activeTool.toolIsActive()) {
+      long timeNow = System.nanoTime();
+      ClientSide.userInput.updateButtonStates(SpeedyToolControls.attackButtonInterceptor.isKeyDown(), SpeedyToolControls.useItemButtonInterceptor.isKeyDown(), timeNow);
+      inputUsed = ClientSide.activeTool.processUserInput(player, 1.0F, ClientSide.userInput);
+    }
+
+    ClientSide.activeTool.performTick(player.getEntityWorld());
 
   }
 

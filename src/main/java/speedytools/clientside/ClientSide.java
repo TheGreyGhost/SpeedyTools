@@ -8,6 +8,9 @@ import net.minecraft.item.ItemStack;
 //import speedytools.clientside.network.PacketSenderClient;
 //import speedytools.clientside.rendering.SpeedyToolRenderers;
 //import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
@@ -29,8 +32,6 @@ public class ClientSide
       @Override
       public Item getTabIconItem() {return RegistryForItems.itemSpeedySceptre;}
     };
-    LanguageRegistry.instance().addStringLocalization("itemGroup.tabSpeedyTools", "en_US", "Build Faster");
-
   }
 
   public static void postInitialise()
@@ -38,10 +39,10 @@ public class ClientSide
 //    packetHandlerRegistry = new PacketHandlerRegistry();
 //    packetSenderClient = new  PacketSenderClient();
 //    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
-//    speedyToolRenderers = new SpeedyToolRenderers();
-//    activeTool = new ActiveTool();
+    speedyToolRenderers = new SpeedyToolRenderers();
+    activeTool = new ActiveTool();
     userInput = new UserInput();
-//    speedyToolSounds = new SpeedyToolSounds();
+    speedyToolSounds = new SpeedyToolSounds();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
     undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
 
@@ -75,12 +76,12 @@ public class ClientSide
 //  }
 
 //  public static CloneToolsNetworkClient cloneToolsNetworkClient;
-//  public static SpeedyToolRenderers speedyToolRenderers;
-//  public static ActiveTool activeTool;
+  public static SpeedyToolRenderers speedyToolRenderers;
+  public static ActiveTool activeTool;
   public static UserInput userInput;
   public static UndoManagerClient undoManagerSimple;
   public static UndoManagerClient undoManagerComplex;
-//  public static SpeedyToolSounds speedyToolSounds;
+  public static SpeedyToolSounds speedyToolSounds;
 //  public static PacketSenderClient packetSenderClient;
 //  public static PacketHandlerRegistry packetHandlerRegistry;
 

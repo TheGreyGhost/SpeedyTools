@@ -2,9 +2,14 @@ package speedytools.clientside;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import net.minecraftforge.common.MinecraftForge;
+import speedytools.clientside.rendering.ItemEventHandler;
+import speedytools.clientside.rendering.RenderEventHandlers;
+import speedytools.clientside.rendering.SoundsRegistry;
+import speedytools.clientside.tools.SpeedyToolSceptre;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
+import speedytools.common.items.RegistryForItems;
 
 /**
  * CombinedClientProxy is used to set up the mod and start it running when installed on a standalone client.
@@ -42,16 +47,16 @@ public class CombinedClientProxy extends CommonProxy {
     ClientSide.postInitialise();
     super.postInit();
     SpeedyToolControls.initialiseInterceptors();
-//    MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
-//    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());
+    MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
+    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());
     MinecraftForge.EVENT_BUS.register(new InputEventHandler());
-//    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());
+    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());
     FMLCommonHandler.instance().bus().register(new ClientTickHandler());
 
 
-//
-//    MinecraftForge.EVENT_BUS.register(new ClientEventHandler());
-//
+
+    MinecraftForge.EVENT_BUS.register(new ClientEventHandler());
+
 //    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong,
 //                                           new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
 //                                                                    ClientSide.speedyToolRenderers,
@@ -70,12 +75,12 @@ public class CombinedClientProxy extends CommonProxy {
 //                    ClientSide.speedyToolSounds,
 //                    ClientSide.undoManagerSimple
 //            ));
-//    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre,
-//            new SpeedyToolSceptre(RegistryForItems.itemSpeedySceptre,
-//                    ClientSide.speedyToolRenderers,
-//                    ClientSide.speedyToolSounds,
-//                    ClientSide.undoManagerSimple
-//            ));
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre,
+            new SpeedyToolSceptre(RegistryForItems.itemSpeedySceptre,
+                    ClientSide.speedyToolRenderers,
+                    ClientSide.speedyToolSounds,
+                    ClientSide.undoManagerSimple
+            ));
 //    SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
 //            ClientSide.speedyToolRenderers,
 //            ClientSide.speedyToolSounds,

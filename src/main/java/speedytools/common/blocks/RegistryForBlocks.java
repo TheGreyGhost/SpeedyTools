@@ -17,7 +17,5 @@ public class RegistryForBlocks
   {
     blockSelectionFog = new BlockSelectionFog(Material.air);
     GameRegistry.registerBlock(blockSelectionFog, blockSelectionFog.NAME);
-
-    LanguageRegistry.addName(blockSelectionFog, "Selection Fog");
   }
 }
