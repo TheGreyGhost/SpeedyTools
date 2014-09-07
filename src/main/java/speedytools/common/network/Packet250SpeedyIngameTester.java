@@ -1,40 +1,28 @@
-//package speedytools.common.network;
-//
-//
-//import net.minecraft.network.packet.Packet250CustomPayload;
-//import speedytools.common.utilities.ErrorLog;
-//
-//import java.io.*;
-//
-///**
-// * This class is used to inform the server to perform an in-game automated test
-// */
-//public class Packet250SpeedyIngameTester
-//{
-//  /**
-//   * Packet sent from client to server, to indicate when the user has used the ingame tester tool
-//   * @param i_whichTest the number of the test to be performed
-//   * @param i_performTest false for erase results of test/ prepare for next test; true for perform
-//   */
-//  public Packet250SpeedyIngameTester(int i_whichTest, boolean i_performTest) throws IOException
-//  {
-//    super();
-//
-//    whichTest = i_whichTest;
-//    performTest = i_performTest;
-//
-//    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-//    DataOutputStream outputStream = new DataOutputStream(bos);
-//    outputStream.writeByte(Packet250Types.PACKET250_INGAME_TESTER.getPacketTypeID());
-//    outputStream.writeInt(whichTest);
-//    outputStream.writeBoolean(performTest);
-//    packet250 = new Packet250CustomPayload("speedytools",bos.toByteArray());
-//  }
-//
-//  public Packet250CustomPayload getPacket250CustomPayload() {
-//    return packet250;
-//  }
-//
+package speedytools.common.network;
+
+
+import io.netty.buffer.ByteBuf;
+import speedytools.common.utilities.ErrorLog;
+
+/**
+* This class is used to inform the server to perform an in-game automated test
+*/
+public class Packet250SpeedyIngameTester extends Packet250Base
+{
+  /**
+   * Packet sent from client to server, to indicate when the user has used the ingame tester tool
+   * @param i_whichTest the number of the test to be performed
+   * @param i_performTest false for erase results of test/ prepare for next test; true for perform
+   */
+  public Packet250SpeedyIngameTester(int i_whichTest, boolean i_performTest)
+  {
+    super();
+
+    whichTest = i_whichTest;
+    performTest = i_performTest;
+    packetIsValid = true;
+  }
+
 //  /**
 //   * Creates a Packet250SpeedyToolUse from Packet250CustomPayload
 //   * @param sourcePacket250
@@ -59,30 +47,56 @@
 //    if (!newPacket.checkInvariants()) return null;
 //    return newPacket;
 //  }
-//
-//  private Packet250SpeedyIngameTester()
-//  {
-//  }
-//
-//  /**
-//   * Checks if the packet is internally consistent
-//   * @return true for success, false otherwise
-//   */
-//  private boolean checkInvariants()
-//  {
-//    return true;
-//  }
-//
-//  public int getWhichTest() {
-//    return whichTest;
-//  }
-//
-//  private int whichTest;
-//
-//  public boolean isPerformTest() {
-//    return performTest;
-//  }
-//
-//  private boolean performTest;
-//  private Packet250CustomPayload packet250 = null;
-//}
+
+  private Packet250SpeedyIngameTester()
+  {
+  }
+
+  @Override
+  protected void readFromBuffer(ByteBuf buf)
+  {
+//    DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(buf));
+
+    try {
+//      byte packetID = inputStream.readByte();
+//      if (packetID != Packet250Types.PACKET250_INGAME_TESTER.getPacketTypeID()) return null;
+
+      whichTest = buf.readInt();
+      performTest = buf.readBoolean();
+    } catch (IndexOutOfBoundsException ioe) {
+      ErrorLog.defaultLog().info("Exception while reading Packet250SpeedyIngameTester: " + ioe);
+      return;
+    }
+    if (!checkInvariants()) return;
+    packetIsValid = true;
+  }
+
+  @Override
+  protected void writeToBuffer(ByteBuf buf)
+  {
+    if (!isPacketIsValid()) return;
+    buf.writeInt(whichTest);
+    buf.writeBoolean(performTest);
+  }
+
+  /**
+   * Checks if the packet is internally consistent
+   * @return true for success, false otherwise
+   */
+  private boolean checkInvariants()
+  {
+    return true;
+  }
+
+  public int getWhichTest() {
+    return whichTest;
+  }
+
+  private int whichTest;
+
+  public boolean isPerformTest() {
+    return performTest;
+  }
+
+  private boolean performTest;
+}

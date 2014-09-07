@@ -1,6 +1,7 @@
 package speedytools.common.items;
 
 import cpw.mods.fml.common.registry.GameRegistry;
+import speedytools.common.SpeedyToolsOptions;
 
 /**
  * creates and contains the instances of all of this mod's custom Items
@@ -16,9 +17,8 @@ public class RegistryForItems
   public static ItemSpeedyBoundary itemSpeedyBoundary;
   public static ItemComplexCopy itemComplexCopy;
   public static ItemComplexMove itemComplexMove;
-  public static ItemSpeedyTester itemSpeedyTester;
-
   public static ItemComplexDelete itemComplexDelete;
+  public static ItemSpeedyTester itemSpeedyTester;
 
   public static void initialise()
   {
@@ -40,10 +40,9 @@ public class RegistryForItems
     GameRegistry.registerItem(itemComplexDelete, itemComplexDelete.NAME);
     GameRegistry.registerItem(itemComplexMove, itemComplexMove.NAME);
 
-//    if (SpeedyToolsOptions.getTesterToolsEnabled()) {
-//      itemSpeedyTester = new ItemSpeedyTester(START_ITEM+8);
-//      GameRegistry.registerItem(itemSpeedyTester, itemSpeedyTester.getUnlocalizedName());
-//      LanguageRegistry.addName(itemSpeedyTester, "In-game tester");
-//    }
+    if (SpeedyToolsOptions.getTesterToolsEnabled()) {
+      itemSpeedyTester = new ItemSpeedyTester();
+      GameRegistry.registerItem(itemSpeedyTester, itemSpeedyTester.NAME);
+    }
   }
 }

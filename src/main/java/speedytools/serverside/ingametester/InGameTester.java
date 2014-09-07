@@ -1,18 +1,19 @@
-//package speedytools.serverside.ingametester;
-//
-//import cpw.mods.fml.relauncher.Side;
-//import net.minecraft.block.Block;
-//import net.minecraft.entity.player.EntityPlayer;
-//import net.minecraft.entity.player.EntityPlayerMP;
-//import net.minecraft.network.packet.Packet250CustomPayload;
-//import net.minecraft.server.MinecraftServer;
-//import net.minecraft.util.ChunkCoordinates;
-//import net.minecraft.world.World;
-//import net.minecraft.world.WorldServer;
-//import speedytools.common.blocks.BlockWithMetadata;
-//import speedytools.common.network.Packet250SpeedyIngameTester;
-//import speedytools.common.network.Packet250Types;
-//import speedytools.common.network.PacketHandlerRegistry;
+package speedytools.serverside.ingametester;
+
+import cpw.mods.fml.common.network.simpleimpl.IMessage;
+import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
+import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.relauncher.Side;
+import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
+import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.network.Packet250SpeedyIngameTester;
+import speedytools.common.network.Packet250Types;
+import speedytools.common.network.PacketHandlerRegistry;
 //import speedytools.common.selections.VoxelSelection;
 //import speedytools.common.selections.VoxelSelectionWithOrigin;
 //import speedytools.common.utilities.QuadOrientation;
@@ -21,51 +22,52 @@
 //import speedytools.serverside.worldmanipulation.WorldFragment;
 //import speedytools.serverside.worldmanipulation.WorldHistory;
 //import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
-//
-//import java.util.ArrayList;
-//import java.util.LinkedList;
-//import java.util.List;
-//
-///**
-// * User: The Grey Ghost
-// * Date: 26/05/2014
-// */
-//public class InGameTester
-//{
-//  public InGameTester(PacketHandlerRegistry packetHandlerRegistry)
-//  {
-//    packetHandlerSpeedyIngameTester = new PacketHandlerSpeedyIngameTester();
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+/**
+* User: The Grey Ghost
+* Date: 26/05/2014
+*/
+public class InGameTester
+{
+  public InGameTester(PacketHandlerRegistry packetHandlerRegistry)
+  {
+    packetHandlerSpeedyIngameTester = new PacketHandlerSpeedyIngameTester();
+    packetHandlerRegistry.registerHandlerMethod(PacketHandlerSpeedyIngameTester.class, Packet250SpeedyIngameTester.class,  Packet250Types.PACKET250_INGAME_TESTER, Side.SERVER);
 //    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_INGAME_TESTER.getPacketTypeID(), packetHandlerSpeedyIngameTester);
-//  }
-//
-//  /**
-//   * Perform an automated in-game test
-//   * @param testNumber
-//   * @param performTest if true, perform test.  If false, erase results of last test / prepare for another test
-//   * @param entityPlayerMP
-//   */
-//  public void performTest(int testNumber, boolean performTest, EntityPlayerMP entityPlayerMP)
-//  {
-//    final int TEST_ALL = 64;
-//    boolean runAllTests = false;
-//
-//    int firsttest = testNumber;
-//    int lasttest = testNumber;
-//    if (testNumber == TEST_ALL) {
-//      firsttest = 1;
-//      lasttest = 63;
-//      runAllTests = true;
-//    }
-//
-//    for (int i = firsttest; i <= lasttest; ++i) {
-//      boolean success = false;
-//      boolean blankTest = false;
-//      if (performTest) {
-//        System.out.print("Test number " + i + " started");
-//      } else {
-//        System.out.print("Preparation for test number " + i);
-//      }
-//      switch (i) {
+  }
+
+  /**
+   * Perform an automated in-game test
+   * @param testNumber
+   * @param performTest if true, perform test.  If false, erase results of last test / prepare for another test
+   * @param entityPlayerMP
+   */
+  public void performTest(int testNumber, boolean performTest, EntityPlayerMP entityPlayerMP)
+  {
+    final int TEST_ALL = 64;
+    boolean runAllTests = false;
+
+    int firsttest = testNumber;
+    int lasttest = testNumber;
+    if (testNumber == TEST_ALL) {
+      firsttest = 1;
+      lasttest = 63;
+      runAllTests = true;
+    }
+
+    for (int i = firsttest; i <= lasttest; ++i) {
+      boolean success = false;
+      boolean blankTest = false;
+      if (performTest) {
+        System.out.print("Test number " + i + " started");
+      } else {
+        System.out.print("Preparation for test number " + i);
+      }
+      switch (i) {
 //        case 1: success = performTest1(performTest); break;
 //        case 2: success = performTest2(performTest); break;
 //        case 3: success = performTest3(performTest); break;
@@ -82,20 +84,20 @@
 //        case 14: success = performTest14(entityPlayerMP, performTest); break;
 //        case 15: success = performTest15(entityPlayerMP, performTest); break;
 //        case 16: success = performTest16(entityPlayerMP, performTest); break;
-//        default: blankTest = true; break;
-//      }
-//      if (blankTest) {
-//        System.out.println("; unused test");
-//      } else {
-//        if (performTest) {
-//          System.out.println("; finished with success == " + success);
-//        } else {
-//          System.out.println("; completed; ");
-//        }
-//      }
-//    }
-//  }
-//
+        default: blankTest = true; break;
+      }
+      if (blankTest) {
+        System.out.println("; unused test");
+      } else {
+        if (performTest) {
+          System.out.println("; finished with success == " + success);
+        } else {
+          System.out.println("; completed; ");
+        }
+      }
+    }
+  }
+
 //  public boolean performTest1(boolean performTest)
 //  {
 //    // fails comparison due to moving water block
@@ -1028,17 +1030,20 @@
 //    public int ySize;
 //    public int zSize;
 //  }
+
+
+  public class PacketHandlerSpeedyIngameTester implements IMessageHandler<Packet250SpeedyIngameTester, IMessage> {
+    public IMessage onMessage(Packet250SpeedyIngameTester packet, MessageContext ctx)
+    {
 //
-//
-//  public class PacketHandlerSpeedyIngameTester implements PacketHandlerRegistry.PacketHandlerMethod {
-//    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
-//    {
 //      Packet250SpeedyIngameTester toolIngameTesterPacket = Packet250SpeedyIngameTester.createPacket250SpeedyIngameTester(packet);
 //      if (toolIngameTesterPacket == null) return false;
-//      InGameTester.this.performTest(toolIngameTesterPacket.getWhichTest(), toolIngameTesterPacket.isPerformTest(), (EntityPlayerMP)player);
-//      return true;
-//    }
-//  }
-//
-//  private PacketHandlerSpeedyIngameTester packetHandlerSpeedyIngameTester;
-//}
+      if (!packet.isPacketIsValid()) return null;
+      EntityPlayerMP entityPlayerMP = ctx.getServerHandler().playerEntity;
+      InGameTester.this.performTest(packet.getWhichTest(), packet.isPerformTest(), entityPlayerMP);
+      return null;
+    }
+  }
+
+  private PacketHandlerSpeedyIngameTester packetHandlerSpeedyIngameTester;
+}

@@ -9,9 +9,9 @@
 //import speedytools.common.utilities.Colour;
 //
 ///**
-// * User: The Grey Ghost
-// * Date: 8/08/2014
-// */
+//* User: The Grey Ghost
+//* Date: 8/08/2014
+//*/
 //public class SpeedyToolComplexMove extends SpeedyToolComplex
 //{
 //  public SpeedyToolComplexMove(ItemComplexMove i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient, CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary, SelectionPacketSender packetSender) {

@@ -1,39 +1,45 @@
-//package speedytools.common.network;
-//
-//import cpw.mods.fml.common.network.IPacketHandler;
-//import cpw.mods.fml.common.network.Player;
-//import cpw.mods.fml.relauncher.Side;
-//import net.minecraft.client.Minecraft;
-//import net.minecraft.client.entity.EntityClientPlayerMP;
-//import net.minecraft.entity.player.EntityPlayer;
-//import net.minecraft.entity.player.EntityPlayerMP;
-//import net.minecraft.network.INetworkManager;
-//import net.minecraft.network.packet.Packet250CustomPayload;
-//import net.minecraft.server.MinecraftServer;
-//import speedytools.clientside.ClientSide;
-//import speedytools.serverside.ServerSide;
-//
-//import java.util.HashMap;
-//
-//public class PacketHandlerRegistry implements IPacketHandler
-//{
-//  public static final String CHANNEL_NAME = "speedytools";
-//
-//  // Forge constructs the packet handler using the default constructor;
-//  //  set up to use the static registries in this case
-//  public PacketHandlerRegistry() {
-//    clientSideHandlers = staticClientSideHandlers;
-//    serverSideHandlers = staticServerSideHandlers;
-//  }
-//
-//  // change this registry to non-static, i.e. to hold its own independent set of handlers
-//  //   used primarily for testing
-//  public void changeToNonStatic()
-//  {
-//    clientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
-//    serverSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
-//  }
-//
+package speedytools.common.network;
+
+import cpw.mods.fml.common.network.NetworkRegistry;
+import cpw.mods.fml.common.network.simpleimpl.IMessage;
+import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
+import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import cpw.mods.fml.relauncher.Side;
+import speedytools.serverside.ingametester.InGameTester;
+
+import java.util.HashMap;
+
+/**
+ * Used to register class instances for handling incoming packets.
+ * This is different to the SimpleNetworkWrapper, which registers classes instead of instances.
+ */
+public class PacketHandlerRegistry
+{
+  private SimpleNetworkWrapper simpleNetworkWrapper;
+  public static final String CHANNEL_NAME = "speedytools";
+
+  // Forge constructs the packet handler using the default constructor;
+  //  set up to use the static registries in this case
+  public PacketHandlerRegistry() {
+    clientSideHandlers = staticClientSideHandlers;
+    serverSideHandlers = staticServerSideHandlers;
+    simpleNetworkWrapper = NetworkRegistry.INSTANCE.newSimpleChannel(CHANNEL_NAME);
+  }
+
+  // change this registry to non-static, i.e. to hold its own independent set of handlers
+  //   used primarily for testing
+  public void changeToNonStatic()
+  {
+    clientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+    serverSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+  }
+
+  public class ClientSideMessageHandler implements IMessageHandler<IMessage, IMessage>
+  {
+
+  }
+}
+
 //  @Override
 //  public void onPacketData(INetworkManager manager, Packet250CustomPayload packet, Player playerEntity) {
 //
@@ -65,59 +71,25 @@
 //      return;
 //    }
 //  }
-//
-////      switch (packetID) {
-////        case PACKET250_SPEEDY_TOOL_USE_ID: {
-////          if (side != Side.SERVER) {
-////            malformedPacketError(side, playerEntity, "PACKET250_SPEEDY_TOOL_USE_ID received on wrong side");
-////            return;
-////          }
-////          Packet250SpeedyToolUse toolUsePacket = Packet250SpeedyToolUse.createPacket250SpeedyToolUse(packet);
-////          if (toolUsePacket == null) return;
-////          SpeedyToolWorldManipulator manipulator = ServerSide.getSpeedyToolWorldManipulator();
-////          manipulator.performServerAction(playerEntity, toolUsePacket.getToolItemID(), toolUsePacket.getButton(),
-////                                          toolUsePacket.getBlockToPlace(), toolUsePacket.getCurrentlySelectedBlocks());
-////          break;
-////        }
-////        case PACKET250_CLONE_TOOL_USE_ID: {
-////          Packet250CloneToolUse toolUsePacket = Packet250CloneToolUse.createPacket250CloneToolUse(packet);
-////          if (toolUsePacket != null && toolUsePacket != null && toolUsePacket.validForSide(side)) {
-////            if (side == Side.SERVER) {
-////              ServerSide.getSpeedyToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolUsePacket);
-////            }
-////          } else {
-////            malformedPacketError(side, playerEntity, "PACKET250_CLONE_TOOL_USE_ID received on wrong side");
-////            return;
-////          }
-////          break;
-////        }
-////        case PACKET250_TOOL_STATUS_ID: {
-////          Packet250CloneToolStatus toolStatusPacket = Packet250CloneToolStatus.createPacket250ToolStatus(packet);
-////          if (toolStatusPacket != null && toolStatusPacket.validForSide(side)) {
-////            if (side == Side.SERVER) {
-////              ServerSide.getSpeedyToolsNetworkServer().handlePacket((EntityPlayerMP)playerEntity, toolStatusPacket);
-////            } else {
-//////              ClientSide.getCloneToolsNetworkClient().handlePacket((EntityClientPlayerMP)playerEntity, toolStatusPacket);
-////            }
-////          } else {
-////            malformedPacketError(side, playerEntity, "PACKET250_TOOL_STATUS_ID received on wrong side");
-////            return;
-////          }
-////          break;
-////        }
-////        default: {
-//
-//
-//  /**
-//   * The class used to handle the incoming packet
-//   * handlePacket returns true if this was a valid packet, false otherwise
-//   */
-//  public static interface PacketHandlerMethod {
-//      public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet);
-//  }
-//
-//  public void registerHandlerMethod(Side side, byte packetID, PacketHandlerMethod handlerMethod)
-//  {
+
+  /**
+   * The class used to handle the incoming packet
+   * handlePacket returns true if this was a valid packet, false otherwise
+   */
+  public static interface PacketHandlerMethod {
+    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet);
+  }
+
+  public void sendToServer(IMessage message)
+  {
+    simpleNetworkWrapper.sendToServer(message);
+  }
+
+  public void registerHandlerMethod( Packet250Base packet250Base, Packet250Types packetType, Side side)
+  {
+    simpleNetworkWrapper.registerMessage(InGameTester.PacketHandlerSpeedyIngameTester.class, Packet250SpeedyIngameTester.class, );
+    Class<? extends IMessageHandler<IMessage, IMessage>> messageHandlerClass, Class<IMessage> messageClass
+    simpleNetworkWrapper.registerMessage(messageHandlerClass, messageClass, packetType.getPacketTypeID(), side);
 //    switch (side) {
 //      case CLIENT: {
 //        if (clientSideHandlers.containsKey(packetID)) {
@@ -143,14 +115,14 @@
 //      default:
 //        throw new IllegalArgumentException("Invalid side:" + side);
 //    }
-//  }
-//
-//  public void clearAll()
-//  {
-//    clientSideHandlers.clear();
-//    serverSideHandlers.clear();
-//  }
-//
+  }
+
+  public void clearAll()
+  {
+    clientSideHandlers.clear();
+    serverSideHandlers.clear();
+  }
+
 //  private void malformedPacketError(Side side, Player player, String message) {
 //    switch (side) {
 //      case CLIENT: {
@@ -165,12 +137,12 @@
 //        assert false: "invalid Side";
 //    }
 //  }
-//
-//  // these handlers are usually set to refer to the static handlers
-//  private HashMap<Byte, PacketHandlerMethod> clientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
-//  private HashMap<Byte, PacketHandlerMethod> serverSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
-//
-//  private static HashMap<Byte, PacketHandlerMethod> staticClientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
-//  private static HashMap<Byte, PacketHandlerMethod> staticServerSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
-//}
-//
+
+  // these handlers are usually set to refer to the static handlers
+  private HashMap<Byte, PacketHandlerMethod> clientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+  private HashMap<Byte, PacketHandlerMethod> serverSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+
+  private static HashMap<Byte, PacketHandlerMethod> staticClientSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+  private static HashMap<Byte, PacketHandlerMethod> staticServerSideHandlers = new HashMap<Byte, PacketHandlerMethod>();
+}
+

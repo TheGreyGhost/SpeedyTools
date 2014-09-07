@@ -1,19 +1,21 @@
 package speedytools.clientside;
 
-import cpw.mods.fml.common.registry.LanguageRegistry;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-//import speedytools.clientside.network.CloneToolsNetworkClient;
-//import speedytools.clientside.network.PacketSenderClient;
-//import speedytools.clientside.rendering.SpeedyToolRenderers;
-//import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.rendering.SpeedyToolSounds;
 import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
+import speedytools.common.network.PacketHandlerRegistry;
+
+//import speedytools.clientside.network.CloneToolsNetworkClient;
+//import speedytools.clientside.network.PacketSenderClient;
+//import speedytools.clientside.rendering.SpeedyToolRenderers;
+//import speedytools.clientside.rendering.SpeedyToolSounds;
 
 /**
  * User: The Grey Ghost
@@ -36,8 +38,8 @@ public class ClientSide
 
   public static void postInitialise()
   {
-//    packetHandlerRegistry = new PacketHandlerRegistry();
-//    packetSenderClient = new  PacketSenderClient();
+    packetHandlerRegistry = new PacketHandlerRegistry();
+    packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
 //    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
     speedyToolRenderers = new SpeedyToolRenderers();
     activeTool = new ActiveTool();
@@ -82,8 +84,8 @@ public class ClientSide
   public static UndoManagerClient undoManagerSimple;
   public static UndoManagerClient undoManagerComplex;
   public static SpeedyToolSounds speedyToolSounds;
-//  public static PacketSenderClient packetSenderClient;
-//  public static PacketHandlerRegistry packetHandlerRegistry;
+  public static PacketSenderClient packetSenderClient;
+  public static PacketHandlerRegistry packetHandlerRegistry;
 
   public static CreativeTabs tabSpeedyTools;
 

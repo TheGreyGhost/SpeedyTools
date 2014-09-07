@@ -11,7 +11,7 @@
 // * Created by TheGreyGhost on 3/04/14.
 // * Allows the caller to just send a packet to a recipient without worrying about which side it is.
 // */
-//public class PacketSenderServer implements PacketSender
+//public class PacketSenderServerToSingleClient implements PacketSender
 //{
 //  public PacketSenderServer(EntityPlayerMP player)
 //  {

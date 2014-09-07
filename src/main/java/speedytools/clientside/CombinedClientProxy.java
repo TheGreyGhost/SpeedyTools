@@ -5,10 +5,11 @@ import net.minecraftforge.common.MinecraftForge;
 import speedytools.clientside.rendering.ItemEventHandler;
 import speedytools.clientside.rendering.RenderEventHandlers;
 import speedytools.clientside.rendering.SoundsRegistry;
-import speedytools.clientside.tools.SpeedyToolSceptre;
+import speedytools.clientside.tools.*;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
 
 /**
@@ -57,24 +58,24 @@ public class CombinedClientProxy extends CommonProxy {
 
     MinecraftForge.EVENT_BUS.register(new ClientEventHandler());
 
-//    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong,
-//                                           new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
-//                                                                    ClientSide.speedyToolRenderers,
-//                                                                    ClientSide.speedyToolSounds,
-//                                                                    ClientSide.undoManagerSimple
-//                                                                   ));
-//    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandWeak,
-//                                            new SpeedyToolWandWeak(RegistryForItems.itemSpeedyWandWeak,
-//                                                                    ClientSide.speedyToolRenderers,
-//                                                                    ClientSide.speedyToolSounds,
-//                                                                    ClientSide.undoManagerSimple
-//                                                                  ));
-//    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyOrb,
-//            new SpeedyToolOrb(RegistryForItems.itemSpeedyOrb,
-//                    ClientSide.speedyToolRenderers,
-//                    ClientSide.speedyToolSounds,
-//                    ClientSide.undoManagerSimple
-//            ));
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong,
+                                           new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
+                                                                    ClientSide.speedyToolRenderers,
+                                                                    ClientSide.speedyToolSounds,
+                                                                    ClientSide.undoManagerSimple
+                                                                   ));
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandWeak,
+                                            new SpeedyToolWandWeak(RegistryForItems.itemSpeedyWandWeak,
+                                                                    ClientSide.speedyToolRenderers,
+                                                                    ClientSide.speedyToolSounds,
+                                                                    ClientSide.undoManagerSimple
+                                                                  ));
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyOrb,
+            new SpeedyToolOrb(RegistryForItems.itemSpeedyOrb,
+                    ClientSide.speedyToolRenderers,
+                    ClientSide.speedyToolSounds,
+                    ClientSide.undoManagerSimple
+            ));
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre,
             new SpeedyToolSceptre(RegistryForItems.itemSpeedySceptre,
                     ClientSide.speedyToolRenderers,
@@ -85,11 +86,11 @@ public class CombinedClientProxy extends CommonProxy {
 //            ClientSide.speedyToolRenderers,
 //            ClientSide.speedyToolSounds,
 //            ClientSide.undoManagerSimple);
-//
+
 //    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
-//
+
 //    SelectionPacketSender selectionPacketSenderComplex = new SelectionPacketSender(ClientSide.packetHandlerRegistry, ClientSide.packetSenderClient);
-//
+
 //    ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexCopy,
 //            new SpeedyToolComplexCopy(RegistryForItems.itemComplexCopy,
 //                                      ClientSide.speedyToolRenderers,
@@ -119,16 +120,17 @@ public class CombinedClientProxy extends CommonProxy {
 //                    selectionPacketSenderComplex
 //            )
 //    );
-//
-//    if (SpeedyToolsOptions.getTesterToolsEnabled()) {
-//      ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyTester,
-//              new SpeedyToolTester(RegistryForItems.itemSpeedyTester,
-//                                  ClientSide.speedyToolRenderers,
-//                                  ClientSide.speedyToolSounds,
-//                                  ClientSide.undoManagerSimple
-//              ));
-//
-//    }
+
+    if (SpeedyToolsOptions.getTesterToolsEnabled()) {
+      ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyTester,
+              new SpeedyToolTester(RegistryForItems.itemSpeedyTester,
+                                  ClientSide.speedyToolRenderers,
+                                  ClientSide.speedyToolSounds,
+                                  ClientSide.undoManagerSimple,
+                                  ClientSide.
+              ));
+
+    }
 
   }
 }

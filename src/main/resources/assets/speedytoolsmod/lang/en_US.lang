@@ -7,4 +7,5 @@ item.complexdelete.name=Staff of Destruction
 item.complexmove.name=Staff of Relocation
 item.complexcopy.name=Staff of Duplication
 item.complexboundary.name=Sorcerous Claw of Boundary Creation
+item.tester.name=In-game tester
 itemGroup.tabSpeedyTools=Build Faster

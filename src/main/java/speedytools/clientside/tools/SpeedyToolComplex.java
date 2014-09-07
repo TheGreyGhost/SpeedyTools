@@ -26,21 +26,21 @@
 //import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 //
 ///**
-// * User: The Grey Ghost
-// * Date: 18/04/2014
-// *
-// * The various renders for this tool are:
-// * 1) Wireframe highlight of the block(s) under the cursor when no selection made yet
-// * 2) The boundary field (if any)
-// * 3) The solid selection, when made
-// * 4) The various status indicators on the cursor:
-// *   a) When generating a selection - the "busy" cursor with progress
-// *   b) When a selection is made, the tool continually shows the server "ready" status
-// *   c) When a selection is made: the power up animation for the action or the undo
-// *   d) When an action is in progress: the progress meter
-// *   e) When an undo is in progress: the progress meter
-// *
-// */
+//* User: The Grey Ghost
+//* Date: 18/04/2014
+//*
+//* The various renders for this tool are:
+//* 1) Wireframe highlight of the block(s) under the cursor when no selection made yet
+//* 2) The boundary field (if any)
+//* 3) The solid selection, when made
+//* 4) The various status indicators on the cursor:
+//*   a) When generating a selection - the "busy" cursor with progress
+//*   b) When a selection is made, the tool continually shows the server "ready" status
+//*   c) When a selection is made: the power up animation for the action or the undo
+//*   d) When an action is in progress: the progress meter
+//*   e) When an undo is in progress: the progress meter
+//*
+//*/
 //public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //{
 //  public SpeedyToolComplex(ItemComplexBase i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
