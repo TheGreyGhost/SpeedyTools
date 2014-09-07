@@ -1,8 +1,7 @@
 package speedytools.clientside.network;
 
-import speedytools.common.network.PacketHandlerRegistry;
-import speedytools.common.network.PacketSender;
 import speedytools.common.network.Packet250Base;
+import speedytools.common.network.PacketSender;
 
 /**
 * Created by TheGreyGhost on 3/04/14.
@@ -10,7 +9,7 @@ import speedytools.common.network.Packet250Base;
 */
 public class PacketSenderClient implements PacketSender
 {
-  public PacketSenderClient(PacketHandlerRegistry i_packetHandlerRegistry)
+  public PacketSenderClient(PacketHandlerRegistryClient i_packetHandlerRegistry)
   {
     packetHandlerRegistry = i_packetHandlerRegistry;
     bytesSentBacklog = 0;
@@ -52,5 +51,5 @@ public class PacketSenderClient implements PacketSender
   private Long lastTime;
   private int bytesSentBacklog;
 
-  PacketHandlerRegistry packetHandlerRegistry;
+  PacketHandlerRegistryClient packetHandlerRegistry;
 }

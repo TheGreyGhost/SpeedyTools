@@ -2,6 +2,7 @@ package speedytools.common;
 
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.items.RegistryForItems;
+import speedytools.serverside.ServerSide;
 
 /**
  * CommonProxy is used to set up the mod and start it running.  It contains all the code that should run on both the
@@ -24,6 +25,7 @@ public class CommonProxy {
    */
   public void load()
   {
+    ServerSide.load();
   }
 
   /**
@@ -31,7 +33,6 @@ public class CommonProxy {
    */
   public void postInit()
   {
-//    ServerSide.initialise();
 //    MinecraftForge.EVENT_BUS.register(new ServerEventHandler());
 //    TickRegistry.registerTickHandler(new ServerTickHandler(), Side.SERVER);
   }

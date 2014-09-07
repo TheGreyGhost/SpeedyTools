@@ -1,39 +1,27 @@
-//package speedytools.serverside;
-//
-//import cpw.mods.fml.relauncher.Side;
-//import speedytools.common.SpeedyToolsOptions;
-//import speedytools.common.network.NetworkTrafficMonitor;
-//import speedytools.common.network.PacketHandlerRegistry;
-//import speedytools.common.utilities.ErrorLog;
-//import speedytools.serverside.actions.SpeedyToolServerActions;
-//import speedytools.serverside.ingametester.InGameStatusSimulator;
-//import speedytools.serverside.ingametester.InGameTester;
-//import speedytools.serverside.network.SpeedyToolsNetworkServer;
-//import speedytools.serverside.worldmanipulation.WorldHistory;
-//
-//import java.io.File;
-//import java.io.IOException;
-//import java.nio.file.Path;
-//
-///**
-//* User: The Grey Ghost
-//* Date: 10/03/14
-//* Contains the various objects that define the server side
-//*/
-//public class ServerSide
-//{
-//  public static void initialise()
-//  {
-//    packetHandlerRegistry = new PacketHandlerRegistry() ;
+package speedytools.serverside;
+
+import speedytools.serverside.ingametester.InGameTester;
+import speedytools.serverside.network.PacketHandlerRegistryServer;
+
+/**
+* User: The Grey Ghost
+* Date: 10/03/14
+* Contains the various objects that define the server side
+*/
+public class ServerSide
+{
+  public static void load()
+  {
+    packetHandlerRegistryServer = new PacketHandlerRegistryServer() ;
 //    serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistry);
 //    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount(), SpeedyToolsOptions.getMaxSimpleToolUndoCount());
 //    speedyToolServerActions = new SpeedyToolServerActions(serverVoxelSelections, worldHistory);
 //    speedyToolsNetworkServer = new SpeedyToolsNetworkServer(packetHandlerRegistry, speedyToolServerActions);
-////    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry, worldHistory);
-//    inGameTester = new InGameTester(packetHandlerRegistry);
+//    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistry, worldHistory);
+    inGameTester = new InGameTester(packetHandlerRegistryServer);
 //    inGameStatusSimulator = new InGameStatusSimulator();
-//
-//    String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
+
+    String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
 //    if (SpeedyToolsOptions.getNetworkLoggingActive()) {
 //      try {
 //        File loggingDirectory = SpeedyToolsOptions.getNetworkLoggingDirectory();
@@ -46,36 +34,36 @@
 //    } else {
 //      networkTrafficMonitor = new NetworkTrafficMonitor.NetworkTrafficMonitorNULL();
 //    }
-//  }
-//
-//  public static void initialiseForJTest()
-//  {
-//    inGameStatusSimulator = new InGameStatusSimulator();
-//  }
-//
-//  public static void shutdown()
-//  {
-//    packetHandlerRegistry = null;
+  }
+
+  public static void initialiseForJTest()
+  {
+//    inGameStatusSimulator = new InGameStatusSimulator();       //todo testing only
+  }
+
+  public static void shutdown()
+  {
+    packetHandlerRegistryServer = null;
 //    speedyToolServerActions = null;
 //    speedyToolsNetworkServer = null;
-////    speedyToolWorldManipulator = null;
+//    speedyToolWorldManipulator = null;
 //    serverVoxelSelections = null;
-//    try {
+//    try {                                                        //todo testing only
 //      networkTrafficMonitor.closeAll();
 //    } catch (IOException ioe) {
 //      // do nothing
 //    }
-//  }
-//
-//  public static int getGlobalTickCount() {
-//    return globalTickCount;
-//  }
-//
-//  public static void tick()
-//  {
-//    ++globalTickCount;
-//
-//    getSpeedyToolsNetworkServer().tick();
+  }
+
+  public static int getGlobalTickCount() {
+    return globalTickCount;
+  }
+
+  public static void tick()
+  {
+    ++globalTickCount;
+
+//    getSpeedyToolsNetworkServer().tick();                         //todo testing only
 //    getSpeedyToolServerActions().tick();
 //    getServerVoxelSelections().tick();
 //
@@ -86,11 +74,11 @@
 //        ErrorLog.defaultLog().warning("Failed to log network traffic due to:" + ioe);
 //      }
 //    }
-//  }
-//
-//  private static int globalTickCount = 0;
-//
-//  public static SpeedyToolsNetworkServer getSpeedyToolsNetworkServer() {
+  }
+
+  private static int globalTickCount = 0;
+
+//  public static SpeedyToolsNetworkServer getSpeedyToolsNetworkServer() {          //todo testing only
 //    return speedyToolsNetworkServer;
 //  }
 //  public static SpeedyToolServerActions getSpeedyToolServerActions() {
@@ -111,10 +99,10 @@
 //
 //  private static ServerVoxelSelections serverVoxelSelections;
 //  private static SpeedyToolServerActions speedyToolServerActions;
-////  private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
-//  private static PacketHandlerRegistry packetHandlerRegistry;
-//  private static InGameTester inGameTester;
-//  private static InGameStatusSimulator inGameStatusSimulator;
+//  private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
+  private static PacketHandlerRegistryServer packetHandlerRegistryServer;
+  private static InGameTester inGameTester;
+//  private static InGameStatusSimulator inGameStatusSimulator;              //todo testing only
 //  private static WorldHistory worldHistory;
 //
 //  public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
@@ -122,4 +110,4 @@
 //  }
 //
 //  private static NetworkTrafficMonitor networkTrafficMonitor;
-//}
+}

@@ -1,6 +1,8 @@
 package speedytools.common.network;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
+import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -13,6 +15,12 @@ public abstract class Packet250Base implements IMessage
   {
     packetIsValid = false;
   }
+
+  /**
+   * The Packet handler will register itself
+   * @param simpleNetworkWrapper
+   */
+  public abstract void registerHandler(SimpleNetworkWrapper simpleNetworkWrapper, PacketHandlerRegistry.PacketHandlerMethod packetHandlerMethod, Side side);
 
   /**
    * Convert from the supplied buffer into your specific message type

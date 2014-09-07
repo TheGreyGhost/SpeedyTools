@@ -6,6 +6,7 @@ import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import speedytools.clientside.UndoManagerClient;
+import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.common.items.ItemSpeedyTool;
@@ -18,9 +19,10 @@ import java.util.List;
 */
 public class SpeedyToolWandStrong extends SpeedyToolSimple
 {
-  public SpeedyToolWandStrong(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient)
+  public SpeedyToolWandStrong(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds,
+                              UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient)
   {
-    super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient);
+    super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
   }
 
   /**

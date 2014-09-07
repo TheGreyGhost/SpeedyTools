@@ -1,19 +1,12 @@
 package speedytools.serverside.ingametester;
 
-import cpw.mods.fml.common.network.simpleimpl.IMessage;
-import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.relauncher.Side;
-import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.network.Packet250Base;
 import speedytools.common.network.Packet250SpeedyIngameTester;
-import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
+import speedytools.serverside.network.PacketHandlerRegistryServer;
+
 //import speedytools.common.selections.VoxelSelection;
 //import speedytools.common.selections.VoxelSelectionWithOrigin;
 //import speedytools.common.utilities.QuadOrientation;
@@ -23,20 +16,16 @@ import speedytools.common.network.PacketHandlerRegistry;
 //import speedytools.serverside.worldmanipulation.WorldHistory;
 //import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
 /**
 * User: The Grey Ghost
 * Date: 26/05/2014
 */
 public class InGameTester
 {
-  public InGameTester(PacketHandlerRegistry packetHandlerRegistry)
+  public InGameTester(PacketHandlerRegistryServer packetHandlerRegistry)
   {
     packetHandlerSpeedyIngameTester = new PacketHandlerSpeedyIngameTester();
-    packetHandlerRegistry.registerHandlerMethod(PacketHandlerSpeedyIngameTester.class, Packet250SpeedyIngameTester.class,  Packet250Types.PACKET250_INGAME_TESTER, Side.SERVER);
+    packetHandlerRegistry.registerHandlerMethod(packetHandlerSpeedyIngameTester, new Packet250SpeedyIngameTester());
 //    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_INGAME_TESTER.getPacketTypeID(), packetHandlerSpeedyIngameTester);
   }
 
@@ -1032,16 +1021,18 @@ public class InGameTester
 //  }
 
 
-  public class PacketHandlerSpeedyIngameTester implements IMessageHandler<Packet250SpeedyIngameTester, IMessage> {
-    public IMessage onMessage(Packet250SpeedyIngameTester packet, MessageContext ctx)
+  public class PacketHandlerSpeedyIngameTester implements PacketHandlerRegistry.PacketHandlerMethod
+  {
+    public boolean handlePacket(Packet250Base packet250Base, MessageContext ctx)
     {
 //
 //      Packet250SpeedyIngameTester toolIngameTesterPacket = Packet250SpeedyIngameTester.createPacket250SpeedyIngameTester(packet);
 //      if (toolIngameTesterPacket == null) return false;
-      if (!packet.isPacketIsValid()) return null;
+      if (!packet250Base.isPacketIsValid()) return false;
+      Packet250SpeedyIngameTester packet = (Packet250SpeedyIngameTester)packet250Base;
       EntityPlayerMP entityPlayerMP = ctx.getServerHandler().playerEntity;
       InGameTester.this.performTest(packet.getWhichTest(), packet.isPerformTest(), entityPlayerMP);
-      return null;
+      return true;
     }
   }
 

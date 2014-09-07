@@ -3,6 +3,7 @@ package speedytools.clientside;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.rendering.SpeedyToolSounds;
@@ -10,7 +11,6 @@ import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
-import speedytools.common.network.PacketHandlerRegistry;
 
 //import speedytools.clientside.network.CloneToolsNetworkClient;
 //import speedytools.clientside.network.PacketSenderClient;
@@ -34,15 +34,19 @@ public class ClientSide
       @Override
       public Item getTabIconItem() {return RegistryForItems.itemSpeedySceptre;}
     };
+    activeTool = new ActiveTool();
+  }
+
+  public static void load()
+  {
+    packetHandlerRegistry = new PacketHandlerRegistryClient();
+    packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
   }
 
   public static void postInitialise()
   {
-    packetHandlerRegistry = new PacketHandlerRegistry();
-    packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
 //    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
     speedyToolRenderers = new SpeedyToolRenderers();
-    activeTool = new ActiveTool();
     userInput = new UserInput();
     speedyToolSounds = new SpeedyToolSounds();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
@@ -85,7 +89,7 @@ public class ClientSide
   public static UndoManagerClient undoManagerComplex;
   public static SpeedyToolSounds speedyToolSounds;
   public static PacketSenderClient packetSenderClient;
-  public static PacketHandlerRegistry packetHandlerRegistry;
+  public static PacketHandlerRegistryClient packetHandlerRegistry;
 
   public static CreativeTabs tabSpeedyTools;
 

@@ -36,51 +36,36 @@ public class CombinedClientProxy extends CommonProxy {
   @Override
   public void load()
   {
+    ClientSide.load();
     super.load();
-  }
-
-  /**
-   * Handle interaction with other mods, complete your setup based on this.
-   */
-  @Override
-  public void postInit()
-  {
-    ClientSide.postInitialise();
-    super.postInit();
-    SpeedyToolControls.initialiseInterceptors();
-    MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
-    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());
-    MinecraftForge.EVENT_BUS.register(new InputEventHandler());
-    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());
-    FMLCommonHandler.instance().bus().register(new ClientTickHandler());
-
-
-
-    MinecraftForge.EVENT_BUS.register(new ClientEventHandler());
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong,
-                                           new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
-                                                                    ClientSide.speedyToolRenderers,
-                                                                    ClientSide.speedyToolSounds,
-                                                                    ClientSide.undoManagerSimple
-                                                                   ));
+            new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
+                    ClientSide.speedyToolRenderers,
+                    ClientSide.speedyToolSounds,
+                    ClientSide.undoManagerSimple,
+                    ClientSide.packetSenderClient
+            ));
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandWeak,
-                                            new SpeedyToolWandWeak(RegistryForItems.itemSpeedyWandWeak,
-                                                                    ClientSide.speedyToolRenderers,
-                                                                    ClientSide.speedyToolSounds,
-                                                                    ClientSide.undoManagerSimple
-                                                                  ));
+            new SpeedyToolWandWeak(RegistryForItems.itemSpeedyWandWeak,
+                    ClientSide.speedyToolRenderers,
+                    ClientSide.speedyToolSounds,
+                    ClientSide.undoManagerSimple,
+                    ClientSide.packetSenderClient
+            ));
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyOrb,
             new SpeedyToolOrb(RegistryForItems.itemSpeedyOrb,
                     ClientSide.speedyToolRenderers,
                     ClientSide.speedyToolSounds,
-                    ClientSide.undoManagerSimple
+                    ClientSide.undoManagerSimple,
+                    ClientSide.packetSenderClient
             ));
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre,
             new SpeedyToolSceptre(RegistryForItems.itemSpeedySceptre,
                     ClientSide.speedyToolRenderers,
                     ClientSide.speedyToolSounds,
-                    ClientSide.undoManagerSimple
+                    ClientSide.undoManagerSimple,
+                    ClientSide.packetSenderClient
             ));
 //    SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
 //            ClientSide.speedyToolRenderers,
@@ -124,13 +109,35 @@ public class CombinedClientProxy extends CommonProxy {
     if (SpeedyToolsOptions.getTesterToolsEnabled()) {
       ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyTester,
               new SpeedyToolTester(RegistryForItems.itemSpeedyTester,
-                                  ClientSide.speedyToolRenderers,
-                                  ClientSide.speedyToolSounds,
-                                  ClientSide.undoManagerSimple,
-                                  ClientSide.
+                      ClientSide.speedyToolRenderers,
+                      ClientSide.speedyToolSounds,
+                      ClientSide.undoManagerSimple,
+                      ClientSide.packetSenderClient
               ));
 
     }
+
+  }
+
+  /**
+   * Handle interaction with other mods, complete your setup based on this.
+   */
+  @Override
+  public void postInit()
+  {
+    ClientSide.postInitialise();
+    super.postInit();
+    SpeedyToolControls.initialiseInterceptors();
+    MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
+    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());
+    MinecraftForge.EVENT_BUS.register(new InputEventHandler());
+    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());
+    FMLCommonHandler.instance().bus().register(new ClientTickHandler());
+
+
+
+    MinecraftForge.EVENT_BUS.register(new ClientEventHandler());
+
 
   }
 }

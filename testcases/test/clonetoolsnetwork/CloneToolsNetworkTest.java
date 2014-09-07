@@ -26,7 +26,6 @@ import speedytools.serverside.ServerSide;
 import speedytools.serverside.ServerVoxelSelections;
 
 import java.io.IOException;
-import java.util.*;
 
 /**
  * User: The Grey Ghost
@@ -256,7 +255,7 @@ public class CloneToolsNetworkTest
     final long MAX_TIMEOUT_MS = 2500;
     long finishTime = System.nanoTime() + MAX_TIMEOUT_MS * 1000 * 1000;
 
-    ServerSide.initialise();
+    ServerSide.load();
     int countReceived = 0;
     while (countReceived < 10 && System.nanoTime() < finishTime) {
       networkServer.tick();
