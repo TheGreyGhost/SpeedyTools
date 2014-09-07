@@ -1,14 +1,8 @@
 package speedytools.common.network;
 
 import cpw.mods.fml.common.network.NetworkRegistry;
-import cpw.mods.fml.common.network.simpleimpl.IMessage;
-import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
-import cpw.mods.fml.relauncher.Side;
-import speedytools.common.utilities.ErrorLog;
-
-import java.util.HashMap;
 
 /**
  * Used to register class instances for handling incoming packets.
@@ -17,6 +11,10 @@ import java.util.HashMap;
  */
 public abstract class PacketHandlerRegistry
 {
+  public SimpleNetworkWrapper getSimpleNetworkWrapper() {
+    return simpleNetworkWrapper;
+  }
+
   protected static SimpleNetworkWrapper simpleNetworkWrapper;
   public static final String CHANNEL_NAME = "speedytools";
 
@@ -98,38 +96,38 @@ public abstract class PacketHandlerRegistry
    * @param packetHandlerMethod
    * @param packet250Base
    */
-  protected abstract void registerHandlerMethod(PacketHandlerMethod packetHandlerMethod, Packet250Base packet250Base);
+//  protected abstract void registerHandlerMethod(PacketHandlerMethod packetHandlerMethod, Packet250Base packet250Base);
 
-  protected <T extends Packet250Base> void registerHandlerMethod(IMessageHandler<T, IMessage> handler, Class<T> packet,  Packet250Types packet250Type, Side side)
-  {
-    class MessageHandler implements IMessageHandler<T, IMessage> {
-      public IMessage onMessage(T message, MessageContext ctx)
-      {
-        if (!message.isPacketIsValid()) return null;
-        IMessageHandler<IMessage, IMessage> handler = null;
-        switch (ctx.side) {
-          case CLIENT: {
-            handler = staticClientSideHandlers.get(this.getClass());
-            break;
-          }
-          case SERVER: {
-            handler = staticServerSideHandlers.get(this.getClass());
-            break;
-          }
-          default:
-            throw new IllegalArgumentException("Invalid side:" + ctx.side);
-        }
-        if (handler == null) {
-          ErrorLog.defaultLog().severe("Unregistered Packet " + message + " received on side " + ctx.side);
-        } else {
-          handler.onMessage(message, ctx);
-        }
-        return null;
-      }
-    }
-
-    simpleNetworkWrapper.registerMessage(MessageHandler.class, packet, packet250Type.getPacketTypeID(), side);
-  }
+//  protected <T extends Packet250Base> void registerHandlerMethod(IMessageHandler<T, IMessage> handler, Class<T> packet,  Packet250Types packet250Type, Side side)
+//  {
+//    class MessageHandler implements IMessageHandler<T, IMessage> {
+//      public IMessage onMessage(T message, MessageContext ctx)
+//      {
+//        if (!message.isPacketIsValid()) return null;
+//        IMessageHandler<IMessage, IMessage> handler = null;
+//        switch (ctx.side) {
+//          case CLIENT: {
+//            handler = staticClientSideHandlers.get(this.getClass());
+//            break;
+//          }
+//          case SERVER: {
+//            handler = staticServerSideHandlers.get(this.getClass());
+//            break;
+//          }
+//          default:
+//            throw new IllegalArgumentException("Invalid side:" + ctx.side);
+//        }
+//        if (handler == null) {
+//          ErrorLog.defaultLog().severe("Unregistered Packet " + message + " received on side " + ctx.side);
+//        } else {
+//          handler.onMessage(message, ctx);
+//        }
+//        return null;
+//      }
+//    }
+//
+//    simpleNetworkWrapper.registerMessage(MessageHandler.class, packet, packet250Type.getPacketTypeID(), side);
+//  }
 
 //
 //  class NonstaticMessageHandler<REQ extends IMessage, REPLY extends IMessage> {
@@ -219,7 +217,7 @@ public abstract class PacketHandlerRegistry
 //  private HashMap<Class<? extends Packet250Base>, PacketHandlerMethod> clientSideHandlers = new HashMap<Class<? extends Packet250Base>, PacketHandlerMethod>();
 //  private HashMap<Class<? extends Packet250Base>, PacketHandlerMethod> serverSideHandlers = new HashMap<Class<? extends Packet250Base>, PacketHandlerMethod>();
 //
-  private static HashMap<Class<? extends Packet250Base>, IMessageHandler<IMessage, IMessage>> staticClientSideHandlers = new HashMap<Class<? extends Packet250Base>, IMessageHandler<IMessage, IMessage>>();
-  private static HashMap<Class<? extends Packet250Base>, IMessageHandler<IMessage, IMessage>> staticServerSideHandlers = new HashMap<Class<? extends Packet250Base>, IMessageHandler<IMessage, IMessage>>();
+//  private static HashMap<Class<? extends Packet250Base>, IMessageHandler<IMessage, IMessage>> staticClientSideHandlers = new HashMap<Class<? extends Packet250Base>, IMessageHandler<IMessage, IMessage>>();
+//  private static HashMap<Class<? extends Packet250Base>, IMessageHandler<IMessage, IMessage>> staticServerSideHandlers = new HashMap<Class<? extends Packet250Base>, IMessageHandler<IMessage, IMessage>>();
 }
 

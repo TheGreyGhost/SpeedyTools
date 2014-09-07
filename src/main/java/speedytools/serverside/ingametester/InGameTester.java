@@ -1,10 +1,9 @@
 package speedytools.serverside.ingametester;
 
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayerMP;
-import speedytools.common.network.Packet250Base;
 import speedytools.common.network.Packet250SpeedyIngameTester;
-import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.serverside.network.PacketHandlerRegistryServer;
 
 //import speedytools.common.selections.VoxelSelection;
@@ -25,7 +24,8 @@ public class InGameTester
   public InGameTester(PacketHandlerRegistryServer packetHandlerRegistry)
   {
     packetHandlerSpeedyIngameTester = new PacketHandlerSpeedyIngameTester();
-    packetHandlerRegistry.registerHandlerMethod(packetHandlerSpeedyIngameTester, new Packet250SpeedyIngameTester());
+    Packet250SpeedyIngameTester.registerHandler(packetHandlerRegistry, packetHandlerSpeedyIngameTester, Side.SERVER);
+//    packetHandlerRegistry.registerHandlerMethod(packetHandlerSpeedyIngameTester, new Packet250SpeedyIngameTester());
 //    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_INGAME_TESTER.getPacketTypeID(), packetHandlerSpeedyIngameTester);
   }
 
@@ -1021,15 +1021,14 @@ public class InGameTester
 //  }
 
 
-  public class PacketHandlerSpeedyIngameTester implements PacketHandlerRegistry.PacketHandlerMethod
+  public class PacketHandlerSpeedyIngameTester implements Packet250SpeedyIngameTester.PacketHandlerMethod
   {
-    public boolean handlePacket(Packet250Base packet250Base, MessageContext ctx)
+    public boolean handlePacket(Packet250SpeedyIngameTester packet, MessageContext ctx)
     {
 //
 //      Packet250SpeedyIngameTester toolIngameTesterPacket = Packet250SpeedyIngameTester.createPacket250SpeedyIngameTester(packet);
 //      if (toolIngameTesterPacket == null) return false;
-      if (!packet250Base.isPacketIsValid()) return false;
-      Packet250SpeedyIngameTester packet = (Packet250SpeedyIngameTester)packet250Base;
+      if (!packet.isPacketIsValid()) return false;
       EntityPlayerMP entityPlayerMP = ctx.getServerHandler().playerEntity;
       InGameTester.this.performTest(packet.getWhichTest(), packet.isPerformTest(), entityPlayerMP);
       return true;

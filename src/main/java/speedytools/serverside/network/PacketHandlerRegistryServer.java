@@ -13,14 +13,5 @@ import speedytools.common.network.PacketHandlerRegistry;
  */
 public class PacketHandlerRegistryServer extends PacketHandlerRegistry
 {
-  public void registerHandlerMethod(PacketHandlerMethod packetHandlerMethod, Packet250Base packet250Base)
-  {
-    packet250Base.registerHandler(simpleNetworkWrapper, packetHandlerMethod, Side.SERVER);
-  }
-
-  public <T extends Packet250Base> void registerHandlerMethod(IMessageHandler<T, IMessage> handler, Class<T> packet,  Packet250Types packet250Type)
-  {
-    registerHandlerMethod(handler, packet, packet250Type, Side.SERVER);
-  }
 
 }

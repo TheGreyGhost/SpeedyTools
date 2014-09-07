@@ -4,7 +4,6 @@ package speedytools.common.network;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import speedytools.common.utilities.ErrorLog;
@@ -12,7 +11,7 @@ import speedytools.common.utilities.ErrorLog;
 /**
 * This class is used to inform the server to perform an in-game automated test
 */
-public class Packet250SpeedyIngameTester extends Packet250Base implements IMessage
+public class Packet250SpeedyIngameTester extends Packet250Base
 {
   /**
    * Packet sent from client to server, to indicate when the user has used the ingame tester tool
@@ -59,16 +58,23 @@ public class Packet250SpeedyIngameTester extends Packet250Base implements IMessa
   }
 
   /**
-   * The Packet handler will register itself
-   *
-   * @param simpleNetworkWrapper
+   * Register the handler for this packet
+   * @param packetHandlerRegistry
+   * @param packetHandlerMethod
    * @param side
    */
-  @Override
-  public void registerHandler(SimpleNetworkWrapper simpleNetworkWrapper, PacketHandlerRegistry.PacketHandlerMethod packetHandlerMethod, Side side) {
+  public static void registerHandler(PacketHandlerRegistry packetHandlerRegistry,  PacketHandlerMethod packetHandlerMethod, Side side) {
+    if (side != Side.SERVER) {
+      assert false : "Tried to register Packet250SpeedyIngameTester on side " + side;
+    }
     serverSideHandler = packetHandlerMethod;
-    simpleNetworkWrapper.registerMessage(ServerMessageHandler.class, Packet250SpeedyIngameTester.class,
-                                         Packet250Types.PACKET250_INGAME_TESTER.getPacketTypeID(), side);
+    packetHandlerRegistry.getSimpleNetworkWrapper().registerMessage(ServerMessageHandler.class, Packet250SpeedyIngameTester.class,
+                                                                    Packet250Types.PACKET250_INGAME_TESTER.getPacketTypeID(), side);
+  }
+
+  public interface PacketHandlerMethod
+  {
+    public boolean handlePacket(Packet250SpeedyIngameTester packet250SpeedyIngameTester, MessageContext ctx);
   }
 
   public static class ServerMessageHandler implements IMessageHandler<Packet250SpeedyIngameTester, IMessage> {
@@ -140,57 +146,6 @@ public class Packet250SpeedyIngameTester extends Packet250Base implements IMessa
 
   private boolean performTest;
 
-//  // Handler and registerHandler are used to convert from the static incoming message to the registered non-static handler
-//  public static class Handler implements IMessageHandler<Packet250SpeedyIngameTester, IMessage>
-//  {
-//    @Override
-//    public IMessage onMessage(Packet250SpeedyIngameTester message, MessageContext ctx) {
-//      if (!message.isPacketIsValid()) return null;
-//      IMessageHandler<Packet250SpeedyIngameTester, IMessage> handler = null;
-//      switch (ctx.side) {
-//        case CLIENT: {
-//          handler = clientSideHandler;
-//          break;
-//        }
-//        case SERVER: {
-//          handler = serverSideHandler;
-//          break;
-//        }
-//        default:
-//          throw new IllegalArgumentException("Invalid side:" + ctx.side);
-//      }
-//      if (handler == null) {
-//        ErrorLog.defaultLog().severe("Unregistered Packet " + message + " received on side " + ctx.side);
-//      } else {
-//        handler.onMessage(message, ctx);
-//      }
-//      return null;
-//    }
-//  }
-//
-//  public static void registerHandler(IMessageHandler<Packet250SpeedyIngameTester, IMessage> handler, Side side)
-//  {
-//    boolean alreadyRegisteredThisSide = false;
-//    switch (side) {
-//      case CLIENT: {
-//        alreadyRegisteredThisSide = (clientSideHandler != null);
-//        clientSideHandler = handler;
-//        break;
-//      }
-//      case SERVER: {
-//        alreadyRegisteredThisSide = (serverSideHandler != null);
-//        serverSideHandler = handler;
-//        break;
-//      }
-//      default:
-//        throw new IllegalArgumentException("Invalid side:" + side);
-//    }
-//    if (!alreadyRegisteredThisSide) {
-//
-//    }
-//  }
-//
-//  private static IMessageHandler<Packet250SpeedyIngameTester, IMessage> clientSideHandler;
-  private static PacketHandlerRegistry.PacketHandlerMethod serverSideHandler;
+  private static PacketHandlerMethod serverSideHandler;
 
 }
