@@ -6,6 +6,18 @@ import io.netty.buffer.ByteBuf;
 /**
  * User: The Grey Ghost
  * Date: 7/09/2014
+ *
+ * Packets based on Packet250Base are used to communicate between the client and the server.
+ * The Packet contains information being transferred and can be supplied to SimpleNetworkWrapper for transmission.
+ * Typical usage is:
+ * 1) Register the handler for the given packet by calling the static Packet250ClassName.registerHandler() and supplying a
+ *    suitable callback class implements PacketHandlerMethod.
+ *    A handler should be registered for each side that will receive this packet.
+ * 2) Create the packet using the non-default constructor
+ * 3) Send the packet (eg using PacketSender.sendPacket())
+ *    The readFromBuffer() and writeToBuffer() methods will be called to convert the data to bytes and back again
+ * 4) The registered handler on the receiving side will be called
+ * If the packet is invalid, or is received on the wrong side, a message is logged and the packet is ignored.
  */
 public abstract class Packet250Base implements IMessage
 {

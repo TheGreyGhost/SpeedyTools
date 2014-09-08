@@ -1,132 +1,172 @@
-//package speedytools.common.network;
-//
-//
-//import net.minecraft.block.Block;
-//import net.minecraft.network.packet.Packet250CustomPayload;
-//import net.minecraft.util.ChunkCoordinates;
-//import speedytools.common.blocks.BlockWithMetadata;
-//import speedytools.common.utilities.ErrorLog;
-//
-//import java.io.*;
-//import java.util.ArrayList;
-//import java.util.List;
-//
-///**
-// * This class is used to inform the server when the user has used a SpeedyTool, and pass it information about the affected blocks.
-// */
-//public class Packet250SpeedyToolUse
-//{
+package speedytools.common.network;
+
+
+import cpw.mods.fml.common.network.simpleimpl.IMessage;
+import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
+import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.relauncher.Side;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
+import net.minecraft.util.ChunkCoordinates;
+import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.utilities.ErrorLog;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+* This class is used to inform the server when the user has used a SpeedyTool, and pass it information about the affected blocks.
+*/
+public class Packet250SpeedyToolUse extends Packet250Base
+{
 //  public int getToolItemID() {
 //    return toolItemID;
 //  }
-//
-//  public int getButton() {
-//    return button;
-//  }
-//
-//  public BlockWithMetadata getBlockToPlace() {
-//    return blockToPlace;
-//  }
-//
-//  public List<ChunkCoordinates> getCurrentlySelectedBlocks() {
-//    return currentlySelectedBlocks;
-//  }
-//
-//  /**
-//   * Packet sent from client to server, to indicate when the user has used a SpeedyTool
-//   * @param newToolItemID   - the item of the speedy tool used
-//   * @param newButton       - left mouse button (attack) = 0; right mouse button (use) = 1
-//   * @param newCurrentlySelectedBlocks - a list of the blocks selected by the tool when the button was clicked
-//   */
-//  public Packet250SpeedyToolUse(int newToolItemID, int newButton, BlockWithMetadata newBlockToPlace, List<ChunkCoordinates> newCurrentlySelectedBlocks) throws IOException
-//  {
-//    super();
-//
+
+  public int getButton() {
+    return button;
+  }
+
+  public BlockWithMetadata getBlockToPlace() {
+    return blockToPlace;
+  }
+
+  public List<ChunkCoordinates> getCurrentlySelectedBlocks() {
+    return currentlySelectedBlocks;
+  }
+
+  /**
+   * Packet sent from client to server, to indicate when the user has used a SpeedyTool
+   * @param newButton       - left mouse button (attack) = 0; right mouse button (use) = 1
+   * @param newCurrentlySelectedBlocks - a list of the blocks selected by the tool when the button was clicked
+   */
+  public Packet250SpeedyToolUse(int newButton, BlockWithMetadata newBlockToPlace, List<ChunkCoordinates> newCurrentlySelectedBlocks)
+  {
+    super();
+
 //    toolItemID = newToolItemID;
-//    button = newButton;
-//    blockToPlace = newBlockToPlace;
-//    currentlySelectedBlocks = newCurrentlySelectedBlocks;
-//
-//    int blockID = (blockToPlace == null) ? 0 : blockToPlace.block.blockID;
-//    int metaData = (blockToPlace == null) ? 0 : blockToPlace.metaData;
-//
-//    ByteArrayOutputStream bos = new ByteArrayOutputStream(1+ 4*5 + 12 * currentlySelectedBlocks.size());
-//    DataOutputStream outputStream = new DataOutputStream(bos);
-//    outputStream.writeByte(Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID());
-//    outputStream.writeInt(toolItemID);
-//    outputStream.writeInt(button);
-//    outputStream.writeInt(blockID);
-//    outputStream.writeInt(metaData);
-//    outputStream.writeInt(currentlySelectedBlocks.size());
-//
-//    for (ChunkCoordinates cc : currentlySelectedBlocks) {
-//      outputStream.writeInt(cc.posX);
-//      outputStream.writeInt(cc.posY);
-//      outputStream.writeInt(cc.posZ);
-//    }
-//    packet250 = new Packet250CustomPayload("speedytools",bos.toByteArray());
-//  }
-//
-//  public Packet250CustomPayload getPacket250CustomPayload() {
-//    return packet250;
-//  }
-//
-//  /**
-//   * Creates a Packet250SpeedyToolUse from Packet250CustomPayload
-//   * @param sourcePacket250
-//   * @return the converted packet, or null if failure
-//   */
-//  public static Packet250SpeedyToolUse createPacket250SpeedyToolUse(Packet250CustomPayload sourcePacket250)
-//  {
-//    Packet250SpeedyToolUse newPacket = new Packet250SpeedyToolUse();
-//    newPacket.packet250 = sourcePacket250;
-//    DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(sourcePacket250.data));
-//
-//    try {
-//      byte packetID = inputStream.readByte();
-//      if (packetID != Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID()) return null;
-//
-//      newPacket.toolItemID = inputStream.readInt();
-//      newPacket.button = inputStream.readInt();
-//      int blockID = inputStream.readInt();
-//
-//      newPacket.blockToPlace = new BlockWithMetadata();
-//      newPacket.blockToPlace.block = (blockID == 0) ? null : Block.blocksList[blockID];
-//      newPacket.blockToPlace.metaData = inputStream.readInt();
-//
-//      int blockCount = inputStream.readInt();
-//      for (int i = 0; i < blockCount; ++i) {
-//        ChunkCoordinates newCC = new ChunkCoordinates();
-//        newCC.posX = inputStream.readInt();
-//        newCC.posY = inputStream.readInt();
-//        newCC.posZ = inputStream.readInt();
-//        newPacket.currentlySelectedBlocks.add(newCC);
-//      }
-//    } catch (IOException ioe) {
-//      ErrorLog.defaultLog().warning("Exception while reading Packet250SpeedyToolUse: " + ioe);
-//      return null;
-//    }
-//    if (!newPacket.checkInvariants()) return null;
-//    return newPacket;
-//  }
-//
-//  private Packet250SpeedyToolUse()
-//  {
-//  }
-//
-//  /**
-//   * Checks if the packet is internally consistent
-//   * @return true for success, false otherwise
-//   */
-//  private boolean checkInvariants()
-//  {
-//    if (button != 0 && button != 1) return false;
-//    return true;
-//  }
-//
+    button = newButton;
+    blockToPlace = newBlockToPlace;
+    currentlySelectedBlocks = newCurrentlySelectedBlocks;
+    packetIsValid = true;
+  }
+
+  public Packet250SpeedyToolUse()
+  {
+    packetIsValid = false;
+  }
+
+  /**
+   * Register the handler for this packet
+   * @param packetHandlerRegistry
+   * @param packetHandlerMethod
+   * @param side
+   */
+  public static void registerHandler(PacketHandlerRegistry packetHandlerRegistry,  PacketHandlerMethod packetHandlerMethod, Side side) {
+    if (side != Side.SERVER) {
+      assert false : "Tried to register Packet250SpeedyToolUse on side " + side;
+    }
+    serverSideHandler = packetHandlerMethod;
+    packetHandlerRegistry.getSimpleNetworkWrapper().registerMessage(ServerMessageHandler.class, Packet250SpeedyToolUse.class,
+            Packet250Types.PACKET250_SPEEDY_TOOL_USE_ID.getPacketTypeID(), side);
+  }
+
+  public interface PacketHandlerMethod
+  {
+    public boolean handlePacket(Packet250SpeedyToolUse packet250SpeedyToolUse, MessageContext ctx);
+  }
+
+  public static class ServerMessageHandler implements IMessageHandler<Packet250SpeedyToolUse, IMessage>
+  {
+    /**
+     * Called when a message is received of the appropriate type. You can optionally return a reply message, or null if no reply
+     * is needed.
+     *
+     * @param message The message
+     * @return an optional return message
+     */
+    public IMessage onMessage(Packet250SpeedyToolUse message, MessageContext ctx)
+    {
+      if (serverSideHandler == null) {
+        ErrorLog.defaultLog().severe("Packet250SpeedyToolUse received but not registered.");
+      } else if (ctx.side != Side.SERVER) {
+        ErrorLog.defaultLog().severe("Packet250SpeedyToolUse received on wrong side");
+      } else {
+        serverSideHandler.handlePacket(message, ctx);
+      }
+      return null;
+    }
+  }
+
+  @Override
+  protected void readFromBuffer(ByteBuf buf) {
+
+    try {
+//      toolItemID = buf.readInt();
+      button = buf.readInt();
+      int blockID = buf.readInt();
+
+      blockToPlace = new BlockWithMetadata();
+      blockToPlace.block = Block.getBlockById(blockID);
+      blockToPlace.metaData = buf.readInt();
+
+      int blockCount = buf.readInt();
+      for (int i = 0; i < blockCount; ++i) {
+        ChunkCoordinates newCC = new ChunkCoordinates();
+        newCC.posX = buf.readInt();
+        newCC.posY = buf.readInt();
+        newCC.posZ = buf.readInt();
+        currentlySelectedBlocks.add(newCC);
+      }
+    } catch (ArrayIndexOutOfBoundsException ioe) {
+      ErrorLog.defaultLog().info("Exception while reading Packet250SpeedyToolUse: " + ioe);
+      return;
+    }
+    if (!checkInvariants()) return;
+    packetIsValid = true;
+  }
+
+  @Override
+  protected void writeToBuffer(ByteBuf buf) {
+    if (!isPacketIsValid()) return;
+    int blockID = Block.getIdFromBlock(blockToPlace == null ? Blocks.air : blockToPlace.block);
+    int metaData = (blockToPlace == null) ? 0 : blockToPlace.metaData;
+
+//    buf.writeInt(toolItemID);
+    buf.writeInt(button);
+    buf.writeInt(blockID);
+    buf.writeInt(metaData);
+    buf.writeInt(currentlySelectedBlocks.size());
+
+    for (ChunkCoordinates cc : currentlySelectedBlocks) {
+      buf.writeInt(cc.posX);
+      buf.writeInt(cc.posY);
+      buf.writeInt(cc.posZ);
+    }
+  }
+
+  /**
+   * Checks if the packet is internally consistent
+   * @return true for success, false otherwise
+   */
+  private boolean checkInvariants()
+  {
+    if (button != 0 && button != 1) return false;
+    return true;
+  }
+
 //  private int toolItemID;
-//  private int button;
-//  private BlockWithMetadata blockToPlace;
-//  private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
-//  private Packet250CustomPayload packet250 = null;
-//}
+  private int button;
+  private BlockWithMetadata blockToPlace;
+  private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
+
+  private static PacketHandlerMethod serverSideHandler;
+
+  public boolean isPacketIsValid() {
+    return packetIsValid;
+  }
+
+  private boolean packetIsValid;
+}

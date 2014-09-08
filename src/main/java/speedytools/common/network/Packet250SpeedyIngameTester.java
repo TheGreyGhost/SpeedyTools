@@ -101,12 +101,7 @@ public class Packet250SpeedyIngameTester extends Packet250Base
   @Override
   protected void readFromBuffer(ByteBuf buf)
   {
-//    DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(buf));
-
     try {
-//      byte packetID = inputStream.readByte();
-//      if (packetID != Packet250Types.PACKET250_INGAME_TESTER.getPacketTypeID()) return null;
-
       whichTest = buf.readInt();
       performTest = buf.readBoolean();
     } catch (IndexOutOfBoundsException ioe) {

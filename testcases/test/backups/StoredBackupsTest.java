@@ -57,7 +57,7 @@ public class StoredBackupsTest
 
     Path premade = Paths.get(PREMADE_FOLDER);
 
-    String[] testFiles = {"badRoot.dat", "duplicateBackupNumber.dat", "invalidBackupNumber.dat", "missingVersion.dat",
+    String[] testFiles = {"duplicateBackupNumber.dat", "invalidBackupNumber.dat", "missingVersion.dat",
                           "wrongPathType.dat", "wrongVersion.dat"};
 
     for (String testfile : testFiles) {

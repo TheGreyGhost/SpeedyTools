@@ -20,6 +20,7 @@ import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
+import speedytools.common.network.Packet250SpeedyToolUse;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -209,29 +210,17 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   {
     if (currentlySelectedBlocks == null || currentlySelectedBlocks.isEmpty()) return false;
 
-//    Packet250SpeedyToolUse packet;        todo testing only
-//    try {
-//      final int RIGHT_BUTTON = 1;
-//      packet = new Packet250SpeedyToolUse(parentItem.itemID, RIGHT_BUTTON, currentBlockToPlace, currentlySelectedBlocks);
-//    } catch (IOException e) {
-//      Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyToolUse for itemID " + parentItem.itemID);
-//      return false;
-//    }
-//    PacketDispatcher.sendPacketToServer(packet.getPacket250CustomPayload());
+    final int RIGHT_BUTTON = 1;
+    Packet250SpeedyToolUse packet = new Packet250SpeedyToolUse(RIGHT_BUTTON, currentBlockToPlace, currentlySelectedBlocks);
+    packetSenderClient.sendPacket(packet);
     return true;
   }
 
   protected boolean sendUndoCommand()
   {
-//    Packet250SpeedyToolUse packet;           todo testing only
-//    try {
-//      final int LEFT_BUTTON = 0;
-//      packet = new Packet250SpeedyToolUse(parentItem.itemID, LEFT_BUTTON, currentBlockToPlace, currentlySelectedBlocks);
-//    } catch (IOException e) {
-//      Minecraft.getMinecraft().getLogAgent().logWarning("Could not create Packet250SpeedyToolUse for itemID " + parentItem.itemID);
-//      return false;
-//    }
-//    PacketDispatcher.sendPacketToServer(packet.getPacket250CustomPayload());
+    final int LEFT_BUTTON = 1;
+    Packet250SpeedyToolUse packet = new Packet250SpeedyToolUse(LEFT_BUTTON, currentBlockToPlace, currentlySelectedBlocks);
+    packetSenderClient.sendPacket(packet);
     return true;
   }
 
