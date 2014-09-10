@@ -12,39 +12,39 @@
 //import speedytools.serverside.network.SpeedyToolsNetworkServer;
 //
 ///**
-// * Created by TheGreyGhost on 26/06/14.
-// * used for in-game testing of the client user interface to simulate different server conditions
-// * Test mode is selected by putting the test ItemSpeedyTester item into the leftmost inventory slot
-// *
-// * test condition:
-// * (1) server state forced to PERFORMING_BACKUP
-// * (2) server state forced to PERFORMING_YOUR_ACTION, playerBeingServiced = the client
-// * (3) server state forced to UNDOING_YOUR_ACTION, playerBeingServiced = the client
-// * (4) server state forced to PERFORMING_YOUR_ACTION, playerBeingServiced = null
-// * (5) server state forced to PERFORMING_YOUR_ACTION, playerBeingServiced = someone else.
-// * (6) - (10) = same as (1 - 5) except server returns to IDLE after a while, and sends the status to client
-// * For states 1 - 5, the status stays on the server only, client side forced to IDLE.
-// * For states 1 - 5, the percent complete slowly increases over 10 seconds from 0 to 100, stays there for 5 seconds,
-// *   then starts from 0 in an endless cycle
-// * For states 6 - 10, the percent complete slowly increases over 10 seconds from 0 to 100, then goes to IDLE for 5 seconds.
-// *   Repeats in an endless cycle.
-// * (11) = backups, placements, and undo are simulated.  Will succeed unless cancelled.  Will take 10 seconds.
-// * (12) = backups, placements, and undo are simulated but will fail immediately.
-// * (20 - 27) = combinations of (11) and (12): +1 = backup succeed, +2 = placement succeed, +4 = undo succeed
-// *
-// * Test plan:  messages to test are
-// * Server-side failures:
-// * - selection not transmitted yet (not tested)
-// * 26 - backup failed
-// * 1 - world backup in progress
-// * 2 - own action already in progress
-// * 3 - own undo already in progress
-// * 4, 5 - someone else is busy
-// * Client-side failures:
-// * 6 - server backup in progress
-// * - selection not transmitted yet
-// * 9, 10 - someone else is busy
-// */
+//* Created by TheGreyGhost on 26/06/14.
+//* used for in-game testing of the client user interface to simulate different server conditions
+//* Test mode is selected by putting the test ItemSpeedyTester item into the leftmost inventory slot
+//*
+//* test condition:
+//* (1) server state forced to PERFORMING_BACKUP
+//* (2) server state forced to PERFORMING_YOUR_ACTION, playerBeingServiced = the client
+//* (3) server state forced to UNDOING_YOUR_ACTION, playerBeingServiced = the client
+//* (4) server state forced to PERFORMING_YOUR_ACTION, playerBeingServiced = null
+//* (5) server state forced to PERFORMING_YOUR_ACTION, playerBeingServiced = someone else.
+//* (6) - (10) = same as (1 - 5) except server returns to IDLE after a while, and sends the status to client
+//* For states 1 - 5, the status stays on the server only, client side forced to IDLE.
+//* For states 1 - 5, the percent complete slowly increases over 10 seconds from 0 to 100, stays there for 5 seconds,
+//*   then starts from 0 in an endless cycle
+//* For states 6 - 10, the percent complete slowly increases over 10 seconds from 0 to 100, then goes to IDLE for 5 seconds.
+//*   Repeats in an endless cycle.
+//* (11) = backups, placements, and undo are simulated.  Will succeed unless cancelled.  Will take 10 seconds.
+//* (12) = backups, placements, and undo are simulated but will fail immediately.
+//* (20 - 27) = combinations of (11) and (12): +1 = backup succeed, +2 = placement succeed, +4 = undo succeed
+//*
+//* Test plan:  messages to test are
+//* Server-side failures:
+//* - selection not transmitted yet (not tested)
+//* 26 - backup failed
+//* 1 - world backup in progress
+//* 2 - own action already in progress
+//* 3 - own undo already in progress
+//* 4, 5 - someone else is busy
+//* Client-side failures:
+//* 6 - server backup in progress
+//* - selection not transmitted yet
+//* 9, 10 - someone else is busy
+//*/
 //public class InGameStatusSimulator
 //{
 //  public InGameStatusSimulator()
@@ -59,7 +59,7 @@
 //    if (entityPlayerMP == null || entityPlayerMP.inventory == null) return;
 //    ItemStack firstSlotItem = entityPlayerMP.inventory.getStackInSlot(0);
 //    if (firstSlotItem == null) return;
-//    if (firstSlotItem.itemID != RegistryForItems.itemSpeedyTester.itemID) return;
+//    if (firstSlotItem.getItem() != RegistryForItems.itemSpeedyTester) return;
 //    testMode = firstSlotItem.stackSize;
 //  }
 //
