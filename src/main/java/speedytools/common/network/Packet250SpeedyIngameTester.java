@@ -101,6 +101,7 @@ public class Packet250SpeedyIngameTester extends Packet250Base
   @Override
   protected void readFromBuffer(ByteBuf buf)
   {
+    packetIsValid = false;
     try {
       whichTest = buf.readInt();
       performTest = buf.readBoolean();

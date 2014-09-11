@@ -64,12 +64,11 @@ public class SpeedyToolServerActions
   /**
    * Performs a server Simple Speedy Tools action in response to an incoming packet from the client: either place or undo
    * @param entityPlayerMP the user sending the packet
-   * @param toolItemID the ID of the tool performing this action
    * @param buttonClicked 0 = left (undo), 1 = right (place)
    * @param blockToPlace the Block and metadata to fill the selection with (buttonClicked = 1 only)
    * @param blockSelection the blocks in the selection to be filled (buttonClicked = 1 only)
    */
-  public void performSimpleAction(EntityPlayerMP entityPlayerMP, int toolItemID, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void performSimpleAction(EntityPlayerMP entityPlayerMP, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
     WorldServer worldServer = entityPlayerMP.getServerForPlayer();
     switch (buttonClicked) {

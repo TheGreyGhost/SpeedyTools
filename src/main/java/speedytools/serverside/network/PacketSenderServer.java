@@ -1,22 +1,19 @@
 package speedytools.serverside.network;
 
-import cpw.mods.fml.common.network.PacketDispatcher;
-import cpw.mods.fml.common.network.Player;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.Packet250Base;
-import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketSender;
 
 /**
 * Created by TheGreyGhost on 3/04/14.
 * Allows the caller to just send a packet to a recipient without worrying about which side it is.
 */
-public class PacketSenderServerToSingleClient implements PacketSender
+public class PacketSenderServer implements PacketSender
 {
-  public PacketSenderServer(EntityPlayerMP player)
+  public PacketSenderServer(PacketHandlerRegistryServer i_packetHandlerRegistry, EntityPlayerMP player)
   {
-    thePlayer = (Player)player;
+    packetHandlerRegistry = i_packetHandlerRegistry;
+    thePlayer = player;
     bytesSentBacklog = 0;
     lastTime = null;
   }
@@ -31,8 +28,8 @@ public class PacketSenderServerToSingleClient implements PacketSender
 //      System.out.println();
 //    }
 
-    PacketDispatcher.sendPacketToPlayer(packet, thePlayer);
-    bytesSentBacklog += packet.length;
+    packetHandlerRegistry.sendToClientSinglePlayer(packet, thePlayer);
+    bytesSentBacklog += packet.getPacketSize();
     return true;
   }
 
@@ -54,7 +51,8 @@ public class PacketSenderServerToSingleClient implements PacketSender
     return (bytesSentBacklog <= MAXIMUM_KB_PER_SECOND);
   }
 
-  private Player thePlayer;
+  private PacketHandlerRegistryServer packetHandlerRegistry;
+  private EntityPlayerMP thePlayer;
   private Long lastTime;
   private int bytesSentBacklog;
 }

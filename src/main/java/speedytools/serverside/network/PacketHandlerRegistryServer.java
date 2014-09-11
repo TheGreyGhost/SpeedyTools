@@ -3,6 +3,7 @@ package speedytools.serverside.network;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.relauncher.Side;
+import net.minecraft.entity.player.EntityPlayerMP;
 import speedytools.common.network.Packet250Base;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
@@ -13,5 +14,8 @@ import speedytools.common.network.PacketHandlerRegistry;
  */
 public class PacketHandlerRegistryServer extends PacketHandlerRegistry
 {
-
+  public void sendToClientSinglePlayer(IMessage message, EntityPlayerMP entityPlayerMP)
+  {
+    simpleNetworkWrapper.sendTo(message, entityPlayerMP);
+  }
 }

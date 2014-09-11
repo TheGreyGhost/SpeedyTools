@@ -6,7 +6,20 @@ package speedytools.common.network;
 */
 public enum ClientStatus
 {
-  IDLE, MONITORING_STATUS, WAITING_FOR_ACTION_COMPLETE;
+  IDLE(0), MONITORING_STATUS(1), WAITING_FOR_ACTION_COMPLETE(2);
 
-  public static final ClientStatus[] allValues = {IDLE, MONITORING_STATUS, WAITING_FOR_ACTION_COMPLETE};
+  public byte getStatusID() {return statusID;}
+
+  public static ClientStatus byteToCommand(byte value)
+  {
+    for (ClientStatus clientStatus : ClientStatus.values()) {
+      if (value == clientStatus.getStatusID()) return clientStatus;
+    }
+    return null;
+  }
+
+  private ClientStatus(int i_statusID) {
+    statusID = (byte)i_statusID;
+  }
+  private final byte statusID;
 }

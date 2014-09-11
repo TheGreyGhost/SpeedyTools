@@ -1,5 +1,7 @@
 package speedytools.common.utilities;
 
+import io.netty.buffer.ByteBuf;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -48,13 +50,13 @@ public class QuadOrientation
     calculateOriginTransformed();
   }
 
-  public QuadOrientation(DataInputStream inputStream) throws IOException
+  public QuadOrientation(ByteBuf byteBuf)
   {
-    transformationIndex = inputStream.readInt();
-    wxOrigin = inputStream.readInt();
-    wzOrigin = inputStream.readInt();
-    xSize = inputStream.readInt();
-    zSize = inputStream.readInt();
+    transformationIndex = byteBuf.readInt();
+    wxOrigin = byteBuf.readInt();
+    wzOrigin = byteBuf.readInt();
+    xSize = byteBuf.readInt();
+    zSize = byteBuf.readInt();
     flippedX = (transformationIndex & 4) != 0;
     clockwiseRotationCount = (byte)(transformationIndex & 3);
     calculateOriginTransformed();
@@ -211,13 +213,13 @@ public class QuadOrientation
     return flippedX;
   }
 
-  public void writeToStream(DataOutputStream outputStream) throws IOException
+  public void writeToStream(ByteBuf byteBuf)
   {
-    outputStream.writeInt(transformationIndex);
-    outputStream.writeInt(wxOrigin);
-    outputStream.writeInt(wzOrigin);
-    outputStream.writeInt(xSize);
-    outputStream.writeInt(zSize);
+    byteBuf.writeInt(transformationIndex);
+    byteBuf.writeInt(wxOrigin);
+    byteBuf.writeInt(wzOrigin);
+    byteBuf.writeInt(xSize);
+    byteBuf.writeInt(zSize);
   }
 
   /** return the current x size of the quad in world coordinates

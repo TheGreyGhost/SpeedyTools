@@ -86,16 +86,16 @@ public abstract class PacketHandlerRegistry
 //
 
 
-  public interface PacketHandlerMethod
-  {
-    public boolean handlePacket(Packet250Base packet250Base, MessageContext ctx);
-  }
+//  public interface PacketHandlerMethod
+//  {
+//    public boolean handlePacket(Packet250Base packet250Base, MessageContext ctx);
+//  }
 
-  /** registers a handler for the given packet
-   *
-   * @param packetHandlerMethod
-   * @param packet250Base
-   */
+//  /** registers a handler for the given packet
+//   *
+//   * @param packetHandlerMethod
+//   * @param packet250Base
+//   */
 //  protected abstract void registerHandlerMethod(PacketHandlerMethod packetHandlerMethod, Packet250Base packet250Base);
 
 //  protected <T extends Packet250Base> void registerHandlerMethod(IMessageHandler<T, IMessage> handler, Class<T> packet,  Packet250Types packet250Type, Side side)

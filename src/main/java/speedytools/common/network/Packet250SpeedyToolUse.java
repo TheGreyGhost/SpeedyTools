@@ -20,9 +20,9 @@ import java.util.List;
 */
 public class Packet250SpeedyToolUse extends Packet250Base
 {
-//  public int getToolItemID() {
-//    return toolItemID;
-//  }
+  public int getToolItemID() {
+    return toolItemID;
+  }
 
   public int getButton() {
     return button;
@@ -100,10 +100,10 @@ public class Packet250SpeedyToolUse extends Packet250Base
   }
 
   @Override
-  protected void readFromBuffer(ByteBuf buf) {
-
+  public void readFromBuffer(ByteBuf buf) {
+    packetIsValid = false;
     try {
-//      toolItemID = buf.readInt();
+      toolItemID = buf.readInt();
       button = buf.readInt();
       int blockID = buf.readInt();
 
@@ -128,12 +128,12 @@ public class Packet250SpeedyToolUse extends Packet250Base
   }
 
   @Override
-  protected void writeToBuffer(ByteBuf buf) {
+  public void writeToBuffer(ByteBuf buf) {
     if (!isPacketIsValid()) return;
     int blockID = Block.getIdFromBlock(blockToPlace == null ? Blocks.air : blockToPlace.block);
     int metaData = (blockToPlace == null) ? 0 : blockToPlace.metaData;
 
-//    buf.writeInt(toolItemID);
+    buf.writeInt(toolItemID);
     buf.writeInt(button);
     buf.writeInt(blockID);
     buf.writeInt(metaData);
@@ -156,16 +156,12 @@ public class Packet250SpeedyToolUse extends Packet250Base
     return true;
   }
 
-//  private int toolItemID;
+  private int toolItemID;
   private int button;
   private BlockWithMetadata blockToPlace;
   private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
 
   private static PacketHandlerMethod serverSideHandler;
 
-  public boolean isPacketIsValid() {
-    return packetIsValid;
-  }
-
-  private boolean packetIsValid;
+//  private boolean packetIsValid;
 }
