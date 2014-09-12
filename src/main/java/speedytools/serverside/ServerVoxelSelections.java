@@ -1,11 +1,9 @@
 package speedytools.serverside;
 
-import cpw.mods.fml.common.IPlayerTracker;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;

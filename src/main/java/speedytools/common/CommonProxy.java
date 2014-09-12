@@ -1,8 +1,12 @@
 package speedytools.common;
 
+import cpw.mods.fml.common.FMLCommonHandler;
+import net.minecraftforge.common.MinecraftForge;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.items.RegistryForItems;
+import speedytools.serverside.ServerEventHandler;
 import speedytools.serverside.ServerSide;
+import speedytools.serverside.ServerTickHandler;
 
 /**
  * CommonProxy is used to set up the mod and start it running.  It contains all the code that should run on both the
@@ -33,8 +37,8 @@ public class CommonProxy {
    */
   public void postInit()
   {
-//    MinecraftForge.EVENT_BUS.register(new ServerEventHandler());
-//    TickRegistry.registerTickHandler(new ServerTickHandler(), Side.SERVER);
+    MinecraftForge.EVENT_BUS.register(new ServerEventHandler());
+    FMLCommonHandler.instance().bus().register(new ServerTickHandler());
   }
 
 //  /**
