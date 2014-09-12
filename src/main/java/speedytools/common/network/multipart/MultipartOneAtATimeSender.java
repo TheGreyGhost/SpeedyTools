@@ -1,10 +1,15 @@
 package speedytools.common.network.multipart;
 
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.relauncher.Side;
+import speedytools.common.network.Packet250Types;
+import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.utilities.ErrorLog;
 
-import java.util.*;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
 * User: The Grey Ghost
@@ -27,12 +32,14 @@ import java.util.*;
 */
 public class MultipartOneAtATimeSender
 {
-  public MultipartOneAtATimeSender()
+  public MultipartOneAtATimeSender(PacketHandlerRegistry packetHandlerRegistry, Packet250Types acknowledgementPacketType, Side side)
   {
     packetBeingSent = null;
     previousPacketID = MultipartPacket.NULL_PACKET_ID;
     abortedPackets = new TreeSet<Integer>();
     unacknowledgedAbortPackets = new TreeMap<Integer, Packet250MultipartSegment>();
+    incomingPacketHandler = this.new IncomingPacketHandler();
+    Packet250MultipartSegmentAcknowledge.registerHandler(packetHandlerRegistry, incomingPacketHandler, side, acknowledgementPacketType);
   }
 
   /**
@@ -305,5 +312,5 @@ public class MultipartOneAtATimeSender
   private long timeLastAbortPacketSent = -1;
 
   private PacketSender packetSender;
-
+  IncomingPacketHandler incomingPacketHandler;
 }
