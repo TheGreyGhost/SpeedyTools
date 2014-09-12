@@ -1,11 +1,9 @@
 package speedytools.common.network.multipart;
 
 import cpw.mods.fml.relauncher.Side;
-import net.minecraft.network.packet.Packet250CustomPayload;
 import speedytools.clientside.selections.BlockVoxelMultiSelector;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.Packet250Types;
-import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
 

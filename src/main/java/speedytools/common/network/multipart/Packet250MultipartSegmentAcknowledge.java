@@ -1,7 +1,6 @@
 package speedytools.common.network.multipart;
 
 
-import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
@@ -12,9 +11,6 @@ import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.utilities.ErrorLog;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,10 +23,10 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
   /**
    * The packet returns information to the sender about the progress of the multipacket segments
    */
-  public Packet250MultipartSegmentAcknowledge(Packet250Types i_packet250Type, Acknowledgement i_acknowledgement, BitSet i_segmentsToAcknowledge)
+  public Packet250MultipartSegmentAcknowledge(Packet250Types i_packet250Type, Acknowledgement i_acknowledgement, BitSet i_segmentsNotReceivedYet)
   {
     acknowledgement = i_acknowledgement;
-    segmentsToAcknowledge = i_segmentsToAcknowledge;
+    segmentsNotReceivedYet = i_segmentsNotReceivedYet;
     packet250Type = i_packet250Type;
     packetIsValid = true;
   }
@@ -49,8 +45,8 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
     return acknowledgement;
   }
 
-  public BitSet getSegmentsToAcknowledge() {
-    return segmentsToAcknowledge;
+  public BitSet getSegmentsNotReceivedYet() {
+    return segmentsNotReceivedYet;
   }
 
   @Override
@@ -74,7 +70,7 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
           return;
         }
       }
-      segmentsToAcknowledge = BitSet.valueOf(rawBuffer);
+      segmentsNotReceivedYet = BitSet.valueOf(rawBuffer);
 
     } catch (IndexOutOfBoundsException ioe) {
       ErrorLog.defaultLog().info("Exception while reading Packet250MultipartSegmentAcknowledge: " + ioe);
@@ -91,10 +87,10 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
     buf.writeByte(packet250Type.getPacketTypeID());
     buf.writeInt(uniquePacketID);
     buf.writeByte(acknowledgement.getID());
-    if (segmentsToAcknowledge == null) {
+    if (segmentsNotReceivedYet == null) {
       buf.writeShort(0);
     } else {
-      byte [] rawBytes = segmentsToAcknowledge.toByteArray();
+      byte [] rawBytes = segmentsNotReceivedYet.toByteArray();
       buf.writeShort(rawBytes.length);
       buf.writeBytes(rawBytes);
     }
@@ -107,7 +103,7 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
   private boolean checkInvariants()
   {
     if (acknowledgement == null) return false;
-    if (acknowledgement == Acknowledgement.ABORT && segmentsToAcknowledge != null) return false;
+    if (acknowledgement == Acknowledgement.ABORT && segmentsNotReceivedYet != null) return false;
     return true;
   }
 
@@ -201,5 +197,5 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
   private Packet250Types packet250Type;
   private int uniquePacketID;
   private Acknowledgement acknowledgement;
-  private BitSet segmentsToAcknowledge;
+  private BitSet segmentsNotReceivedYet;
 }

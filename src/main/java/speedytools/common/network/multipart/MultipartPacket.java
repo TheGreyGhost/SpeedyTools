@@ -48,40 +48,6 @@ import java.util.BitSet;
 */
 public abstract class MultipartPacket
 {
-//  /**
-//   * returns the uniqueID for this packet, assuming it is a MultipartPacket
-//   * @param packet
-//   * @return the uniqueID, or null if invalid
-//   */
-//  public static Integer readUniqueID(Packet250CustomPayload packet)
-//  {
-//    try {
-//      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
-//      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
-//      return chi.getUniqueID();
-//    } catch (IOException ioe) {
-//      ErrorLog.defaultLog().warning("Exception while reading processIncomingPacket: " + ioe);
-//    }
-//    return null;
-//  }
-
-  /**
-   * returns the packetTypeID for this packet, assuming it is a MultipartPacket
-   * @param packet
-   * @return the packetTypeID, or null if invalid
-   */
-/*  public static Byte readPacketTypeID(Packet250CustomPayload packet)
-  {
-    try {
-      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(packet.data));
-      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
-      return chi.packet250CustomPayloadID;
-    } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Exception while reading processIncomingPacket: " + ioe);
-    }
-    return null;
-  }
-*/
   /**
    * returns the unique ID for this packet
    * @return the packet's unique ID
@@ -116,7 +82,11 @@ public abstract class MultipartPacket
     if (packet.isAbortTransmission()) {
       processAbort();
     } else {
-      processSegmentData(packet);
+      try {
+        processSegmentData(packet);
+      } catch (IOException ioe) {
+        ErrorLog.defaultLog().info(ioe.getMessage());
+      }
     }
 
     return true;
@@ -221,7 +191,7 @@ public abstract class MultipartPacket
    * have all segments been received?
    * @return true if I am a receiver and all segments have been received,
    */
-  public boolean allSegmentsReceived() { return iAmASender ? false : segmentsNotReceived.isEmpty(); }
+  public boolean allSegmentsReceived() { return iAmASender ? false : segmentsNotReceivedYet.isEmpty(); }
 
   /**
    * has this packet has been aborted?
@@ -270,7 +240,7 @@ public abstract class MultipartPacket
       int segmentsComplete = nextUnsentSegment + (segmentCount -  segmentsNotAcknowledged.cardinality());
       return 100 * segmentsComplete / 2 / segmentCount;
     } else {
-      return 100 - (100 * segmentsNotReceived.cardinality() / segmentCount);
+      return 100 - (100 * segmentsNotReceivedYet.cardinality() / segmentCount);
     }
   }
 
@@ -284,20 +254,14 @@ public abstract class MultipartPacket
     if (iAmASender) return null;
     if (aborted) return null;
 
-    Packet250CustomPayload retval = null;
-    try {
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      DataOutputStream outputStream = new DataOutputStream(bos);
-      commonHeaderInfo.writeCommonHeader(outputStream, Command.ACKNOWLEDGEMENT);
-      byte [] buff = segmentsNotReceived.toByteArray();
-      if (buff.length > MAX_SEGMENT_SIZE) throw new IOException("bitset too big");
-      outputStream.writeShort(buff.length);
-      outputStream.write(buff);
-      retval = new Packet250CustomPayload(channel, bos.toByteArray());
-    } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Failed to getAcknowledgementPacket, due to exception " + ioe.toString());
+    Packet250MultipartSegmentAcknowledge retval = null;
+    byte [] rawBitsetBytes = segmentsNotReceivedYet.toByteArray();
+    if (rawBitsetBytes.length > MAX_SEGMENT_SIZE) {
+      ErrorLog.defaultLog().info("Failed to getAcknowledgementPacket, because acknowledgement bitset length " + rawBitsetBytes.length + " is > MAXSEGMENTSIZE" + MAX_SEGMENT_SIZE);
       return null;
     }
+
+    retval = new Packet250MultipartSegmentAcknowledge(packet250Type, Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGEMENT, segmentsNotReceivedYet);
     return retval;
   }
 
@@ -305,20 +269,23 @@ public abstract class MultipartPacket
    * aborts this multipartPacket, and creates a packet to inform that this multipartPacket has been aborted
    * @return the packet, or null for a problem
    */
-  public Packet250CustomPayload getAbortPacket()
+  public Packet250MultipartSegment getSenderAbortPacket()
   {
     assert(checkInvariants());
-    Packet250CustomPayload retval = null;
+    Packet250MultipartSegment retval = new Packet250MultipartSegment(packet250Type, true, (short)0, (short)segmentSize, rawData.length, null);
     aborted = true;
-    try {
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      DataOutputStream outputStream = new DataOutputStream(bos);
-      commonHeaderInfo.writeCommonHeader(outputStream, Command.ABORT);
-      retval = new Packet250CustomPayload(channel, bos.toByteArray());
-    } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Failed to getAbortPacket, due to exception " + ioe.toString());
-      return null;
-    }
+    return retval;
+  }
+
+  /**
+   * aborts this multipartPacket, and creates a packet to inform that this multipartPacket has been aborted
+   * @return the packet, or null for a problem
+   */
+  public Packet250MultipartSegmentAcknowledge getReceiverAbortPacket()
+  {
+    assert(checkInvariants());
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(packet250Type, Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT, null);
+    aborted = true;
     return retval;
   }
 
@@ -327,23 +294,20 @@ public abstract class MultipartPacket
    * @param acknowledgeAbortPackets - if true, generate an abort packet even if the lostPacket is itself an abort packet
    * @return the abort packet, or null if not possible, or if the lostPacket is itself an abort packet and acknowledgeAbortPackets is false
    */
-  public static Packet250CustomPayload getAbortPacketForLostPacket(Packet250CustomPayload lostPacket, boolean acknowledgeAbortPackets)
+  public static Packet250MultipartSegmentAcknowledge getAbortPacketForLostPacket(Packet250MultipartSegment lostPacket, boolean acknowledgeAbortPackets)
   {
-    Packet250CustomPayload retval = null;
-    try {
-      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(lostPacket.data));
-      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
-      if (chi.command == Command.ABORT && !acknowledgeAbortPackets) return null;
+    if (lostPacket.isAbortTransmission() && !acknowledgeAbortPackets) return null;
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type(), Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT, null);
+    return retval;
+  }
 
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      DataOutputStream outputStream = new DataOutputStream(bos);
-      chi.writeCommonHeader(outputStream, Command.ABORT);
-      lostPacket.data = bos.toByteArray();
-      retval = lostPacket;
-    } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Failed to getAbortPacketForLostPacket, due to exception " + ioe.toString());
-      return null;
-    }
+  /**
+   * create a packet to inform that this multipartPacket lostPacket has been aborted
+   * @return the abort packet, or null if not possible, or if the lostPacket is itself an abort packet
+   */
+  public static Packet250MultipartSegment getAbortPacketForLostPacket(Packet250MultipartSegmentAcknowledge lostPacket)
+  {
+    Packet250MultipartSegment retval = new Packet250MultipartSegment(lostPacket.getPacket250Type(), true, (short)0, (short)0, 0, null);
     return retval;
   }
 
@@ -351,22 +315,10 @@ public abstract class MultipartPacket
    * create a packet to inform that this multipartPacket lostPacket has been completed (ACKNOWLEDGE ALL)
    * @return the acknowledge packet, or null if not possible, or an abort packet if the lostPacket is an abort packet
    */
-  public static Packet250CustomPayload getFullAcknowledgePacketForLostPacket(Packet250CustomPayload lostPacket)
+  public static Packet250MultipartSegmentAcknowledge getFullAcknowledgePacketForLostPacket(Packet250MultipartSegment lostPacket)
   {
-    Packet250CustomPayload retval = null;
-    try {
-      DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(lostPacket.data));
-      CommonHeaderInfo chi = CommonHeaderInfo.readCommonHeader(inputStream);
-
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      DataOutputStream outputStream = new DataOutputStream(bos);
-      chi.writeCommonHeader(outputStream, (chi.command == Command.ABORT) ? Command.ABORT : Command.ACKNOWLEDGE_ALL);
-      lostPacket.data = bos.toByteArray();
-      retval = lostPacket;
-    } catch (IOException ioe) {
-      ErrorLog.defaultLog().warning("Failed to getFullAcknowledgePacketForLostPacket, due to exception " + ioe.toString());
-      return null;
-    }
+    if (lostPacket.isAbortTransmission()) return getAbortPacketForLostPacket(lostPacket, true);
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type(), Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGE_ALL, null);
     return retval;
   }
   /**
@@ -386,7 +338,7 @@ public abstract class MultipartPacket
       assert (segmentSize <= Short.MAX_VALUE);
 
       byte [] segmentToSend = Arrays.copyOfRange(rawData, startBuffPos, segmentLength);
-      retval = new Packet250MultipartSegment(packet250Type, false, (short)segmentNumber, (short)segmentSize, segmentToSend);
+      retval = new Packet250MultipartSegment(packet250Type, false, (short)segmentNumber, (short)segmentSize, rawData.length, segmentToSend);
     } catch (IOException ioe) {
       ErrorLog.defaultLog().info("Failed to getAcknowledgementPacket, due to exception " + ioe.toString());
       return null;
@@ -414,7 +366,7 @@ public abstract class MultipartPacket
     segmentCount = 0;
     rawData = null;
     segmentsNotAcknowledged = null;
-    segmentsNotReceived = null;
+    segmentsNotReceivedYet = null;
     acknowledgementsReceivedFlag = false;
     segmentsReceivedFlag = false;
 
@@ -464,8 +416,8 @@ public abstract class MultipartPacket
       segmentsNotAcknowledged = new BitSet(segmentCount);
       segmentsNotAcknowledged.set(0, segmentCount);
     } else {
-      segmentsNotReceived = new BitSet(segmentCount);
-      segmentsNotReceived.set(0, segmentCount);
+      segmentsNotReceivedYet = new BitSet(segmentCount);
+      segmentsNotReceivedYet.set(0, segmentCount);
     }
     assert checkInvariants();
   }
@@ -488,12 +440,13 @@ public abstract class MultipartPacket
   }
 
   /** fully acknowledge this packet
-   * @param inputStream
    * @throws IOException
    */
-  protected void processAcknowledgeAll(DataInputStream inputStream) throws IOException
+  protected void processAcknowledgeAll(Packet250MultipartSegmentAcknowledge packet)
   {
-    if (!iAmASender) throw new IOException("received acknowledgement packet on receiver side");
+    if (!iAmASender) {
+      ErrorLog.defaultLog().info("received acknowledgement packet on receiver side");
+    }
     if (segmentsNotAcknowledged.isEmpty()) return;
     segmentsNotAcknowledged.clear();
     nextUnsentSegment = segmentCount;
@@ -503,119 +456,57 @@ public abstract class MultipartPacket
   }
 
   /** incorporate the data for this segment into the packet
-   * @param inputStream
    * @throws IOException
    */
-  protected void processSegmentData(DataInputStream inputStream) throws IOException
+  protected void processSegmentData(Packet250MultipartSegment segmentPacket) throws IOException
   {
-    short segmentNumber = inputStream.readShort();
-    short pktSegmentSize = inputStream.readShort();
-    int   rawdataLength = inputStream.readInt();
+    short segmentNumber = segmentPacket.getSegmentNumber();
+    short pktSegmentSize = segmentPacket.getSegmentSize();
+    int   rawdataLength = segmentPacket.getFullMultipartLength();
     if (segmentNumber < 0 || segmentNumber >= segmentCount) throw new IOException("Packet segment number " + segmentNumber + " outside valid range [0 - " + (segmentCount-1) + "] inclusive");
-    if (!segmentsNotReceived.get(segmentNumber)) return;  // duplicate of a segment already received, just ignore it
+    if (!segmentsNotReceivedYet.get(segmentNumber)) return;  // duplicate of a segment already received, just ignore it
 
     if (pktSegmentSize != segmentSize) throw new IOException("Packet segment size " + pktSegmentSize + " does not match expected (" + segmentSize + ")");
     if (rawdataLength != rawData.length) throw new IOException("Packet rawdataLength " + rawdataLength + " does not match expected (" + rawData.length + ")");
     int startBuffPos = segmentNumber * segmentSize;
     int expectedSegmentLength = Math.min(segmentSize, rawData.length - startBuffPos);
     assert (expectedSegmentLength < Short.MAX_VALUE);
-    int bytesread = inputStream.read(rawData, startBuffPos, expectedSegmentLength);
-    if (bytesread != expectedSegmentLength) throw new IOException("Size of segment data read " + bytesread + " did not match expected " + expectedSegmentLength);
+    try {
+      System.arraycopy(segmentPacket.getRawData(), 0, rawData, startBuffPos, expectedSegmentLength);
+    } catch (IndexOutOfBoundsException iobe) {
+      ErrorLog.defaultLog().info("Size of segment data read " + expectedSegmentLength + " was too big for the target buffer ");
+    }
 
-    segmentsNotReceived.clear(segmentNumber);
+    segmentsNotReceivedYet.clear(segmentNumber);
     segmentsReceivedFlag = true;
     assert checkInvariants();
   }
 
   /** integrate the acknowledgement bits into this packet
-   * @param inputStream
    * @throws IOException
    */
-  protected void processAcknowledgement(DataInputStream inputStream) throws IOException
+  protected void processAcknowledgement(Packet250MultipartSegmentAcknowledge acknowledgementPacket)
   {
-    if (!iAmASender) throw new IOException("received acknowledgement packet on receiver side");
-    short ackDataLength = inputStream.readShort();
-    if (ackDataLength < 0) throw new IOException("Invalid data length" + ackDataLength);
-    byte [] buff = new byte[ackDataLength];
-    if (ackDataLength != 0) {
-      int readcount = inputStream.read(buff);
-      if (readcount != ackDataLength) throw new IOException("readCount " + readcount + " didn't match expected " + ackDataLength);
+    if (!iAmASender) {
+      ErrorLog.defaultLog().info("received Packet250MultipartSegmentAcknowledge on receiver side");
+      return;
     }
-    BitSet notAcknowledged = BitSet.valueOf(buff);
+
+    BitSet notAcknowledgedNew = acknowledgementPacket.getSegmentsNotReceivedYet();
 
     // check to see if we have received acknowledgement for any segments we haven't sent yet!
     //  i.e. if the last zero is greater than the sent segment count
-    int lastAcknowledgedPacket = notAcknowledged.previousClearBit(segmentCount - 1);
-    if (lastAcknowledgedPacket >= nextUnsentSegment) throw new IOException("acknowledged segment was never sent");
+    int lastAcknowledgedPacket = notAcknowledgedNew.previousClearBit(segmentCount - 1);
+    if (lastAcknowledgedPacket >= nextUnsentSegment) {
+      ErrorLog.defaultLog().info("acknowledged segment was never sent in incoming Packet250MultipartSegmentAcknowledge");
+      return;
+    }
     BitSet savedNack = (BitSet)segmentsNotAcknowledged.clone();
-    segmentsNotAcknowledged.and(notAcknowledged);
+    segmentsNotAcknowledged.and(notAcknowledgedNew);
     if (!savedNack.equals(segmentsNotAcknowledged)) acknowledgementsReceivedFlag = true;
     assert checkInvariants();
   }
 
-  protected enum Command {
-    SEGMENTDATA, ACKNOWLEDGEMENT, ABORT, ACKNOWLEDGE_ALL;
-    public static final Command[] allValues = {SEGMENTDATA, ACKNOWLEDGEMENT, ABORT, ACKNOWLEDGE_ALL};
-  }
-
-  private static Command byteToCommand(byte value)
-  {
-    if (value < 0 || value >= Command.allValues.length) return null;
-    return Command.allValues[value];
-  }
-
-  private static byte commandToByte(Command value) throws IOException
-  {
-    byte retval;
-
-    if (value != null) {
-      for (retval = 0; retval < Command.allValues.length; ++retval) {
-        if (Command.allValues[retval] == value) return retval;
-      }
-    }
-    throw new IOException("Invalid Command value");
-  }
-
-  public static class CommonHeaderInfo
-  {
-    public byte packet250CustomPayloadID;
-    public int uniquePacketID;
-    public Command command;
-
-    public int getUniqueID() {
-      return uniquePacketID;
-    }
-
-    /**
-     * reads the header common to all packet types
-     * @param inputStream
-     * @return true if the packet is valid, false otherwise
-     * @throws IOException
-     */
-    public static CommonHeaderInfo readCommonHeader(DataInputStream inputStream) throws IOException
-    {
-      CommonHeaderInfo chi = new CommonHeaderInfo();
-      chi.packet250CustomPayloadID = inputStream.readByte();
-      chi.uniquePacketID = inputStream.readInt();
-      chi.command = byteToCommand(inputStream.readByte());
-      return chi;
-    }
-
-    /**
-     *   Writes the header common to all packet types
-     *    - byte packet250CustomPayloadID (as per normal Packet250CustomPayload data[0])
-     *    - byte multipartPacket type ID (unique for each class derived from MultipartPacket eg MapdataPacket extends MultipartPacket, SelectiondataPacket extends MultipartPacket, etc)
-     *    - int uniqueMultipartPacketID (in ascending order) - unique ID for the whole packet
-     *    - byte command type (segment data, acknowledgement of segments, abort)
-     * @param outputStream
-     */
-    public void writeCommonHeader(DataOutputStream outputStream, Command command) throws IOException
-    {
-      outputStream.writeByte(packet250CustomPayloadID);
-      outputStream.writeInt(uniquePacketID);
-      outputStream.writeByte(commandToByte(command));
-    }
-  }
 
   // derived classes should implement this interface so that others wishing to create a new MultipartPacket (in response to an incoming packet) can pass this object to the packet handler which will invoke it.
   public interface MultipartPacketCreator
@@ -638,9 +529,9 @@ public abstract class MultipartPacket
       if (segmentsNotAcknowledged.length() > segmentCount) return false;
       if (segmentsNotAcknowledged == null || segmentsNotAcknowledged.length() > segmentCount) return false;
       if (segmentsNotAcknowledged.previousClearBit(segmentCount-1) > nextUnsentSegment) return false;
-      if ((commonHeaderInfo.uniquePacketID & 1) != (whichSideAmIOn == Side.SERVER ? 1 : 0 )) return false;
+      if ((uniquePacketID & 1) != (whichSideAmIOn == Side.SERVER ? 1 : 0 )) return false;
     } else {
-      if (segmentsNotReceived == null || segmentsNotReceived.length() > segmentCount) return false;
+      if (segmentsNotReceivedYet == null || segmentsNotReceivedYet.length() > segmentCount) return false;
     }
 
     return true;
@@ -650,9 +541,7 @@ public abstract class MultipartPacket
   public static final int MAX_SEGMENT_SIZE = 30000;
   public static final int NULL_PACKET_ID = -1;
 
-  private String channel;
   private Side whichSideAmIOn;
-//  private CommonHeaderInfo commonHeaderInfo = new CommonHeaderInfo();
 
   private Packet250Types packet250Type;
   private int uniquePacketID;
@@ -661,13 +550,14 @@ public abstract class MultipartPacket
   private byte [] rawData;
 
   private boolean iAmASender;                    // true if this packet is being sent; false if it's being received.
-  private BitSet segmentsNotReceived;
   private BitSet segmentsNotAcknowledged;
   private boolean acknowledgementsReceivedFlag;  // set to true once one or more acknowledgements have been received
-  private boolean segmentsReceivedFlag;          // set to true once one or more segments have been received
-
   private int nextUnsentSegment = -1;         // the next segment we have never sent.  -1 is dummy value to trigger error if we forget to initialise
   private int nextUnacknowledgedSegment = -1; // the next unacknowledged segment.
+
+  private BitSet segmentsNotReceivedYet;
+  private boolean segmentsReceivedFlag;          // set to true once one or more segments have been received
+
   private boolean aborted = false;
 
   private static int nextUniquePacketID = 0;      // unique across all packets sent from this server and derived from MultipartPacket
