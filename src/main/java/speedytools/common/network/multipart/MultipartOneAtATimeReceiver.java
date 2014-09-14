@@ -1,13 +1,10 @@
 package speedytools.common.network.multipart;
 
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.relauncher.Side;
-import speedytools.common.network.Packet250Types;
-import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
 import speedytools.common.utilities.ErrorLog;
 
-import java.util.*;
+import java.util.TreeSet;
 
 /**
 * User: The Grey Ghost
@@ -32,9 +29,7 @@ import java.util.*;
 */
 public class MultipartOneAtATimeReceiver
 {
-  public MultipartOneAtATimeReceiver(PacketHandlerRegistry packetHandlerRegistry, Side side,
-                                     Packet250Types acknowledgementPacketType, MultipartPacket.MultipartPacketCreator packetCreator
-                                     )
+  public MultipartOneAtATimeReceiver()
   {
     packetCreatorRegistry = null;
     packetLinkageFactory = null;
@@ -44,8 +39,8 @@ public class MultipartOneAtATimeReceiver
     abortedPacketIDs = new TreeSet<Integer>();
     completedPacketIDs = new TreeSet<Integer>();
     incomingPacketHandler = this.new IncomingPacketHandler();
-    Packet250MultipartSegment.registerHandler(packetHandlerRegistry, incomingPacketHandler, side, acknowledgementPacketType);
-    registerPacketCreator(packetCreator);
+//    Packet250MultipartSegment.registerHandler(packetHandlerRegistry, incomingPacketHandler, side, acknowledgementPacketType);
+//    registerPacketCreator(packetCreator);
   }
 
   /**
@@ -87,66 +82,70 @@ public class MultipartOneAtATimeReceiver
      * @return true for success, false if packet is invalid or is ignored
      */
     public boolean handlePacket(Packet250MultipartSegment packet, MessageContext ctx) {
-      int packetUniqueID = packet.getUniqueID();
-
-      // If this is an old packet;
-      // resend our acknowledgement (either abort, or full acknowledge), or ignore if we don't recognise it
-      if (packetUniqueID <= newestOldPacketID) {
-        if (abortedPacketIDs.contains(packetUniqueID)) {
-          Packet250MultipartSegmentAcknowledge abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, true);
-          if (abortPacket != null) packetSender.sendPacket(abortPacket);
-        } else if (completedPacketIDs.contains(packetUniqueID)) {
-          Packet250MultipartSegmentAcknowledge fullAckPacket = MultipartPacket.getFullAcknowledgePacketForLostPacket(packet);
-          if (fullAckPacket != null) packetSender.sendPacket(fullAckPacket);
-        }
-        return false;
-      }
-
-      // if we're already receiving this packet, process it
-      // otherwise, create a new one, aborting the packet in progress if there is one
-
-      if (packetBeingReceived != null) {
-        if (packetBeingReceived.packet.getUniqueID() == packetUniqueID) {
-          PacketTransmissionInfo pti = packetBeingReceived;
-          boolean success = doProcessIncoming(pti, packet);
-          if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
-          return success;
-        }
-        doAbortPacket();
-      }
-
-      if (packetCreatorRegistry == null) {
-        ErrorLog.defaultLog().info("Received packet but no corresponding PacketCreator in registry");
-        return false;
-      }
-
-      if (packetLinkageFactory == null) {
-        ErrorLog.defaultLog().info("Received packet but no corresponding LinkageFactory in registry");
-        return false;
-      }
-
-      MultipartPacket newPacket = packetCreatorRegistry.createNewPacket(packet);
-      if (newPacket == null) { // something wrong! send abort packet back
-        Packet250MultipartSegmentAcknowledge abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, true);
-        packetSender.sendPacket(abortPacket);
-        return false;
-      }
-      PacketLinkage newLinkage = packetLinkageFactory.createNewLinkage(newPacket);
-      if (newLinkage == null) return false;
-
-      PacketTransmissionInfo packetTransmissionInfo = new PacketTransmissionInfo();
-      packetTransmissionInfo.packet = newPacket;
-      packetTransmissionInfo.linkage = newLinkage;
-      packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.RECEIVING;
-      packetTransmissionInfo.timeOfLastAction = System.nanoTime();
-      assert (packetBeingReceived == null);
-      packetBeingReceived = packetTransmissionInfo;
-      boolean success = doProcessIncoming(packetTransmissionInfo, packet);
-      if (success) newLinkage.progressUpdate(newPacket.getPercentComplete());
-      return success;
+      return processIncomingPacket(packet);
     }
   }
 
+  public boolean processIncomingPacket(Packet250MultipartSegment packet)
+  {
+    int packetUniqueID = packet.getUniqueMultipartID();
+
+    // If this is an old packet;
+    // resend our acknowledgement (either abort, or full acknowledge), or ignore if we don't recognise it
+    if (packetUniqueID <= newestOldPacketID) {
+    if (abortedPacketIDs.contains(packetUniqueID)) {
+      Packet250MultipartSegmentAcknowledge abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, true);
+      if (abortPacket != null) packetSender.sendPacket(abortPacket);
+    } else if (completedPacketIDs.contains(packetUniqueID)) {
+      Packet250MultipartSegmentAcknowledge fullAckPacket = MultipartPacket.getFullAcknowledgePacketForLostPacket(packet);
+      if (fullAckPacket != null) packetSender.sendPacket(fullAckPacket);
+    }
+    return false;
+  }
+
+    // if we're already receiving this packet, process it
+    // otherwise, create a new one, aborting the packet in progress if there is one
+
+    if (packetBeingReceived != null) {
+    if (packetBeingReceived.packet.getUniqueID() == packetUniqueID) {
+      PacketTransmissionInfo pti = packetBeingReceived;
+      boolean success = doProcessIncoming(pti, packet);
+      if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
+      return success;
+    }
+    doAbortPacket();
+  }
+
+    if (packetCreatorRegistry == null) {
+    ErrorLog.defaultLog().info("Received packet but no corresponding PacketCreator in registry");
+    return false;
+  }
+
+    if (packetLinkageFactory == null) {
+    ErrorLog.defaultLog().info("Received packet but no corresponding LinkageFactory in registry");
+    return false;
+  }
+
+    MultipartPacket newPacket = packetCreatorRegistry.createNewPacket(packet);
+    if (newPacket == null) { // something wrong! send abort packet back
+    Packet250MultipartSegmentAcknowledge abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet, true);
+    packetSender.sendPacket(abortPacket);
+    return false;
+  }
+    PacketLinkage newLinkage = packetLinkageFactory.createNewLinkage(newPacket);
+    if (newLinkage == null) return false;
+
+    PacketTransmissionInfo packetTransmissionInfo = new PacketTransmissionInfo();
+    packetTransmissionInfo.packet = newPacket;
+    packetTransmissionInfo.linkage = newLinkage;
+    packetTransmissionInfo.transmissionState = PacketTransmissionInfo.TransmissionState.RECEIVING;
+    packetTransmissionInfo.timeOfLastAction = System.nanoTime();
+    assert (packetBeingReceived == null);
+    packetBeingReceived = packetTransmissionInfo;
+    boolean success = doProcessIncoming(packetTransmissionInfo, packet);
+    if (success) newLinkage.progressUpdate(newPacket.getPercentComplete());
+    return success;
+  }
 
   private boolean doProcessIncoming(PacketTransmissionInfo packetTransmissionInfo, Packet250MultipartSegment packet)
   {

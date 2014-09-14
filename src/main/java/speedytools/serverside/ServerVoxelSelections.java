@@ -1,16 +1,16 @@
 package speedytools.serverside;
 
-import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import speedytools.common.network.Packet250Types;
-import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;
 import speedytools.common.network.multipart.MultipartPacket;
+import speedytools.common.network.multipart.Packet250MultipartSegment;
 import speedytools.common.network.multipart.SelectionPacket;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.serverside.network.PacketHandlerRegistryServer;
 import speedytools.serverside.network.PacketSenderServer;
 
 import java.lang.ref.WeakReference;
@@ -28,13 +28,16 @@ import java.util.WeakHashMap;
 */
 public class ServerVoxelSelections
 {
-  public ServerVoxelSelections(PacketHandlerRegistry packetHandlerRegistry)
+  public ServerVoxelSelections(PacketHandlerRegistryServer i_packetHandlerRegistryServer)
   {
 //    playerTracker = this.new PlayerTracker();
 //    GameRegistry.registerPlayerTracker(playerTracker);   //todo reinstate player tracker
     packetHandlerVoxel = this.new PacketHandlerVoxel();
+    packetHandlerRegistryServer = i_packetHandlerRegistryServer;
 
-    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_SELECTION_PACKET.getPacketTypeID(), packetHandlerVoxel);
+    Packet250MultipartSegment.registerHandler(packetHandlerRegistryServer, packetHandlerVoxel, Side.SERVER,
+                                              Packet250Types.PACKET250_SELECTION_PACKET);
+//    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_SELECTION_PACKET.getPacketTypeID(), packetHandlerVoxel);
   }
 
   /** returns the current VoxelSelection for this player, or null if none
@@ -64,7 +67,7 @@ public class ServerVoxelSelections
       MultipartOneAtATimeReceiver newReceiver = new MultipartOneAtATimeReceiver();
       newReceiver.registerPacketCreator(new SelectionPacket.SelectionPacketCreator());
       newReceiver.registerLinkageFactory(new VoxelLinkageFactory(newPlayer));
-      newReceiver.setPacketSender(new PacketSenderServer(newPlayer));
+      newReceiver.setPacketSender(new PacketSenderServer(packetHandlerRegistryServer, newPlayer));
       playerMOATreceivers.put(newPlayer, newReceiver);
     }
   }
@@ -79,16 +82,18 @@ public class ServerVoxelSelections
 
   private WeakHashMap<EntityPlayerMP, MultipartOneAtATimeReceiver> playerMOATreceivers = new WeakHashMap<EntityPlayerMP, MultipartOneAtATimeReceiver>();
 
-  public class PacketHandlerVoxel implements PacketHandlerRegistry.PacketHandlerMethod {
-    public boolean handlePacket(EntityPlayer player, Packet250CustomPayload packet)
-    {
-      assert player instanceof EntityPlayerMP;
-      if (!playerMOATreceivers.containsKey(player)) {
-        ErrorLog.defaultLog().info("ServerVoxelSelections:: Packet received from player not in playerMOATreceivers");
-        return false;
-      }
+  public class PacketHandlerVoxel implements Packet250MultipartSegment.PacketHandlerMethod {
+    @Override
+    public boolean handlePacket(Packet250MultipartSegment packet250MultipartSegment, MessageContext ctx) {
+      {
+        EntityPlayerMP entityPlayerMP = ctx.getServerHandler().playerEntity;
+        if (!playerMOATreceivers.containsKey(entityPlayerMP)) {
+          ErrorLog.defaultLog().info("ServerVoxelSelections:: Packet received from player not in playerMOATreceivers");
+          return false;
+        }
 //      System.out.println("ServerVoxelSelections packet received");
-      return playerMOATreceivers.get(player).processIncomingPacket(packet);
+        return playerMOATreceivers.get(entityPlayerMP).processIncomingPacket(packet250MultipartSegment);
+      }
     }
   }
   private PacketHandlerVoxel packetHandlerVoxel;
@@ -154,4 +159,5 @@ public class ServerVoxelSelections
     private WeakReference<EntityPlayerMP> myPlayer;
   }
 
+  private PacketHandlerRegistryServer packetHandlerRegistryServer;
 }

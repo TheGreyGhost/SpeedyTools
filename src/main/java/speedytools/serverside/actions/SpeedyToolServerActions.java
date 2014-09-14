@@ -1,6 +1,7 @@
 package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.Item;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -125,14 +126,14 @@ public class SpeedyToolServerActions
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
     AsynchronousActionBase token;
-    if (toolID == RegistryForItems.itemComplexCopy.itemID) {
+    if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexCopy)) {
       token = new AsynchronousActionCopy(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
-    } else if (toolID == RegistryForItems.itemComplexDelete.itemID) {
+    } else if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexDelete)) {
       token = new AsynchronousActionDelete(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
-    } else if (toolID == RegistryForItems.itemComplexMove.itemID) {
+    } else if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexMove)) {
       token = new AsynchronousActionMove(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     } else {
-      ErrorLog.defaultLog().warning("Invalid toolID received in performComplexAction:" + toolID);
+      ErrorLog.defaultLog().info("Invalid toolID received in performComplexAction:" + toolID);
       return ResultWithReason.failure();
     }
 

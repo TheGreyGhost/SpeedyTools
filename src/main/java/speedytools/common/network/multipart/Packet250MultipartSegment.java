@@ -6,16 +6,13 @@ import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.ChunkCoordinates;
-import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.Packet250Base;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.utilities.ErrorLog;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
 * This class is used to inform the server when the user has used a SpeedyTool, and pass it information about the affected blocks.
@@ -25,10 +22,12 @@ public class Packet250MultipartSegment extends Packet250Base
   /** Used to transmit one of the multipacket segments to the receiver (or abort transmission)
    */
   public Packet250MultipartSegment(Packet250Types i_packet250Type, boolean i_abortTransmission,
+                                   int i_uniqueMultipartID,
                                    short i_segmentNumber, short i_segmentSize, int i_fullMultipartLength, byte [] i_rawData)
   {
     packet250Type = i_packet250Type;
     abortTransmission = i_abortTransmission;
+    uniqueMultipartID = i_uniqueMultipartID;
     segmentNumber = i_segmentNumber;
     segmentSize = i_segmentSize;
     fullMultipartLength = i_fullMultipartLength;
@@ -56,8 +55,8 @@ public class Packet250MultipartSegment extends Packet250Base
     return rawData;
   }
 
-  public int getUniqueID() {
-    return uniquePacketID;
+  public int getUniqueMultipartID() {
+    return uniqueMultipartID;
   }
 
   public int getFullMultipartLength() {
@@ -181,12 +180,12 @@ public class Packet250MultipartSegment extends Packet250Base
   }
 
   private Packet250Types packet250Type;
-  private int uniquePacketID;
-  private boolean abortTransmission;
-  private short segmentNumber;
-  private short segmentSize;
-  private int fullMultipartLength;
-  private byte [] rawData;
+  private int uniqueMultipartID;
+  protected boolean abortTransmission;            // these fields are protected to allow for testing by MultipartPacketTest
+  protected short segmentNumber;
+  protected short segmentSize;
+  protected int fullMultipartLength;
+  protected byte [] rawData;
 
   private static Map<Packet250Types, PacketHandlerMethod> serverSideHandlers = new HashMap<Packet250Types, PacketHandlerMethod>();
   private static Map<Packet250Types, PacketHandlerMethod> clientSideHandlers = new HashMap<Packet250Types, PacketHandlerMethod>();

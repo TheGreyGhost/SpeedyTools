@@ -70,8 +70,8 @@ public abstract class MultipartPacket
       ErrorLog.defaultLog().info("Invalid incoming packet in processIncomingPacket");
       return false;
     }
-    if (packet.getUniqueID() != uniquePacketID) {
-      ErrorLog.defaultLog().info("incoming unique ID " + packet.getUniqueID()+ " doesn't match multipart unique ID " + uniquePacketID);
+    if (packet.getUniqueMultipartID() != uniquePacketID) {
+      ErrorLog.defaultLog().info("incoming unique ID " + packet.getUniqueMultipartID()+ " doesn't match multipart unique ID " + uniquePacketID);
       return false;
     }
     if (packet.getPacket250Type() != packet250Type) {
@@ -86,6 +86,7 @@ public abstract class MultipartPacket
         processSegmentData(packet);
       } catch (IOException ioe) {
         ErrorLog.defaultLog().info(ioe.getMessage());
+        return false;
       }
     }
 
@@ -261,7 +262,8 @@ public abstract class MultipartPacket
       return null;
     }
 
-    retval = new Packet250MultipartSegmentAcknowledge(packet250Type, Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGEMENT, segmentsNotReceivedYet);
+    retval = new Packet250MultipartSegmentAcknowledge(packet250Type, Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGEMENT,
+                                                      uniquePacketID, segmentsNotReceivedYet);
     return retval;
   }
 
@@ -272,7 +274,8 @@ public abstract class MultipartPacket
   public Packet250MultipartSegment getSenderAbortPacket()
   {
     assert(checkInvariants());
-    Packet250MultipartSegment retval = new Packet250MultipartSegment(packet250Type, true, (short)0, (short)segmentSize, rawData.length, null);
+    Packet250MultipartSegment retval = new Packet250MultipartSegment(packet250Type, true, uniquePacketID,
+            (short)0, (short)segmentSize, rawData.length, null);
     aborted = true;
     return retval;
   }
@@ -284,7 +287,8 @@ public abstract class MultipartPacket
   public Packet250MultipartSegmentAcknowledge getReceiverAbortPacket()
   {
     assert(checkInvariants());
-    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(packet250Type, Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT, null);
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(packet250Type,
+            Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT, uniquePacketID, null);
     aborted = true;
     return retval;
   }
@@ -297,7 +301,8 @@ public abstract class MultipartPacket
   public static Packet250MultipartSegmentAcknowledge getAbortPacketForLostPacket(Packet250MultipartSegment lostPacket, boolean acknowledgeAbortPackets)
   {
     if (lostPacket.isAbortTransmission() && !acknowledgeAbortPackets) return null;
-    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type(), Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT, null);
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type(),
+            Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT, lostPacket.getUniqueMultipartID(), null);
     return retval;
   }
 
@@ -307,7 +312,8 @@ public abstract class MultipartPacket
    */
   public static Packet250MultipartSegment getAbortPacketForLostPacket(Packet250MultipartSegmentAcknowledge lostPacket)
   {
-    Packet250MultipartSegment retval = new Packet250MultipartSegment(lostPacket.getPacket250Type(), true, (short)0, (short)0, 0, null);
+    if (lostPacket.getAcknowledgement() == Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT) return null;
+    Packet250MultipartSegment retval = new Packet250MultipartSegment(lostPacket.getPacket250Type(), true, lostPacket.getUniqueID(), (short)0, (short)0, 0, null);
     return retval;
   }
 
@@ -318,7 +324,8 @@ public abstract class MultipartPacket
   public static Packet250MultipartSegmentAcknowledge getFullAcknowledgePacketForLostPacket(Packet250MultipartSegment lostPacket)
   {
     if (lostPacket.isAbortTransmission()) return getAbortPacketForLostPacket(lostPacket, true);
-    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type(), Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGE_ALL, null);
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type(),
+            Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGE_ALL, lostPacket.getUniqueMultipartID(), null);
     return retval;
   }
   /**
@@ -337,10 +344,13 @@ public abstract class MultipartPacket
       assert (segmentNumber <= Short.MAX_VALUE);
       assert (segmentSize <= Short.MAX_VALUE);
 
-      byte [] segmentToSend = Arrays.copyOfRange(rawData, startBuffPos, segmentLength);
-      retval = new Packet250MultipartSegment(packet250Type, false, (short)segmentNumber, (short)segmentSize, rawData.length, segmentToSend);
+      byte [] segmentToSend = Arrays.copyOfRange(rawData, startBuffPos, startBuffPos + segmentLength);
+      retval = new Packet250MultipartSegment(packet250Type, false, uniquePacketID, (short)segmentNumber, (short)segmentSize, rawData.length, segmentToSend);
     } catch (IOException ioe) {
       ErrorLog.defaultLog().info("Failed to getAcknowledgementPacket, due to exception " + ioe.toString());
+      return null;
+    } catch (IllegalArgumentException iae) {
+      ErrorLog.defaultLog().info("Failed to getAcknowledgementPacket, due to exception " + iae.toString());
       return null;
     }
     return retval;
@@ -386,16 +396,16 @@ public abstract class MultipartPacket
     if (packet.isAbortTransmission()) throw new IOException("Tried to create a new Multipart packet from an abort packet");
 
     packet250Type = packet.getPacket250Type();
-    uniquePacketID = packet.getUniqueID();
+    uniquePacketID = packet.getUniqueMultipartID();
     segmentSize = packet.getSegmentSize();
     int fullMultipartLength = packet.getFullMultipartLength();
 
     if (segmentSize <= 0 || segmentSize > MAX_SEGMENT_SIZE) throw new IOException("Packet segment size " + segmentSize + " out of allowable range [1 - " + MAX_SEGMENT_SIZE + "]");
 
-    int segmentCount = (fullMultipartLength + segmentSize - 1) / segmentSize;
-    if (segmentCount <= 0 || segmentCount > MAX_SEGMENT_COUNT) throw new IOException("Segment count " + segmentCount + " out of allowable range [1 - " + MAX_SEGMENT_COUNT + "]");
+    int checkSegmentCount = (fullMultipartLength + segmentSize - 1) / segmentSize;
+    if (checkSegmentCount <= 0 || checkSegmentCount > MAX_SEGMENT_COUNT) throw new IOException("Segment count " + checkSegmentCount + " out of allowable range [1 - " + MAX_SEGMENT_COUNT + "]");
 
-    rawData = packet.getRawData();
+    setRawData(new byte[fullMultipartLength]);
   }
 
   private MultipartPacket() {};

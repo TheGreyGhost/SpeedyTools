@@ -986,9 +986,9 @@ public class InGameTester
       final int WOOL_YELLOW_COLOUR_ID = 4;
       final int WOOL_GREEN_COLOUR_ID = 5;
       drawSingleTestRegionBoundaries(Blocks.wool, WOOL_BLUE_COLOUR_ID, testRegionInitialiser);
-      drawSingleTestRegionBoundaries(Block.cloth.blockID, WOOL_PURPLE_COLOUR_ID, sourceRegion);
-      if (expectedOutcome != null) drawSingleTestRegionBoundaries(Block.cloth.blockID, WOOL_YELLOW_COLOUR_ID, expectedOutcome);
-      drawSingleTestRegionBoundaries(Block.cloth.blockID, WOOL_GREEN_COLOUR_ID, testOutputRegion);
+      drawSingleTestRegionBoundaries(Blocks.wool, WOOL_PURPLE_COLOUR_ID, sourceRegion);
+      if (expectedOutcome != null) drawSingleTestRegionBoundaries(Blocks.wool, WOOL_YELLOW_COLOUR_ID, expectedOutcome);
+      drawSingleTestRegionBoundaries(Blocks.wool, WOOL_GREEN_COLOUR_ID, testOutputRegion);
     }
 
     /**

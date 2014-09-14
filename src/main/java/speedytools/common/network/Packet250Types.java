@@ -25,5 +25,5 @@ public enum Packet250Types
   private Packet250Types(int i_packetTypeID) {
     packetTypeID = (byte)i_packetTypeID;
   }
-  public final byte packetTypeID;
+  private final byte packetTypeID;
 }

@@ -23,11 +23,13 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
   /**
    * The packet returns information to the sender about the progress of the multipacket segments
    */
-  public Packet250MultipartSegmentAcknowledge(Packet250Types i_packet250Type, Acknowledgement i_acknowledgement, BitSet i_segmentsNotReceivedYet)
+  public Packet250MultipartSegmentAcknowledge(Packet250Types i_packet250Type, Acknowledgement i_acknowledgement,
+                                              int i_uniquePacketID, BitSet i_segmentsNotReceivedYet)
   {
     acknowledgement = i_acknowledgement;
     segmentsNotReceivedYet = i_segmentsNotReceivedYet;
     packet250Type = i_packet250Type;
+    uniqueMultipartID = i_uniquePacketID;
     packetIsValid = true;
   }
 
@@ -38,7 +40,7 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
   }
 
   public int getUniqueID() {
-    return uniquePacketID;
+    return uniqueMultipartID;
   }
 
   public Acknowledgement getAcknowledgement() {
@@ -54,7 +56,7 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
     try {
       packetIsValid = false;
       packet250Type = Packet250Types.byteToPacket250Type(buf.readByte());
-      uniquePacketID = buf.readInt();
+      uniqueMultipartID = buf.readInt();
       acknowledgement = Acknowledgement.byteToAcknowledgement(buf.readByte());
 
       short ackDataLength = buf.readShort();
@@ -85,7 +87,7 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
     checkInvariants();
     if (!isPacketIsValid()) return;
     buf.writeByte(packet250Type.getPacketTypeID());
-    buf.writeInt(uniquePacketID);
+    buf.writeInt(uniqueMultipartID);
     buf.writeByte(acknowledgement.getID());
     if (segmentsNotReceivedYet == null) {
       buf.writeShort(0);
@@ -195,7 +197,7 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
   private static Map<Packet250Types, PacketHandlerMethod> clientSideHandlers = new HashMap<Packet250Types, PacketHandlerMethod>();
 
   private Packet250Types packet250Type;
-  private int uniquePacketID;
+  private int uniqueMultipartID;
   private Acknowledgement acknowledgement;
   private BitSet segmentsNotReceivedYet;
 }
