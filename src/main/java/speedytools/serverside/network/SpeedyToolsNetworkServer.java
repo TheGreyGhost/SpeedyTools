@@ -1,14 +1,14 @@
 package speedytools.serverside.network;
 
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import speedytools.common.network.Packet250CloneToolAcknowledge.Acknowledgement;
 import speedytools.common.network.*;
+import speedytools.common.network.Packet250CloneToolAcknowledge.Acknowledgement;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.ResultWithReason;
+import speedytools.serverside.PlayerTrackerRegistry;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.actions.SpeedyToolServerActions;
 
@@ -40,7 +40,7 @@ import java.util.Map;
 
 public class SpeedyToolsNetworkServer
 {
-  public SpeedyToolsNetworkServer(PacketHandlerRegistryServer i_packetHandlerRegistry, SpeedyToolServerActions i_speedyToolServerActions)
+  public SpeedyToolsNetworkServer(PacketHandlerRegistryServer i_packetHandlerRegistry, SpeedyToolServerActions i_speedyToolServerActions, PlayerTrackerRegistry playerTrackerRegistry)
   {
     packetHandlerRegistry = i_packetHandlerRegistry;
     playerStatuses = new HashMap<EntityPlayerMP, ClientStatus>();
@@ -64,8 +64,8 @@ public class SpeedyToolsNetworkServer
     packetHandlerSpeedyToolUse = this.new PacketHandlerSpeedyToolUse();
     Packet250SpeedyToolUse.registerHandler(i_packetHandlerRegistry, packetHandlerSpeedyToolUse, Side.SERVER);
 
-//    playerTracker = this.new PlayerTracker();                 todo reinstate player tracker
-//    GameRegistry.registerPlayerTracker(playerTracker);
+    playerTracker = this.new PlayerTracker();
+    playerTrackerRegistry.registerHandler(playerTracker);
   }
 
   public void addPlayer(EntityPlayerMP newPlayer)
@@ -303,9 +303,7 @@ public class SpeedyToolsNetworkServer
             }
           }
           sendAcknowledgementWithReason(player, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, Acknowledgement.NOUPDATE, 0, result.getReason());
-//          if (result.succeeded()) {
-//            actionCompleted(player, sequenceNumber);             // todo: later - remove this when async
-//          }
+
         }
         break;
       }
@@ -355,9 +353,6 @@ public class SpeedyToolsNetworkServer
               }
             }
             sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
-//            if (result.succeeded()) {
-//              undoCompleted(player, sequenceNumber);             // todo: later - remove this when async
-//            }
             break;
           } else if (packet.getActionToBeUndoneSequenceNumber() > lastAcknowledgedAction.get(player)    ) {  // undo for an action we haven't received yet
             sendAcknowledgementWithReason(player, Acknowledgement.REJECTED, packet.getActionToBeUndoneSequenceNumber(),
@@ -460,23 +455,23 @@ public class SpeedyToolsNetworkServer
   private PacketHandlerSpeedyToolUse packetHandlerSpeedyToolUse;
 
 
-//  private class PlayerTracker implements IPlayerTracker                      todo update player tracker
-//  {
-//    public void onPlayerLogin(EntityPlayer player)
-//    {
-//      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-//      SpeedyToolsNetworkServer.this.addPlayer(entityPlayerMP);
-//    }
-//    public void onPlayerLogout(EntityPlayer player)
-//    {
-//      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-//      SpeedyToolsNetworkServer.this.removePlayer(entityPlayerMP);
-//    }
-//    public void onPlayerChangedDimension(EntityPlayer player) {}
-//    public void onPlayerRespawn(EntityPlayer player) {}
-//  }
-//
-//  private PlayerTracker playerTracker;
+  private class PlayerTracker implements PlayerTrackerRegistry.IPlayerTracker
+  {
+    public void onPlayerLogin(EntityPlayer player)
+    {
+      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+      SpeedyToolsNetworkServer.this.addPlayer(entityPlayerMP);
+    }
+    public void onPlayerLogout(EntityPlayer player)
+    {
+      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+      SpeedyToolsNetworkServer.this.removePlayer(entityPlayerMP);
+    }
+    public void onPlayerChangedDimension(EntityPlayer player) {}
+    public void onPlayerRespawn(EntityPlayer player) {}
+  }
+
+  private PlayerTracker playerTracker;
 
   private Map<EntityPlayerMP, ClientStatus> playerStatuses;
   private Map<EntityPlayerMP, PacketSenderServer> playerPacketSenders;

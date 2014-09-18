@@ -14,7 +14,7 @@ import speedytools.serverside.network.SpeedyToolsNetworkServer;
 /**
 * Created by TheGreyGhost on 26/06/14.
 * used for in-game testing of the client user interface to simulate different server conditions
-* Test mode is selected by putting the test ItemSpeedyTester item into the leftmost inventory slot
+* Test mode is selected by putting the test ItemSpeedyTester item into the leftmost inventory slot and changing the stack size
 *
 * test condition:
 * (1) server state forced to PERFORMING_BACKUP

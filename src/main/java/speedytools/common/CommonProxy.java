@@ -39,6 +39,7 @@ public class CommonProxy {
   {
     MinecraftForge.EVENT_BUS.register(new ServerEventHandler());
     FMLCommonHandler.instance().bus().register(new ServerTickHandler());
+    FMLCommonHandler.instance().bus().register(ServerSide.getPlayerTrackerRegistry());
   }
 
 //  /**

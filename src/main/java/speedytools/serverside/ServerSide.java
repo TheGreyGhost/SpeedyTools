@@ -25,10 +25,10 @@ public class ServerSide
   public static void load()
   {
     packetHandlerRegistryServer = new PacketHandlerRegistryServer() ;
-    serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistryServer);
+    serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistryServer, playerTrackerRegistry);
     worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount(), SpeedyToolsOptions.getMaxSimpleToolUndoCount());
     speedyToolServerActions = new SpeedyToolServerActions(serverVoxelSelections, worldHistory);
-    speedyToolsNetworkServer = new SpeedyToolsNetworkServer(packetHandlerRegistryServer, speedyToolServerActions);
+    speedyToolsNetworkServer = new SpeedyToolsNetworkServer(packetHandlerRegistryServer, speedyToolServerActions, playerTrackerRegistry);
 //    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistryServer, worldHistory);
     inGameTester = new InGameTester(packetHandlerRegistryServer);
     inGameStatusSimulator = new InGameStatusSimulator();
@@ -109,6 +109,10 @@ public class ServerSide
     return inGameStatusSimulator;
   }
 
+  public static PlayerTrackerRegistry getPlayerTrackerRegistry() {
+    return playerTrackerRegistry;
+  }
+
   private static ServerVoxelSelections serverVoxelSelections;
   private static SpeedyToolServerActions speedyToolServerActions;
 //  private static SpeedyToolWorldManipulator speedyToolWorldManipulator;
@@ -116,6 +120,8 @@ public class ServerSide
   private static InGameTester inGameTester;
   private static InGameStatusSimulator inGameStatusSimulator;
   private static WorldHistory worldHistory;
+
+  private static PlayerTrackerRegistry playerTrackerRegistry = new PlayerTrackerRegistry();
 
   public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
     return networkTrafficMonitor;

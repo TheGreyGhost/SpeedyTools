@@ -2,6 +2,7 @@ package speedytools.serverside;
 
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;
@@ -28,16 +29,15 @@ import java.util.WeakHashMap;
 */
 public class ServerVoxelSelections
 {
-  public ServerVoxelSelections(PacketHandlerRegistryServer i_packetHandlerRegistryServer)
+  public ServerVoxelSelections(PacketHandlerRegistryServer i_packetHandlerRegistryServer, PlayerTrackerRegistry playerTrackerRegistry)
   {
-//    playerTracker = this.new PlayerTracker();
-//    GameRegistry.registerPlayerTracker(playerTracker);   //todo reinstate player tracker
     packetHandlerVoxel = this.new PacketHandlerVoxel();
     packetHandlerRegistryServer = i_packetHandlerRegistryServer;
 
     Packet250MultipartSegment.registerHandler(packetHandlerRegistryServer, packetHandlerVoxel, Side.SERVER,
                                               Packet250Types.PACKET250_SELECTION_PACKET);
-//    packetHandlerRegistry.registerHandlerMethod(Side.SERVER, Packet250Types.PACKET250_SELECTION_PACKET.getPacketTypeID(), packetHandlerVoxel);
+    playerTracker = this.new PlayerTracker();
+    playerTrackerRegistry.registerHandler(playerTracker);
   }
 
   /** returns the current VoxelSelection for this player, or null if none
@@ -98,23 +98,23 @@ public class ServerVoxelSelections
   }
   private PacketHandlerVoxel packetHandlerVoxel;
 
-//  private class PlayerTracker implements IPlayerTracker           //todo reinstate player tracker
-//  {
-//    public void onPlayerLogin(EntityPlayer player)
-//    {
-//      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-//      ServerVoxelSelections.this.addPlayer(entityPlayerMP);
-//    }
-//    public void onPlayerLogout(EntityPlayer player)
-//    {
-//      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
-//      ServerVoxelSelections.this.removePlayer(entityPlayerMP);
-//    }
-//    public void onPlayerChangedDimension(EntityPlayer player) {}
-//    public void onPlayerRespawn(EntityPlayer player) {}
-//  }
-//
-//  private PlayerTracker playerTracker;
+  private class PlayerTracker implements PlayerTrackerRegistry.IPlayerTracker
+  {
+    public void onPlayerLogin(EntityPlayer player)
+    {
+      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+      ServerVoxelSelections.this.addPlayer(entityPlayerMP);
+    }
+    public void onPlayerLogout(EntityPlayer player)
+    {
+      EntityPlayerMP entityPlayerMP = (EntityPlayerMP)player;
+      ServerVoxelSelections.this.removePlayer(entityPlayerMP);
+    }
+    public void onPlayerChangedDimension(EntityPlayer player) {}
+    public void onPlayerRespawn(EntityPlayer player) {}
+  }
+
+  private PlayerTracker playerTracker;
 
   /**
    * This class is used by the MultipartOneAtATimeReceiver to communicate the packet transmission progress to the receiver

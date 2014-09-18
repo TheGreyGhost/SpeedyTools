@@ -132,7 +132,7 @@ public class WorldSelectionUndo
         return;
       }
       final int Y_MIN_VALID = 0;
-      final int Y_MAX_VALID_PLUS_ONE = 256;
+      final int Y_MAX_VALID_PLUS_ONE = 256;     //todo: raise limit - check vanilla
 
       final int BORDER_WIDTH = 1;
       Pair<Integer, Integer> wxzOriginMove = new Pair<Integer, Integer>(0, 0);
