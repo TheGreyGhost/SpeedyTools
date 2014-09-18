@@ -6,7 +6,7 @@ package speedytools.common.network;
 */
 public enum ClientStatus
 {
-  IDLE(0), MONITORING_STATUS(1), WAITING_FOR_ACTION_COMPLETE(2);
+  IDLE(0), MONITORING_STATUS(1), WAITING_FOR_ACTION_COMPLETE(2), UNUSED(3);
 
   public byte getStatusID() {return statusID;}
 
@@ -15,7 +15,7 @@ public enum ClientStatus
     for (ClientStatus clientStatus : ClientStatus.values()) {
       if (value == clientStatus.getStatusID()) return clientStatus;
     }
-    return null;
+    return UNUSED;
   }
 
   private ClientStatus(int i_statusID) {

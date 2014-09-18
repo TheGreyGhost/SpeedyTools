@@ -9,8 +9,6 @@ import io.netty.buffer.ByteBuf;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
 
-import java.io.*;
-
 /**
 * This class is used to communicate actions from the client to the server for clone use
 * Client to Server:
@@ -66,7 +64,7 @@ public class Packet250CloneToolUse extends Packet250Base
     packetIsValid = false;
     try {
       byte commandValue = buf.readByte();
-      Command command = Command.byteToCommand(commandValue);
+      command = Command.byteToCommand(commandValue);
       if (command == null) return;
 
       toolID = buf.readInt();
@@ -77,7 +75,7 @@ public class Packet250CloneToolUse extends Packet250Base
       zpos = buf.readInt();
       quadOrientation = new QuadOrientation(buf);
     } catch (IndexOutOfBoundsException ioe) {
-      ErrorLog.defaultLog().info("Exception while reading Packet250SpeedyIngameTester: " + ioe);
+      ErrorLog.defaultLog().info("Exception while reading Packet250CloneToolUse: " + ioe);
       return;
     }
     if (!checkInvariants()) return;
@@ -87,7 +85,7 @@ public class Packet250CloneToolUse extends Packet250Base
   @Override
   protected void writeToBuffer(ByteBuf buf) {
     if (!isPacketIsValid()) return;
-    buf.writeByte(Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID());
+//    buf.writeByte(Packet250Types.PACKET250_CLONE_TOOL_USE_ID.getPacketTypeID());
     buf.writeByte(command.getCommandID());
     buf.writeInt(toolID);
     buf.writeInt(sequenceNumber);
@@ -213,7 +211,10 @@ public class Packet250CloneToolUse extends Packet250Base
       } else if (ctx.side != Side.SERVER) {
         ErrorLog.defaultLog().severe("Packet250CloneToolUse received on wrong side");
       } else {
-        serverSideHandler.handlePacket(message, ctx);
+        boolean success = serverSideHandler.handlePacket(message, ctx);
+        if (!success) {
+          ErrorLog.defaultLog().severe("Packet250CloneToolUse failed to handle Packet");
+        }
       }
       return null;
     }
@@ -221,8 +222,12 @@ public class Packet250CloneToolUse extends Packet250Base
 
   private Packet250CloneToolUse(Command command)
   {
-    super();
     this.command = command;
+    this.packetIsValid = true;
+  }
+
+  public Packet250CloneToolUse()  // used by Netty; invalid until populated by the packet handler
+  {
   }
 
   /**

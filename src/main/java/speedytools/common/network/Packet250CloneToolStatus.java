@@ -9,8 +9,6 @@ import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import speedytools.common.utilities.ErrorLog;
 
-import java.io.*;
-
 /**
 * This class is used to inform the client and server of each other's status (primarily for cloning)
 */
@@ -18,12 +16,12 @@ public class Packet250CloneToolStatus  extends Packet250Base
 {
   public static Packet250CloneToolStatus serverStatusChange(ServerStatus newStatus, byte newPercentage, String newNameOfPlayerBeingServiced)
   {
-    return new Packet250CloneToolStatus(null, newStatus, newPercentage, newNameOfPlayerBeingServiced);
+    return new Packet250CloneToolStatus(ClientStatus.UNUSED, newStatus, newPercentage, newNameOfPlayerBeingServiced);
   }
 
   public static Packet250CloneToolStatus clientStatusChange(ClientStatus newStatus)
   {
-    return new Packet250CloneToolStatus(newStatus, null, (byte)100, "");
+    return new Packet250CloneToolStatus(newStatus, ServerStatus.UNUSED, (byte)100, "");
   }
 
   private Packet250CloneToolStatus(ClientStatus newClientStatus, ServerStatus newServerStatus,
@@ -48,17 +46,17 @@ public class Packet250CloneToolStatus  extends Packet250Base
   public boolean validForSide(Side whichSide)
   {
     checkInvariants();
-    return (   (clientStatus == null && whichSide == Side.CLIENT)
-            || (serverStatus == null & whichSide == Side.SERVER)  );
+    return (   (clientStatus == ClientStatus.UNUSED && whichSide == Side.CLIENT)
+            || (serverStatus == ServerStatus.UNUSED & whichSide == Side.SERVER)  );
   }
 
   public ServerStatus getServerStatus() {
-    assert (serverStatus != null);
+    assert (serverStatus != null && serverStatus != ServerStatus.UNUSED);
     return serverStatus;
   }
 
   public ClientStatus getClientStatus() {
-    assert (clientStatus != null);
+    assert (clientStatus != null && clientStatus != ClientStatus.UNUSED);
     return clientStatus;
   }
 
@@ -75,14 +73,14 @@ public class Packet250CloneToolStatus  extends Packet250Base
   private boolean checkInvariants()
   {
     boolean valid;
-    valid = (clientStatus == null || serverStatus == null);
-    valid = valid & (clientStatus != null || serverStatus != null);
+    valid = (clientStatus == ClientStatus.UNUSED || serverStatus == ServerStatus.UNUSED);
+    valid = valid & (clientStatus != ClientStatus.UNUSED || clientStatus != ClientStatus.UNUSED);
     valid = valid & (serverStatus == ServerStatus.IDLE
                      || (completionPercentage >= 0 && completionPercentage <= 100) );
     return valid;
   }
 
-  private Packet250CloneToolStatus()
+  public Packet250CloneToolStatus() // used by netty
   {
     super();
     packetIsValid = false;

@@ -31,7 +31,7 @@ public class SpeedyToolServerActions
 {
   public SpeedyToolServerActions(ServerVoxelSelections i_serverVoxelSelections, WorldHistory i_worldHistory)
   {
-    worldHistory = i_worldHistory;  // new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+    worldHistory = i_worldHistory;
     serverVoxelSelections = i_serverVoxelSelections;
   }
 
@@ -145,13 +145,6 @@ public class SpeedyToolServerActions
     asynchronousTaskSequenceNumber = sequenceNumber;
     asynchronousTaskEntityPlayerMP = player;
 
-//    WorldFragment worldFragment = new WorldFragment(voxelSelection.getxSize(), voxelSelection.getySize(), voxelSelection.getzSize());
-//    worldFragment.readFromWorld(worldServerReader, voxelSelection.getWxOrigin(), voxelSelection.getWyOrigin(), voxelSelection.getWzOrigin(),
-//                                             voxelSelection);
-//    worldHistory.writeToWorldWithUndo(player, worldServerReader, worldFragment, xpos, ypos, zpos, quadOrientation);
-//    speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-////    speedyToolsNetworkServer.actionCompleted(player, sequenceNumber);
-
     return ResultWithReason.success();
   }
 
@@ -185,17 +178,6 @@ public class SpeedyToolServerActions
     }
 
     return performUndoOfLastComplexAction(player, undoSequenceNumber);
-
-//    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-//    speedyToolsNetworkServer.actionCompleted(player, actionSequenceNumber);
-//    speedyToolsNetworkServer.undoCompleted(player, undoSequenceNumber);
-//    getTestDoSomethingStartTime = System.nanoTime();
-//
-//    testDoSomethingTime = getTestDoSomethingStartTime + 3 * ONE_SECOND_AS_NS;
-//    testUndoSequenceNumber = undoSequenceNumber;
-//    testPlayer = player;
-//    testActionSequenceNumber = -1;
-//    return ResultWithReason.success();
   }
 
   public ResultWithReason performUndoOfLastComplexAction(EntityPlayerMP player, int undoSequenceNumber)
@@ -210,9 +192,6 @@ public class SpeedyToolServerActions
 
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
     AsynchronousActionBase token = new AsynchronousActionUndo(speedyToolsNetworkServer, worldServer, player, worldHistory, undoSequenceNumber);
-//    speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, player, (byte)0);
-
-//    AsynchronousToken result = worldHistory.performComplexUndoAsynchronous(player, worldServerReader, null);
 
     asynchronousTaskActionType = ActionType.UNDO;
     asynchronousTaskSequenceNumber = undoSequenceNumber;
@@ -224,11 +203,6 @@ public class SpeedyToolServerActions
     }
     asynchronousTaskInProgress = token;
     return ResultWithReason.success();
-
-//    getTestDoSomethingStartTime = System.nanoTime();
-//    testDoSomethingTime = getTestDoSomethingStartTime + 7 * ONE_SECOND_AS_NS;
-//    testUndoSequenceNumber = undoSequenceNumber;
-//    testPlayer = player;
   }
 
   public void tick() {
@@ -261,27 +235,7 @@ public class SpeedyToolServerActions
       speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
     }
 
-//    if (asynchronousUndoInProgress != null && !asynchronousUndoInProgress.isTaskComplete()) {
-//      asynchronousUndoInProgress.setTimeOfInterrupt(stopTimeNS);
-//      asynchronousUndoInProgress.continueProcessing();
-//      if (asynchronousUndoInProgress.isTaskComplete()) {
-//        speedyToolsNetworkServer.undoCompleted(player, undoSequenceNumber);      // todo later this will be required
-//        speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
-//      } else {
-//        speedyToolsNetworkServer.changeServerStatus(ServerStatus.UNDOING_YOUR_ACTION, asynchronousTaskEntityPlayerMP,
-//                                                    (byte) (100 * asynchronousUndoInProgress.getFractionComplete()));
-//      }
-//    }
-
   }
-
-  int testUndoSequenceNumber = -1;
-  int testActionSequenceNumber = -1;
-  long testDoSomethingTime = Long.MAX_VALUE;
-  long getTestDoSomethingStartTime = 0;
-  boolean iAmBusy = false;
-
-  EntityPlayerMP testPlayer;
 
   /**
    * ensure that the save folder backups are initialised
@@ -308,8 +262,6 @@ public class SpeedyToolServerActions
   public boolean isAsynchronousActionInProgress()
   {
     if (asynchronousTaskInProgress != null && !asynchronousTaskInProgress.isTaskComplete()) return true;
-//    if (asynchronousUndoInProgress != null && !asynchronousUndoInProgress.isTaskComplete()) return true;
-//    if (asynchronousPlacementInProgress != null && !asynchronousPlacementInProgress.isTaskComplete()) return true;
     return false;
   }
 
@@ -323,12 +275,5 @@ public class SpeedyToolServerActions
   enum ActionType {ACTION, UNDO};
   private ActionType asynchronousTaskActionType;
   private EntityPlayerMP asynchronousTaskEntityPlayerMP;
-
-//  private AsynchronousToken asynchronousUndoInProgress;
-//  private int asynchronousUndoSequenceNumber;
-//  private AsynchronousToken asynchronousPlacementInProgress;
-//  private int asynchronousPlacementSequenceNumber;
-//  private EntityPlayerMP asynchronousTaskEntityPlayerMP;
-
 
 }

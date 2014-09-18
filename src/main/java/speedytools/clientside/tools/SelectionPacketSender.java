@@ -32,6 +32,7 @@ public class SelectionPacketSender
     multipartOneAtATimeSender.setPacketSender(packetSender);
     currentPacketProgress = PacketProgress.IDLE;
     packetLinkage = null;
+
 //    packetHandlerRegistry.registerHandlerMethod(Side.CLIENT, Packet250Types.PACKET250_SELECTION_PACKET.getPacketTypeID(), packetHandlerVoxel);
   }
 

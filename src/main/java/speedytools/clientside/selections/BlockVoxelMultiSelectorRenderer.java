@@ -186,7 +186,7 @@ public class BlockVoxelMultiSelectorRenderer
 
       // transform the player world [x,z] into the coordinates of the selection
       int playerRelativePositionX = quadOrientation.calcXfromWXZ((int)(playerRelativePos.xCoord), (int)(playerRelativePos.zCoord));
-      int playerRelativePositionZ = quadOrientation.calcXfromWXZ((int)(playerRelativePos.xCoord), (int)(playerRelativePos.zCoord));
+      int playerRelativePositionZ = quadOrientation.calcZfromWXZ((int)(playerRelativePos.xCoord), (int)(playerRelativePos.zCoord));
 
       final int CX_MIN = Math.max(0, (int)((playerRelativePositionX - blockRenderDistance)/ DISPLAY_LIST_XSIZE));
       final int CY_MIN = Math.max(0, (int)((playerRelativePos.yCoord - blockRenderDistance)/ DISPLAY_LIST_YSIZE));

@@ -34,6 +34,9 @@ public class Packet250MultipartSegment extends Packet250Base
     rawData = i_rawData;
     packetIsValid = true;
   }
+  public Packet250MultipartSegment()  // used by Netty to create packet; invalid until populated by packet handler
+  {
+  }
 
   public Packet250Types getPacket250Type() {
     return packet250Type;
@@ -68,6 +71,7 @@ public class Packet250MultipartSegment extends Packet250Base
     packetIsValid = false;
     try {
       packet250Type = Packet250Types.byteToPacket250Type(buf.readByte());
+      uniqueMultipartID = buf.readInt();
       abortTransmission = buf.readBoolean();
       segmentNumber = buf.readShort();
       segmentSize = buf.readShort();
@@ -93,12 +97,17 @@ public class Packet250MultipartSegment extends Packet250Base
   public void writeToBuffer(ByteBuf buf) {
     if (!isPacketIsValid() || !checkInvariants()) return;
     buf.writeByte(packet250Type.getPacketTypeID());
+    buf.writeInt(uniqueMultipartID);
     buf.writeBoolean(abortTransmission);
     buf.writeShort(segmentNumber);
     buf.writeShort(segmentSize);
     buf.writeInt(fullMultipartLength);
-    buf.writeShort(rawData.length);
-    buf.writeBytes(rawData);
+    if (rawData == null) {
+      buf.writeShort(0);
+    } else {
+      buf.writeShort(rawData.length);
+      buf.writeBytes(rawData);
+    }
   }
 
   /**

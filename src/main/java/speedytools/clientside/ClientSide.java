@@ -3,6 +3,7 @@ package speedytools.clientside;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
@@ -41,6 +42,7 @@ public class ClientSide
   {
     packetHandlerRegistry = new PacketHandlerRegistryClient();
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
+    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
     speedyToolRenderers = new SpeedyToolRenderers();
     speedyToolSounds = new SpeedyToolSounds();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
@@ -49,7 +51,6 @@ public class ClientSide
 
   public static void postInitialise()
   {
-//    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
     userInput = new UserInput();
 
     String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
@@ -74,14 +75,14 @@ public class ClientSide
   }
 */
 
-//  public static CloneToolsNetworkClient getCloneToolsNetworkClient() {
-//    return cloneToolsNetworkClient;
-//  }
+  public static CloneToolsNetworkClient getCloneToolsNetworkClient() {
+    return cloneToolsNetworkClient;
+  }
 //  public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
 //    return networkTrafficMonitor;
 //  }
 
-//  public static CloneToolsNetworkClient cloneToolsNetworkClient;
+  public static CloneToolsNetworkClient cloneToolsNetworkClient;
   public static SpeedyToolRenderers speedyToolRenderers;
   public static ActiveTool activeTool;
   public static UserInput userInput;

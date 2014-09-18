@@ -9,8 +9,6 @@ import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import speedytools.common.utilities.ErrorLog;
 
-import java.io.*;
-
 /**
 * This class is used by the server to acknowledge actions from the client
 */
@@ -70,7 +68,7 @@ public class Packet250CloneToolAcknowledge extends Packet250Base
     return reason;
   }
 
-  private Packet250CloneToolAcknowledge() {super();}
+  public Packet250CloneToolAcknowledge() {}; // used by Netty; invalid until populated by the packet handler
 
   @Override
   public void readFromBuffer(ByteBuf buf) {

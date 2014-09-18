@@ -116,7 +116,10 @@ public class Packet250SpeedyIngameTester extends Packet250Base
   @Override
   protected void writeToBuffer(ByteBuf buf)
   {
-    if (!isPacketIsValid()) return;
+    if (!isPacketIsValid()) {
+      ErrorLog.defaultLog().info("Invalid packet Packet250SpeedyIngameTester");
+      return;
+    }
     buf.writeInt(whichTest);
     buf.writeBoolean(performTest);
   }

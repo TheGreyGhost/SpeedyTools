@@ -263,14 +263,7 @@ public class SpeedyToolsNetworkServer
         } else if (sequenceNumber < lastAcknowledgedAction.get(player)) { // old packet, ignore
           break; // do nothing, just ignore it
         } else {
-//          boolean foundundo = false;
-//          for (TimeStampSequenceNumber tssn : undoNotifications.get(player)) {
-//            if (tssn.sequenceNumber == sequenceNumber) {
-//              foundundo = true;
-//              break;
-//            }
-//          }
-//          if (!foundundo) {
+
           ResultWithReason result = ResultWithReason.failure();
           if (serverStatus == ServerStatus.IDLE) {
             result = speedyToolServerActions.performComplexAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
@@ -425,7 +418,7 @@ public class SpeedyToolsNetworkServer
     @Override
     public boolean handlePacket(Packet250CloneToolUse packet250CloneToolUse, MessageContext ctx) {
       if (!packet250CloneToolUse.isPacketIsValid()) return false;
-      if (packet250CloneToolUse.validForSide(Side.SERVER)) return false;
+      if (!packet250CloneToolUse.validForSide(Side.SERVER)) return false;
       SpeedyToolsNetworkServer.this.handlePacket(ctx.getServerHandler().playerEntity, packet250CloneToolUse);
       return true;
     }

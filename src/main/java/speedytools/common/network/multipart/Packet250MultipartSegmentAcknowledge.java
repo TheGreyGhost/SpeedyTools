@@ -33,8 +33,11 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
     uniqueMultipartID = i_uniquePacketID;
     packetIsValid = true;
   }
+  public Packet250MultipartSegmentAcknowledge()  // used by Netty to create packet; invalid until populated by packet handler
+  {
+    // default constructor sets packet invalid, does nothing else
+  }
 
-  // default constructor sets packet invalid, does nothing else
 
   public Packet250Types getPacket250Type() {
     return packet250Type;
@@ -172,7 +175,7 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
       }
 
       if (handlerMethod == null) {
-        ErrorLog.defaultLog().severe("Packet250CloneToolAcknowledge for packet type " + packet250Type + " received but not registered on side " + ctx.side);
+        ErrorLog.defaultLog().severe("Packet250MultipartSegmentAcknowledge for packet type " + packet250Type + " received but not registered on side " + ctx.side);
       } else {
         handlerMethod.handlePacket(message, ctx);
       }

@@ -166,7 +166,7 @@ public class CloneToolsNetworkClient
       ResultWithReason result = isReadyToPerformUndo();
       if (!result.succeeded()) return result;
       packet = Packet250CloneToolUse.performToolUndo(currentUndoSequenceNumber);
-  }
+    }
   lastUndoPacket = packet;
   if (lastUndoPacket != null) {
     packetSender.sendPacket(lastUndoPacket);

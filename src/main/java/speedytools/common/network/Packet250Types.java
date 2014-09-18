@@ -22,6 +22,19 @@ public enum Packet250Types
     }
     return null;
   }
+
+  /**
+   * returns the paired packet corresponding to this packet (cf REQUEST and REPLY)
+   */
+  public Packet250Types getPairedType()
+  {
+    switch(this) {
+      case PACKET250_SELECTION_PACKET: { return PACKET250_SELECTION_PACKET_ACKNOWLEDGE; }
+      case PACKET250_SELECTION_PACKET_ACKNOWLEDGE: {return PACKET250_SELECTION_PACKET;}
+      default: { return null;}
+    }
+  }
+
   private Packet250Types(int i_packetTypeID) {
     packetTypeID = (byte)i_packetTypeID;
   }

@@ -75,7 +75,7 @@ public abstract class MultipartPacket
       return false;
     }
     if (packet.getPacket250Type() != packet250Type) {
-      ErrorLog.defaultLog().info("incoming packet250Type " + packet.getPacket250Type() + " doesn't match multipart packet250Type" + packet250Type);
+      ErrorLog.defaultLog().info("incoming packet250Type " + packet.getPacket250Type() + " doesn't match multipart packet250Type " + packet250Type);
       return false;
     }
 
@@ -108,8 +108,8 @@ public abstract class MultipartPacket
       ErrorLog.defaultLog().info("incoming unique ID " + packet.getUniqueID()+ " doesn't match multipart unique ID " + uniquePacketID);
       return false;
     }
-    if (packet.getPacket250Type() != packet250Type) {
-      ErrorLog.defaultLog().info("incoming packet250Type " + packet.getPacket250Type() + " doesn't match multipart packet250Type" + packet250Type);
+    if (packet.getPacket250Type() != packet250Type.getPairedType()) {
+      ErrorLog.defaultLog().info("incoming packet250Type " + packet.getPacket250Type() + " doesn't match multipart Ack packet250Type " + packet250Type.getPairedType());
       return false;
     }
     switch (packet.getAcknowledgement()) {
@@ -262,7 +262,8 @@ public abstract class MultipartPacket
       return null;
     }
 
-    retval = new Packet250MultipartSegmentAcknowledge(packet250Type, Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGEMENT,
+    retval = new Packet250MultipartSegmentAcknowledge(packet250Type.getPairedType(),
+                                                      Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGEMENT,
                                                       uniquePacketID, segmentsNotReceivedYet);
     return retval;
   }
@@ -287,7 +288,7 @@ public abstract class MultipartPacket
   public Packet250MultipartSegmentAcknowledge getReceiverAbortPacket()
   {
     assert(checkInvariants());
-    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(packet250Type,
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(packet250Type.getPairedType(),
             Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT, uniquePacketID, null);
     aborted = true;
     return retval;
@@ -301,7 +302,7 @@ public abstract class MultipartPacket
   public static Packet250MultipartSegmentAcknowledge getAbortPacketForLostPacket(Packet250MultipartSegment lostPacket, boolean acknowledgeAbortPackets)
   {
     if (lostPacket.isAbortTransmission() && !acknowledgeAbortPackets) return null;
-    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type(),
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type().getPairedType(),
             Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT, lostPacket.getUniqueMultipartID(), null);
     return retval;
   }
@@ -313,7 +314,8 @@ public abstract class MultipartPacket
   public static Packet250MultipartSegment getAbortPacketForLostPacket(Packet250MultipartSegmentAcknowledge lostPacket)
   {
     if (lostPacket.getAcknowledgement() == Packet250MultipartSegmentAcknowledge.Acknowledgement.ABORT) return null;
-    Packet250MultipartSegment retval = new Packet250MultipartSegment(lostPacket.getPacket250Type(), true, lostPacket.getUniqueID(), (short)0, (short)0, 0, null);
+    Packet250MultipartSegment retval = new Packet250MultipartSegment(lostPacket.getPacket250Type().getPairedType(),
+            true, lostPacket.getUniqueID(), (short)0, (short)0, 0, null);
     return retval;
   }
 
@@ -324,7 +326,7 @@ public abstract class MultipartPacket
   public static Packet250MultipartSegmentAcknowledge getFullAcknowledgePacketForLostPacket(Packet250MultipartSegment lostPacket)
   {
     if (lostPacket.isAbortTransmission()) return getAbortPacketForLostPacket(lostPacket, true);
-    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type(),
+    Packet250MultipartSegmentAcknowledge retval = new Packet250MultipartSegmentAcknowledge(lostPacket.getPacket250Type().getPairedType(),
             Packet250MultipartSegmentAcknowledge.Acknowledgement.ACKNOWLEDGE_ALL, lostPacket.getUniqueMultipartID(), null);
     return retval;
   }

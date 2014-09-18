@@ -29,7 +29,6 @@ public class ServerSide
     worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount(), SpeedyToolsOptions.getMaxSimpleToolUndoCount());
     speedyToolServerActions = new SpeedyToolServerActions(serverVoxelSelections, worldHistory);
     speedyToolsNetworkServer = new SpeedyToolsNetworkServer(packetHandlerRegistryServer, speedyToolServerActions, playerTrackerRegistry);
-//    speedyToolWorldManipulator = new SpeedyToolWorldManipulator(packetHandlerRegistryServer, worldHistory);
     inGameTester = new InGameTester(packetHandlerRegistryServer);
     inGameStatusSimulator = new InGameStatusSimulator();
 
@@ -58,7 +57,6 @@ public class ServerSide
     packetHandlerRegistryServer = null;
     speedyToolServerActions = null;
     speedyToolsNetworkServer = null;
-//    speedyToolWorldManipulator = null;
     serverVoxelSelections = null;
     try {
       networkTrafficMonitor.closeAll();
@@ -75,8 +73,8 @@ public class ServerSide
   {
     ++globalTickCount;
 
-    getSpeedyToolsNetworkServer().tick();
     getSpeedyToolServerActions().tick();
+    getSpeedyToolsNetworkServer().tick();
     getServerVoxelSelections().tick();
 
     if (globalTickCount % SpeedyToolsOptions.getNetworkLoggingPeriodInTicks() == 0) {

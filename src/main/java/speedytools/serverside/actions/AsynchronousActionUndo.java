@@ -2,6 +2,7 @@ package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
+import speedytools.common.utilities.ErrorLog;
 import speedytools.serverside.network.SpeedyToolsNetworkServer;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.UniqueTokenID;
@@ -27,8 +28,9 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
         transactionToUndo = worldHistory.getTransactionIDForNextComplexUndo(entityPlayerMP, worldServer);
         AsynchronousToken token = worldHistory.performComplexUndoAsynchronous(entityPlayerMP, worldServer, transactionToUndo);
         if (token == null) {
-          abortProcessing();
+          aborting = true;
           currentStage = ActionStage.COMPLETE;
+          completed = true;
           break;
         }
         currentStage = ActionStage.UNDO;
@@ -59,7 +61,7 @@ public class AsynchronousActionUndo extends AsynchronousActionBase
 
   @Override
   public void abortProcessing() {  // can't abort an undo yet.  maybe later (or not)
-
+    ErrorLog.defaultLog().debug("Can't abort an undo yet: AsynchronousActionUndo.abortProcessing() called");
   }
 
   public enum ActionStage {
