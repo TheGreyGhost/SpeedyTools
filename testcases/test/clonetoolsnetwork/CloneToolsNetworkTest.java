@@ -1,12 +1,12 @@
+// the update to netty has made much of this code useless.  Leave out for now.
+
 //package test.clonetoolsnetwork;
 //
-//import cpw.mods.fml.common.network.Player;
+//
 //import net.minecraft.client.entity.EntityClientPlayerMP;
-//import net.minecraft.client.multiplayer.NetClientHandler;
+//
 //import net.minecraft.entity.player.EntityPlayerMP;
-//import net.minecraft.network.NetServerHandler;
-//import net.minecraft.network.packet.Packet;
-//import net.minecraft.network.packet.Packet250CustomPayload;
+//
 //import org.junit.After;
 //import org.junit.Assert;
 //import org.junit.Before;
@@ -14,71 +14,76 @@
 //import org.objenesis.Objenesis;
 //import org.objenesis.ObjenesisStd;
 //import speedytools.clientside.network.CloneToolsNetworkClient;
+//import speedytools.clientside.network.PacketHandlerRegistryClient;
 //import speedytools.common.network.ClientStatus;
 //import speedytools.common.network.PacketHandlerRegistry;
 //import speedytools.common.network.PacketSender;
 //import speedytools.common.network.ServerStatus;
 //import speedytools.common.utilities.QuadOrientation;
 //import speedytools.common.utilities.ResultWithReason;
-//import speedytools.serverside.actions.SpeedyToolServerActions;
-//import speedytools.serverside.network.SpeedyToolsNetworkServer;
 //import speedytools.serverside.ServerSide;
 //import speedytools.serverside.ServerVoxelSelections;
+//import speedytools.serverside.actions.SpeedyToolServerActions;
+//import speedytools.serverside.network.PacketHandlerRegistryServer;
+//import speedytools.serverside.network.SpeedyToolsNetworkServer;
 //
 //import java.io.IOException;
+//import java.util.ArrayList;
+//import java.util.HashMap;
+//import java.util.Map;
 //
 ///**
-// * User: The Grey Ghost
-// * Date: 20/03/14
-// * This class tests for correct communication between CloneToolsNetworkClient and SpeedyToolsNetworkServer.  The classes tested are
-// * CloneToolsNetworkClient, SpeedyToolsNetworkServer, Packet250CloneToolAcknowledge, Packet250CloneToolStatus, Packet250CloneToolUse,
-// *   , ClientStatus, ServerStatus
-// * The tests are based around the networkprotocols.txt specification.  It uses dummy objects to simulate network communications:
-// * EntityClientPlayerMP, EntityPlayerMP, NetClientHandler, NetServerHandler.  PacketHandler is bypassed (not used)
-// *
-// * Test plan:
-// * testStatus
-// * (1) Set up multiple clients, add to server
-// * (2) Change Client Status in various sequence and verify it is reflected in Server in correct clients
-// * (3) Change the server status and verify that only the interested clients receive an update
-// * (4) Change the server status and verify that the clients get the correct status (eg "busy with other player")
-// * (5) tick the server many times in rapid succession to verify that it sends updates about once per second
-// * (6) tick the client to verify it sends status update requests if server response not received within timeout
-// *
-// * testSelectionMade
-// * (1) Send an informSelectionMade to the server
-// * (2) verify that SpeedyToolServerActions was called
-// * (3) verify that the client receives first PERFORMING_BACKUP then IDLE
-// *
-// * testPerformToolAction
-// * (1) performToolAction - check that toolID etc transmitted correctly
-// *     check that peekCurrentActionStatus and getCurrentActionStatus updates correctly; similarly for UndoStatus
-// *     verify that server has updated client status appropriately
-// *     verify that client receives acknowledgement
-// *     actionCompleted() sends appropriate message
-// * (2) performToolAction when server is busy (remote status, not local status)
-// * (3) performToolAction when client is still waiting for response (wait ack, processing) and verify refused
-// * (4) TimeOut resend if client waiting too long for an acknowledgement packet
-// * (5) Client receives an old packet acknowledgement and ignores it
-// * (6) Server receives duplicate packet, sends acknowledgement again
-// * (7) Server receives old packet, ignores it.
-// *
-// * testPerformUndo
-// * (1) perform action then undo before getting completed ack;
-// *     check that the client status updates properly
-// *     check that the server calls the undo with the correct sequence number for the right player
-// *     check that the client receives the correct status back
-// *     advance server to complete, check client ok
-// * (2) perform action then undo after getting completed ack
-// *     check that server calls the last completed undo for the right player
-// *     check that the undo receives "ACKNOWLEDGE"
-// * (3) verify that a busy server rejects the undo request
-// * (4) send action then undo out of sequence and verify that the server replies "reject" to the action.
-// *     send the same action again, verify it receives "reject" packet again but client ignores it
-// * (5) send old undo request and verify ignored by the server
-// * (6) verify client sends undo packet again after timeout.
-// *
-// */
+//* User: The Grey Ghost
+//* Date: 20/03/14
+//* This class tests for correct communication between CloneToolsNetworkClient and SpeedyToolsNetworkServer.  The classes tested are
+//* CloneToolsNetworkClient, SpeedyToolsNetworkServer, Packet250CloneToolAcknowledge, Packet250CloneToolStatus, Packet250CloneToolUse,
+//*   , ClientStatus, ServerStatus
+//* The tests are based around the networkprotocols.txt specification.  It uses dummy objects to simulate network communications:
+//* EntityClientPlayerMP, EntityPlayerMP, NetClientHandler, NetServerHandler.  PacketHandler is bypassed (not used)
+//*
+//* Test plan:
+//* testStatus
+//* (1) Set up multiple clients, add to server
+//* (2) Change Client Status in various sequence and verify it is reflected in Server in correct clients
+//* (3) Change the server status and verify that only the interested clients receive an update
+//* (4) Change the server status and verify that the clients get the correct status (eg "busy with other player")
+//* (5) tick the server many times in rapid succession to verify that it sends updates about once per second
+//* (6) tick the client to verify it sends status update requests if server response not received within timeout
+//*
+//* testSelectionMade
+//* (1) Send an informSelectionMade to the server
+//* (2) verify that SpeedyToolServerActions was called
+//* (3) verify that the client receives first PERFORMING_BACKUP then IDLE
+//*
+//* testPerformToolAction
+//* (1) performToolAction - check that toolID etc transmitted correctly
+//*     check that peekCurrentActionStatus and getCurrentActionStatus updates correctly; similarly for UndoStatus
+//*     verify that server has updated client status appropriately
+//*     verify that client receives acknowledgement
+//*     actionCompleted() sends appropriate message
+//* (2) performToolAction when server is busy (remote status, not local status)
+//* (3) performToolAction when client is still waiting for response (wait ack, processing) and verify refused
+//* (4) TimeOut resend if client waiting too long for an acknowledgement packet
+//* (5) Client receives an old packet acknowledgement and ignores it
+//* (6) Server receives duplicate packet, sends acknowledgement again
+//* (7) Server receives old packet, ignores it.
+//*
+//* testPerformUndo
+//* (1) perform action then undo before getting completed ack;
+//*     check that the client status updates properly
+//*     check that the server calls the undo with the correct sequence number for the right player
+//*     check that the client receives the correct status back
+//*     advance server to complete, check client ok
+//* (2) perform action then undo after getting completed ack
+//*     check that server calls the last completed undo for the right player
+//*     check that the undo receives "ACKNOWLEDGE"
+//* (3) verify that a busy server rejects the undo request
+//* (4) send action then undo out of sequence and verify that the server replies "reject" to the action.
+//*     send the same action again, verify it receives "reject" packet again but client ignores it
+//* (5) send old undo request and verify ignored by the server
+//* (6) verify client sends undo packet again after timeout.
+//*
+//*/
 //
 //public class CloneToolsNetworkTest
 //{
@@ -98,7 +103,7 @@
 //  public static SpeedyToolsNetworkServer networkServer;
 //  public static StubPacketHandlerServer stubPacketHandlerServer;
 //  public static ArrayList<String> names = new ArrayList<String>();
-//  public static PacketHandlerRegistry packetHandlerRegistryServer;
+//  public static PacketHandlerRegistryServer packetHandlerRegistryServer;
 //  public static QuadOrientation dummyQuadOrientation = new QuadOrientation(0, 0, 1, 1).rotateClockwise(3);
 //
 //  public static final int NUMBER_OF_CLIENTS = 5;
@@ -107,8 +112,8 @@
 //  public void setUp() throws Exception {
 //    Objenesis objenesis = new ObjenesisStd();
 //
-//    packetHandlerRegistryServer = new PacketHandlerRegistry();
-//    packetHandlerRegistryServer.changeToNonStatic();
+//    packetHandlerRegistryServer = new PacketHandlerRegistryServer();
+////    packetHandlerRegistryServer.changeToNonStatic();
 //
 //    stubCloneToolServerActions = new StubSpeedyToolServerActions(null);
 //    networkServer = new SpeedyToolsNetworkServer(packetHandlerRegistryServer, stubCloneToolServerActions);
@@ -120,8 +125,8 @@
 //    for (int i = 0; i < NUMBER_OF_CLIENTS; ++i) {
 //      String name = "Player" + i;
 //      names.add(name);
-//      PacketHandlerRegistry newPacketHandlerRegistry = new PacketHandlerRegistry();
-//      newPacketHandlerRegistry.changeToNonStatic();
+//      PacketHandlerRegistryClient newPacketHandlerRegistry = new PacketHandlerRegistryClient();
+////      newPacketHandlerRegistry.changeToNonStatic();
 //      packetHandlerClients.put(name, newPacketHandlerRegistry);
 //
 //      stubNetServerHandler.put(name, (StubNetServerHandler) objenesis.newInstance(StubNetServerHandler.class));

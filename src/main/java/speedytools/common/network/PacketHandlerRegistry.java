@@ -1,7 +1,6 @@
 package speedytools.common.network;
 
 import cpw.mods.fml.common.network.NetworkRegistry;
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 
 /**
@@ -26,6 +25,12 @@ public abstract class PacketHandlerRegistry
     if (simpleNetworkWrapper == null) {
       simpleNetworkWrapper = NetworkRegistry.INSTANCE.newSimpleChannel(CHANNEL_NAME);
     }
+  }
+
+  // for testing only
+  protected PacketHandlerRegistry(SimpleNetworkWrapper force)
+  {
+    simpleNetworkWrapper = force;
   }
 
 //  // change this registry to non-static, i.e. to hold its own independent set of handlers

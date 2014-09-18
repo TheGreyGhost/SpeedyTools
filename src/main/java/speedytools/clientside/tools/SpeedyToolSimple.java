@@ -218,7 +218,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
 
   protected boolean sendUndoCommand()
   {
-    final int LEFT_BUTTON = 1;
+    final int LEFT_BUTTON = 0;
     Packet250SpeedyToolUse packet = new Packet250SpeedyToolUse(LEFT_BUTTON, currentBlockToPlace, currentlySelectedBlocks);
     packetSenderClient.sendPacket(packet);
     return true;

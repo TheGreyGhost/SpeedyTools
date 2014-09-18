@@ -41,16 +41,16 @@ public class ClientSide
   {
     packetHandlerRegistry = new PacketHandlerRegistryClient();
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
+    speedyToolRenderers = new SpeedyToolRenderers();
+    speedyToolSounds = new SpeedyToolSounds();
+    undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
+    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
   }
 
   public static void postInitialise()
   {
 //    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
-    speedyToolRenderers = new SpeedyToolRenderers();
     userInput = new UserInput();
-    speedyToolSounds = new SpeedyToolSounds();
-    undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
-    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
 
     String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
 //    if (SpeedyToolsOptions.getNetworkLoggingActive()) {

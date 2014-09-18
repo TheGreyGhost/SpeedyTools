@@ -443,6 +443,19 @@ public class MultipartPacketTest
         return newPacket;
     }
 
+    public static Packet250MultipartSegmentAcknowledge corruptAckPacket(Packet250MultipartSegmentAcknowledge packet,
+                                                                        int newPacketTypeID, int newAckID, int newUniqueID)
+    {
+      Packet250Types newPacketType = Packet250Types.byteToPacket250Type((byte)newPacketTypeID);
+      Packet250MultipartSegmentAcknowledge.Acknowledgement newAcknowledgement =
+              Packet250MultipartSegmentAcknowledge.Acknowledgement.byteToAcknowledgement((byte)newAckID);
+      Packet250MultipartSegmentAcknowledge newPacket = new Packet250MultipartSegmentAcknowledge(
+              newPacketType, newAcknowledgement,
+              newUniqueID, packet.getSegmentsNotReceivedYet());
+      return newPacket;
+    }
+
+
 //    public static Packet250MultipartSegmentAcknowledge corruptAckPacket(Packet250MultipartSegmentAcknowledge packet, short newAckDataLength)
 //    {
 //      try {

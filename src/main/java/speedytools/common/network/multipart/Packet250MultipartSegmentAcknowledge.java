@@ -4,6 +4,7 @@ package speedytools.common.network.multipart;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import speedytools.common.network.Packet250Base;
@@ -116,6 +117,10 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
    * @param side
    */
   public static void registerHandler(PacketHandlerRegistry packetHandlerRegistry,  PacketHandlerMethod packetHandlerMethod, Side side, Packet250Types packet250Type) {
+    if (packetHandlerMethod == null) {
+      ErrorLog.defaultLog().severe("tried to register a null PacketHandlerMethod");
+      return;
+    }
     switch (side) {
       case CLIENT: {
         clientSideHandlers.put(packet250Type, packetHandlerMethod);
@@ -129,8 +134,11 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
         assert false : "Tried to register Packet250MultipartSegmentAcknowledge on side " + side;
       }
     }
-    packetHandlerRegistry.getSimpleNetworkWrapper().registerMessage(CommonMessageHandler.class, Packet250MultipartSegmentAcknowledge.class,
-                                                                    packet250Type.getPacketTypeID(), side);
+    SimpleNetworkWrapper simpleNetworkWrapper =  packetHandlerRegistry.getSimpleNetworkWrapper();
+    if (simpleNetworkWrapper != null) { // might be null for testing
+      simpleNetworkWrapper.registerMessage(CommonMessageHandler.class, Packet250MultipartSegmentAcknowledge.class,
+              packet250Type.getPacketTypeID(), side);
+    }
   }
 
   public interface PacketHandlerMethod

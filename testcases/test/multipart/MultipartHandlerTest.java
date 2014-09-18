@@ -4,10 +4,11 @@ import cpw.mods.fml.relauncher.Side;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import speedytools.common.network.Packet250Base;
+import speedytools.common.network.Packet250Types;
+import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
-import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;
-import speedytools.common.network.multipart.MultipartOneAtATimeSender;
-import speedytools.common.network.multipart.MultipartPacket;
+import speedytools.common.network.multipart.*;
 import speedytools.common.utilities.ErrorLog;
 
 import java.nio.file.Path;
@@ -71,7 +72,7 @@ public class MultipartHandlerTest
     receiverSender = new DummySender();
     receiverLinkage = null;
     senderLinkage = null;
-    mpSender = new MultipartOneAtATimeSender();
+    mpSender = new MultipartOneAtATimeSender(new PacketHandlerRegistryTest(), Packet250Types.PACKET250_SELECTION_PACKET_ACKNOWLEDGE, Side.CLIENT);
     mpReceiver = new MultipartOneAtATimeReceiver();
     receivedPacket = null;
 
@@ -99,8 +100,8 @@ public class MultipartHandlerTest
     int lastPercentReceiver = -1;
     for (int i= 0; i < SEGMENT_COUNT; ++i) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
       if (senderLinkage.completedCount == 1) {
         Assert.assertTrue(senderLinkage.percentComplete == 100);
         Assert.assertTrue(receiverLinkage.percentComplete == 100);
@@ -137,12 +138,12 @@ public class MultipartHandlerTest
     int lastPercentSender = senderLinkage.percentComplete;
     int lastPercentReceiver = -1;
     mpSender.onTick();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
 
     mpSender.abortPacket(senderLinkage);
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     Assert.assertTrue(senderLinkage.abortedCount == 1);
     Assert.assertTrue(receiverLinkage.abortedCount == 1);
   }
@@ -164,11 +165,11 @@ public class MultipartHandlerTest
     int lastPercentSender = senderLinkage.percentComplete;
     int lastPercentReceiver = -1;
     mpSender.onTick();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     mpReceiver.abortPacket(receiverLinkage);
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
 
     Assert.assertTrue(senderLinkage.abortedCount == 1);
     Assert.assertTrue(receiverLinkage.abortedCount == 1);
@@ -190,16 +191,16 @@ public class MultipartHandlerTest
 
     for (int i = 0; i < 100; ++i) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
       Assert.assertTrue(senderLinkage.completedCount == 0);
       Assert.assertTrue(receiverLinkage == null || receiverLinkage.completedCount == 0);
     }
     mpSender.abortPacket(senderLinkage);
     for (int i = 0; i < 100; ++i) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
       Assert.assertTrue(senderLinkage.completedCount == 0);
       Assert.assertTrue(receiverLinkage == null || receiverLinkage.completedCount == 0);
     }
@@ -220,14 +221,14 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    Packet250CustomPayload droppedPacket;
+    Packet250Base droppedPacket;
     for (int i= 1; i < SEGMENT_COUNT; ++i) {
       mpSender.onTick();
       if (i == 2) {
         droppedPacket = senderSender.sentPackets.poll();
       }
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(receiverLinkage.completedCount == 0);
     Assert.assertTrue(senderLinkage.completedCount == 0);
@@ -236,8 +237,8 @@ public class MultipartHandlerTest
     long startTime = System.nanoTime();
     while (System.nanoTime() - startTime < WAIT_TIME_NS) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(receiverLinkage.completedCount == 1);
     Assert.assertTrue(senderLinkage.completedCount == 1);
@@ -255,17 +256,17 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    Packet250CustomPayload droppedPacket;
+    Packet250Base droppedPacket;
     mpSender.onTick();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     Assert.assertTrue(receiverLinkage.completedCount == 0);
     Assert.assertTrue(senderLinkage.completedCount == 0);
 
     mpReceiver.abortPacket(receiverLinkage);
     droppedPacket = receiverSender.sentPackets.poll();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     Assert.assertTrue(receiverLinkage.abortedCount == 1);
     Assert.assertTrue(senderLinkage.abortedCount == 0);
 
@@ -274,8 +275,8 @@ public class MultipartHandlerTest
     while (System.nanoTime() - startTime < WAIT_TIME_NS) {
       mpSender.onTick();
       mpReceiver.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(receiverLinkage.abortedCount == 1);
     Assert.assertTrue(senderLinkage.abortedCount == 1);
@@ -293,17 +294,17 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    Packet250CustomPayload droppedPacket;
+    Packet250Base droppedPacket;
     mpSender.onTick();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     Assert.assertTrue(receiverLinkage.completedCount == 0);
     Assert.assertTrue(senderLinkage.completedCount == 0);
 
     mpSender.abortPacket(senderLinkage);
     droppedPacket = senderSender.sentPackets.poll();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     Assert.assertTrue(receiverLinkage.abortedCount == 0);
     Assert.assertTrue(senderLinkage.abortedCount == 1);
 
@@ -312,8 +313,8 @@ public class MultipartHandlerTest
     while (System.nanoTime() - startTime < WAIT_TIME_NS) {
       mpSender.onTick();
       mpReceiver.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(receiverLinkage.abortedCount == 1);
     Assert.assertTrue(senderLinkage.abortedCount == 1);
@@ -331,17 +332,18 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    Packet250CustomPayload ackPacket = null;
+    Packet250Base ackPacket = null;
     for (int i= 0; i < SEGMENT_COUNT; ++i) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
       if (i == 1) ackPacket = receiverSender.sentPackets.poll();
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(senderLinkage.completedCount == 1);
-    boolean retval = mpSender.processIncomingPacket(ackPacket);
-    Assert.assertTrue(retval == false);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
 
+    boolean retval = receiverSender.processAckAtSender(mpSender, (Packet250MultipartSegmentAcknowledge)ackPacket);
+    Assert.assertTrue(retval == false);
   }
 
   @Test
@@ -356,20 +358,21 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    Packet250CustomPayload ackPacket = null;
+    Packet250Base ackPacket = null;
     mpSender.onTick();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
     ackPacket = receiverSender.sentPackets.poll();
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     mpSender.abortPacket(senderLinkage);
     senderSender.sentPackets.poll();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     Assert.assertTrue(receiverLinkage.abortedCount == 0);
     Assert.assertTrue(senderLinkage.abortedCount == 1);
-    boolean retval = mpSender.processIncomingPacket(ackPacket);
+    boolean retval = receiverSender.processAckAtSender(mpSender, (Packet250MultipartSegmentAcknowledge)ackPacket);
+
     Assert.assertTrue(retval == false);
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
     Assert.assertTrue(receiverLinkage.abortedCount == 1);
   }
 
@@ -385,8 +388,8 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    Packet250CustomPayload ackPacket = null;
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    Packet250Base ackPacket = null;
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
 
     do {
       mpSender.onTick();
@@ -394,7 +397,7 @@ public class MultipartHandlerTest
 
     long timeNow = System.nanoTime();
     int packetCount = 0;
-    Packet250CustomPayload lastDroppedPacket = null;
+    Packet250Base lastDroppedPacket = null;
     do {
       mpSender.onTick();
       while (senderSender.sentPackets.peek() != null) {
@@ -403,8 +406,9 @@ public class MultipartHandlerTest
       }
     } while (packetCount < SEGMENT_COUNT);
     long timeTaken = System.nanoTime() - timeNow;
-    mpReceiver.processIncomingPacket(lastDroppedPacket);
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    senderSender.processAtReceiver(mpReceiver, (Packet250MultipartSegment)lastDroppedPacket);
+
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
 
     for (int i = 0; i < SEGMENT_COUNT; ++i ) {
       mpSender.onTick();
@@ -414,8 +418,8 @@ public class MultipartHandlerTest
     Assert.assertTrue(packetCount == SEGMENT_COUNT - 1);
     Assert.assertTrue(senderLinkage.completedCount == 0);
     Assert.assertTrue(receiverLinkage.completedCount == 0);
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     Assert.assertTrue(senderLinkage.completedCount == 1);
     Assert.assertTrue(receiverLinkage.completedCount == 1);
   }
@@ -437,24 +441,25 @@ public class MultipartHandlerTest
     SenderLinkage senderLinkage1 = new SenderLinkage(sender1);
     SenderLinkage senderLinkage2 = new SenderLinkage(sender2);
     mpSender.sendMultipartPacket(senderLinkage1, sender1);
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
 
     ReceiverLinkage receiverLinkageBackup = receiverLinkage;
     mpSender.onTick();
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
 
     mpSender.sendMultipartPacket(senderLinkage2, sender2);
     Assert.assertTrue(senderLinkage1.abortedCount == 1);
     Assert.assertTrue(senderLinkage2.abortedCount == 0);
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
     Assert.assertTrue(receiverLinkageBackup.abortedCount == 1);
     Assert.assertTrue(receiverLinkage.abortedCount == 0);
 
     for (int i = 0; i < SEGMENT_COUNT2; ++i ) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(senderLinkage2.completedCount == 1);
     Assert.assertTrue(receiverLinkage.completedCount == 1);
@@ -473,13 +478,13 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    Packet250CustomPayload droppedPacket;
+    Packet250Base droppedPacket;
     for (int i= 1; i < SEGMENT_COUNT; ++i) {
       mpSender.onTick();
       if (i == 2) {
         mpReceiver.abortPacket(receiverLinkage);
       }
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
     }
     Assert.assertTrue(receiverLinkage.abortedCount == 1);
     Assert.assertTrue(senderLinkage.abortedCount == 0);
@@ -490,8 +495,8 @@ public class MultipartHandlerTest
     long startTime = System.nanoTime();
     while (System.nanoTime() - startTime < WAIT_TIME_NS) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(receiverLinkage.abortedCount == 1);
     Assert.assertTrue(senderLinkage.abortedCount == 1);
@@ -509,10 +514,10 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    Packet250CustomPayload droppedPacket;
+    Packet250Base droppedPacket;
     for (int i= 1; i < SEGMENT_COUNT; ++i) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
     }
     Assert.assertTrue(receiverLinkage.completedCount == 1);
     Assert.assertTrue(senderLinkage.completedCount == 0);
@@ -523,8 +528,8 @@ public class MultipartHandlerTest
     long startTime = System.nanoTime();
     while (System.nanoTime() - startTime < WAIT_TIME_NS) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(receiverLinkage.completedCount == 1);
     Assert.assertTrue(senderLinkage.completedCount == 1);
@@ -544,8 +549,8 @@ public class MultipartHandlerTest
     mpSender.sendMultipartPacket(senderLinkage, sender);
     for (int i= 0; i < SEGMENT_COUNT; ++i) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(receiverLinkage.completedCount == 1);
     Assert.assertTrue(senderLinkage.completedCount == 1);
@@ -596,8 +601,8 @@ public class MultipartHandlerTest
 
     for (int i= 0; i < SEGMENT_COUNT; ++i) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     mpSender.sendMultipartPacket(senderLinkage3, sender3);
 
@@ -634,36 +639,60 @@ public class MultipartHandlerTest
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
-    while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-    Packet250CustomPayload ackPacket;
-    ackPacket = receiverSender.sentPackets.poll();
-    Packet250CustomPayload badPacket;
+    while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+    Packet250MultipartSegmentAcknowledge ackPacket;
+    ackPacket = (Packet250MultipartSegmentAcknowledge)receiverSender.sentPackets.poll();
+    Packet250MultipartSegmentAcknowledge badPacket;
 
     final byte ARBITRARY_COMMAND = 2;
     final int MUCH_HIGHER_UNIQUE_ID = 1353;
-    badPacket = MultipartPacketTest.MultipartPacketTester.corruptPacket(ackPacket, 0, PACKET_ID, MUCH_HIGHER_UNIQUE_ID, ARBITRARY_COMMAND);
-    boolean result = mpSender.processIncomingPacket(badPacket);
+    badPacket = MultipartPacketTest.MultipartPacketTester.corruptAckPacket(ackPacket, PACKET_ID, ARBITRARY_COMMAND, MUCH_HIGHER_UNIQUE_ID);
+    boolean result = receiverSender.processAckAtSender(mpSender, badPacket);
     Assert.assertTrue(!result);
 
     for (int i= 0; i < SEGMENT_COUNT; ++i) {
       mpSender.onTick();
-      while (!senderSender.sentPackets.isEmpty()) mpReceiver.processIncomingPacket(senderSender.sentPackets.poll());
-      while (!receiverSender.sentPackets.isEmpty()) mpSender.processIncomingPacket(receiverSender.sentPackets.poll());
+      while (!senderSender.sentPackets.isEmpty()) senderSender.processNextAtReceiver(mpReceiver);
+      while (!receiverSender.sentPackets.isEmpty()) receiverSender.processNextAckAtSender(mpSender);
     }
     Assert.assertTrue(receiverLinkage.completedCount == 1);
     Assert.assertTrue(senderLinkage.completedCount == 1);
-    result = mpSender.processIncomingPacket(badPacket);
+    result = receiverSender.processAckAtSender(mpSender, badPacket);
+
     Assert.assertTrue(!result);
   }
 
-
   public static class DummySender implements PacketSender
   {
-    public boolean sendPacket(Packet250CustomPayload packet) {sentPackets.add(packet); return true;}
+    public boolean sendPacket(Packet250Base packet) {sentPackets.add(packet); return true;}
     public boolean readyForAnotherPacket() {return ready;}
     public boolean ready = true;
-    public Queue<Packet250CustomPayload> sentPackets = new LinkedList<Packet250CustomPayload>();
+    public Queue<Packet250Base> sentPackets = new LinkedList<Packet250Base>();
+
+    public boolean processAtReceiver(MultipartOneAtATimeReceiver receiver, Packet250MultipartSegment packet)
+    {
+      MultipartOneAtATimeReceiver.IncomingPacketHandler handler = receiver.new IncomingPacketHandler();
+      return handler.handlePacket(packet, null);
+    }
+
+    public boolean processNextAtReceiver(MultipartOneAtATimeReceiver receiver)
+    {
+      return processAtReceiver(receiver, (Packet250MultipartSegment)sentPackets.poll());
+    }
+
+    public boolean processAckAtSender(MultipartOneAtATimeSender sender, Packet250MultipartSegmentAcknowledge packet)
+    {
+      MultipartOneAtATimeSender.IncomingPacketHandler handler = sender.new IncomingPacketHandler();
+      return handler.handlePacket(packet, null);
+    }
+
+    public boolean processNextAckAtSender(MultipartOneAtATimeSender sender)
+    {
+      return processAckAtSender(sender, (Packet250MultipartSegmentAcknowledge)sentPackets.poll());
+    }
+
   }
+
 
   public static class SenderLinkage implements MultipartOneAtATimeSender.PacketLinkage
   {
@@ -709,11 +738,19 @@ public class MultipartHandlerTest
   // derived classes should implement this interface so that other wishing to create a new MultipartPacket (in response to an incoming packet) can pass this object to the packet handler which will invoke it.
   public static class MultipartPacketCreator implements MultipartPacket.MultipartPacketCreator
   {
-    public MultipartPacket createNewPacket(Packet250CustomPayload packet)
+    public MultipartPacket createNewPacket(Packet250MultipartSegment packet)
     {
       receivedPacket = MultipartPacketTest.MultipartPacketTester.createReceiverPacket(packet);
       return receivedPacket;
     }
+  }
+
+  public static class PacketHandlerRegistryTest extends PacketHandlerRegistry
+  {
+    public PacketHandlerRegistryTest() {
+      super(null); // initialise to null
+    }
+     // do nothing
   }
 
   public static DummySender senderSender;
