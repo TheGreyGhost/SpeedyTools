@@ -29,7 +29,8 @@ import java.util.List;
 * User: The Grey Ghost
 * Date: 26/05/2014
 */
-public class InGameTester
+public class
+        InGameTester
 {
   public InGameTester(PacketHandlerRegistryServer packetHandlerRegistry)
   {
