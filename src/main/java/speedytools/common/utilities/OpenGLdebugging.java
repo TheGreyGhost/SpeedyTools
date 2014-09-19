@@ -297,7 +297,7 @@ public class OpenGLdebugging
   public static void dumpAllIsEnabled()
   {
     for (int i = 0; i < instance.propertyList.length; ++i) {
-      if (instance.propertyList[i].fetchCommand == "glIsEnabled()") {
+      if (instance.propertyList[i].fetchCommand.equals("glIsEnabled()")) {
         System.out.print(instance.propertyList[i].name + ":");
         System.out.print(GL11.glIsEnabled(instance.propertyList[i].gLconstant));
         System.out.println(" (" + instance.propertyList[i].description + ")");
@@ -322,7 +322,7 @@ public class OpenGLdebugging
       return "" + GL11.glIsEnabled(gLconstant);
     }
 
-    if (instance.propertyList[propertyListIndex].fetchCommand == "glGetBooleanv()") {
+    if (instance.propertyList[propertyListIndex].fetchCommand.equals("glGetBooleanv()")) {
       ByteBuffer params = BufferUtils.createByteBuffer(16);
 
       GL11.glGetBoolean(gLconstant, params);

@@ -83,6 +83,7 @@ public class InGameTester
         case 14: success = performTest14(entityPlayerMP, performTest); break;
         case 15: success = performTest15(entityPlayerMP, performTest); break;
         case 16: success = performTest16(entityPlayerMP, performTest); break;
+        case 17: success = performTest17(performTest); break;
         default: blankTest = true; break;
       }
       if (blankTest) {
@@ -897,6 +898,13 @@ public class InGameTester
       }
     }
     return true;
+  }
+
+  public boolean performTest17(boolean performTest)
+  {
+    final int XORIGIN = 41; final int YORIGIN = 4; final int ZORIGIN = 19;
+    final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 200;
+    return standardCopyAndTest(performTest, true, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
   }
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,

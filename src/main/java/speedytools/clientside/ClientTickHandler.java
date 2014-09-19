@@ -55,7 +55,7 @@ public class ClientTickHandler  {
     EntityClientPlayerMP player = Minecraft.getMinecraft().thePlayer;
     if (player == null) return;
 
-    boolean inputUsed = false;                  //todo testing only
+    boolean inputUsed = false;
     if (ClientSide.activeTool.toolIsActive()) {
       long timeNow = System.nanoTime();
       ClientSide.userInput.updateButtonStates(SpeedyToolControls.attackButtonInterceptor.isKeyDown(), SpeedyToolControls.useItemButtonInterceptor.isKeyDown(), timeNow);

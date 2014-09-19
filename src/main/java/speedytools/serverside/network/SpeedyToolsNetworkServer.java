@@ -352,7 +352,7 @@ public class SpeedyToolsNetworkServer
                                           Acknowledgement.COMPLETED, packet.getSequenceNumber(),
                                           "");
             break;
-          } else if (packet.getActionToBeUndoneSequenceNumber() == lastAcknowledgedAction.get(player)) {    // undo for a specific action we have acknowledged as starting
+          } else if (packet.getActionToBeUndoneSequenceNumber().equals(lastAcknowledgedAction.get(player))) {    // undo for a specific action we have acknowledged as starting
             result = speedyToolServerActions.performUndoOfCurrentComplexAction(player, packet.getSequenceNumber(), packet.getActionToBeUndoneSequenceNumber());
 //            sendAcknowledgementWithReason(player, Acknowledgement.NOUPDATE, 0, (result.succeeded() ? Acknowledgement.ACCEPTED : Acknowledgement.REJECTED), sequenceNumber, result.getReason());
             sendAcknowledgementWithReason(player, Acknowledgement.COMPLETED, lastAcknowledgedAction.get(player),

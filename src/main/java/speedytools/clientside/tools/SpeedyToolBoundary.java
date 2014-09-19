@@ -113,7 +113,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
         boundaryGrabActivated = false;
         speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_UNGRAB, playerPosition);
       } else {
-        MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player); //todo: is this needed: (Minecraft.getMinecraft().renderViewEntity);
+        MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
         if (highlightedFace == null) return;
 
         boundaryGrabActivated = true;

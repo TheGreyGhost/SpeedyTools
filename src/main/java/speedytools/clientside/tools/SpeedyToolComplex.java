@@ -536,8 +536,6 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     super.performTick(world);
     updateGrabRenderTick(selectionGrabActivated && currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION);
 
-//    RegistryForItems.itemComplexCopy.setRenderHorizontal(selectionGrabActivated);  // todo make this generic for other tools too
-
     final long MAX_TIME_IN_NS = SpeedyToolsOptions.getMaxClientBusyTimeMS() * 1000L * 1000L;
     final float VOXEL_MAX_COMPLETION = 75.0F;
     if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
