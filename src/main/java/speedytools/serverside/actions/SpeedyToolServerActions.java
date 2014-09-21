@@ -16,8 +16,8 @@ import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.ServerVoxelSelections;
-import speedytools.serverside.network.SpeedyToolsNetworkServer;
 import speedytools.serverside.backup.MinecraftSaveFolderBackups;
+import speedytools.serverside.network.SpeedyToolsNetworkServer;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldHistory;
 
@@ -101,8 +101,8 @@ public class SpeedyToolServerActions
   public ResultWithReason performComplexAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
   {
     assert (!isAsynchronousActionInProgress());
-    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos
-                       + "], rotated:" + quadOrientation.getClockwiseRotationCount() + ", flippedX:" + quadOrientation.isFlippedX());
+//    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos
+//                       + "], rotated:" + quadOrientation.getClockwiseRotationCount() + ", flippedX:" + quadOrientation.isFlippedX());
 
     VoxelSelectionWithOrigin voxelSelection = serverVoxelSelections.getVoxelSelection(player);
 
@@ -161,7 +161,7 @@ public class SpeedyToolServerActions
 
   public ResultWithReason performUndoOfCurrentComplexAction(EntityPlayerMP player, int undoSequenceNumber, int actionSequenceNumber)
   {
-    System.out.println("Server: Tool Undo Current Action received: action sequenceNumber " + actionSequenceNumber + ", undo seq number " + undoSequenceNumber);
+//    System.out.println("Server: Tool Undo Current Action received: action sequenceNumber " + actionSequenceNumber + ", undo seq number " + undoSequenceNumber);
     if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
       ResultWithReason resultWithReason = null;
       resultWithReason = ServerSide.getInGameStatusSimulator().performUndoOfCurrentAction(speedyToolsNetworkServer, player, undoSequenceNumber, actionSequenceNumber);
@@ -182,7 +182,7 @@ public class SpeedyToolServerActions
 
   public ResultWithReason performUndoOfLastComplexAction(EntityPlayerMP player, int undoSequenceNumber)
   {
-    System.out.println("Server: Tool Undo Last Completed Action received, undo seq number " + undoSequenceNumber);
+//    System.out.println("Server: Tool Undo Last Completed Action received, undo seq number " + undoSequenceNumber);
 
     if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
       ResultWithReason resultWithReason = null;
@@ -231,10 +231,11 @@ public class SpeedyToolServerActions
       }
     }
 
-    if (asynchronousTaskInProgress == null || asynchronousTaskInProgress.isTaskComplete()) {
-      speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
+    if (!ServerSide.getInGameStatusSimulator().isTestModeActivated()) {
+      if (asynchronousTaskInProgress == null || asynchronousTaskInProgress.isTaskComplete()) {
+        speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte) 0);
+      }
     }
-
   }
 
   /**

@@ -156,6 +156,7 @@ public class Packet250CloneToolStatus  extends Packet250Base
           if (clientSideHandler == null) {
             ErrorLog.defaultLog().severe("Packet250CloneToolStatus received but not registered on side " + ctx.side);
           } else {
+//            System.out.println("Status received:" + message.getServerStatus() );
             clientSideHandler.handlePacket(message, ctx);
           }
           break;

@@ -241,7 +241,7 @@ public class SpeedyToolsNetworkServer
    */
   public void handlePacket(EntityPlayerMP player, Packet250CloneToolUse packet)
   {
-    System.out.println("SpeedyToolsNetworkServer.handlePacket:" + packet.getCommand());
+//    System.out.println("SpeedyToolsNetworkServer.handlePacket:" + packet.getCommand());
     switch (packet.getCommand()) {
       case SELECTION_MADE: {
         speedyToolServerActions.prepareForToolAction(player);
@@ -428,7 +428,7 @@ public class SpeedyToolsNetworkServer
     @Override
     public boolean handlePacket(Packet250CloneToolStatus packet250CloneToolStatus, MessageContext ctx) {
       if (!packet250CloneToolStatus.isPacketIsValid()) return false;
-      if (packet250CloneToolStatus.validForSide(Side.SERVER)) return false;
+      if (!packet250CloneToolStatus.validForSide(Side.SERVER)) return false;
       SpeedyToolsNetworkServer.this.handlePacket(ctx.getServerHandler().playerEntity, packet250CloneToolStatus);
       return true;
     }

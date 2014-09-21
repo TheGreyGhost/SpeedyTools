@@ -826,7 +826,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
           }
           break;
         }
-        case PERFORMING_ACTION: { // the placement cursor is not working
+        case PERFORMING_ACTION: { // todo the placement cursor is not working
           infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CW;
           lastPowerupStarted = null;
           break;
@@ -858,6 +858,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //        infoToUpdate.idle = activePowerUp.isIdle();
 //      }
 
+//      System.out.println("ServerStatus:" + cloneToolsNetworkClient.getServerStatus() + ", " + cloneToolsNetworkClient.getServerPercentComplete());
       float serverReadiness = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
       float selectionSending = (selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.COMPLETED)
                                ? 100 :  selectionPacketSender.getCurrentPacketPercentComplete();
@@ -870,13 +871,13 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       infoToUpdate.cursorType = SpeedyToolComplex.this.getCursorType();
       infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
 
-//      System.out.println("CurserRenderInfoLink - refresh.  Idle=" + infoToUpdate.idle +
-//                         "; clockwise=" + infoToUpdate.clockwise +
+//      System.out.println("CurserRenderInfoLink - refresh.  readinessPercent=" + infoToUpdate.readinessPercent +
+//                         "; taskCompletionPercent=" + infoToUpdate.taskCompletionPercent +
 //                         "; chargePercent= " + infoToUpdate.chargePercent +
 //                         "; chargedAndReady=" + infoToUpdate.fullyChargedAndReady
 //                        );
       if (infoToUpdate.animationState != lastState) {
-        System.out.println("State:" + infoToUpdate.animationState);
+//        System.out.println("State:" + infoToUpdate.animationState);
         lastState = infoToUpdate.animationState;
       }
       return true;

@@ -99,6 +99,10 @@ public class BlockVoxelMultiSelector
       for ( ; xpos < xSize; ++xpos, ypos = 0) {
         for ( ; ypos < ySize; ++ypos) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
+          if (world.isAirBlock(xpos + wxOrigin, ypos + wyOrigin, zpos + wzOrigin)) {          // for debug only
+            int dummy = 6;
+          }
+
           if (!world.isAirBlock(xpos + wxOrigin, ypos + wyOrigin, zpos + wzOrigin)) {
             selection.setVoxel(xpos, ypos, zpos);
             expandVoxelRange(xpos, ypos, zpos);

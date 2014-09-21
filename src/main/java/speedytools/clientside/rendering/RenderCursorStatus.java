@@ -1,14 +1,11 @@
 package speedytools.clientside.rendering;
 
+import cpw.mods.fml.common.eventhandler.Event;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import cpw.mods.fml.common.eventhandler.Event;
 import org.lwjgl.opengl.GL11;
 import speedytools.SpeedyToolsMod;
 import speedytools.clientside.ClientSide;
@@ -536,7 +533,7 @@ public class RenderCursorStatus implements RendererElement
     drawArc(12.0, 0.0, progressAngle, (double) Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
     GL11.glPopMatrix();
 
-    GL11.glPopAttrib();
+      GL11.glPopAttrib();
     return;
   }
 

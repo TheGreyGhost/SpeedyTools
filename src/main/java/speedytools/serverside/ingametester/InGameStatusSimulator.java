@@ -251,7 +251,7 @@ public class InGameStatusSimulator
         if (elapsedTime > TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND) {
           speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
           testInProgress = TestInProgress.NONE;
-          System.out.println("Server: backup completed");
+//          System.out.println("Server: backup completed");
         } else {
           long completion = 100 * elapsedTime / (TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND);
           speedyToolsNetworkServer.changeServerStatus(ServerStatus.PERFORMING_BACKUP, testPlayer, (byte)completion);
@@ -263,7 +263,7 @@ public class InGameStatusSimulator
         if (elapsedTime > TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND) {
           speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
           speedyToolsNetworkServer.actionCompleted(testPlayer, testActionSequenceNumber);
-          System.out.println("Server: actionCompleted # " + testActionSequenceNumber);
+//          System.out.println("Server: actionCompleted # " + testActionSequenceNumber);
           testInProgress = TestInProgress.NONE;
         } else {
           long completion = 100 * elapsedTime / (TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND);
@@ -277,7 +277,7 @@ public class InGameStatusSimulator
         if (elapsedTime > TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND) {
           speedyToolsNetworkServer.changeServerStatus(ServerStatus.IDLE, null, (byte)0);
           speedyToolsNetworkServer.undoCompleted(testPlayer, testUndoSequenceNumber);
-          System.out.println("Server: undoCompleted # " + testUndoSequenceNumber);
+//          System.out.println("Server: undoCompleted # " + testUndoSequenceNumber);
           testInProgress = TestInProgress.NONE;
         } else {
           long completion = 100 * elapsedTime / (TEST_DURATION_SECONDS * NANOSECONDS_PER_SECOND);
