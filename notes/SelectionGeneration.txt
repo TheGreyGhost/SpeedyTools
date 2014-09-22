@@ -1,0 +1,25 @@
+Unlike 1.6, in 1.7 the client doesn't retrieve unloaded chunks automatically from the server.  If an unloaded chunk is
+requested, it returns a blank chunk instead.
+
+The complex tools generate the selection on the client side.  This means that, if the selection is bigger than the
+range of loaded chunks on the client, part of the selection is missing.
+
+Two proposed answers:
+1) Keep selection algorithm on the client.  Request missing data from server as required (send all blockID and metadata); compress
+or
+2) Run selection algorithm on the client.   Missing chunks are marked and sent to server.  Server completes the selection
+ algorithm and sends back the blockID and metadata for the "shell" only (blocks fully enclosed don't need to provide ID/meta because they won't be rendered.)
+ compressed.
+
+For example of 256x256x256
+1) is simpler but requires much more packets (up to say 33 MB for the entire transmission)
+2) is more complicated but needs far fewer packets.
+
+Plan:
+
+a) Run selection algorithm on the client.  If there are no missing chunks, send it to the server as usual.
+b) If there are one or more missing chunks;
+  1) show them in the selection as fuzzy blocks
+  2) tell the server to run the selection algorithm, marking the fuzzy chunks
+  3) server transmits selection back to the client.  client updates the render; foggy faces instead of block textures where the block isn't known.
+
