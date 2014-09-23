@@ -1,7 +1,7 @@
 package speedytools.common.network.multipart;
 
 import cpw.mods.fml.relauncher.Side;
-import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.common.selections.BlockVoxelMultiSelector;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.selections.VoxelSelectionWithOrigin;

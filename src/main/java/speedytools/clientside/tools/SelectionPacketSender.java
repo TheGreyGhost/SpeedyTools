@@ -1,7 +1,7 @@
 package speedytools.clientside.tools;
 
 import cpw.mods.fml.relauncher.Side;
-import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.common.selections.BlockVoxelMultiSelector;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
 import speedytools.common.network.PacketSender;
@@ -18,8 +18,8 @@ import speedytools.common.network.multipart.SelectionPacket;
 *     Monitor its progress using getCurrentPacketPercentComplete and getCurrentPacketProgress:
 *     IDLE means there is no valid selection sent, and currently not sending anything
 *     SENDING means a transmission is in progress
-*     COMPLETED means that the transmission is complete and the server has a valid copy
-*     ABORTED means that the transmission was aborted and the server has no valid copy
+*     COMPLETED means that the transmission is complete and the receiver has a valid copy
+*     ABORTED means that the transmission was aborted and the receiver has no valid copy
 * (3) To abort the current transmission, call abortSending()
 * (4) reset() is used to invalidate the current selection (return to IDLE)
 * (5) call tick() frequently to handle packet sending and timeouts

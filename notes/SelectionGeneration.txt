@@ -16,7 +16,7 @@ For example of 256x256x256
 2) is more complicated but needs far fewer packets.
 
 Plan:
-
+Simplify even further-
 a) Run selection algorithm on the client.  If there are no missing chunks, send it to the server as usual.
 b) If there are one or more missing chunks;
   1) show them in the selection as fuzzy blocks

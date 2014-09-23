@@ -1,10 +1,9 @@
-package speedytools.clientside.selections;
+package speedytools.common.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
-import speedytools.common.selections.VoxelSelection;
-import speedytools.common.selections.VoxelSelectionWithOrigin;
+import net.minecraft.world.chunk.Chunk;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Deque;
@@ -17,6 +16,7 @@ import java.util.LinkedList;
 public class BlockVoxelMultiSelector
 {
   private VoxelSelectionWithOrigin selection;
+  private VoxelSelectionWithOrigin unavailableVoxels;
 
   private int smallestVoxelX;
   private int largestVoxelX;
@@ -95,7 +95,21 @@ public class BlockVoxelMultiSelector
 
     long startTime = System.nanoTime();
 
-    for ( ; zpos < zSize; ++zpos, xpos = 0) {
+
+    if (wx >= -30000000 && wz >= -30000000 && wx < 30000000 && wz < 30000000 && wy >= 0 && wy < 256)
+    {
+      Chunk chunk = null;
+
+      try
+      {
+        chunk = this.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+        return chunk.getBlock(wx & 15, wy, wz & 15);
+      }
+
+
+
+
+      for ( ; zpos < zSize; ++zpos, xpos = 0) {
       for ( ; xpos < xSize; ++xpos, ypos = 0) {
         for ( ; ypos < ySize; ++ypos) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
@@ -325,6 +339,21 @@ public class BlockVoxelMultiSelector
       }
     }
     selection = smallerSelection;
+
+    VoxelSelectionWithOrigin smallerUnavailableVoxels = new VoxelSelectionWithOrigin(
+            wxOrigin + smallestVoxelX, wyOrigin + smallestVoxelY, wzOrigin + smallestVoxelZ,
+            newXsize, newYsize, newZsize);
+    for (int y = 0; y < newYsize; ++y) {
+      for (int z = 0; z < newZsize; ++z) {
+        for (int x = 0; x < newXsize; ++x) {
+          if (unavailableVoxels.getVoxel(x + smallestVoxelX, y + smallestVoxelY, z + smallestVoxelZ)) {
+            smallerUnavailableVoxels.setVoxel(x, y, z);
+          }
+        }
+      }
+    }
+    unavailableVoxels = smallerUnavailableVoxels;
+
     wxOrigin += smallestVoxelX;
     wyOrigin += smallestVoxelY;
     wzOrigin += smallestVoxelZ;
@@ -349,8 +378,10 @@ public class BlockVoxelMultiSelector
     zSize = 1 + Math.max(corner1.posZ, corner2.posZ) - wzOrigin;
     if (selection == null) {
       selection = new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
+      unavailableVoxels = new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
     } else {
       selection.resizeAndClear(xSize, ySize, zSize);
+      unavailableVoxels.resizeAndClear(xSize, ySize, zSize);
     }
   }
 

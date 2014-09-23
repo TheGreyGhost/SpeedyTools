@@ -9,7 +9,7 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
-import speedytools.clientside.selections.BlockVoxelMultiSelector;
+import speedytools.common.selections.BlockVoxelMultiSelector;
 import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
