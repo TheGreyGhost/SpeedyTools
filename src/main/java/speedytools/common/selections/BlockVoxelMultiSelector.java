@@ -1,6 +1,7 @@
 package speedytools.common.selections;
 
 import cpw.mods.fml.common.FMLLog;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -36,6 +37,8 @@ public class BlockVoxelMultiSelector
   private int ypos;
   private int zpos;
 
+  private VoxelChunkwiseIterator voxelChunkwiseIterator;
+
   private boolean empty = true;
 
   private enum OperationInProgress {
@@ -52,9 +55,10 @@ public class BlockVoxelMultiSelector
   public void selectAllInBoxStart(World world, ChunkCoordinates corner1, ChunkCoordinates corner2)
   {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
-    xpos = 0;
-    ypos = 0;
-    zpos = 0;
+//    xpos = 0;
+//    ypos = 0;
+//    zpos = 0;
+    voxelChunkwiseIterator = new VoxelChunkwiseIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
     mode = OperationInProgress.ALL_IN_BOX;
     initialiseVoxelRange();
   }
@@ -95,35 +99,27 @@ public class BlockVoxelMultiSelector
 
     long startTime = System.nanoTime();
 
-
-    if (wx >= -30000000 && wz >= -30000000 && wx < 30000000 && wz < 30000000 && wy >= 0 && wy < 256)
-    {
-      Chunk chunk = null;
-
-      try
-      {
-        chunk = this.getChunkFromChunkCoords(wx >> 4, wz >> 4);
-        return chunk.getBlock(wx & 15, wy, wz & 15);
-      }
-
-
-
-
-      for ( ; zpos < zSize; ++zpos, xpos = 0) {
-      for ( ; xpos < xSize; ++xpos, ypos = 0) {
-        for ( ; ypos < ySize; ++ypos) {
-          if (System.nanoTime() - startTime >= maxTimeInNS) return (zpos / (float)zSize);
-          if (world.isAirBlock(xpos + wxOrigin, ypos + wyOrigin, zpos + wzOrigin)) {          // for debug only
-            int dummy = 6;
+    while (!voxelChunkwiseIterator.isAtEnd()) {
+      voxelChunkwiseIterator.hasEnteredNewChunk();  // reset flag
+      Chunk currentChunk = world.getChunkFromChunkCoords(voxelChunkwiseIterator.getChunkX(), voxelChunkwiseIterator.getChunkZ());
+      if (currentChunk.isEmpty()) {
+        while (!voxelChunkwiseIterator.isAtEnd() && !voxelChunkwiseIterator.hasEnteredNewChunk()) {
+          unavailableVoxels.setVoxel(voxelChunkwiseIterator.getXpos(), voxelChunkwiseIterator.getYpos(), voxelChunkwiseIterator.getZpos());
+          expandVoxelRange(voxelChunkwiseIterator.getXpos(), voxelChunkwiseIterator.getYpos(), voxelChunkwiseIterator.getZpos());
+          voxelChunkwiseIterator.next();
+        }
+      } else {
+        while (!voxelChunkwiseIterator.isAtEnd() && !voxelChunkwiseIterator.hasEnteredNewChunk()) {
+          if (Blocks.air != currentChunk.getBlock(voxelChunkwiseIterator.getWX() & 0x0f, voxelChunkwiseIterator.getWY(), voxelChunkwiseIterator.getWZ() & 0x0f)) {
+            selection.setVoxel(voxelChunkwiseIterator.getXpos(), voxelChunkwiseIterator.getYpos(), voxelChunkwiseIterator.getZpos());
+            expandVoxelRange(voxelChunkwiseIterator.getXpos(), voxelChunkwiseIterator.getYpos(), voxelChunkwiseIterator.getZpos());
           }
-
-          if (!world.isAirBlock(xpos + wxOrigin, ypos + wyOrigin, zpos + wzOrigin)) {
-            selection.setVoxel(xpos, ypos, zpos);
-            expandVoxelRange(xpos, ypos, zpos);
-          }
+          voxelChunkwiseIterator.next();
+          if (System.nanoTime() - startTime >= maxTimeInNS) return voxelChunkwiseIterator.estimatedFractionComplete();
         }
       }
     }
+
     mode = OperationInProgress.COMPLETE;
     return -1;
   }

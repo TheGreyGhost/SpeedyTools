@@ -6,13 +6,13 @@ package speedytools.common.selections;
  * Used to iterate through a Voxel region in a chunkwise fashion:
  * Iterates through the chunks as
  * cz=0: cx=0, cx=1, cx=2 etc then cz=1: cx=0, cx=1, cx=2 etc
- * Within each chunk: y slowest, z next, x fastest eg
- * [0,0,0] [1,0,0] ..  [15,0,0]
- * [0,0,1] [1,0,1] ..  [15,0,1]
+ * Within each chunk: y fastest, z next, x slowest eg
+ * [0,0,0] [0,1,0] ..  [0,15,0]
+ * [0,0,1] [0,1,1] ..  [0,15,1]
  * to
- * [0,0,15] .. [15,0,15]
+ * [0,0,15] .. [0,15,15]
  * then
- * [0,1,0] [1,1,0] [15,1,0]
+ * [1,0,0] [1,1,0] .. [1,15,0]
  * etc
  */
 public class VoxelChunkwiseIterator
@@ -36,15 +36,19 @@ public class VoxelChunkwiseIterator
    */
   public void reset()
   {
-    xpos = 0;
-    ypos = 0;
-    zpos = 0;
     atEnd = false;
     cxMin = wxOrigin >> 4;
     cxMax = (wxOrigin + xSize - 1) >> 4;
     czMin = wzOrigin >> 4;
-    czMax = (wzOrigin + xSize - 1) >> 4;
+    czMax = (wzOrigin + zSize - 1) >> 4;
     enteredNewChunk = true;
+    cx = cxMin;
+    cz = czMin;
+    setIterationLimits(cx, cz);
+    wxLSB = wxLSBmin;
+    wy = wyMin;
+    wzLSB = wzLSBmin;
+    blockCount = 0;
   }
 
   /**
@@ -54,6 +58,7 @@ public class VoxelChunkwiseIterator
   public boolean next()
   {
     if (atEnd) return false;
+    ++blockCount;
     if (wy < wyMax) {
       ++wy;
     } else {
@@ -79,12 +84,58 @@ public class VoxelChunkwiseIterator
           }
           if (!atEnd) {
             setIterationLimits(cx, cz);
+            wxLSB = wxLSBmin;
+            wzLSB = wzLSBmin;
           }
         }
       }
     }
     return !atEnd;
   }
+
+  /** returns true on the first call after the iterator has moved into a new chunk
+   * @return
+   */
+  public boolean hasEnteredNewChunk() {
+    boolean retval = enteredNewChunk;
+    enteredNewChunk = false;
+    return retval;
+  }
+
+  /** has the iterator reached the end of the region?
+   * @return
+   */
+  public boolean isAtEnd() {return atEnd;}
+
+  /**
+   * return the chunk x, z coordinate the iterator is currently in
+   * @return
+   */
+  public int getChunkX() {return cx;}
+  public int getChunkZ() {return cz;}
+
+  /** return the world x, y, z of the current iterator position
+   * @return
+   */
+  public int getWX() {return (cx << 4) +  wxLSB;}
+  public int getWY() {return wy;}
+  public int getWZ() {return (cz << 4) +  wzLSB;}
+
+  /** get the [x,y,z] index of the current iterator position, i.e. relative to the origin
+    * @return
+   */
+  public int getXpos() {return getWX() - wxOrigin;}
+  public int getYpos() {return getWY() - wyOrigin;}
+  public int getZpos() {return getWZ() - wzOrigin;}
+
+  /** estimate the fraction of the range that has been iterated through
+   * @return [0 .. 1]
+   */
+  public float estimatedFractionComplete()
+  {
+    return blockCount / (xSize * (float)ySize * zSize);
+  }
+
 
   /**
    * for a given chunk coordinates, set the LSB iteration limits within that chunk
@@ -113,7 +164,7 @@ public class VoxelChunkwiseIterator
     final int MINIMUM_Y_COORDINATE = 0;
     final int MAXIMUM_Y_COORDINATE = 255;
     wyMin = Math.max(MINIMUM_Y_COORDINATE, wyOrigin);
-    wyMax = Math.min(MAXIMUM_Y_COORDINATE, wyOrigin + ySize);
+    wyMax = Math.min(MAXIMUM_Y_COORDINATE, wyOrigin + ySize - 1);
   }
 
   private int cxMin;
@@ -128,30 +179,19 @@ public class VoxelChunkwiseIterator
   private int wyMin;
   private int wyMax;
 
-  int wxLSB;
-  int wzLSB;
-  int wy;
-  int cx;
-  int cz;
+  private int wxLSB;
+  private int wzLSB;
+  private int wy;
+  private int cx;
+  private int cz;
 
-  private int xpos;
-  private int ypos;
-  private int zpos;
   private boolean atEnd;
-
-  /** returns true on the first call after the iterator has moved into a new chunk
-   * @return
-   */
-  public boolean hasEnteredNewChunk() {
-    return enteredNewChunk;
-  }
-
   private boolean enteredNewChunk;
-
   private int wxOrigin;
   private int wyOrigin;
   private int wzOrigin;
   private int xSize;
   private int ySize;
   private int zSize;
+  private int blockCount;
 }
