@@ -19,9 +19,9 @@ import speedytools.common.utilities.QuadOrientation;
 public class Packet250CloneToolUse extends Packet250Base
 {
 
-  public static Packet250CloneToolUse informSelectionMade()
+  public static Packet250CloneToolUse prepareForLaterAction()
   {
-    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.SELECTION_MADE);
+    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PREPARE_FOR_LATER_ACTION);
     assert (retval.checkInvariants());
     return retval;
   }
@@ -100,7 +100,7 @@ public class Packet250CloneToolUse extends Packet250Base
   }
 
   public static enum Command {
-    SELECTION_MADE(0), PERFORM_TOOL_ACTION(1), PERFORM_TOOL_UNDO(2);
+    PREPARE_FOR_LATER_ACTION(0), PERFORM_TOOL_ACTION(1), PERFORM_TOOL_UNDO(2);
 
     public byte getCommandID() {return commandID;}
 
@@ -238,7 +238,7 @@ public class Packet250CloneToolUse extends Packet250Base
   {
     if (command == null) return false;
     switch (command) {
-      case SELECTION_MADE: {
+      case PREPARE_FOR_LATER_ACTION: {
         return true;
       }
       case PERFORM_TOOL_ACTION: {

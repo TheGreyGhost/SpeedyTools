@@ -23,3 +23,5 @@ b) If there are one or more missing chunks;
   2) tell the server to run the selection algorithm
   3) server transmits selection back to the client.  client updates the render; foggy faces instead of block textures where the block isn't known.
 
+The command to the server to generate a selection is a new packet type handled by the ServerVoxelSelection
+

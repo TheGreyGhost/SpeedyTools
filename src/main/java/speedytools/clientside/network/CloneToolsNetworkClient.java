@@ -80,7 +80,7 @@ public class CloneToolsNetworkClient
    */
   public boolean informSelectionMade()
   {
-    Packet250CloneToolUse packet = Packet250CloneToolUse.informSelectionMade();
+    Packet250CloneToolUse packet = Packet250CloneToolUse.prepareForLaterAction();
     if (packet != null) {
       packetSender.sendPacket(packet);
       return true;

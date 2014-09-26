@@ -521,6 +521,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         break;
       }
     }
+
+
     cloneToolsNetworkClient.informSelectionMade();
   }
 

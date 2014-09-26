@@ -243,7 +243,7 @@ public class SpeedyToolsNetworkServer
   {
 //    System.out.println("SpeedyToolsNetworkServer.handlePacket:" + packet.getCommand());
     switch (packet.getCommand()) {
-      case SELECTION_MADE: {
+      case PREPARE_FOR_LATER_ACTION: {
         speedyToolServerActions.prepareForToolAction(player);
         break;
       }
