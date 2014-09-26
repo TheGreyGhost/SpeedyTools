@@ -556,7 +556,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
                 voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
               }
               ChunkCoordinates wOrigin = voxelSelectionManager.getWorldOrigin();
-              voxelSelectionRenderer.createRenderListStart(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ, voxelSelectionManager.getSelection());
+              voxelSelectionRenderer.createRenderListStart(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ,
+                                                           voxelSelectionManager.getSelection(), voxelSelectionManager.getUnavailableVoxels());
             }
           }
           break;
@@ -564,7 +565,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         case RENDERLISTS: {
           ChunkCoordinates wOrigin = voxelSelectionManager.getWorldOrigin();
           float progress = voxelSelectionRenderer.createRenderListContinue(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ,
-                                                                           voxelSelectionManager.getSelection(), MAX_TIME_IN_NS);
+                                                                           voxelSelectionManager.getSelection(), voxelSelectionManager.getUnavailableVoxels(), MAX_TIME_IN_NS);
 
           if (progress >= 0) {
             selectionGenerationPercentComplete = voxelCompletionReached + (100.0F - voxelCompletionReached) * progress;

@@ -15,7 +15,7 @@ public class RegistryForBlocks
 
   public static void initialise()
   {
-    blockSelectionFog = new BlockSelectionFog(Material.air);
+    blockSelectionFog = new BlockSelectionFog(Material.rock);  // material is arbitrary; can't be air because air has no icon
     GameRegistry.registerBlock(blockSelectionFog, blockSelectionFog.NAME);
   }
 }

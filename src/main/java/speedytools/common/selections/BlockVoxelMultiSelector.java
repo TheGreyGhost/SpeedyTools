@@ -83,6 +83,9 @@ public class BlockVoxelMultiSelector
   public VoxelSelection getSelection() {
     return selection;
   }
+  public VoxelSelectionWithOrigin getUnavailableVoxels() {
+    return unavailableVoxels;
+  }
 
   /**
    * continue conversion of the selected box to a VoxelSelection.  Call repeatedly until conversion complete.

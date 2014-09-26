@@ -80,10 +80,13 @@ public class BlockVoxelMultiSelectorRenderer
 
   /**
    * create a render list for the current selection.
+   * Renders all voxels in selectedVoxels with the corresponding block texture, and also renders all voxels in unknownVoxels with an "unknown" texture
    * Quads, with lines to outline them
    * @param world
+   * @param selectedVoxels the current selection
+   * @param unknownVoxels any unknown voxels in the current selection (voxels that might be selected - not known).  Must be the same size [x,y,z] as selectedVoxels
    */
-  public void createRenderListStart(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection)
+  public void createRenderListStart(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels)
   {
     release();
     displayListWireFrameXY = GLAllocation.generateDisplayLists(1);
@@ -91,14 +94,17 @@ public class BlockVoxelMultiSelectorRenderer
     displayListWireFrameYZ = GLAllocation.generateDisplayLists(1);
 
     int displayListCount = 1;
-    xSize = voxelSelection.getxSize();
-    ySize = voxelSelection.getySize();
-    zSize = voxelSelection.getzSize();
-    chunkCountX = ((voxelSelection.getxSize() - 1) / DISPLAY_LIST_XSIZE) + 1;
-    chunkCountY = ((voxelSelection.getySize() - 1) / DISPLAY_LIST_YSIZE) + 1;
-    chunkCountZ = ((voxelSelection.getzSize() - 1) / DISPLAY_LIST_ZSIZE) + 1;
+    xSize = selectedVoxels.getxSize();
+    ySize = selectedVoxels.getySize();
+    zSize = selectedVoxels.getzSize();
+    assert (xSize == unknownVoxels.getxSize());
+    assert (ySize == unknownVoxels.getySize());
+    assert (zSize == unknownVoxels.getzSize());
+    chunkCountX = ((selectedVoxels.getxSize() - 1) / DISPLAY_LIST_XSIZE) + 1;
+    chunkCountY = ((selectedVoxels.getySize() - 1) / DISPLAY_LIST_YSIZE) + 1;
+    chunkCountZ = ((selectedVoxels.getzSize() - 1) / DISPLAY_LIST_ZSIZE) + 1;
 
-    if (voxelSelection.getxSize() > 0 && voxelSelection.getySize() > 0 && voxelSelection.getzSize() > 0) {
+    if (selectedVoxels.getxSize() > 0 && selectedVoxels.getySize() > 0 && selectedVoxels.getzSize() > 0) {
       displayListCount = chunkCountX * chunkCountY * chunkCountZ;
     }
 
@@ -110,7 +116,7 @@ public class BlockVoxelMultiSelectorRenderer
     }
     displayListCubesCount = displayListCount;
 
-    createMeshRenderLists(voxelSelection.getxSize(), voxelSelection.getySize(), voxelSelection.getzSize());
+    createMeshRenderLists(selectedVoxels.getxSize(), selectedVoxels.getySize(), selectedVoxels.getzSize());
 
     cxCurrent = 0;
     cyCurrent = 0;
@@ -123,8 +129,9 @@ public class BlockVoxelMultiSelectorRenderer
    * create a render list for the current selection.
    * Quads, with lines to outline them
    * @param world
+   * @param unknownVoxels
    */
-  public float createRenderListContinue(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection voxelSelection, long maxTimeInNS)
+  public float createRenderListContinue(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels, long maxTimeInNS)
   {
     if (mode != OperationInProgress.IN_PROGRESS) {
       FMLLog.severe("Mode should be IN_PROGRESS in BlockVoxelMultiSelectorRenderer::createRenderListContinue, but was actually " + mode);
@@ -146,8 +153,8 @@ public class BlockVoxelMultiSelectorRenderer
           GL11.glDisable(GL11.GL_LIGHTING);
           GL11.glEnable(GL11.GL_TEXTURE_2D);
           Tessellator tessellator = Tessellator.instance;
-          tessellateSurfaceWithTexture(world, voxelSelection, wxOrigin, wyOrigin, wzOrigin,
-                  cxCurrent * DISPLAY_LIST_XSIZE, cyCurrent * DISPLAY_LIST_YSIZE, czCurrent * DISPLAY_LIST_ZSIZE, tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
+          tessellateSurfaceWithTexture(world, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin,
+                  wzOrigin, cxCurrent * DISPLAY_LIST_XSIZE, cyCurrent * DISPLAY_LIST_YSIZE, czCurrent * DISPLAY_LIST_ZSIZE, tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
 
           GL11.glEnable(GL11.GL_BLEND);
           GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -155,7 +162,7 @@ public class BlockVoxelMultiSelectorRenderer
           GL11.glLineWidth(2.0F);
           GL11.glDisable(GL11.GL_TEXTURE_2D);
           GL11.glDepthMask(false);
-          tessellateSurface(voxelSelection, cxCurrent * DISPLAY_LIST_XSIZE, cyCurrent * DISPLAY_LIST_YSIZE, czCurrent * DISPLAY_LIST_ZSIZE, tessellator, WhatToDraw.WIREFRAME, FRAME_NUDGE_DISTANCE);
+          tessellateSurface(selectedVoxels, unknownVoxels, cxCurrent * DISPLAY_LIST_XSIZE, cyCurrent * DISPLAY_LIST_YSIZE, czCurrent * DISPLAY_LIST_ZSIZE, tessellator, WhatToDraw.WIREFRAME, FRAME_NUDGE_DISTANCE);
 
           GL11.glDepthMask(true);
           GL11.glPopAttrib();
@@ -293,9 +300,9 @@ public class BlockVoxelMultiSelectorRenderer
     }
   }
 
-  enum WhatToDraw {FACES, WIREFRAME};
+  enum WhatToDraw {FACES, WIREFRAME}
 
-  private void tessellateSurface(VoxelSelection selection, int x0, int y0, int z0,
+  private void tessellateSurface(VoxelSelection selection, VoxelSelection unknownVoxels, int x0, int y0, int z0,
                                  Tessellator tessellator, WhatToDraw whatToDraw, double nudgeDistance)
   {
     int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
@@ -311,9 +318,9 @@ public class BlockVoxelMultiSelectorRenderer
     for (int y = y0; y <= y0 + DISPLAY_LIST_YSIZE; ++y) {
       for (int z = z0; z <= z0 + DISPLAY_LIST_ZSIZE; ++z) {
         for (int x = x0; x <= x0 + DISPLAY_LIST_XSIZE; ++x) {
-          if (selection.getVoxel(x, y, z)) {
+          if (selection.getVoxel(x, y, z) || unknownVoxels.getVoxel(x, y, z)) {
             // xneg face
-            if (!selection.getVoxel(x - 1, y, z)) {
+            if (!selection.getVoxel(x - 1, y, z) && !unknownVoxels.getVoxel(x - 1, y, z)) {
               yNegNudge = (selection.getVoxel(x-1, y-1, z+0) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(x-1, y+1, z+0) ? -1 : (selection.getVoxel(x+0, y+1, z+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(x-1, y+0, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
@@ -327,7 +334,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // xpos face
-            if (!selection.getVoxel(x + 1, y, z)) {
+            if (!selection.getVoxel(x + 1, y, z) && !unknownVoxels.getVoxel(x + 1, y, z)) {
               yNegNudge = (selection.getVoxel(x+1, y-1, z+0) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(x+1, y+1, z+0) ? -1 : (selection.getVoxel(x+0, y+1, z+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(x+1, y+0, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
@@ -341,7 +348,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // yneg face
-            if (!selection.getVoxel(x, y-1, z)) {
+            if (!selection.getVoxel(x, y-1, z) && !unknownVoxels.getVoxel(x, y-1, z)) {
               xNegNudge = (selection.getVoxel(x-1, y-1, z+0) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
               xPosNudge = (selection.getVoxel(x+1, y-1, z+0) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(x+0, y-1, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
@@ -355,7 +362,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // ypos face
-            if (!selection.getVoxel(x, y+1, z)) {
+            if (!selection.getVoxel(x, y+1, z) && !unknownVoxels.getVoxel(x, y+1, z)) {
               xNegNudge = (selection.getVoxel(x-1, y+1, z+0) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
               xPosNudge = (selection.getVoxel(x+1, y+1, z+0) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(x+0, y+1, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
@@ -369,7 +376,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // zneg face
-            if (!selection.getVoxel(x, y, z-1)) {
+            if (!selection.getVoxel(x, y, z-1) && !unknownVoxels.getVoxel(x, y, z-1)) {
               xNegNudge = (selection.getVoxel(x-1, y+0, z-1) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
               xPosNudge = (selection.getVoxel(x+1, y+0, z-1) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
               yNegNudge = (selection.getVoxel(x+0, y-1, z-1) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
@@ -383,7 +390,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // zpos face
-            if (!selection.getVoxel(x, y, z+1)) {
+            if (!selection.getVoxel(x, y, z+1) && !unknownVoxels.getVoxel(x, y, z+1)) {
               xNegNudge = (selection.getVoxel(x-1, y+0, z+1) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
               xPosNudge = (selection.getVoxel(x+1, y+0, z+1) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
               yNegNudge = (selection.getVoxel(x+0, y-1, z+1) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
@@ -409,6 +416,7 @@ public class BlockVoxelMultiSelectorRenderer
   /**
    * draw the textured surface of this chunk starting from the [x0,y0,z0] index into the selection
    * @param world
+   * @param unknownVoxels
    * @param wxOrigin world x of the selection
    * @param wyOrigin world y of the selection
    * @param wzOrigin world z of the selection
@@ -419,7 +427,7 @@ public class BlockVoxelMultiSelectorRenderer
    * @param whatToDraw
    * @param nudgeDistance how far to nudge the face (to prevent overlap)
    */
-  private void tessellateSurfaceWithTexture(World world, VoxelSelection selection, int wxOrigin, int wyOrigin, int wzOrigin, int x0, int y0, int z0,
+  private void tessellateSurfaceWithTexture(World world, VoxelSelection selection, VoxelSelection unknownVoxels, int wxOrigin, int wyOrigin, int wzOrigin, int x0, int y0, int z0,
                                             Tessellator tessellator, WhatToDraw whatToDraw, double nudgeDistance)
   {
     int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
@@ -435,15 +443,18 @@ public class BlockVoxelMultiSelectorRenderer
     for (int y = y0; y <= y0 + DISPLAY_LIST_YSIZE; ++y) {
       for (int z = z0; z <= z0 + DISPLAY_LIST_ZSIZE; ++z) {
         for (int x = x0; x <= x0 + DISPLAY_LIST_XSIZE; ++x) {
-          if (selection.getVoxel(x, y, z)) {
+          boolean selected = selection.getVoxel(x, y, z);
+          if (selected || unknownVoxels.getVoxel(x, y, z)) {
             int wx = x + wxOrigin;
             int wy = y + wyOrigin;
             int wz = z + wzOrigin;
-            Block block = world.getBlock(wx, wy, wz);
-            if (block == null) block = RegistryForBlocks.blockSelectionFog;
+            Block block = RegistryForBlocks.blockSelectionFog;
+            if (selected) {
+              block = world.getBlock(wx, wy, wz);
+            }
 
             // xneg face
-            if (!selection.getVoxel(x - 1, y, z)) {
+            if (!selection.getVoxel(x - 1, y, z) && !unknownVoxels.getVoxel(x - 1, y, z)) {
               yNegNudge = (selection.getVoxel(x-1, y-1, z+0) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(x-1, y+1, z+0) ? -1 : (selection.getVoxel(x+0, y+1, z+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(x-1, y+0, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
@@ -458,7 +469,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // xpos face
-            if (!selection.getVoxel(x + 1, y, z)) {
+            if (!selection.getVoxel(x + 1, y, z) && !unknownVoxels.getVoxel(x + 1, y, z)) {
               yNegNudge = (selection.getVoxel(x+1, y-1, z+0) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(x+1, y+1, z+0) ? -1 : (selection.getVoxel(x+0, y+1, z+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(x+1, y+0, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
@@ -473,7 +484,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // yneg face
-            if (!selection.getVoxel(x, y-1, z)) {
+            if (!selection.getVoxel(x, y-1, z) && !unknownVoxels.getVoxel(x, y-1, z)) {
               xNegNudge = (selection.getVoxel(x-1, y-1, z+0) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
               xPosNudge = (selection.getVoxel(x+1, y-1, z+0) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(x+0, y-1, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
@@ -488,7 +499,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // ypos face
-            if (!selection.getVoxel(x, y+1, z)) {
+            if (!selection.getVoxel(x, y+1, z) && !unknownVoxels.getVoxel(x, y+1, z)) {
               xNegNudge = (selection.getVoxel(x-1, y+1, z+0) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
               xPosNudge = (selection.getVoxel(x+1, y+1, z+0) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(x+0, y+1, z-1) ? -1 : (selection.getVoxel(x+0, y+0, z-1) ? 0 : 1) );
@@ -503,7 +514,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // zneg face
-            if (!selection.getVoxel(x, y, z-1)) {
+            if (!selection.getVoxel(x, y, z-1) && !unknownVoxels.getVoxel(x, y, z-1)) {
               xNegNudge = (selection.getVoxel(x-1, y+0, z-1) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
               xPosNudge = (selection.getVoxel(x+1, y+0, z-1) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
               yNegNudge = (selection.getVoxel(x+0, y-1, z-1) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
@@ -518,7 +529,7 @@ public class BlockVoxelMultiSelectorRenderer
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // zpos face
-            if (!selection.getVoxel(x, y, z+1)) {
+            if (!selection.getVoxel(x, y, z+1) && !unknownVoxels.getVoxel(x, y, z+1)) {
               xNegNudge = (selection.getVoxel(x-1, y+0, z+1) ? -1 : (selection.getVoxel(x-1, y+0, z+0) ? 0 : 1) );
               xPosNudge = (selection.getVoxel(x+1, y+0, z+1) ? -1 : (selection.getVoxel(x+1, y+0, z+0) ? 0 : 1) );
               yNegNudge = (selection.getVoxel(x+0, y-1, z+1) ? -1 : (selection.getVoxel(x+0, y-1, z+0) ? 0 : 1) );
