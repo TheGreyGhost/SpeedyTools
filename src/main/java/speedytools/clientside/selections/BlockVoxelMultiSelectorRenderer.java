@@ -130,6 +130,7 @@ public class BlockVoxelMultiSelectorRenderer
    * Quads, with lines to outline them
    * @param world
    * @param unknownVoxels
+   * @return the estimated fraction complete [0 .. 1]; or -1 if complete
    */
   public float createRenderListContinue(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels, long maxTimeInNS)
   {
