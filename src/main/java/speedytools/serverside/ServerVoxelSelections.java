@@ -4,6 +4,7 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.Packet250Types;
@@ -77,20 +78,21 @@ public class ServerVoxelSelections
     boolean foundSuitable = false;
     CommandQueueEntry currentCommand;
     do {
-      currentCommand = commandQueue.peekLast();
+      currentCommand = commandQueue.peekFirst();
       if (currentCommand == null) return;
       if (currentCommand.entityPlayerMP.get() == null) {
-        commandQueue.removeLast();
+        commandQueue.removeFirst();
       } else {
         foundSuitable = true;
       }
     } while (!foundSuitable);
     EntityPlayerMP entityPlayerMP = currentCommand.entityPlayerMP.get();
-    BlockVoxelMultiSelector blockVoxelMultiSelector = playerBlockVoxelMultiSelectors.get(entityPlayerMP);
     World playerWorld = entityPlayerMP.getEntityWorld();
     Packet250ServerSelectionGeneration commandPacket = currentCommand.commandPacket;
 
     if (!currentCommand.hasStarted) {
+      BlockVoxelMultiSelector blockVoxelMultiSelector = new BlockVoxelMultiSelector();
+      currentCommand.blockVoxelMultiSelector = blockVoxelMultiSelector;
       switch (commandPacket.getCommand()) {
         case ALL_IN_BOX: {
           blockVoxelMultiSelector.selectAllInBoxStart(playerWorld, commandPacket.getCorner1(), commandPacket.getCorner2());
@@ -111,19 +113,43 @@ public class ServerVoxelSelections
       }
       currentCommand.hasStarted = true;
     } else {
+      BlockVoxelMultiSelector blockVoxelMultiSelector = currentCommand.blockVoxelMultiSelector;
       float progress = blockVoxelMultiSelector.continueSelectionGeneration(playerWorld, maximumDurationInNS);
-      if (progress < 0)
+      if (progress < 0) { // finished
+        ChunkCoordinates origin = blockVoxelMultiSelector.getWorldOrigin();
+        VoxelSelectionWithOrigin newSelection = new VoxelSelectionWithOrigin(origin.posX, origin.posY, origin.posZ,
+                                                                             blockVoxelMultiSelector.getSelection());
+        playerSelections.put(entityPlayerMP, newSelection);
+        MultipartOneAtATimeSender sender = playerMOATsenders.get(entityPlayerMP);
+        if (sender != null) {
+          SelectionPacket selectionPacket = SelectionPacket.createSenderPacket(blockVoxelMultiSelector);
+          SenderLinkage newLinkage = new SenderLinkage(entityPlayerMP, selectionPacket.getUniqueID());
+          playerSenderLinkages.put(entityPlayerMP, newLinkage);
+          sender.sendMultipartPacket(newLinkage, selectionPacket);
+        }
+        assert (commandQueue.peekFirst() == currentCommand);
+        commandQueue.removeFirst();
+      }
     }
-
-    UP TO HERE
-        //todo: UP TO HERE.  COMPLETE THE generation, start sending it back.  Cancel message should stop generation and packet sending to client.
-
   }
 
 
+// the linkage doesn't actually need to do anything
+  public class SenderLinkage implements MultipartOneAtATimeSender.PacketLinkage
+  {
+    public SenderLinkage(EntityPlayerMP entityPlayerMP, int uniqueID) {
+      myEntityPlayerMP = new WeakReference<EntityPlayerMP>(entityPlayerMP);
+      myUniqueID = uniqueID;
+    }
 
+    public void progressUpdate(int percentComplete) {}
+    public void packetCompleted() {}
+    public void packetAborted() {}
+    public int getPacketID() {return myUniqueID;}
 
-
+    private WeakReference<EntityPlayerMP> myEntityPlayerMP;
+    private int myUniqueID;
+  }
 
  // ------------
 
@@ -142,7 +168,7 @@ public class ServerVoxelSelections
                                                           Packet250Types.PACKET250_SELECTION_PACKET_ACKNOWLEDGE, Side.SERVER);
       newSender.setPacketSender(new PacketSenderServer(packetHandlerRegistryServer, newPlayer));
       playerMOATsenders.put(newPlayer, newSender);
-      playerBlockVoxelMultiSelectors.put(newPlayer, new BlockVoxelMultiSelector());
+//      playerBlockVoxelMultiSelectors.put(newPlayer, new BlockVoxelMultiSelector());
     }
   }
 
@@ -153,6 +179,7 @@ public class ServerVoxelSelections
     playerMOATreceivers.remove(whichPlayer);
     playerMOATsenders.remove(whichPlayer);
     playerBlockVoxelMultiSelectors.remove(whichPlayer);
+    playerSenderLinkages.remove(whichPlayer);
   }
 
   private WeakHashMap<EntityPlayerMP, VoxelSelectionWithOrigin> playerSelections = new WeakHashMap<EntityPlayerMP, VoxelSelectionWithOrigin>();
@@ -160,6 +187,7 @@ public class ServerVoxelSelections
 
   private WeakHashMap<EntityPlayerMP, MultipartOneAtATimeReceiver> playerMOATreceivers = new WeakHashMap<EntityPlayerMP, MultipartOneAtATimeReceiver>();
   private WeakHashMap<EntityPlayerMP, MultipartOneAtATimeSender> playerMOATsenders = new WeakHashMap<EntityPlayerMP, MultipartOneAtATimeSender>();
+  private WeakHashMap<EntityPlayerMP, SenderLinkage> playerSenderLinkages = new WeakHashMap<EntityPlayerMP, SenderLinkage>();
 
   private class PlayerTracker implements PlayerTrackerRegistry.IPlayerTracker
   {
@@ -195,17 +223,34 @@ public class ServerVoxelSelections
 
      if (playerLastCommandID.get(entityPlayerMP) < uniqueID) return null;  // discard old commands
 
-     if (packet.getCommand() == Packet250ServerSelectionGeneration.Command.STATUS_REQUEST) {
-       if (playerLastCommandID.get(entityPlayerMP) != uniqueID) return null;  // discard old or too-new commands
-       BlockVoxelMultiSelector blockVoxelMultiSelector = playerBlockVoxelMultiSelectors.get(entityPlayerMP);
-       if (blockVoxelMultiSelector.isEmpty()) {
-         return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
+     switch(packet.getCommand()) {
+       case STATUS_REQUEST: {
+         if (playerLastCommandID.get(entityPlayerMP) != uniqueID) return null;  // discard old or too-new commands
+         BlockVoxelMultiSelector blockVoxelMultiSelector = playerBlockVoxelMultiSelectors.get(entityPlayerMP);
+         if (blockVoxelMultiSelector == null) {
+           return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
+         }
+         return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, blockVoxelMultiSelector.getEstimatedFractionComplete());
        }
-       return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, blockVoxelMultiSelector.getEstimatedFractionComplete());
-     }
+       case ABORT: {
+         if (playerLastCommandID.get(entityPlayerMP) == uniqueID) {
+           abortCurrentCommand(entityPlayerMP);
+         }
+         return null;
+       }
+       case ALL_IN_BOX:
+       case UNBOUND_FILL:
+       case BOUND_FILL: {
+         if (playerLastCommandID.get(entityPlayerMP) <= uniqueID) return null;  // discard old commands
 
-     boolean success = enqueueSelectionCommand(entityPlayerMP, packet);
-     return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, success ? 0.0F : ERROR_STATUS);
+         boolean success = enqueueSelectionCommand(entityPlayerMP, packet);
+         return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, success ? 0.0F : ERROR_STATUS);
+       }
+       default: {
+         ErrorLog.defaultLog().severe("Invalid command received in ServerVoxelSelections:" + packet.getCommand());
+         return null;
+       }
+     }
    }
  }
 
@@ -216,6 +261,23 @@ public class ServerVoxelSelections
    */
   private boolean enqueueSelectionCommand(EntityPlayerMP entityPlayerMP, Packet250ServerSelectionGeneration commandPacket)
   {
+    removeCommandsForPlayer(entityPlayerMP);
+    commandQueue.addLast(new CommandQueueEntry(entityPlayerMP, commandPacket));
+    return true;
+  }
+
+  private void abortCurrentCommand(EntityPlayerMP entityPlayerMP)
+  {
+    MultipartOneAtATimeSender sender = playerMOATsenders.get(entityPlayerMP);
+    SenderLinkage senderLinkage = playerSenderLinkages.get(entityPlayerMP);
+    if (sender != null && senderLinkage != null) {
+      sender.abortPacket(senderLinkage);
+    }
+    removeCommandsForPlayer(entityPlayerMP);
+  }
+
+  private void removeCommandsForPlayer(EntityPlayerMP entityPlayerMP)
+  {
     Iterator<CommandQueueEntry> iterator = commandQueue.iterator();
     while (iterator.hasNext()) {
       CommandQueueEntry commandQueueEntry = iterator.next();
@@ -223,8 +285,8 @@ public class ServerVoxelSelections
         iterator.remove();
       }
     }
-    commandQueue.addLast(new CommandQueueEntry(entityPlayerMP, commandPacket));
-    return true;
+    playerBlockVoxelMultiSelectors.remove(entityPlayerMP);
+    playerSenderLinkages.remove(entityPlayerMP);
   }
 
   private WeakHashMap<EntityPlayerMP, Integer> playerLastCommandID = new WeakHashMap<EntityPlayerMP, Integer>();
@@ -234,8 +296,9 @@ public class ServerVoxelSelections
     public WeakReference<EntityPlayerMP> entityPlayerMP;
     public Packet250ServerSelectionGeneration commandPacket;
     public boolean hasStarted;
+    public BlockVoxelMultiSelector blockVoxelMultiSelector;
 
-    public CommandQueueEntry(EntityPlayerMP i_entityPlayerMP, Packet250ServerSelectionGeneration i_commandPacket {
+    public CommandQueueEntry(EntityPlayerMP i_entityPlayerMP, Packet250ServerSelectionGeneration i_commandPacket) {
       entityPlayerMP = new WeakReference<EntityPlayerMP>(i_entityPlayerMP);
       commandPacket = i_commandPacket;
       hasStarted = false;
