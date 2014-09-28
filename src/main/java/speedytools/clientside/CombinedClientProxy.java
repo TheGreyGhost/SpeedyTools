@@ -75,15 +75,14 @@ public class CombinedClientProxy extends CommonProxy {
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
 
-    SelectionPacketSender selectionPacketSenderComplex = new SelectionPacketSender(ClientSide.packetHandlerRegistry, ClientSide.packetSenderClient);
-
     ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexCopy,
             new SpeedyToolComplexCopy(RegistryForItems.itemComplexCopy,
                                       ClientSide.speedyToolRenderers,
                                       ClientSide.speedyToolSounds,
                                       ClientSide.undoManagerComplex,
                                       ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
-                                      selectionPacketSenderComplex,
+                                      ClientSide.clientVoxelSelection,
+                                      ClientSide.selectionPacketSenderComplex,
                     ClientSide.packetSenderClient
                                     )
             );
@@ -94,7 +93,8 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerComplex,
                     ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
-                    selectionPacketSenderComplex,
+                    ClientSide.clientVoxelSelection,
+                    ClientSide.selectionPacketSenderComplex,
                     ClientSide.packetSenderClient
             )
     );
@@ -105,7 +105,8 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerComplex,
                     ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
-                    selectionPacketSenderComplex,
+                    ClientSide.clientVoxelSelection,
+                    ClientSide.selectionPacketSenderComplex,
                     ClientSide.packetSenderClient
             )
     );

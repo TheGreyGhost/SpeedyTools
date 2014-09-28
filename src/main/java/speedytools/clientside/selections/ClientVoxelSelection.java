@@ -71,6 +71,18 @@ public class ClientVoxelSelection
   }
 
   /**
+   * returns the progress of the selection generation on (or transmission to ) server
+   * @return [0 .. 1] for the estimated fractional completion of the voxel selection generation / transmission
+   *         returns 0 if not started yet, returns 1.000F if complete
+   */
+  public float getServerSelectionFractionComplete()
+  {
+    if (clientSelectionState != ClientSelectionState.COMPLETE) return 0.0F;
+    if (selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.COMPLETED) return 1000.F;
+    return selectionPacketSender.getCurrentPacketPercentComplete() / 100.0F;
+  }
+
+  /**
    * If the voxel selection is currently being generated, return the fraction complete
    * @return [0 .. 1] for the estimated fractional completion of the voxel selection generation
    *         returns 0 if not started yet, returns 1.000F if complete
@@ -84,11 +96,11 @@ public class ClientVoxelSelection
       case IDLE: return 0.0F;
       case COMPLETE: return 1.000F;
       case GENERATING: {
-        return selectionGenerationFractionComplete * SELECTION_GENERATION_FULL * 100.0F;
+        return selectionGenerationFractionComplete * SELECTION_GENERATION_FULL;
       }
       case CREATING_RENDERLISTS: {
         float scaledProgress = SELECTION_GENERATION_FULL * selectionGenerationFractionComplete;
-        return 100.0F * (scaledProgress + (1.0F - scaledProgress) * renderlistGenerationFractionComplete);
+        return scaledProgress + (1.0F - scaledProgress) * renderlistGenerationFractionComplete;
       }
       default: {
         ErrorLog.defaultLog().severe("Invalid clientSelectionState " + clientSelectionState + " in " + this.getClass().getName());
@@ -215,7 +227,7 @@ public class ClientVoxelSelection
    */
   public ChunkCoordinates getInitialOrigin() {
     if (clientSelectionState != ClientSelectionState.COMPLETE && clientSelectionState != ClientSelectionState.CREATING_RENDERLISTS) {
-      ErrorLog.defaultLog().severe("called getInitialQuadOrientation for invalid state: " + clientSelectionState);
+      ErrorLog.defaultLog().severe("called getInitialOrigin for invalid state: " + clientSelectionState);
       return new ChunkCoordinates(0, 0, 0);
     }
     return clientVoxelSelection.getWorldOrigin();  // getWorldOrigin returns a new copy
@@ -276,6 +288,7 @@ public class ClientVoxelSelection
           renderlistGenerationFractionComplete = progress;
         } else {
           clientSelectionState = ClientSelectionState.COMPLETE;
+          selectionUpdatedFlag = true;
         }
         break;
       }

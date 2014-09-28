@@ -10,8 +10,6 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.ClientVoxelSelection;
-import speedytools.common.selections.BlockVoxelMultiSelector;
-import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
@@ -480,6 +478,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   private void initiateSelectionCreation(EntityClientPlayerMP thePlayer)
   {       // todo blocks which aren't loaded are empty!
+    selectionGrabActivated = false;
     switch (currentHighlighting) {
       case NONE: {
         if (updateBoundaryCornersFromToolBoundary()) {
@@ -519,12 +518,26 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     updateGrabRenderTick(selectionGrabActivated && clientVoxelSelection.getReadinessForDisplaying() == ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY);
 
     final long MAX_TIME_IN_NS = SpeedyToolsOptions.getMaxClientBusyTimeMS() * 1000L * 1000L;
+    ClientVoxelSelection.VoxelSelectionState oldState = clientVoxelSelection.getReadinessForDisplaying();
     clientVoxelSelection.performTick(world, MAX_TIME_IN_NS);
-    if (clientVoxelSelection.hasSelectionBeenUpdated()) {
-      //todo update origin, quadorientation, etc
+    if (clientVoxelSelection.hasSelectionBeenUpdated()) {   // update the origin and orientation if the selection has been updated
+      if (oldState != ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY) {
+        initialSelectionOrigin = clientVoxelSelection.getInitialOrigin();
+        initialSelectionOrientation = clientVoxelSelection.getInitialQuadOrientation();
+        selectionOrigin = initialSelectionOrigin;
+        selectionOrientation = initialSelectionOrientation;
+      } else {                                                         // apply any user translations and orientation changes to the new values
+        int dx = selectionOrigin.posX - initialSelectionOrigin.posX;
+        int dy = selectionOrigin.posY - initialSelectionOrigin.posY;
+        int dz = selectionOrigin.posZ - initialSelectionOrigin.posZ;
+        ChunkCoordinates newOrigin = clientVoxelSelection.getInitialOrigin();
+        selectionOrigin = new ChunkCoordinates(newOrigin.posX + dx, newOrigin.posY + dy, newOrigin.posZ + dz);
+        QuadOrientation newOrientation = clientVoxelSelection.getInitialQuadOrientation();
+        if (initialSelectionOrientation.isFlippedX()) newOrientation.flipX();
+        newOrientation.rotateClockwise(initialSelectionOrientation.getClockwiseRotationCount());
+        selectionOrientation = newOrientation;
+      }
     }
-
-    //todo - need to update / set initial origin etc upon ready for display
 
     CloneToolsNetworkClient.ActionStatus actionStatus = cloneToolsNetworkClient.getCurrentActionStatus();
     CloneToolsNetworkClient.ActionStatus undoStatus = cloneToolsNetworkClient.getCurrentUndoStatus();
@@ -704,13 +717,13 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     public boolean refreshRenderInfo(RenderCursorStatus.CursorRenderInfo infoToUpdate)
     {
       infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.IDLE;
-      if (currentToolSelectionState == ToolSelectionStates.GENERATING_SELECTION) {
+      if (clientVoxelSelection.getReadinessForDisplaying() == ClientVoxelSelection.VoxelSelectionState.GENERATING) {
         infoToUpdate.vanillaCursorSpin = true;
-        infoToUpdate.cursorSpinProgress = selectionGenerationPercentComplete;
+        infoToUpdate.cursorSpinProgress = 100.0F * clientVoxelSelection.getGenerationFractionComplete();
       } else {
         infoToUpdate.vanillaCursorSpin = false;
       }
-      infoToUpdate.aSelectionIsDefined = (currentToolSelectionState == ToolSelectionStates.DISPLAYING_SELECTION);
+      infoToUpdate.aSelectionIsDefined = (clientVoxelSelection.getReadinessForDisplaying() == ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY);
 
       PowerUpEffect activePowerUp;
       if (!leftClickPowerup.isIdle()) {
@@ -796,15 +809,18 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //      }
 
 //      System.out.println("ServerStatus:" + cloneToolsNetworkClient.getServerStatus() + ", " + cloneToolsNetworkClient.getServerPercentComplete());
-      float serverReadiness = (cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE) ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
-      float selectionSending = (selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.COMPLETED)
-                               ? 100 :  selectionPacketSender.getCurrentPacketPercentComplete();
+      boolean serverIsIdle = cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE;
+      boolean selectionReadyOnServer = clientVoxelSelection.isSelectionCompleteOnServer();
+      if (!leftClickPowerup.isIdle()) selectionReadyOnServer = true;   // undo doesn't need server selection
+
+      float serverReadiness = serverIsIdle ? 100 : cloneToolsNetworkClient.getServerPercentComplete();
+      float serverSelectionReadiness =   selectionReadyOnServer ? 100.0F : clientVoxelSelection.getServerSelectionFractionComplete();
 
       infoToUpdate.fullyChargedAndReady = (!activePowerUp.isIdle() && activePowerUp.getPercentCompleted() >= 99.999
-                                           && cloneToolsNetworkClient.getServerStatus() == ServerStatus.IDLE
-                                           && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.COMPLETED );
+                                           && serverIsIdle
+                                           && selectionReadyOnServer );
       infoToUpdate.chargePercent = (float)activePowerUp.getPercentCompleted();
-      infoToUpdate.readinessPercent = Math.min(serverReadiness, selectionSending);
+      infoToUpdate.readinessPercent = Math.min(serverReadiness, serverSelectionReadiness);
       infoToUpdate.cursorType = SpeedyToolComplex.this.getCursorType();
       infoToUpdate.taskCompletionPercent = cloneToolsNetworkClient.getServerPercentComplete();
 
@@ -840,9 +856,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   private void checkInvariants()
   {
-    assert (    currentToolSelectionState != ToolSelectionStates.GENERATING_SELECTION || voxelSelectionManager != null);
-    assert (   currentToolSelectionState != ToolSelectionStates.DISPLAYING_SELECTION
-            || (voxelSelectionManager != null && selectionOrigin != null) );
+//    assert (    currentToolSelectionState != ToolSelectionStates.GENERATING_SELECTION || voxelSelectionManager != null);
+//    assert (   currentToolSelectionState != ToolSelectionStates.DISPLAYING_SELECTION
+//            || (voxelSelectionManager != null && selectionOrigin != null) );
 
     assert (    selectionGrabActivated == false || selectionGrabPoint != null);
   }
@@ -883,6 +899,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   private boolean selectionMovedFastYet;
   private boolean hasBeenMoved;               // used to change the appearance when freshed created or placed.
   private QuadOrientation selectionOrientation;
+  ChunkCoordinates initialSelectionOrigin;
+  QuadOrientation initialSelectionOrientation;
 
   private ClientVoxelSelection clientVoxelSelection;
   private CloneToolsNetworkClient cloneToolsNetworkClient;
