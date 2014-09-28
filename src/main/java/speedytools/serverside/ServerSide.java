@@ -75,7 +75,12 @@ public class ServerSide
 
     getSpeedyToolServerActions().tick();
     getSpeedyToolsNetworkServer().tick();
-    getServerVoxelSelections().tick();
+    long maxTimeForSelectionGeneration = SpeedyToolsOptions.getMaxServerSelGenTimeMS();
+    if (getSpeedyToolServerActions().isAsynchronousActionInProgress()) {  // no selection generation if asynch task underway
+      maxTimeForSelectionGeneration = 0;
+    }
+    final long NS_PER_MS = 1000 * 1000;
+    getServerVoxelSelections().tick(maxTimeForSelectionGeneration * NS_PER_MS);
 
     if (globalTickCount % SpeedyToolsOptions.getNetworkLoggingPeriodInTicks() == 0) {
       try {

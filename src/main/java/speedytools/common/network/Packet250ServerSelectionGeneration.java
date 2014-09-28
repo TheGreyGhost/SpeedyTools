@@ -326,6 +326,19 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
   }
 
   private float completedFraction;
+
+  public ChunkCoordinates getCursorPosition() {
+    return new ChunkCoordinates(cursorPosition);
+  }
+
+  public ChunkCoordinates getCorner1() {
+    return new ChunkCoordinates(corner1);
+  }
+
+  public ChunkCoordinates getCorner2() {
+    return new ChunkCoordinates(corner2);
+  }
+
   private ChunkCoordinates cursorPosition;
   private ChunkCoordinates corner1;
   private ChunkCoordinates corner2;

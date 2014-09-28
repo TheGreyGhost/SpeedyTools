@@ -134,6 +134,12 @@ public class BlockVoxelMultiSelector
     return -1;
   }
 
+  public float getEstimatedFractionComplete()
+  {
+    if (voxelChunkwiseIterator == null) return -1;
+    return voxelChunkwiseIterator.estimatedFractionComplete();
+  }
+
   /**
    * initialise conversion of the selected fill to a VoxelSelection
    * From the starting block, performs a flood fill on all non-air blocks.

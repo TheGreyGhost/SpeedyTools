@@ -42,6 +42,21 @@ public class MultipartOneAtATimeSender
     Packet250MultipartSegmentAcknowledge.registerHandler(packetHandlerRegistry, incomingPacketHandler, side, acknowledgementPacketType);
   }
 
+  // create a sender with a different handler; null -> don't register any handler (caller should do it)
+  public MultipartOneAtATimeSender(PacketHandlerRegistry packetHandlerRegistry,
+                                   Packet250MultipartSegmentAcknowledge.PacketHandlerMethod i_incomingPacketHandler,
+                                   Packet250Types acknowledgementPacketType, Side side)
+  {
+    packetBeingSent = null;
+    previousPacketID = MultipartPacket.NULL_PACKET_ID;
+    abortedPackets = new TreeSet<Integer>();
+    unacknowledgedAbortPackets = new TreeMap<Integer, Packet250MultipartSegment>();
+    incomingPacketHandler = i_incomingPacketHandler;
+    if (incomingPacketHandler != null) {
+      Packet250MultipartSegmentAcknowledge.registerHandler(packetHandlerRegistry, incomingPacketHandler, side, acknowledgementPacketType);
+    }
+  }
+
   /**
    * Changes to a new PacketSender
    * @param newPacketSender
@@ -189,6 +204,39 @@ public class MultipartOneAtATimeSender
     }
     return sentSomethingFlag;
   }
+  public boolean handleIncomingPacket(Packet250MultipartSegmentAcknowledge packet)
+  {
+    int packetUniqueID = packet.getUniqueID();
+
+    // If this is an old packet:
+    // (1) if we have no record of this packet being aborted by us, ignore it.  Otherwise
+    // (2) if the receiver has previously replied with an abort, ignore it.  Otherwise,
+    // (3) reply with abort - unless the incoming packet is also an abort packet, i.e. is an acknowledgement of our abort.
+    if (packetUniqueID <= previousPacketID) {
+      if (!abortedPackets.contains(packetUniqueID)) return false;
+      if (!unacknowledgedAbortPackets.containsKey(packetUniqueID))
+        return false;    // if not in map, already received abort ACK
+      Packet250MultipartSegment abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet);
+      if (abortPacket == null) {
+        unacknowledgedAbortPackets.remove(packetUniqueID);
+      } else {
+        packetSender.sendPacket(abortPacket);
+      }
+      return false;
+    }
+    PacketTransmissionInfo pti = packetBeingSent;
+    if (pti == null) {
+      ErrorLog.defaultLog().info("Incoming packetUniqueID " + packetUniqueID + " was newer than the most recent packet sent " + previousPacketID);
+      return false;
+    }
+    if (packetUniqueID != pti.packet.getUniqueID()) {
+      ErrorLog.defaultLog().info("Incoming packetUniqueID " + packetUniqueID + " was newer than the packet currently being sent " + pti.packet.getUniqueID());
+      return false;
+    }
+    boolean success = doProcessIncoming(pti, packet);
+    if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
+    return success;
+  }
 
   public class IncomingPacketHandler implements Packet250MultipartSegmentAcknowledge.PacketHandlerMethod
   {
@@ -199,36 +247,7 @@ public class MultipartOneAtATimeSender
      * @return true for success, false if packet is invalid or is ignored
      */
     public boolean handlePacket(Packet250MultipartSegmentAcknowledge packet, MessageContext ctx) {
-      int packetUniqueID = packet.getUniqueID();
-
-      // If this is an old packet:
-      // (1) if we have no record of this packet being aborted by us, ignore it.  Otherwise
-      // (2) if the receiver has previously replied with an abort, ignore it.  Otherwise,
-      // (3) reply with abort - unless the incoming packet is also an abort packet, i.e. is an acknowledgement of our abort.
-      if (packetUniqueID <= previousPacketID) {
-        if (!abortedPackets.contains(packetUniqueID)) return false;
-        if (!unacknowledgedAbortPackets.containsKey(packetUniqueID))
-          return false;    // if not in map, already received abort ACK
-        Packet250MultipartSegment abortPacket = MultipartPacket.getAbortPacketForLostPacket(packet);
-        if (abortPacket == null) {
-          unacknowledgedAbortPackets.remove(packetUniqueID);
-        } else {
-          packetSender.sendPacket(abortPacket);
-        }
-        return false;
-      }
-      PacketTransmissionInfo pti = packetBeingSent;
-      if (pti == null) {
-        ErrorLog.defaultLog().info("Incoming packetUniqueID " + packetUniqueID + " was newer than the most recent packet sent " + previousPacketID);
-        return false;
-      }
-      if (packetUniqueID != pti.packet.getUniqueID()) {
-        ErrorLog.defaultLog().info("Incoming packetUniqueID " + packetUniqueID + " was newer than the packet currently being sent " + pti.packet.getUniqueID());
-        return false;
-      }
-      boolean success = doProcessIncoming(pti, packet);
-      if (success) pti.linkage.progressUpdate(pti.packet.getPercentComplete());
-      return success;
+      return handleIncomingPacket(packet);
     }
   }
 
@@ -312,5 +331,5 @@ public class MultipartOneAtATimeSender
   private long timeLastAbortPacketSent = -1;
 
   private PacketSender packetSender;
-  IncomingPacketHandler incomingPacketHandler;
+  Packet250MultipartSegmentAcknowledge.PacketHandlerMethod incomingPacketHandler;
 }

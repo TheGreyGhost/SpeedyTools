@@ -57,4 +57,6 @@ public class SpeedyToolsOptions
   // The length of maximum length of time per tick we will use for asynchronous tasks on the server
   public static long getMaxServerBusyTimeMS() {return 25;}
 
+  // The length of maximum length of time per tick we will use for selection generation on the server
+  public static long getMaxServerSelGenTimeMS() {return 25;}
 }
