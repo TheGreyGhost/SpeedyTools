@@ -25,3 +25,12 @@ b) If there are one or more missing chunks;
 
 The command to the server to generate a selection is a new packet type handled by the ServerVoxelSelection
 
+The detailed protocol is:
+(1) Client sends a Command with uniqueID to the server
+(2) Server replies with a STATUS and the uniqueID
+(3) Client occasionally sends STATUS_REQUEST to get status updates
+(4) When the server generation is complete, it starts transmission to the client through a MultipartOneAtATimeSender
+(5) When the transmission is finished, the client updates its rendered view of the selection then displays it.
+
+
+

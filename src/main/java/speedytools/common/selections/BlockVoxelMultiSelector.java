@@ -19,6 +19,8 @@ public class BlockVoxelMultiSelector
   private VoxelSelectionWithOrigin selection;
   private VoxelSelectionWithOrigin unavailableVoxels;
 
+  private boolean containsUnavailableVoxels;
+
   private int smallestVoxelX;
   private int largestVoxelX;
   private int smallestVoxelY;
@@ -87,6 +89,10 @@ public class BlockVoxelMultiSelector
     return unavailableVoxels;
   }
 
+  public boolean containsUnavailableVoxels() {
+    return containsUnavailableVoxels;
+  }
+
   /**
    * continue conversion of the selected box to a VoxelSelection.  Call repeatedly until conversion complete.
    * @param world
@@ -106,6 +112,7 @@ public class BlockVoxelMultiSelector
       voxelChunkwiseIterator.hasEnteredNewChunk();  // reset flag
       Chunk currentChunk = world.getChunkFromChunkCoords(voxelChunkwiseIterator.getChunkX(), voxelChunkwiseIterator.getChunkZ());
       if (currentChunk.isEmpty()) {
+        containsUnavailableVoxels = true;
         while (!voxelChunkwiseIterator.isAtEnd() && !voxelChunkwiseIterator.hasEnteredNewChunk()) {
           unavailableVoxels.setVoxel(voxelChunkwiseIterator.getXpos(), voxelChunkwiseIterator.getYpos(), voxelChunkwiseIterator.getZpos());
           expandVoxelRange(voxelChunkwiseIterator.getXpos(), voxelChunkwiseIterator.getYpos(), voxelChunkwiseIterator.getZpos());
@@ -214,7 +221,7 @@ public class BlockVoxelMultiSelector
     //   if the criteria are met, select the block and add it to the list of blocks to be search next round.
     //   if the criteria aren't met, keep trying other directions from the same position until all positions are searched.  Then delete the search position and move onto the next.
     //   This will ensure that the fill spreads evenly out from the starting point.   Check the boundary to stop fill spreading outside it.
-
+            //todo containsUnavailableVoxels = true; if any unavailable found
     while (!currentSearchPositions.isEmpty()) {
       SearchPosition currentSearchPosition = currentSearchPositions.getFirst();
       checkPosition.set(currentSearchPosition.chunkCoordinates.posX + searchDirectionsX[currentSearchPosition.nextSearchDirection],
@@ -299,6 +306,7 @@ public class BlockVoxelMultiSelector
     smallestVoxelZ = zSize;
     largestVoxelZ = -1;
     empty = true;
+    containsUnavailableVoxels = false;
   }
 
   private void expandVoxelRange(int x, int y, int z)

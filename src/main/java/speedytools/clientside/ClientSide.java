@@ -50,7 +50,7 @@ public class ClientSide
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
     undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
     selectionPacketSenderComplex = new SelectionPacketSender(packetHandlerRegistry, packetSenderClient);
-    clientVoxelSelection = new ClientVoxelSelection(selectionPacketSenderComplex, packetSenderClient);
+    clientVoxelSelection = new ClientVoxelSelection(packetHandlerRegistry, selectionPacketSenderComplex, packetSenderClient);
   }
 
   public static void postInitialise()

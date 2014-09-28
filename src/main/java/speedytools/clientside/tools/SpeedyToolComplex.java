@@ -719,7 +719,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.IDLE;
       if (clientVoxelSelection.getReadinessForDisplaying() == ClientVoxelSelection.VoxelSelectionState.GENERATING) {
         infoToUpdate.vanillaCursorSpin = true;
-        infoToUpdate.cursorSpinProgress = 100.0F * clientVoxelSelection.getGenerationFractionComplete();
+        infoToUpdate.cursorSpinProgress = 100.0F * clientVoxelSelection.getLocalGenerationFractionComplete();
       } else {
         infoToUpdate.vanillaCursorSpin = false;
       }

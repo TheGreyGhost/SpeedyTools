@@ -10,45 +10,48 @@ import speedytools.common.utilities.ErrorLog;
 
 /**
 * This class is used to communicate from the client to the server when it's necessary to generate a selection on the server
- * (if the selection is large, the client may have empty chunks in it.  See notes/SelectionGeneration.txt
+ * (if the selection is large, the client may have empty chunks in it.  See notes/SelectionGeneration.txt)
  * Typical usage:
  * Client to Server:
  * (1) FILL command to perform a flood fill from the cursor
  * (2) ALL_IN_BOX command to select all in the given box region
  * (3) ABORT to stop the selection generation
- * (4) STATUS_REQUEST to ask the server to return an estimate of the fraction completed
+ * (4) STATUS_REQUEST to ask the server to return an estimate of the fraction completed [0..1].
  *
 * Server to Client:
-* (1) STATUS command in response to the STATUS_REQUEST message
+* (1) STATUS command in response to the STATUS_REQUEST message or a command.
+ *
+ * The commands contain a uniqueID, which is returned in the status messages.
+ *
 */
 public class Packet250ServerSelectionGeneration extends Packet250Base
 {
 
-  public static Packet250ServerSelectionGeneration abortSelectionGeneration()
+  public static Packet250ServerSelectionGeneration abortSelectionGeneration(int whichTaskID)
   {
-    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.ABORT);
+    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.ABORT, whichTaskID);
     assert (retval.checkInvariants());
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration requestStatus()
+  public static Packet250ServerSelectionGeneration requestStatus(int whichTaskID)
   {
-    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.STATUS_REQUEST);
+    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.STATUS_REQUEST, whichTaskID);
     assert (retval.checkInvariants());
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration replyFractionCompleted(float i_completedFraction)
+  public static Packet250ServerSelectionGeneration replyFractionCompleted(int whichTaskID, float i_completedFraction)
   {
-    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.STATUS_REPLY);
+    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.STATUS_REPLY, whichTaskID);
     retval.completedFraction = i_completedFraction;
     assert (retval.checkInvariants());
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performFill(ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+  public static Packet250ServerSelectionGeneration performBoundFill(int whichTaskID, ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
   {
-    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.FILL);
+    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.BOUND_FILL, whichTaskID);
     retval.cursorPosition = i_cursorPosition;
     retval.corner1 = i_corner1;
     retval.corner2 = i_corner2;
@@ -58,9 +61,19 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performAllInBox(ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+  public static Packet250ServerSelectionGeneration performUnboundFill(int whichTaskID, ChunkCoordinates i_cursorPosition)
   {
-    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.ALL_IN_BOX);
+    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.UNBOUND_FILL, whichTaskID);
+    retval.cursorPosition = i_cursorPosition;
+
+    assert (retval.checkInvariants());
+    retval.packetIsValid= true;
+    return retval;
+  }
+
+  public static Packet250ServerSelectionGeneration performAllInBox(int whichTaskID, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+  {
+    Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.ALL_IN_BOX, whichTaskID);
     retval.corner1 = i_corner1;
     retval.corner2 = i_corner2;
 
@@ -76,6 +89,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
       byte commandValue = buf.readByte();
       command = Command.byteToCommand(commandValue);
       if (command == null) return;
+      uniqueID = buf.readInt();
 
       switch (command) {
         case STATUS_REQUEST:
@@ -86,10 +100,14 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
           completedFraction = buf.readFloat();
           break;
         }
-        case FILL: {
+        case UNBOUND_FILL: {
           cursorPosition = readChunkCoordinates(buf);
           corner1 = readChunkCoordinates(buf);
           corner2 = readChunkCoordinates(buf);
+          break;
+        }
+        case BOUND_FILL: {
+          cursorPosition = readChunkCoordinates(buf);
           break;
         }
         case ALL_IN_BOX: {
@@ -122,6 +140,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     }
 
     buf.writeByte(command.getCommandID());
+    buf.writeInt(uniqueID);
     switch (command) {
       case STATUS_REQUEST:
       case ABORT: {
@@ -131,13 +150,16 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
         buf.writeFloat(completedFraction);
         break;
       }
-      case FILL: {
+      case UNBOUND_FILL: {
         writeChunkCoordinates(buf, cursorPosition);
         writeChunkCoordinates(buf, corner1);
         writeChunkCoordinates(buf, corner2);
         break;
       }
-      case ALL_IN_BOX: {
+      case BOUND_FILL: {
+        writeChunkCoordinates(buf, cursorPosition);
+        break;
+      }      case ALL_IN_BOX: {
         writeChunkCoordinates(buf, corner1);
         writeChunkCoordinates(buf, corner2);
         break;
@@ -166,7 +188,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
   }
 
   public static enum Command {
-    ABORT(150), FILL(151), ALL_IN_BOX(151), STATUS_REQUEST(152), STATUS_REPLY(153);
+    ABORT(150), UNBOUND_FILL(151), BOUND_FILL(152), ALL_IN_BOX(153), STATUS_REQUEST(154), STATUS_REPLY(155);
 
     public byte getCommandID() {return commandID;}
 
@@ -188,6 +210,11 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
   {
     assert (checkInvariants());
     return command;
+  }
+
+  public int getUniqueID()
+  {
+    return uniqueID;
   }
 
   /**
@@ -256,9 +283,10 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     }
   }
 
-  private Packet250ServerSelectionGeneration(Command command)
+  private Packet250ServerSelectionGeneration(Command command, int whichTaskID)
   {
     this.command = command;
+    this.uniqueID = whichTaskID;
     this.packetIsValid = true;
   }
 
@@ -282,7 +310,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
       case ALL_IN_BOX: {
         return (cursorPosition == null && corner1 != null && corner2 != null);
       }
-      case FILL: {
+      case UNBOUND_FILL: {
         return (cursorPosition != null && corner1 != null && corner2 != null);
       }
       default: {
@@ -291,13 +319,17 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     }
   }
 
-//  private static final int NULL_SEQUENCE_NUMBER = Integer.MIN_VALUE;
   private Command command;
+
+  public float getCompletedFraction() {
+    return completedFraction;
+  }
+
   private float completedFraction;
   private ChunkCoordinates cursorPosition;
   private ChunkCoordinates corner1;
   private ChunkCoordinates corner2;
-
+  private int uniqueID;
 
   private static PacketHandlerMethod serverSideHandler;
   private static PacketHandlerMethod clientSideHandler;
