@@ -477,7 +477,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   }
 
   private void initiateSelectionCreation(EntityClientPlayerMP thePlayer)
-  {       // todo blocks which aren't loaded are empty!
+  {
     selectionGrabActivated = false;
     switch (currentHighlighting) {
       case NONE: {
@@ -776,7 +776,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
           }
           break;
         }
-        case PERFORMING_ACTION: { // todo the placement cursor is not working
+        case PERFORMING_ACTION: {
           infoToUpdate.animationState = RenderCursorStatus.CursorRenderInfo.AnimationState.SPINNING_CW;
           lastPowerupStarted = null;
           break;

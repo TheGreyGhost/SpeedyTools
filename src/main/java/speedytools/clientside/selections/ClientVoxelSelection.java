@@ -19,6 +19,7 @@ import speedytools.common.selections.VoxelSelection;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
+import speedytools.serverside.network.PacketSenderServer;
 
 /**
  * Created by TheGreyGhost on 26/09/14.
@@ -32,6 +33,8 @@ public class ClientVoxelSelection
     selectionPacketSender = i_selectionPacketSender;
     packetSenderClient = i_packetSenderClient;
     incomingVoxelSelection = new MultipartOneAtATimeReceiver();
+    incomingVoxelSelection.registerPacketCreator(new SelectionPacket.SelectionPacketCreator());
+    incomingVoxelSelection.registerLinkageFactory(new IncomingSelectionLinkageFactory());
     incomingVoxelSelection.setPacketSender(packetSenderClient);
     incomingVoxelSelection.registerLinkageFactory(this.new IncomingSelectionLinkageFactory());
 
@@ -383,6 +386,9 @@ public class ClientVoxelSelection
       }
       case WAITING_FOR_START: {
         sendStatusRequestIfDue(TICKS_BETWEEN_STATUS_REQUEST);
+        if (serverGenerationFractionComplete > 0) {
+          serverSelectionState = ServerSelectionState.GENERATING;
+        }
         break;
       }
       // for GENERATING and RECEIVING, the server 'pushes' the packet across - see code in IncomingSelectionLinkage

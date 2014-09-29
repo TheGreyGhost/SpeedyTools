@@ -223,7 +223,8 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
    * @param packetHandlerMethod
    * @param side
    */
-  public static void registerHandler(PacketHandlerRegistry packetHandlerRegistry,  PacketHandlerMethod packetHandlerMethod, Side side) {
+  public static void registerHandler(PacketHandlerRegistry packetHandlerRegistry,  PacketHandlerMethod packetHandlerMethod, Side side)
+  {
     switch (side) {
       case SERVER: {
         serverSideHandler = packetHandlerMethod;
@@ -238,7 +239,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
       }
     }
     packetHandlerRegistry.getSimpleNetworkWrapper().registerMessage(CommonMessageHandler.class, Packet250ServerSelectionGeneration.class,
-                                                                    Packet250Types.PACKET250_SERVER_SELECTION_GENERATION.getPacketTypeID(), side);
+            Packet250Types.PACKET250_SERVER_SELECTION_GENERATION.getPacketTypeID(), side);
   }
 
   public interface PacketHandlerMethod
@@ -246,42 +247,47 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     public Packet250ServerSelectionGeneration handlePacket(Packet250ServerSelectionGeneration packet250CloneToolUse, MessageContext ctx);
   }
 
+  private static Packet250ServerSelectionGeneration handleMessage(Packet250ServerSelectionGeneration message, MessageContext ctx)
+  {
+    switch (ctx.side) {
+      case CLIENT: {
+        if (clientSideHandler == null) {
+          ErrorLog.defaultLog().severe("Packet250ServerSelectionGeneration received but not registered on client.");
+        } else {
+          clientSideHandler.handlePacket(message, ctx);
+        }
+        break;
+      }
+      case SERVER: {
+        if (serverSideHandler == null) {
+          ErrorLog.defaultLog().severe("Packet250ServerSelectionGeneration received but not registered.");
+        } else {
+          Packet250ServerSelectionGeneration reply = serverSideHandler.handlePacket(message, ctx);
+          return reply;
+        }
+        break;
+      }
+      default: {
+        ErrorLog.defaultLog().severe("Packet250ServerSelectionGeneration received on wrong side " + ctx.side);
+      }
+    }
+    return null;
+  }
+
   public static class CommonMessageHandler implements IMessageHandler<Packet250ServerSelectionGeneration, Packet250ServerSelectionGeneration>
   {
-    /**
-     * Called when a message is received of the appropriate type. You can optionally return a reply message, or null if no reply
-     * is needed.
-     *
-     * @param message The message
-     * @return an optional return message
-     */
-    public Packet250ServerSelectionGeneration onMessage(Packet250ServerSelectionGeneration message, MessageContext ctx)
-    {
-      switch (ctx.side) {
-        case CLIENT: {
-          if (clientSideHandler == null) {
-            ErrorLog.defaultLog().severe(this.getClass().getName() + " received but not registered on client.");
-          } else {
-            clientSideHandler.handlePacket(message, ctx);
-          }
-          break;
-        }
-        case SERVER: {
-          if (serverSideHandler == null) {
-            ErrorLog.defaultLog().severe(this.getClass().getName() + " received but not registered.");
-          } else {
-            Packet250ServerSelectionGeneration reply = serverSideHandler.handlePacket(message, ctx);
-            return reply;
-          }
-          break;
-        }
-        default: {
-          ErrorLog.defaultLog().severe(this.getClass().getName() + " received on wrong side " + ctx.side);
-        }
-      }
-      return null;
+    public Packet250ServerSelectionGeneration onMessage(Packet250ServerSelectionGeneration message, MessageContext ctx) {
+      return handleMessage(message, ctx);
     }
   }
+
+//  public static class ServerMessageHandler implements IMessageHandler<Packet250ServerSelectionGeneration, Packet250ServerSelectionGeneration>
+//  {
+//    public Packet250ServerSelectionGeneration onMessage(Packet250ServerSelectionGeneration message, MessageContext ctx)
+//    {
+//      return handleMessage(message, ctx);
+//    }
+//  }
 
   private Packet250ServerSelectionGeneration(Command command, int whichTaskID)
   {

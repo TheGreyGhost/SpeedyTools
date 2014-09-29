@@ -40,12 +40,15 @@ public class ServerVoxelSelections
   public ServerVoxelSelections(PacketHandlerRegistryServer i_packetHandlerRegistryServer, PlayerTrackerRegistry playerTrackerRegistry)
   {
     packetHandlerVoxelsFromClient = this.new PacketHandlerVoxelsFromClient();
+    packetHandlerVoxelsToClient = this.new PacketHandlerVoxelsToClient();
     packetHandlerRegistryServer = i_packetHandlerRegistryServer;
 
     Packet250MultipartSegment.registerHandler(packetHandlerRegistryServer, packetHandlerVoxelsFromClient, Side.SERVER,
           Packet250Types.PACKET250_SELECTION_PACKET);
     Packet250MultipartSegmentAcknowledge.registerHandler(packetHandlerRegistryServer, packetHandlerVoxelsToClient, Side.SERVER,
                                                          Packet250Types.PACKET250_SELECTION_PACKET_ACKNOWLEDGE);
+    Packet250ServerSelectionGeneration.registerHandler(packetHandlerRegistryServer, this.new PacketHandlerServerSelectionGeneration(), Side.SERVER);
+
     playerTracker = this.new PlayerTracker();
     playerTrackerRegistry.registerHandler(playerTracker);
   }
@@ -92,6 +95,8 @@ public class ServerVoxelSelections
 
     if (!currentCommand.hasStarted) {
       BlockVoxelMultiSelector blockVoxelMultiSelector = new BlockVoxelMultiSelector();
+      playerBlockVoxelMultiSelectors.put(entityPlayerMP, blockVoxelMultiSelector);
+      playerCommandStatus.put(entityPlayerMP, CommandStatus.EXECUTING);
       currentCommand.blockVoxelMultiSelector = blockVoxelMultiSelector;
       switch (commandPacket.getCommand()) {
         case ALL_IN_BOX: {
@@ -120,6 +125,10 @@ public class ServerVoxelSelections
         VoxelSelectionWithOrigin newSelection = new VoxelSelectionWithOrigin(origin.posX, origin.posY, origin.posZ,
                                                                              blockVoxelMultiSelector.getSelection());
         playerSelections.put(entityPlayerMP, newSelection);
+        playerBlockVoxelMultiSelectors.remove(entityPlayerMP);
+        playerCommandStatus.put(entityPlayerMP, CommandStatus.COMPLETED);
+
+
         MultipartOneAtATimeSender sender = playerMOATsenders.get(entityPlayerMP);
         if (sender != null) {
           SelectionPacket selectionPacket = SelectionPacket.createSenderPacket(blockVoxelMultiSelector);
@@ -209,7 +218,7 @@ public class ServerVoxelSelections
 
  // ------ handler for responding to Selection generation commands from the client
  //   Response to commands is a STATUS_REPLY - with 0 for success, -ve number for failure
- public class PacketHandlerMethod implements Packet250ServerSelectionGeneration.PacketHandlerMethod
+ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSelectionGeneration.PacketHandlerMethod
  {
    public Packet250ServerSelectionGeneration handlePacket(Packet250ServerSelectionGeneration packet, MessageContext ctx)
    {
@@ -221,19 +230,30 @@ public class ServerVoxelSelections
        return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
      }
 
-     if (playerLastCommandID.get(entityPlayerMP) < uniqueID) return null;  // discard old commands
+     Integer lastCommandID = playerLastCommandID.get(entityPlayerMP);
+     if (lastCommandID == null) lastCommandID = Integer.MIN_VALUE;
+     if (uniqueID < lastCommandID) return null;  // discard old commands
 
      switch(packet.getCommand()) {
        case STATUS_REQUEST: {
-         if (playerLastCommandID.get(entityPlayerMP) != uniqueID) return null;  // discard old or too-new commands
-         BlockVoxelMultiSelector blockVoxelMultiSelector = playerBlockVoxelMultiSelectors.get(entityPlayerMP);
-         if (blockVoxelMultiSelector == null) {
-           return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
+         if (uniqueID != lastCommandID) return null;  // discard old or too-new commands
+         CommandStatus commandStatus = playerCommandStatus.get(entityPlayerMP);
+         if (commandStatus == null) return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
+         final float JUST_STARTED_VALUE = 0.01F;
+         switch (commandStatus) {
+           case QUEUED: return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, JUST_STARTED_VALUE);
+           case COMPLETED: return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, 1.0F);
+           case EXECUTING: {
+             BlockVoxelMultiSelector blockVoxelMultiSelector = playerBlockVoxelMultiSelectors.get(entityPlayerMP);
+             if (blockVoxelMultiSelector == null) return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
+             return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, blockVoxelMultiSelector.getEstimatedFractionComplete());
+           }
+           default: assert false : "Invalid commandStatus in ServerVoxelSelections:" + commandStatus;
          }
-         return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, blockVoxelMultiSelector.getEstimatedFractionComplete());
+
        }
        case ABORT: {
-         if (playerLastCommandID.get(entityPlayerMP) == uniqueID) {
+         if (uniqueID == lastCommandID) {
            abortCurrentCommand(entityPlayerMP);
          }
          return null;
@@ -241,9 +261,12 @@ public class ServerVoxelSelections
        case ALL_IN_BOX:
        case UNBOUND_FILL:
        case BOUND_FILL: {
-         if (playerLastCommandID.get(entityPlayerMP) <= uniqueID) return null;  // discard old commands
+         if (uniqueID <= lastCommandID) return null;  // discard old commands
 
          boolean success = enqueueSelectionCommand(entityPlayerMP, packet);
+         if (success) {
+           playerLastCommandID.put(entityPlayerMP, uniqueID);
+         }
          return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, success ? 0.0F : ERROR_STATUS);
        }
        default: {
@@ -263,6 +286,7 @@ public class ServerVoxelSelections
   {
     removeCommandsForPlayer(entityPlayerMP);
     commandQueue.addLast(new CommandQueueEntry(entityPlayerMP, commandPacket));
+    playerCommandStatus.put(entityPlayerMP, CommandStatus.QUEUED);
     return true;
   }
 
@@ -289,8 +313,10 @@ public class ServerVoxelSelections
     playerSenderLinkages.remove(entityPlayerMP);
   }
 
+  private enum CommandStatus {QUEUED, EXECUTING, COMPLETED}
   private WeakHashMap<EntityPlayerMP, Integer> playerLastCommandID = new WeakHashMap<EntityPlayerMP, Integer>();
   private WeakHashMap<EntityPlayerMP, BlockVoxelMultiSelector> playerBlockVoxelMultiSelectors = new WeakHashMap<EntityPlayerMP, BlockVoxelMultiSelector>();
+  private WeakHashMap<EntityPlayerMP, CommandStatus> playerCommandStatus = new WeakHashMap<EntityPlayerMP, CommandStatus>();
 
   private class CommandQueueEntry {
     public WeakReference<EntityPlayerMP> entityPlayerMP;
