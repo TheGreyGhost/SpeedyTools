@@ -401,7 +401,7 @@ public class ClientVoxelSelection
       }
       case RECEIVING: {
         if (serverVoxelSelection != null) {  // incoming packet transmission has finished
-          serverSelectionState = ServerSelectionState.CREATING_RENDERLISTS;
+          serverSelectionState = ServerSelectionState.CREATING_RENDERLISTS;         // TODO UP TO HERE - GENERATE RENDERLISTS HOW?
         }
         break;
       }
