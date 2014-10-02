@@ -7,7 +7,7 @@ import speedytools.SpeedyToolsMod;
 /**
 * User: The Grey Ghost
 * Date: 21/06/2014
-* Used for rendering blocks without a valid texture (eg air)
+* Used for rendering selection blocks which weren't loaded on the client, so uncertain whether they're in the selection or not
 */
 public class BlockSelectionFog extends Block
 {

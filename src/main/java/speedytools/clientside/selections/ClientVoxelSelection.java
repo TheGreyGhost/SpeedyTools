@@ -16,6 +16,7 @@ import speedytools.common.network.multipart.Packet250MultipartSegment;
 import speedytools.common.network.multipart.SelectionPacket;
 import speedytools.common.selections.BlockVoxelMultiSelector;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
@@ -401,12 +402,25 @@ public class ClientVoxelSelection
       }
       case RECEIVING: {
         if (serverVoxelSelection != null) {  // incoming packet transmission has finished
-          serverSelectionState = ServerSelectionState.CREATING_RENDERLISTS;         // TODO UP TO HERE - GENERATE RENDERLISTS HOW?
+          serverSelectionState = ServerSelectionState.CREATING_RENDERLISTS;
+          voxelSelectionRenderer.resize(serverVoxelSelection.getWxOrigin(), serverVoxelSelection.getWyOrigin(), serverVoxelSelection.getWzOrigin(),
+                                        serverVoxelSelection.getxSize(), serverVoxelSelection.getySize(), serverVoxelSelection.getzSize());
+          voxelSelectionRenderer.refreshRenderListStart();
+          selectionUpdatedFlag = true;
         }
         break;
       }
-
-      case CREATING_RENDERLISTS:
+      case CREATING_RENDERLISTS: {
+        VoxelSelectionWithOrigin nullSelection = new VoxelSelectionWithOrigin(0, 0, 0, 1, 1, 1);
+        float progress = voxelSelectionRenderer.refreshRenderListContinue(world, serverVoxelSelection, nullSelection, maxDurationInNS);
+        if (progress < 0) {
+          boolean noFogLeft = voxelSelectionRenderer.updateWithLoadedChunks(world, serverVoxelSelection, nullSelection, maxDurationInNS);
+          if (noFogLeft) {
+            serverSelectionState = ServerSelectionState.COMPLETE;
+          }
+        }
+        break;
+      }
       case COMPLETE: {
         break;
       }
@@ -492,7 +506,7 @@ public class ClientVoxelSelection
   private float serverGenerationFractionComplete;
   private float incomingSelectionFractionComplete;
   private Integer incomingSelectionUniqueID;
-  private VoxelSelection serverVoxelSelection;
+  private VoxelSelectionWithOrigin serverVoxelSelection;
 
   public class IncomingSelectionPacketHandler implements Packet250MultipartSegment.PacketHandlerMethod {
     @Override

@@ -12,10 +12,13 @@ public class RegistryForBlocks
 {
   // custom blocks
   public static BlockSelectionFog blockSelectionFog;
+  public static BlockSelectionSolidFog blockSelectionSolidFog;
 
   public static void initialise()
   {
     blockSelectionFog = new BlockSelectionFog(Material.rock);  // material is arbitrary; can't be air because air has no icon
     GameRegistry.registerBlock(blockSelectionFog, blockSelectionFog.NAME);
+    blockSelectionSolidFog = new BlockSelectionSolidFog(Material.rock);  // material is arbitrary; can't be air because air has no icon
+    GameRegistry.registerBlock(blockSelectionSolidFog, blockSelectionSolidFog.NAME);
   }
 }

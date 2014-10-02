@@ -4,16 +4,22 @@ import cpw.mods.fml.common.FMLLog;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.selections.VoxelSelection;
+import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.UsefulConstants;
+
+import java.util.BitSet;
+import java.util.LinkedList;
 
 /**
 * Created by TheGreyGhost on 10/07/14.
@@ -34,26 +40,17 @@ public class BlockVoxelMultiSelectorRenderer
    */
   public void release()
   {
-    if (displayListWireFrameXY != 0) {
-      GL11.glDeleteLists(displayListWireFrameXY, 1);
-      displayListWireFrameXY = 0;
+    for (Pair<Integer, Integer> allocation : displayListAllocations) {
+      GL11.glDeleteLists(allocation.getFirst(), allocation.getSecond());
     }
-    if (displayListWireFrameYZ != 0) {
-      GL11.glDeleteLists(displayListWireFrameYZ, 1);
-      displayListWireFrameYZ = 0;
-    }
-    if (displayListWireFrameXZ != 0) {
-      GL11.glDeleteLists(displayListWireFrameXZ, 1);
-      displayListWireFrameXZ = 0;
-    }
-    if (displayListCubesBase != 0 && displayListCubesCount > 0) {
-      GL11.glDeleteLists(displayListCubesBase, displayListCubesCount);
-      displayListCubesBase = 0;
-      displayListCubesCount = 0;
-    }
-    mode = OperationInProgress.INVALID;
-  }
+    displayListAllocations.clear();
+    displayListWireFrameXY = 0;
+    displayListWireFrameYZ = 0;
+    displayListWireFrameXZ = 0;
 
+    mode = OperationInProgress.INVALID;
+    displayListMapping = null;
+  }
 
   private int displayListWireFrameXY = 0;
   private int displayListWireFrameYZ = 0;
@@ -63,22 +60,239 @@ public class BlockVoxelMultiSelectorRenderer
   private final int DISPLAY_LIST_YSIZE = 16;
   private final int DISPLAY_LIST_ZSIZE = 16;
   // display list for the blocks in the selection: each displaylist renders DISPLAY_LIST_XSIZE * YSIZE * ZSIZE blocks
-  private int displayListCubesBase = 0;
-  private int displayListCubesCount = 0;
-  int chunkCountX, chunkCountY, chunkCountZ;
-  int xSize, ySize, zSize;
-  int xOffset, yOffset, zOffset;
+//  private int displayListCubesBase = 0;
+//  private int displayListCubesCount = 0;
+  private int chunkCountX, chunkCountY, chunkCountZ;
+  private int xSize, ySize, zSize;
+  private int xOffset, yOffset, zOffset;
+  private int sourceWXorigin, sourceWYorigin, sourceWZorigin;
+  private BitSet unloadedChunks = new BitSet();  // unloadedChunks[cx + cz * chunkCountX] = 1 if this chunk was unloaded when trying to get textures -> don't know what the block is
+
+  private int [] displayListMapping;  // mapping of the cx, cy, cz to displayListIndex used by OpenGL.
+
+  // holds the allocated display lists: <start index, count>
+  LinkedList<Pair<Integer, Integer>> displayListAllocations = new LinkedList<Pair<Integer, Integer>>();
 
   // get the display list for the given chunk
   private int getDisplayListIndex(int cx, int cy, int cz) {
-    return displayListCubesBase + cx + cy * chunkCountX + cz * chunkCountX * chunkCountY;
+    return displayListMapping[cx + cy * chunkCountX + cz * chunkCountX * chunkCountY];
+//    return displayListCubesBase + cx + cy * chunkCountX + cz * chunkCountX * chunkCountY;
   }
+
+  /** resizes the renderer to a new position and size.  Retains (repositions) the existing render lists, doesn't update
+   *   any new chunks
+   * @param newWXorigin  the new world origin
+   * @param newWYorigin
+   * @param newWZorigin
+   * @param newXsize the
+   * @param newYsize
+   * @param newZsize
+   */
+  public void resize(int newWXorigin, int newWYorigin, int newWZorigin, int newXsize, int newYsize, int newZsize)
+  {
+    int startChunkX = newWXorigin >> 4;
+    int endChunkX = (newWXorigin + newXsize - 1) >> 4;
+    int startChunkY = newWYorigin >> 4;
+    int endChunkY = (newWYorigin + newYsize - 1) >> 4;
+    int startChunkZ = newWZorigin >> 4;
+    int endChunkZ = (newWZorigin + newZsize - 1) >> 4;
+    int newChunkCountX = endChunkX - startChunkX + 1;
+    int newChunkCountY = endChunkY - startChunkY + 1;
+    int newchunkCountZ = endChunkZ - startChunkZ + 1;
+
+    int newDisplayListCount = resizeDisplayList(0, false, startChunkX - (sourceWXorigin >> 4), startChunkY - (sourceWYorigin >> 4), startChunkZ - (sourceWZorigin >> 4),
+                                                newChunkCountX, newChunkCountY, newchunkCountZ);
+    int displayListCubesBase = 0;
+    if (newDisplayListCount > 0) {
+      displayListCubesBase = GLAllocation.generateDisplayLists(newDisplayListCount);
+      if (displayListCubesBase == 0) {
+        release();
+        FMLLog.warning("Unable to create a displayList in BlockVoxelMultiSelectorRenderer::resize");
+        return;
+      }
+      displayListAllocations.add(new Pair<Integer, Integer>(displayListCubesBase, newDisplayListCount));
+    }
+    resizeDisplayList(displayListCubesBase, true, startChunkX - (sourceWXorigin >> 4), startChunkY - (sourceWYorigin >> 4), startChunkZ - (sourceWZorigin >> 4),
+                       newChunkCountX, newChunkCountY, newchunkCountZ);
+
+    chunkCountX = newChunkCountX;
+    chunkCountY = newChunkCountY;
+    chunkCountZ = newchunkCountZ;
+
+    xOffset = newWXorigin & 0x0f;
+    yOffset = newWYorigin & 0x0f;
+
+    sourceWXorigin = newWXorigin;
+    sourceWYorigin = newWYorigin;
+    sourceWZorigin = newWZorigin;
+    unloadedChunks.set(0, chunkCountX * chunkCountZ);
+
+    createMeshRenderLists(newXsize, newYsize, newZsize);
+  }
+
+
+  /**
+   * resizes the render displayList; keeps the original displayLists but moves them to their new position relative to the new origin
+   * fills newly created chunk slots with the indicated displaylist numbers
+   * @param nextListIndexStart the index of the first displaylist to use; n empty chunks will use indices nextListIndexStart to nextListIndexStart + n-1 inclusive
+   * @param overwrite if true, create the new display list and move the old entries.  If false, just count the number of new displaylistindices required.
+   * @param newCX0 the origin of the render relative to the old origin (eg newCX0 == -2 means that the new display starts 2 chunks to the left of the old)
+   * @param newCY0
+   * @param newCZ0
+   * @param newCXsize the number of x chunks in the new render
+   * @param newCYsize
+   * @param newCZsize
+   * @return the number of new displaylists added/required
+   */
+  private int resizeDisplayList(int nextListIndexStart, boolean overwrite,
+                                int newCX0, int newCY0, int newCZ0, int newCXsize, int newCYsize, int newCZsize)
+  {
+    assert (newCXsize > 0);
+    assert (newCYsize > 0);
+    assert (newCZsize > 0);
+
+    int [] newDisplayListMapping = new int[0];
+    if (overwrite) {
+      newDisplayListMapping = new int[newCXsize * newCYsize * newCZsize];
+    }
+    int newChunkCount = 0;
+
+    for (int cx = 0; cx < newCXsize; ++cx) {
+      for (int cy = 0; cy < newCYsize; ++cy) {
+        for (int cz = 0; cz < newCZsize; ++cz) {
+          boolean isNewChunk = (cx + newCX0 >= 0 && cx + newCX0 < chunkCountX)
+                              && (cy + newCY0 >= 0 && cy + newCY0 < chunkCountY)
+                              && (cz + newCZ0 >= 0 && cz + newCZ0 < chunkCountZ);
+          if (isNewChunk) {
+            ++newChunkCount;
+          }
+          if (overwrite) {
+            int newChunkIndex = cx + cy * newCXsize + cz * newCXsize * newCYsize;
+            if (isNewChunk) {
+              newDisplayListMapping[newChunkIndex] = nextListIndexStart++;
+            } else {
+              newDisplayListMapping[newChunkIndex] = displayListMapping[getDisplayListIndex(cx + newCX0, cy + newCY0, cz + newCZ0)];
+            }
+          }
+        }
+      }
+    }
+
+    return newChunkCount;
+  }
+
+  /**
+   * Refresh the renderlist for this renderer based on new information
+   */
+  public void refreshRenderListStart()
+  {
+    cxCurrent = 0;
+    cyCurrent = 0;
+    czCurrent = 0;
+
+    mode = OperationInProgress.IN_PROGRESS;
+  }
+  /**
+   * Refresh the renderlist for this renderer based on new information
+   * @param world
+   * @param unknownVoxels
+   * @param maxTimeInNS the maximum amount of time to spend before returning, in ns
+   * @return the estimated fraction complete [0 .. 1]; or -1 if complete
+   */
+ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin selectedVoxels, VoxelSelectionWithOrigin unknownVoxels, long maxTimeInNS)
+  {
+    if (mode == OperationInProgress.COMPLETE) return -1;
+    if (mode != OperationInProgress.IN_PROGRESS) {
+      FMLLog.severe("Mode should be IN_PROGRESS in BlockVoxelMultiSelectorRenderer::refreshRenderListContinue, but was actually " + mode);
+      return -1;
+    }
+
+    long startTime = System.nanoTime();
+
+    for (; cxCurrent < chunkCountX; ++cxCurrent, cyCurrent = 0) {
+      for (; cyCurrent < chunkCountY; ++cyCurrent, czCurrent = 0) {
+        for (; czCurrent < chunkCountZ; ++czCurrent) {
+          if (System.nanoTime() - startTime >= maxTimeInNS) return (cxCurrent / (float)chunkCountX);
+          renderThisChunk(world, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cxCurrent, cyCurrent, czCurrent);
+          Chunk chunk = world.getChunkFromBlockCoords(cxCurrent + cxCurrent * DISPLAY_LIST_XSIZE, sourceWZorigin + DISPLAY_LIST_ZSIZE);
+          if (!chunk.isEmpty()) {
+            unloadedChunks.clear(cxCurrent + czCurrent * chunkCountX);
+          }
+        }
+      }
+    }
+    mode = OperationInProgress.COMPLETE;
+    return -1;
+  }
+
+  private void renderThisChunk(World world, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels,
+                               int wxOrigin, int wyOrigin, int wzOrigin,
+                               int cx, int cy, int cz)
+  {
+    final double NUDGE_DISTANCE = 0.01;
+    final double FRAME_NUDGE_DISTANCE = NUDGE_DISTANCE + 0.002;
+
+    GL11.glNewList(getDisplayListIndex(cx, cy, cz), GL11.GL_COMPILE);
+    GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+    GL11.glDisable(GL11.GL_CULL_FACE);
+    GL11.glDisable(GL11.GL_LIGHTING);
+    GL11.glEnable(GL11.GL_TEXTURE_2D);
+    Tessellator tessellator = Tessellator.instance;
+    tessellateSurfaceWithTexture(world, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin,
+            cx * DISPLAY_LIST_XSIZE - xOffset, cy * DISPLAY_LIST_YSIZE - yOffset, cz * DISPLAY_LIST_ZSIZE - zOffset,
+            tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
+
+    GL11.glEnable(GL11.GL_BLEND);
+    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+    GL11.glLineWidth(2.0F);
+    GL11.glDisable(GL11.GL_TEXTURE_2D);
+    GL11.glDepthMask(false);
+    tessellateSurface(selectedVoxels, unknownVoxels,
+            cx * DISPLAY_LIST_XSIZE - xOffset, cy * DISPLAY_LIST_YSIZE - yOffset, cz * DISPLAY_LIST_ZSIZE  - zOffset,
+            tessellator, WhatToDraw.WIREFRAME, FRAME_NUDGE_DISTANCE);
+
+    GL11.glDepthMask(true);
+    GL11.glPopAttrib();
+    GL11.glEndList();
+  }
+
+
 
   private enum OperationInProgress {
     INVALID, IN_PROGRESS, COMPLETE
   }
   private OperationInProgress mode = OperationInProgress.INVALID;
   int cxCurrent, cyCurrent, czCurrent;
+
+  /**
+   * Look for any chunks which have missing textures and check to see if they have been loaded; if so, update the render list
+  * @param world
+  * @param unknownVoxels
+  * @param maxTimeInNS the maximum amount of time to spend before returning, in ns
+  * @return true if there are no more unknown block textures
+  */
+  public boolean updateWithLoadedChunks(World world, VoxelSelectionWithOrigin selectedVoxels, VoxelSelectionWithOrigin unknownVoxels, long maxTimeInNS)
+  {
+    if (unloadedChunks.isEmpty()) return true;
+    long startTime = System.nanoTime();
+
+    for (int cx = 0; cx < chunkCountX; ++cx) {
+      for (int cz = 0; cz < chunkCountZ; ++cz) {
+        if (System.nanoTime() - startTime >= maxTimeInNS) return false;
+        if (unloadedChunks.get(cx + cz * chunkCountX)) {
+          Chunk chunk = world.getChunkFromBlockCoords(sourceWXorigin + cx * DISPLAY_LIST_XSIZE, sourceWZorigin + cz * DISPLAY_LIST_ZSIZE);
+          if (!chunk.isEmpty()) {
+            for (int cy = 0; cy < chunkCountY; ++cy) {
+              renderThisChunk(world, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cx, cy, cz);
+            }
+            unloadedChunks.clear(cx + cz * chunkCountX);
+          }
+        }
+      }
+    }
+    return unloadedChunks.isEmpty();
+  }
 
   /**
    * create a render list for the current selection.
@@ -95,6 +309,9 @@ public class BlockVoxelMultiSelectorRenderer
     displayListWireFrameXY = GLAllocation.generateDisplayLists(1);
     displayListWireFrameXZ = GLAllocation.generateDisplayLists(1);
     displayListWireFrameYZ = GLAllocation.generateDisplayLists(1);
+    displayListAllocations.add(new Pair<Integer, Integer>(displayListWireFrameXY, 1));
+    displayListAllocations.add(new Pair<Integer, Integer>(displayListWireFrameXZ, 1));
+    displayListAllocations.add(new Pair<Integer, Integer>(displayListWireFrameYZ, 1));
 
     int displayListCount = 1;
     xSize = selectedVoxels.getxSize();
@@ -117,18 +334,32 @@ public class BlockVoxelMultiSelectorRenderer
     xOffset = wxOrigin & 0x0f;
     yOffset = wyOrigin & 0x0f;
     zOffset = wzOrigin & 0x0f;
+    sourceWXorigin = wxOrigin;
+    sourceWYorigin = wyOrigin;
+    sourceWZorigin = wzOrigin;
+    unloadedChunks.set(0, chunkCountX * chunkCountZ);
 
     if (selectedVoxels.getxSize() > 0 && selectedVoxels.getySize() > 0 && selectedVoxels.getzSize() > 0) {
       displayListCount = chunkCountX * chunkCountY * chunkCountZ;
     }
 
-    displayListCubesBase = GLAllocation.generateDisplayLists(displayListCount);
+    int displayListCubesBase = GLAllocation.generateDisplayLists(displayListCount);
     if (displayListCubesBase == 0 || displayListWireFrameXY == 0 || displayListWireFrameXZ == 0 || displayListWireFrameYZ == 0) {
       release();
       FMLLog.warning("Unable to create a displayList in BlockVoxelMultiSelectorRenderer::createRenderList");
       return;
     }
-    displayListCubesCount = displayListCount;
+    displayListAllocations.add(new Pair<Integer, Integer>(displayListCubesBase, displayListCount));
+    displayListMapping = new int [chunkCountX * chunkCountY * chunkCountZ];
+
+
+    for (int cx = 0; cx < chunkCountX; ++cx) {
+      for (int cy = 0; cy < chunkCountY; ++cy) {
+        for (int cz = 0; cz < chunkCountZ; ++cz) {
+          displayListMapping[cx + cy * chunkCountX + cz * chunkCountX * chunkCountY] = displayListCubesBase + cx + cy * chunkCountX + cz * chunkCountX * chunkCountY;
+        }
+      }
+    }
 
     createMeshRenderLists(selectedVoxels.getxSize(), selectedVoxels.getySize(), selectedVoxels.getzSize());
 
@@ -154,37 +385,42 @@ public class BlockVoxelMultiSelectorRenderer
     }
 
     long startTime = System.nanoTime();
-    final double NUDGE_DISTANCE = 0.01;
-    final double FRAME_NUDGE_DISTANCE = NUDGE_DISTANCE + 0.002;
+//    final double NUDGE_DISTANCE = 0.01;
+//    final double FRAME_NUDGE_DISTANCE = NUDGE_DISTANCE + 0.002;
 
     for (; cxCurrent < chunkCountX; ++cxCurrent, cyCurrent = 0) {
       for (; cyCurrent < chunkCountY; ++cyCurrent, czCurrent = 0) {
         for (; czCurrent < chunkCountZ; ++czCurrent) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (cxCurrent / (float)chunkCountX);
-
-          GL11.glNewList(getDisplayListIndex(cxCurrent, cyCurrent, czCurrent), GL11.GL_COMPILE);
-          GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
-          GL11.glDisable(GL11.GL_CULL_FACE);
-          GL11.glDisable(GL11.GL_LIGHTING);
-          GL11.glEnable(GL11.GL_TEXTURE_2D);
-          Tessellator tessellator = Tessellator.instance;
-          tessellateSurfaceWithTexture(world, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin,
-                                        cxCurrent * DISPLAY_LIST_XSIZE - xOffset, cyCurrent * DISPLAY_LIST_YSIZE - yOffset, czCurrent * DISPLAY_LIST_ZSIZE - zOffset,
-                                        tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
-
-          GL11.glEnable(GL11.GL_BLEND);
-          GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-          GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
-          GL11.glLineWidth(2.0F);
-          GL11.glDisable(GL11.GL_TEXTURE_2D);
-          GL11.glDepthMask(false);
-          tessellateSurface(selectedVoxels, unknownVoxels,
-                            cxCurrent * DISPLAY_LIST_XSIZE - xOffset, cyCurrent * DISPLAY_LIST_YSIZE - yOffset, czCurrent * DISPLAY_LIST_ZSIZE  - zOffset,
-                            tessellator, WhatToDraw.WIREFRAME, FRAME_NUDGE_DISTANCE);
-
-          GL11.glDepthMask(true);
-          GL11.glPopAttrib();
-          GL11.glEndList();
+          renderThisChunk(world, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin, cxCurrent, cyCurrent, czCurrent);
+          Chunk chunk = world.getChunkFromBlockCoords(wxOrigin + cxCurrent * DISPLAY_LIST_XSIZE, wzOrigin + DISPLAY_LIST_ZSIZE);
+          if (!chunk.isEmpty()) {
+            unloadedChunks.clear(cxCurrent + czCurrent * chunkCountX);
+          }
+//
+//          GL11.glNewList(getDisplayListIndex(cxCurrent, cyCurrent, czCurrent), GL11.GL_COMPILE);
+//          GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+//          GL11.glDisable(GL11.GL_CULL_FACE);
+//          GL11.glDisable(GL11.GL_LIGHTING);
+//          GL11.glEnable(GL11.GL_TEXTURE_2D);
+//          Tessellator tessellator = Tessellator.instance;
+//          tessellateSurfaceWithTexture(world, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin,
+//                                        cxCurrent * DISPLAY_LIST_XSIZE - xOffset, cyCurrent * DISPLAY_LIST_YSIZE - yOffset, czCurrent * DISPLAY_LIST_ZSIZE - zOffset,
+//                                        tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
+//
+//          GL11.glEnable(GL11.GL_BLEND);
+//          GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+//          GL11.glColor4f(Colour.BLACK_40.R, Colour.BLACK_40.G, Colour.BLACK_40.B, Colour.BLACK_40.A);
+//          GL11.glLineWidth(2.0F);
+//          GL11.glDisable(GL11.GL_TEXTURE_2D);
+//          GL11.glDepthMask(false);
+//          tessellateSurface(selectedVoxels, unknownVoxels,
+//                            cxCurrent * DISPLAY_LIST_XSIZE - xOffset, cyCurrent * DISPLAY_LIST_YSIZE - yOffset, czCurrent * DISPLAY_LIST_ZSIZE  - zOffset,
+//                            tessellator, WhatToDraw.WIREFRAME, FRAME_NUDGE_DISTANCE);
+//
+//          GL11.glDepthMask(true);
+//          GL11.glPopAttrib();
+//          GL11.glEndList();
         }
       }
     }
@@ -199,7 +435,7 @@ public class BlockVoxelMultiSelectorRenderer
    */
   public void renderSelection(Vec3 playerRelativePos, int blockRenderDistance, QuadOrientation quadOrientation, Colour colour)
   {
-    if (displayListCubesBase == 0) {
+    if (displayListMapping == null) {
       return;
     }
 
@@ -457,8 +693,8 @@ public class BlockVoxelMultiSelectorRenderer
    * @param nudgeDistance how far to nudge the face (to prevent overlap)
    */
   private void tessellateSurfaceWithTexture(World world, VoxelSelection selection, VoxelSelection unknownVoxels, int wxOrigin, int wyOrigin, int wzOrigin,
-                                            int sx0, int sy0, int sz0,
-                                            Tessellator tessellator, WhatToDraw whatToDraw, double nudgeDistance)
+                                               int sx0, int sy0, int sz0,
+                                               Tessellator tessellator, WhatToDraw whatToDraw, double nudgeDistance)
   {
     int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
 
@@ -482,9 +718,14 @@ public class BlockVoxelMultiSelectorRenderer
             int wy = sy + wyOrigin;
             int wz = sz + wzOrigin;
 
+            // unknown blocks get SelectionFog
+            // selected blocks which are air (either because the block is air, or because the chunk is not loaded), get SelectionSolidFog
             Block block = RegistryForBlocks.blockSelectionFog;
             if (selected) {
               block = world.getBlock(wx, wy, wz);
+              if (block == Blocks.air) {
+                block = RegistryForBlocks.blockSelectionSolidFog;
+              }
             }
 
             // xneg face
