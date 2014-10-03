@@ -39,7 +39,7 @@ public class SelectionPacket extends MultipartPacket
     SelectionPacket newPacket = new SelectionPacket(Packet250Types.PACKET250_SELECTION_PACKET, Side.CLIENT, SEGMENT_SIZE);
     ByteArrayOutputStream bos = selection.writeToBytes();
     if (bos == null) return null;
-    newPacket.setRawData(bos.toByteArray());
+    newPacket.setRawDataForSending(bos.toByteArray());
     return newPacket;
   }
 

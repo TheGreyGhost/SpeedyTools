@@ -7,6 +7,9 @@ import speedytools.common.utilities.ErrorLog;
 import java.io.*;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 
 /**
 * User: The Grey Ghost
@@ -407,7 +410,7 @@ public abstract class MultipartPacket
     int checkSegmentCount = (fullMultipartLength + segmentSize - 1) / segmentSize;
     if (checkSegmentCount <= 0 || checkSegmentCount > MAX_SEGMENT_COUNT) throw new IOException("Segment count " + checkSegmentCount + " out of allowable range [1 - " + MAX_SEGMENT_COUNT + "]");
 
-    setRawData(new byte[fullMultipartLength]);
+    prepareSpaceForRawData(new byte[fullMultipartLength]);
   }
 
   private MultipartPacket() {};
@@ -415,7 +418,20 @@ public abstract class MultipartPacket
   /** set the raw data for this packet and initialise the associated segment data
    * @param newRawData the rawdata to be copied into the packet
    */
-  protected void setRawData(byte [] newRawData)
+
+  protected void setRawDataForSending(byte[] newRawData)
+  {
+    byte [] compressedRawData = compress(newRawData);
+    setRawData(compressedRawData);
+  }
+
+  protected void prepareSpaceForRawData(byte [] newRawData)
+  {
+    setRawData(newRawData);
+  }
+
+
+  private void setRawData(byte [] newRawData)
   {
     int totalLength = newRawData.length;
     if (totalLength > MAX_SEGMENT_COUNT * segmentSize) {
@@ -423,7 +439,7 @@ public abstract class MultipartPacket
     }
     segmentCount = (totalLength + segmentSize - 1) / segmentSize;
 
-    rawData = Arrays.copyOf(newRawData, newRawData.length);
+    rawData = newRawData;
     if (iAmASender) {
       segmentsNotAcknowledged = new BitSet(segmentCount);
       segmentsNotAcknowledged.set(0, segmentCount);
@@ -434,13 +450,101 @@ public abstract class MultipartPacket
     assert checkInvariants();
   }
 
+  static private final int START_FLAG_SIZE = 1;
+  static private final int START_LEN_SIZE = 4;
+
+  /** try to compress the data:
+   * the returned value is
+   * retval[0] = 0 -> uncompressed, retval[1..] is the uncompressed data
+   * retval[0] !=0 -> compressed, retval[1..] is the compressed data
+   * @param dataToCompress
+   * @return
+   */
+  protected byte [] compress(byte [] dataToCompress)
+  {
+    int uncompressedLength = dataToCompress.length;
+    Deflater deflater = new Deflater(Deflater.DEFAULT_COMPRESSION);
+    try {
+      deflater.setInput(dataToCompress);
+      deflater.finish();
+      byte[] compressedData = new byte[START_FLAG_SIZE + START_LEN_SIZE + dataToCompress.length];
+      int compressedSize = deflater.deflate(compressedData,START_FLAG_SIZE + START_LEN_SIZE, compressedData.length - START_FLAG_SIZE - START_LEN_SIZE );
+      if (compressedSize < uncompressedLength + START_FLAG_SIZE + START_LEN_SIZE) { // worthwhile
+        final int COMPRESSED_FLAG = 1;
+        compressedData[0] = COMPRESSED_FLAG;
+        int i = START_FLAG_SIZE;
+        compressedData[i++] = (byte)(uncompressedLength & 0xff);
+        compressedData[i++] = (byte)((uncompressedLength >> 8) & 0xff);
+        compressedData[i++] = (byte)((uncompressedLength >> 16) & 0xff);
+        compressedData[i++] = (byte)((uncompressedLength >> 24) & 0xff);
+        compressedSize += START_FLAG_SIZE + START_LEN_SIZE;
+        System.out.println("Compressed multipartPart from " + dataToCompress.length + " to " + compressedSize);
+        return Arrays.copyOf(compressedData, compressedSize);
+      }
+    } catch (Exception exception) {
+      ErrorLog.defaultLog().info("Deflate error:" + exception);
+    } finally {
+      deflater.end();
+    }
+
+    // just do uncompressed
+    byte [] retval = new byte[START_FLAG_SIZE + dataToCompress.length];
+    final int UNCOMPRESSED_FLAG = 0;
+    retval[0] = UNCOMPRESSED_FLAG;
+    System.arraycopy(dataToCompress, 0, retval, START_FLAG_SIZE, dataToCompress.length);
+    System.out.println("Uncompressed multipartPart  " + dataToCompress.length);
+    return retval;
+  }
+
+  /**
+   * decompress the data.
+   * @param dataToUncompress first byte is a flag: 0 = remaining data is uncompressed; !=0 = remaining data is compressed
+   *                         If compressed, the next 4 bytes are the uncompressed length as an int
+   * @return null for a problem
+   */
+  protected byte [] uncompress(byte [] dataToUncompress)
+  {
+    if (dataToUncompress.length < START_FLAG_SIZE) {
+      return null;
+    }
+    if (dataToUncompress.length == START_FLAG_SIZE) {
+      return new byte[0];
+    }
+    if (dataToUncompress[0] == 0) { // no compression, just remove flag
+      return Arrays.copyOfRange(rawData, START_FLAG_SIZE, rawData.length);
+    }
+    if (dataToUncompress.length < START_FLAG_SIZE + START_LEN_SIZE) {
+      return null;
+    }
+    int i = START_FLAG_SIZE;
+    int uncompressedLength = dataToUncompress[i++] | (dataToUncompress[i++] << 8)
+                            | (dataToUncompress[i++] << 16) | (dataToUncompress[i++] << 24);
+    if (uncompressedLength < 0 || uncompressedLength > MAX_REASONABLE_TOTAL_SIZE) {
+      return null;
+    }
+    byte [] retval = new byte[uncompressedLength];
+
+    Inflater inflater = new Inflater();
+    inflater.setInput(dataToUncompress, START_FLAG_SIZE + START_LEN_SIZE, dataToUncompress.length - START_FLAG_SIZE - START_LEN_SIZE);
+
+    try {
+      inflater.inflate(retval);
+    } catch (DataFormatException dataformatexception) {
+      ErrorLog.defaultLog().info("MultipartPacket decompression failed:" + dataformatexception);
+      return null;
+    } finally {
+      inflater.end();
+    }
+    return retval;
+  }
+
   /** retrieve a copy of the packet's raw data
    * @return the raw data, or null if the packet isn't finished yet (error)
    */
   protected byte [] getRawDataCopy()
   {
     if (!iAmASender && !allSegmentsReceived()) return null;
-    return Arrays.copyOf(rawData, rawData.length);
+    return uncompress(rawData);
   }
 
   /** abort this transmission
@@ -551,6 +655,7 @@ public abstract class MultipartPacket
 
   public static final int MAX_SEGMENT_COUNT = Short.MAX_VALUE;
   public static final int MAX_SEGMENT_SIZE = 30000;
+  public static final int MAX_REASONABLE_TOTAL_SIZE = 10 * 1000 * 1000;
   public static final int NULL_PACKET_ID = -1;
 
   private Side whichSideAmIOn;
@@ -559,7 +664,7 @@ public abstract class MultipartPacket
   private int uniquePacketID;
   private int segmentSize;
   private int segmentCount;
-  private byte [] rawData;
+  private byte [] rawData;                      // the raw data.  The first byte is compression flag; non-zero --> compressed
 
   private boolean iAmASender;                    // true if this packet is being sent; false if it's being received.
   private BitSet segmentsNotAcknowledged;

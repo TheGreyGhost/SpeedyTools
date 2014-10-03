@@ -415,7 +415,7 @@ public class MultipartPacketTest
 
     public void setTestData(byte [] testData)
     {
-      setRawData(testData);
+      setRawDataForSending(testData);
     }
 
     public boolean matchesTestData(byte [] dataToCompare)

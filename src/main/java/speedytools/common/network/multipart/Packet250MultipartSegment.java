@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
-* This class is used to inform the server when the user has used a SpeedyTool, and pass it information about the affected blocks.
+* This class is used to transmit information which is too large for a single packet
 */
 public class Packet250MultipartSegment extends Packet250Base
 {

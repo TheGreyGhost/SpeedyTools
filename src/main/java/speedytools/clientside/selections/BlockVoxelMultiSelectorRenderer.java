@@ -214,9 +214,10 @@ public class BlockVoxelMultiSelectorRenderer
         for (; czCurrent < chunkCountZ; ++czCurrent) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (cxCurrent / (float)chunkCountX);
           renderThisChunk(world, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cxCurrent, cyCurrent, czCurrent);
-          Chunk chunk = world.getChunkFromBlockCoords(cxCurrent + cxCurrent * DISPLAY_LIST_XSIZE, sourceWZorigin + DISPLAY_LIST_ZSIZE);
+          Chunk chunk = world.getChunkFromBlockCoords(sourceWXorigin + cxCurrent * DISPLAY_LIST_XSIZE, sourceWZorigin + czCurrent * DISPLAY_LIST_ZSIZE);
           if (!chunk.isEmpty()) {
             unloadedChunks.clear(cxCurrent + czCurrent * chunkCountX);
+//            System.out.println("refresh clear [" + cxCurrent + ", " + czCurrent + "]");
           }
         }
       }
@@ -287,6 +288,7 @@ public class BlockVoxelMultiSelectorRenderer
               renderThisChunk(world, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cx, cy, cz);
             }
             unloadedChunks.clear(cx + cz * chunkCountX);
+            System.out.println("update clear [" + cx + ", " + cz + "]");
           }
         }
       }
