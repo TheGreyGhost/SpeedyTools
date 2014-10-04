@@ -7,25 +7,32 @@ package speedytools.clientside.rendering;
  */
 public enum SpeedySoundTypes
 {
-  BOUNDARY_GRAB("speedytools:boundarygrab.ogg"),
-  BOUNDARY_UNGRAB("speedytools:boundaryungrab.ogg"),
-  BOUNDARY_PLACE_1ST("speedytools:boundaryplace1st.ogg"),
-  BOUNDARY_PLACE_2ND("speedytools:boundaryplace2nd.ogg"),
-  BOUNDARY_UNPLACE("speedytools:boundaryunplace.ogg"),
-  STRONGWAND_PLACE("speedytools:wandplace.ogg"),
-  STRONGWAND_UNPLACE("speedytools:wandunplace.ogg"),
-  WEAKWAND_PLACE("speedytools:wandplace.ogg"),
-  WEAKWAND_UNPLACE("speedytools:wandunplace.ogg"),
-  ORB_PLACE("speedytools:orbplace.ogg"),
-  ORB_UNPLACE("speedytools:orbunplace.ogg"),
-  SCEPTRE_UNPLACE("speedytools:sceptreunplace.ogg"),
-  SCEPTRE_PLACE("speedytools:sceptreplace.ogg");
+  BOUNDARY_GRAB("complex.boundarygrab"),
+  BOUNDARY_UNGRAB("complex.boundaryungrab"),
+  BOUNDARY_PLACE_1ST("complex.boundaryplace1st"),
+  BOUNDARY_PLACE_2ND("complex.boundaryplace2nd"),
+  BOUNDARY_UNPLACE("complex.boundaryunplace"),
+  STRONGWAND_PLACE("simple.wandplace"),
+  STRONGWAND_UNPLACE("simple.wandunplace"),
+  WEAKWAND_PLACE("simple.wandplace"),
+  WEAKWAND_UNPLACE("simple.wandunplace"),
+  ORB_PLACE("simple.orbplace"),
+  ORB_UNPLACE("simple.orbunplace"),
+  SCEPTRE_UNPLACE("simple.sceptreunplace"),
+  SCEPTRE_PLACE("simple.sceptreplace"),
+  POWERUP("complex.powerup"),
+  POWERUPHOLD("complex.poweruphold"),
+  UNDOPOWERUP("complex.undopowerup"),
+  UNDOPOWERUPHOLD("complex.underpoweruphold"),
+  PERFORMINGACTION("complex.performingaction"),
+  PERFORMINGUNDO("complex.performingundo"),
+  CREATESELECTION("complex.createselection");
 
 
-  public final String getFilename() {return filename;}
+  public final String getJsonName() {return jsonName;}
 
-  private SpeedySoundTypes(String i_filename) {
-    filename = i_filename;
+  private SpeedySoundTypes(String i_jsonName) {
+    jsonName = i_jsonName;
   }
-  private final String filename;
+  private final String jsonName;
 }
