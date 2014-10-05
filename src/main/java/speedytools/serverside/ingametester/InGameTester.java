@@ -85,6 +85,7 @@ public class
         case 15: success = performTest15(entityPlayerMP, performTest); break;
         case 16: success = performTest16(entityPlayerMP, performTest); break;
         case 17: success = performTest17(performTest); break;
+        case 18: success = performTest18(entityPlayerMP, performTest); break;
         default: blankTest = true; break;
       }
       if (blankTest) {
@@ -906,6 +907,12 @@ public class
     final int XORIGIN = 41; final int YORIGIN = 4; final int ZORIGIN = 19;
     final int XSIZE = 8; final int YSIZE = 8; final int ZSIZE = 200;
     return standardCopyAndTest(performTest, true, XORIGIN, YORIGIN, ZORIGIN, XSIZE, YSIZE, ZSIZE);
+  }
+
+  public boolean performTest18(EntityPlayerMP entityPlayerMP, boolean performTest)
+  {
+    SelectionFillTester selectionFillTester = new SelectionFillTester();
+    return selectionFillTester.runFillTests(entityPlayerMP, performTest);
   }
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,

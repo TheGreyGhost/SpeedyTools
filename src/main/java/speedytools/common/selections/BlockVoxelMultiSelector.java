@@ -40,6 +40,7 @@ public class BlockVoxelMultiSelector
   private int zpos;
 
   private VoxelChunkwiseIterator voxelChunkwiseIterator;
+  private VoxelChunkwiseFillIterator voxelChunkwiseFillIterator;
 
   private boolean empty = true;
 
@@ -73,6 +74,23 @@ public class BlockVoxelMultiSelector
       }
       case FILL: {
         return selectFillContinue(world, maxTimeInNS);
+      }
+      case COMPLETE: {
+        return -1;
+      }
+      default: assert false : "invalid mode " + mode + " in continueSelectionGeneration";
+    }
+    return 0;
+  }
+
+  public float continueSelectionGenerationNEW(World world, long maxTimeInNS)
+  {
+    switch (mode) {
+      case ALL_IN_BOX: {
+        return selectAllInBoxContinue(world, maxTimeInNS);
+      }
+      case FILL: {
+        return selectFillContinueNEW(world, maxTimeInNS);
       }
       case COMPLETE: {
         return -1;
@@ -130,6 +148,7 @@ public class BlockVoxelMultiSelector
       }
     }
 
+    voxelChunkwiseIterator = null;
     mode = OperationInProgress.COMPLETE;
     return -1;
   }
@@ -284,6 +303,123 @@ public class BlockVoxelMultiSelector
     public ChunkCoordinates chunkCoordinates;
     public int nextSearchDirection;
   }
+
+  /**
+   * initialise conversion of the selected fill to a VoxelSelection
+   * From the starting block, performs a flood fill on all non-air blocks.
+   * Will not fill any blocks with y less than the blockUnderCursor.
+   * @param world
+   * @param blockUnderCursor the block being highlighted by the cursor
+   */
+  public void selectUnboundFillStartNEW(World world, ChunkCoordinates blockUnderCursor)
+  {
+    ChunkCoordinates corner1 = new ChunkCoordinates();
+    ChunkCoordinates corner2 = new ChunkCoordinates();
+    final int BORDER_ALLOWANCE = 2;
+    corner1.posX = blockUnderCursor.posX - VoxelSelection.MAX_X_SIZE / 2 + BORDER_ALLOWANCE;
+    corner2.posX = blockUnderCursor.posX + VoxelSelection.MAX_X_SIZE / 2 - BORDER_ALLOWANCE;
+    corner1.posY = blockUnderCursor.posY;
+    corner2.posY = Math.min(255, blockUnderCursor.posY + VoxelSelection.MAX_Y_SIZE - 2 * BORDER_ALLOWANCE);
+    corner1.posZ = blockUnderCursor.posZ - VoxelSelection.MAX_Z_SIZE / 2 + BORDER_ALLOWANCE;
+    corner2.posZ = blockUnderCursor.posZ + VoxelSelection.MAX_Z_SIZE / 2 - BORDER_ALLOWANCE;
+
+    selectBoundFillStartNew(world, blockUnderCursor, corner1, corner2);
+  }
+
+  /**
+   * initialise conversion of the selected fill to a VoxelSelection
+   * From the starting block, performs a flood fill on all non-air blocks.
+   * Will not fill any blocks outside of the box defined by corner1 and corner2
+   * @param world
+   * @param blockUnderCursor the block being highlighted by the cursor
+   */
+  public void selectBoundFillStartNew(World world, ChunkCoordinates blockUnderCursor, ChunkCoordinates corner1, ChunkCoordinates corner2)
+  {
+    initialiseSelectionSizeFromBoundary(corner1, corner2);
+    assert (blockUnderCursor.posX >= wxOrigin && blockUnderCursor.posY >= wyOrigin && blockUnderCursor.posZ >= wzOrigin);
+    assert (blockUnderCursor.posX < wxOrigin + xSize && blockUnderCursor.posY < wyOrigin + ySize && blockUnderCursor.posZ < wzOrigin + zSize);
+    mode = OperationInProgress.FILL;
+    initialiseVoxelRange();
+
+//    ChunkCoordinates startingBlockCopy = new ChunkCoordinates(blockUnderCursor.posX - wxOrigin, blockUnderCursor.posY - wyOrigin, blockUnderCursor.posZ - wzOrigin);
+//    currentSearchPositions.clear();
+//    nextDepthSearchPositions.clear();
+//    currentSearchPositions.add(new SearchPosition(startingBlockCopy));
+//    selection.setVoxel(startingBlockCopy.posX, startingBlockCopy.posY, startingBlockCopy.posZ);
+//    expandVoxelRange(startingBlockCopy.posX, startingBlockCopy.posY, startingBlockCopy.posZ);
+
+    voxelChunkwiseFillIterator = new VoxelChunkwiseFillIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
+    voxelChunkwiseFillIterator.addStartPosition(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    mode = OperationInProgress.FILL;
+  }
+
+  /**
+   * continue conversion of the selected box to a VoxelSelection.  Call repeatedly until conversion complete.
+   * @param world
+   * @param maxTimeInNS maximum elapsed duration before processing stops & function returns
+   * @return fraction complete (0 - 1), -ve number for finished
+   */
+  private float selectFillContinueNEW(World world, long maxTimeInNS)
+  {
+    if (mode != OperationInProgress.FILL) {
+      FMLLog.severe("Mode should be FILL in BlockVoxelMultiSelector::selectFillContinue");
+      return -1;
+    }
+
+    long startTime = System.nanoTime();
+
+    while (!voxelChunkwiseFillIterator.isAtEnd()) {
+      voxelChunkwiseFillIterator.hasEnteredNewChunk();  // reset flag
+      Chunk currentChunk = world.getChunkFromChunkCoords(voxelChunkwiseFillIterator.getChunkX(), voxelChunkwiseFillIterator.getChunkZ());
+      if (currentChunk.isEmpty()) {
+        containsUnavailableVoxels = true;
+        while (!voxelChunkwiseFillIterator.isAtEnd() && !voxelChunkwiseFillIterator.hasEnteredNewChunk()) {
+          unavailableVoxels.setVoxel(voxelChunkwiseFillIterator.getXpos(), voxelChunkwiseFillIterator.getYpos(), voxelChunkwiseFillIterator.getZpos());
+          expandVoxelRange(voxelChunkwiseFillIterator.getXpos(), voxelChunkwiseFillIterator.getYpos(), voxelChunkwiseFillIterator.getZpos());
+          voxelChunkwiseFillIterator.next(false);
+        }
+      } else {
+        while (!voxelChunkwiseFillIterator.isAtEnd() && !voxelChunkwiseFillIterator.hasEnteredNewChunk()) {
+          if (Blocks.air != currentChunk.getBlock(voxelChunkwiseFillIterator.getWX() & 0x0f, voxelChunkwiseFillIterator.getWY(), voxelChunkwiseFillIterator.getWZ() & 0x0f)) {
+            selection.setVoxel(voxelChunkwiseFillIterator.getXpos(), voxelChunkwiseFillIterator.getYpos(), voxelChunkwiseFillIterator.getZpos());
+            expandVoxelRange(voxelChunkwiseFillIterator.getXpos(), voxelChunkwiseFillIterator.getYpos(), voxelChunkwiseFillIterator.getZpos());
+            voxelChunkwiseFillIterator.next(true);
+          } else {
+            voxelChunkwiseFillIterator.next(false);
+          }
+          if (System.nanoTime() - startTime >= maxTimeInNS) {
+            return voxelChunkwiseFillIterator.estimatedFractionComplete();
+          }
+        }
+      }
+    }
+
+    voxelChunkwiseFillIterator = null;
+    mode = OperationInProgress.COMPLETE;
+    shrinkToSmallestEnclosingCuboid();
+    return -1;
+//
+//
+//        boolean blockIsAir = world.isAirBlock(checkPosition.posX + wxOrigin, checkPosition.posY + wyOrigin, checkPosition.posZ + wzOrigin);
+//        if (!blockIsAir) {
+//          ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
+//          SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
+//          nextDepthSearchPositions.addLast(nextSearchPosition);
+//          selection.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+//          expandVoxelRange(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+//          ++blocksAddedCount;
+//        }
+//      }
+//
+//
+//      }
+//    }
+//
+//    mode = OperationInProgress.COMPLETE;
+//    shrinkToSmallestEnclosingCuboid();
+//    return -1;
+  }
+
 
   /**
    * returns true if there are no solid pixels at all in this selection.
