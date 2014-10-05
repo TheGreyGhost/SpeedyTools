@@ -9,7 +9,6 @@ import net.minecraft.world.WorldServer;
 import speedytools.common.selections.BlockVoxelMultiSelector;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
-import speedytools.common.utilities.ErrorLog;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 
 import java.io.ByteArrayOutputStream;
@@ -36,12 +35,12 @@ public class SelectionFillTester
     WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
 
     final int XORIGIN = 128; final int YORIGIN = 4; final int ZORIGIN = 0;
-    final int XSIZE = 48; final int YSIZE = 48; final int ZSIZE = 48;
+    final int XSIZE = 48; final int YSIZE = 48; final int ZSIZE = 44;
 
     final int NUMBER_OF_TEST_REGIONS = 4;
     ArrayList<InGameTester.TestRegions> testRegions = new ArrayList<InGameTester.TestRegions>();
     for (int i = 0; i < NUMBER_OF_TEST_REGIONS; ++i) {
-      InGameTester.TestRegions newRegion = new InGameTester.TestRegions(XORIGIN, YORIGIN, ZORIGIN + i * ZSIZE, XSIZE, YSIZE, ZSIZE, true);
+      InGameTester.TestRegions newRegion = new InGameTester.TestRegions(XORIGIN, YORIGIN, ZORIGIN + i * (ZSIZE+1), XSIZE, YSIZE, ZSIZE, true);
       if (!performTest) {
         newRegion.drawAllTestRegionBoundaries();
         WorldFragment worldFragmentBlank = new WorldFragment(newRegion.xSize, newRegion.ySize, newRegion.zSize);
@@ -78,11 +77,11 @@ public class SelectionFillTester
       VoxelSelection selectionOld = getSelection();
 
       if (!selectionNew.containsAllOfThisMask(selectionOld)) {
-        ErrorLog.defaultLog().debug("Test region " + testRegionNumber + " failed; New didn't contain all of Old");
+        System.out.println("Test region " + testRegionNumber + " failed; New didn't contain all of Old");
         return false;
       }
       if (!selectionOld.containsAllOfThisMask(selectionNew)) {
-        ErrorLog.defaultLog().debug("Test region " + testRegionNumber + " failed; Old didn't contain all of New");
+        System.out.println("Test region " + testRegionNumber + " failed; Old didn't contain all of New");
         return false;
       }
 

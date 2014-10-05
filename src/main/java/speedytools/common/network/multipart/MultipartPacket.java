@@ -516,9 +516,13 @@ public abstract class MultipartPacket
     if (dataToUncompress.length < START_FLAG_SIZE + START_LEN_SIZE) {
       return null;
     }
-    int i = START_FLAG_SIZE;
-    int uncompressedLength = dataToUncompress[i++] | (dataToUncompress[i++] << 8)
-                            | (dataToUncompress[i++] << 16) | (dataToUncompress[i++] << 24);
+
+    int uncompressedLength = 0;
+    final int BYTES_PER_INT = 4;
+    for (int i = START_FLAG_SIZE + BYTES_PER_INT - 1; i >= START_FLAG_SIZE ; --i) {
+      uncompressedLength = (uncompressedLength << 8) | ((int) dataToUncompress[i] & 0xff);
+    }
+
     if (uncompressedLength < 0 || uncompressedLength > MAX_REASONABLE_TOTAL_SIZE) {
       return null;
     }

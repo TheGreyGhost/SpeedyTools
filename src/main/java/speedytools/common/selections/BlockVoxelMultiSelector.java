@@ -341,15 +341,8 @@ public class BlockVoxelMultiSelector
     mode = OperationInProgress.FILL;
     initialiseVoxelRange();
 
-//    ChunkCoordinates startingBlockCopy = new ChunkCoordinates(blockUnderCursor.posX - wxOrigin, blockUnderCursor.posY - wyOrigin, blockUnderCursor.posZ - wzOrigin);
-//    currentSearchPositions.clear();
-//    nextDepthSearchPositions.clear();
-//    currentSearchPositions.add(new SearchPosition(startingBlockCopy));
-//    selection.setVoxel(startingBlockCopy.posX, startingBlockCopy.posY, startingBlockCopy.posZ);
-//    expandVoxelRange(startingBlockCopy.posX, startingBlockCopy.posY, startingBlockCopy.posZ);
-
     voxelChunkwiseFillIterator = new VoxelChunkwiseFillIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
-    voxelChunkwiseFillIterator.addStartPosition(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    voxelChunkwiseFillIterator.setStartPosition(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
     mode = OperationInProgress.FILL;
   }
 
@@ -367,8 +360,10 @@ public class BlockVoxelMultiSelector
     }
 
     long startTime = System.nanoTime();
+    System.out.print("Chunks ");
 
     while (!voxelChunkwiseFillIterator.isAtEnd()) {
+      System.out.print("[" + voxelChunkwiseFillIterator.getChunkX() + ", " + voxelChunkwiseFillIterator.getChunkZ() + "] ");
       voxelChunkwiseFillIterator.hasEnteredNewChunk();  // reset flag
       Chunk currentChunk = world.getChunkFromChunkCoords(voxelChunkwiseFillIterator.getChunkX(), voxelChunkwiseFillIterator.getChunkZ());
       if (currentChunk.isEmpty()) {
@@ -470,6 +465,14 @@ public class BlockVoxelMultiSelector
     if (smallestVoxelX == 0 && smallestVoxelY == 0 && smallestVoxelZ == 0
         && largestVoxelX == xSize-1 && largestVoxelY == ySize-1 && largestVoxelZ == zSize-1) {
       return;
+    }
+    if (smallestVoxelX > largestVoxelX) { // is empty!
+      smallestVoxelX = 0;
+      largestVoxelX = 0;
+      smallestVoxelY = 0;
+      largestVoxelY = 0;
+      smallestVoxelZ = 0;
+      largestVoxelZ = 0;
     }
 
     int newXsize = largestVoxelX - smallestVoxelX + 1;

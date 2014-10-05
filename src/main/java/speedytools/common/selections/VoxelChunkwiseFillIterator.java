@@ -13,6 +13,14 @@ import java.util.LinkedList;
  * Used to floodfill through a Voxel region in a chunkwise fashion:
  * Will fill as far as possible within a chunk before starting to search in the next one, and will prefer to search chunks it
  * has already visited before
+ * Usage:
+ * 1) Create the iterator with the boundaries of the region that limit the fill
+ * 2) setStartPosition() to set the fill start point
+ * 3) Repeat until iterator.isAtEnd:
+ *   a) Check the block at .getWX(), .getWY(), .getWZ().
+ *   b) if it belongs to the fill, call .next(true), otherwise .next(false)
+ *   c) use hasEnteredNewChunk() to determine when to load a new chunk.  getChunkX() and getChunkZ() give the coordinates
+ * 4) estimatedFractionComplete() returns a number that indicates an estimate of how complete the fill process is
  */
 public class VoxelChunkwiseFillIterator
 {
@@ -47,12 +55,9 @@ public class VoxelChunkwiseFillIterator
    * @param wy
    * @param wz
    */
-  public void addStartPosition(int wx, int wy, int wz) {
+  public void setStartPosition(int wx, int wy, int wz) {
     if (!isWithinBounds(wx, wy, wz)) return;
-    int chunkIdx = getChunkIndex(wx, wy, wz);
-    LinkedList<ChunkCoordinates> chunkPos = chunkCheckPositions.get(chunkIdx);
-    chunkPos.add(new ChunkCoordinates(wx, wy, wz));
-    chunksToVisitFirst.set(chunkIdx);
+    currentCheckPosition = new ChunkCoordinates(wx, wy, wz);
   }
 
   /**
@@ -66,18 +71,11 @@ public class VoxelChunkwiseFillIterator
     currentSearchStartPositions.clear();
     chunksVisited.clear();
     blocksChecked.clear();
-    blockCount = 0;
+    blocksAddedCount = 0;
 
-    for (int i = 0; i < chunkCheckPositions.size(); ++i) {
-      chunkCheckPositions.set(i, new LinkedList<ChunkCoordinates>());
+    for (int i = 0; i < cxCount * czCount; ++i) {
+      chunkCheckPositions.add(i, new LinkedList<ChunkCoordinates>());
     }
-//    cx = cxMin;
-//    cz = czMin;
-//    setIterationLimits(cx, cz);
-//    wxLSB = wxLSBmin;
-//    wy = wyMin;
-//    wzLSB = wzLSBmin;
-    blockCount = 0;
   }
 
   /**
@@ -88,7 +86,7 @@ public class VoxelChunkwiseFillIterator
    */
   public boolean next(boolean currentPositionWasFilled) {
     if (atEnd) return false;
-    ++blockCount;
+    ++blocksAddedCount;
 
     // algorithm is:
     // first, for the current chunk, check if there are any currentSearchPositions.
@@ -131,7 +129,7 @@ public class VoxelChunkwiseFillIterator
       int wx = currentPosition.chunkCoordinates.posX + searchDirectionsX[currentPosition.nextSearchDirection];
       int wy = currentPosition.chunkCoordinates.posY + searchDirectionsY[currentPosition.nextSearchDirection];
       int wz = currentPosition.chunkCoordinates.posZ + searchDirectionsZ[currentPosition.nextSearchDirection];
-      ++currentPosition.nextSearchDirection;
+      ++(currentPosition.nextSearchDirection);
       if (currentPosition.nextSearchDirection >= ALL_DIRECTIONS) {
         currentSearchStartPositions.removeFirst();
       }
@@ -267,7 +265,7 @@ public class VoxelChunkwiseFillIterator
   private static class SearchPosition
   {
     public SearchPosition(ChunkCoordinates initChunkCoordinates) {
-      chunkCoordinates = initChunkCoordinates;
+      chunkCoordinates = new ChunkCoordinates(initChunkCoordinates);
       nextSearchDirection = 0;
     }
 
@@ -297,7 +295,6 @@ public class VoxelChunkwiseFillIterator
     return (wx - wxOrigin) + xSize * (wy - wyOrigin) + xSize * ySize * (wz - wzOrigin);
   }
 
-
   /**
    * checks whether the given point is within the boundary region
    *
@@ -312,38 +309,7 @@ public class VoxelChunkwiseFillIterator
             && wz >= wzOrigin && wz < wzOrigin + zSize);
   }
 
-//  /**
-//   * for a given chunk coordinates, set the LSB iteration limits within that chunk
-//   * eg if cx = 1 and wxOrigin = 21 ( = 16 * cx + 5), then the LSBmin is set to 5.
-//   *
-//   * @param cx
-//   * @param cz
-//   */
-//  private void setIterationLimits(int cx, int cz) {
-//    int wxChunk = cx << 4;
-//    int wxChunkPlus15 = wxChunk + 15;
-//    int wxMin = Math.max(wxOrigin, wxChunk);
-//    int wxMax = Math.min(wxOrigin + xSize - 1, wxChunkPlus15);
-//    assert (wxMin <= wxMax);
-//    wxLSBmin = wxMin & 0x0f;
-//    wxLSBmax = (wxMax & 0x0f);
-//
-//    int wzChunk = cz << 4;
-//    int wzChunkPlus15 = wzChunk + 15;
-//    int wzMin = Math.max(wzOrigin, wzChunk);
-//    int wzMax = Math.min(wzOrigin + zSize - 1, wzChunkPlus15);
-//    assert (wzMin <= wzMax);
-//    wzLSBmin = wzMin & 0x0f;
-//    wzLSBmax = (wzMax & 0x0f);
-//
-//    final int MINIMUM_Y_COORDINATE = 0;
-//    final int MAXIMUM_Y_COORDINATE = 255;
-//    wyMin = Math.max(MINIMUM_Y_COORDINATE, wyOrigin);
-//    wyMax = Math.min(MAXIMUM_Y_COORDINATE, wyOrigin + ySize - 1);
-//  }
-
   private Deque<SearchPosition> currentSearchStartPositions = new LinkedList<SearchPosition>();   // search positions within the current chunk
-//  private Deque<SearchPosition> nextDepthSearchPositions = new LinkedList<SearchPosition>();
   private ChunkCoordinates currentCheckPosition;
 
   // for each chunk in the boundary, a list of block positions to be checked.  Chunks arranged in idx = cx + cz * cxCount order
@@ -355,22 +321,10 @@ public class VoxelChunkwiseFillIterator
   private int blocksAddedCount;
 
   private int cxMin;
-//  private int cxMax;
   private int czMin;
-//  private int czMax;
   private int cxCount; // number of x chunks in the fill region (xwide * zlong)
   private int czCount; // number of z chunks in the fill region (xwide * zlong)
-//  private int wxLSBmin;
-//  private int wxLSBmax;
-//  private int wzLSBmin;
-//  private int wzLSBmax;
-//  private int wyMin;
-//  private int wyMax;
-//  private int wxLSB;
-//  private int wzLSB;
-//  private int wy;
-//  private int cx;
-//  private int cz;
+
   private boolean atEnd;
   private boolean enteredNewChunk;
   private int wxOrigin;
@@ -379,38 +333,5 @@ public class VoxelChunkwiseFillIterator
   private int xSize;
   private int ySize;
   private int zSize;
-  private int blockCount;
 }
-//{
-//        ++wy;
-//        }
-//        {
-//        wy=wyMin;
-//        if(wzLSB<wzLSBmax){
-//        ++wzLSB;
-//        }else{
-//        wzLSB=wzLSBmin;
-//        if(wxLSB<wxLSBmax){
-//        ++wxLSB;
-//        }else{
-//        wxLSB=wxLSBmin;
-//        enteredNewChunk=true;
-//        if(cz<czMax){
-//        ++cz;
-//        }else{
-//        cz=czMin;
-//        if(cx<cxMax){
-//        ++cx;
-//        }else{
-//        atEnd=true;
-//        }
-//        }
-//        if(!atEnd){
-//        setIterationLimits(cx,cz);
-//        wxLSB=wxLSBmin;
-//        wzLSB=wzLSBmin;
-//        }
-//        }
-//        }
-//        }
-//        }
+
