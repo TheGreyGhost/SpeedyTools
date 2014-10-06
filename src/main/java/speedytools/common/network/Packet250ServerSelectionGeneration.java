@@ -100,13 +100,13 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
           completedFraction = buf.readFloat();
           break;
         }
-        case UNBOUND_FILL: {
+        case BOUND_FILL: {
           cursorPosition = readChunkCoordinates(buf);
           corner1 = readChunkCoordinates(buf);
           corner2 = readChunkCoordinates(buf);
           break;
         }
-        case BOUND_FILL: {
+        case UNBOUND_FILL: {
           cursorPosition = readChunkCoordinates(buf);
           break;
         }
@@ -150,16 +150,17 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
         buf.writeFloat(completedFraction);
         break;
       }
-      case UNBOUND_FILL: {
+      case BOUND_FILL: {
         writeChunkCoordinates(buf, cursorPosition);
         writeChunkCoordinates(buf, corner1);
         writeChunkCoordinates(buf, corner2);
         break;
       }
-      case BOUND_FILL: {
+      case UNBOUND_FILL: {
         writeChunkCoordinates(buf, cursorPosition);
         break;
-      }      case ALL_IN_BOX: {
+      }
+      case ALL_IN_BOX: {
         writeChunkCoordinates(buf, corner1);
         writeChunkCoordinates(buf, corner2);
         break;
@@ -317,6 +318,9 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
         return (cursorPosition == null && corner1 != null && corner2 != null);
       }
       case UNBOUND_FILL: {
+        return (cursorPosition != null && corner1 == null && corner2 == null);
+      }
+      case BOUND_FILL: {
         return (cursorPosition != null && corner1 != null && corner2 != null);
       }
       default: {

@@ -70,8 +70,8 @@ public class SelectionFillTester
               null);
 
       BlockVoxelMultiSelector blockVoxelMultiSelector = new BlockVoxelMultiSelector();
-      blockVoxelMultiSelector.selectBoundFillStartNew(worldServer, blockUnderCursor, corner1, corner2);
-      blockVoxelMultiSelector.continueSelectionGenerationNEW(worldServer, Long.MAX_VALUE);
+      blockVoxelMultiSelector.selectBoundFillStart(worldServer, blockUnderCursor, corner1, corner2);
+      blockVoxelMultiSelector.continueSelectionGeneration(worldServer, Long.MAX_VALUE);
 
       VoxelSelection selectionNew = blockVoxelMultiSelector.getSelection();
       VoxelSelection selectionOld = getSelection();

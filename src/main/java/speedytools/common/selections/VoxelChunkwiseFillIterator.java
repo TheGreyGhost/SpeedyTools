@@ -22,7 +22,7 @@ import java.util.LinkedList;
  *   c) use hasEnteredNewChunk() to determine when to load a new chunk.  getChunkX() and getChunkZ() give the coordinates
  * 4) estimatedFractionComplete() returns a number that indicates an estimate of how complete the fill process is
  */
-public class VoxelChunkwiseFillIterator
+public class VoxelChunkwiseFillIterator implements IVoxelIterator
 {
   public VoxelChunkwiseFillIterator(int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, int i_xSize, int i_ySize, int i_zSize) {
     if (i_xSize < 0) throw new IllegalArgumentException("xSize < 0: " + i_xSize);

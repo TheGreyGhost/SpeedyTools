@@ -15,7 +15,7 @@ package speedytools.common.selections;
  * [1,0,0] [1,1,0] .. [1,15,0]
  * etc
  */
-public class VoxelChunkwiseIterator
+public class VoxelChunkwiseIterator implements IVoxelIterator
 {
   public VoxelChunkwiseIterator(int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, int i_xSize, int i_ySize, int i_zSize)
   {
@@ -55,7 +55,7 @@ public class VoxelChunkwiseIterator
    * advances to the next voxel coordinate
    * @return true if the coordinate position is valid, false otherwise
    */
-  public boolean next()
+  public boolean next(boolean ignored)
   {
     if (atEnd) return false;
     ++blockCount;

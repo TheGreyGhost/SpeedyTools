@@ -15,12 +15,10 @@ import speedytools.common.network.multipart.MultipartPacket;
 import speedytools.common.network.multipart.Packet250MultipartSegment;
 import speedytools.common.network.multipart.SelectionPacket;
 import speedytools.common.selections.BlockVoxelMultiSelector;
-import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
-import speedytools.serverside.network.PacketSenderServer;
 
 /**
  * Created by TheGreyGhost on 26/09/14.
@@ -183,7 +181,7 @@ public class ClientVoxelSelection
   private boolean checkInvariants()
   {
     if (clientSelectionState == ClientSelectionState.IDLE && serverSelectionState != ServerSelectionState.IDLE) return false;
-    if (clientSelectionState != ClientSelectionState.IDLE && clientVoxelSelection == null) return false;
+    if (clientSelectionState != ClientSelectionState.IDLE && clientVoxelMultiSelector == null) return false;
     if ((clientSelectionState == ClientSelectionState.CREATING_RENDERLISTS ||
         clientSelectionState == ClientSelectionState.COMPLETE) && voxelSelectionRenderer == null) return false;
     if (serverSelectionState == ServerSelectionState.COMPLETE && serverVoxelSelection == null) return false;
@@ -195,10 +193,11 @@ public class ClientVoxelSelection
    */
   public void reset()
   {
-    clientVoxelSelection = null;
+    clientVoxelMultiSelector = null;
     if (voxelSelectionRenderer != null) {
       voxelSelectionRenderer.release();
       voxelSelectionRenderer = null;
+      selectionBeingDisplayed = null;
     }
     clientSelectionState = ClientSelectionState.IDLE;
     if (serverSelectionState != ServerSelectionState.IDLE) {
@@ -231,11 +230,12 @@ public class ClientVoxelSelection
   {
     reset();
     selectionUpdatedFlag = false;
+    selectionBeingDisplayed = null;
     clientSelectionState = ClientSelectionState.GENERATING;
     outgoingTransmissionState = OutgoingTransmissionState.IDLE;
     selectionGenerationFractionComplete = 0;
     renderlistGenerationFractionComplete = 0;
-    clientVoxelSelection = new BlockVoxelMultiSelector();
+    clientVoxelMultiSelector = new BlockVoxelMultiSelector();
     currentSelectionUniqueID = nextUniqueID++;
   }
 
@@ -250,7 +250,7 @@ public class ClientVoxelSelection
   public ResultWithReason createFullBoxSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates boundaryCorner1, ChunkCoordinates boundaryCorner2)
   {
     initialiseForGeneration();
-    clientVoxelSelection.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
+    clientVoxelMultiSelector.selectAllInBoxStart(thePlayer.worldObj, boundaryCorner1, boundaryCorner2);
     packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performAllInBox(currentSelectionUniqueID, boundaryCorner1, boundaryCorner2);
     return ResultWithReason.success();
   }
@@ -265,7 +265,7 @@ public class ClientVoxelSelection
   public ResultWithReason createUnboundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock)
   {
     initialiseForGeneration();
-    clientVoxelSelection.selectUnboundFillStart(thePlayer.worldObj, fillStartingBlock);
+    clientVoxelMultiSelector.selectUnboundFillStart(thePlayer.worldObj, fillStartingBlock);
     packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performUnboundFill(currentSelectionUniqueID, fillStartingBlock);
     return ResultWithReason.success();
   }
@@ -279,7 +279,7 @@ public class ClientVoxelSelection
   public ResultWithReason createBoundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock, ChunkCoordinates boundaryCorner1, ChunkCoordinates boundaryCorner2)
   {
     initialiseForGeneration();
-    clientVoxelSelection.selectBoundFillStart(thePlayer.worldObj, fillStartingBlock, boundaryCorner1, boundaryCorner2);
+    clientVoxelMultiSelector.selectBoundFillStart(thePlayer.worldObj, fillStartingBlock, boundaryCorner1, boundaryCorner2);
     packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performBoundFill(currentSelectionUniqueID, fillStartingBlock, boundaryCorner1, boundaryCorner2);
     return ResultWithReason.success();
   }
@@ -295,27 +295,28 @@ public class ClientVoxelSelection
     return retval;
   }
 
-  /** return a copy of the selection's initial origin, i.e. at the time of its creation.
+  /** return a copy of the selection's origin at the time of its creation from the world
    *  If not available (IDLE or GENERATING), causes an error
    * @return
    */
-  public ChunkCoordinates getInitialOrigin() {
+  public ChunkCoordinates getSourceWorldOrigin() {
     if (clientSelectionState != ClientSelectionState.COMPLETE && clientSelectionState != ClientSelectionState.CREATING_RENDERLISTS) {
       ErrorLog.defaultLog().severe("called getInitialOrigin for invalid state: " + clientSelectionState);
       return new ChunkCoordinates(0, 0, 0);
     }
-    return clientVoxelSelection.getWorldOrigin();  // getWorldOrigin returns a new copy
+
+    return new ChunkCoordinates(selectionBeingDisplayed.getWxOrigin(), selectionBeingDisplayed.getWyOrigin(), selectionBeingDisplayed.getWzOrigin());
   }
 
-  /** return a copy of the selection's initial QuadOrientation, i.e. at the time of its creation.
+  /** return a copy of the selection's QuadOrientation at the time of its creation from the world.
    *  If not available (IDLE or GENERATING), causes an error
    */
-  public QuadOrientation getInitialQuadOrientation() {
+  public QuadOrientation getSourceQuadOrientation() {
     if (clientSelectionState != ClientSelectionState.COMPLETE && clientSelectionState != ClientSelectionState.CREATING_RENDERLISTS) {
       ErrorLog.defaultLog().severe("called getInitialQuadOrientation for invalid state: " + clientSelectionState);
       return new QuadOrientation(0, 0, 1, 1);
     }
-    return new QuadOrientation(0, 0, clientVoxelSelection.getSelection().getxSize(), clientVoxelSelection.getSelection().getzSize());
+    return new QuadOrientation(0, 0, selectionBeingDisplayed.getxSize(), selectionBeingDisplayed.getzSize());
   }
 
   /** called once per tick on the client side
@@ -332,35 +333,36 @@ public class ClientVoxelSelection
         break;
       }
       case GENERATING: {   // keep generating; if complete, switch to creation of rendering lists
-        float progress = clientVoxelSelection.continueSelectionGeneration(world, maxDurationInNS);
+        float progress = clientVoxelMultiSelector.continueSelectionGeneration(world, maxDurationInNS);
         if (progress >= 0) {
           selectionGenerationFractionComplete = progress;
         } else {   // -1 means complete
 
 //          selectionPacketSender.reset();
-          if (clientVoxelSelection.isEmpty()) {
+          if (clientVoxelMultiSelector.isEmpty()) {
             clientSelectionState = ClientSelectionState.IDLE;
           } else {
             clientSelectionState = ClientSelectionState.CREATING_RENDERLISTS;
-            ChunkCoordinates selectionInitialOrigin = clientVoxelSelection.getWorldOrigin();
+            ChunkCoordinates selectionInitialOrigin = clientVoxelMultiSelector.getWorldOrigin();
             if (voxelSelectionRenderer == null) {
               voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
             }
             voxelSelectionRenderer.createRenderListStart(world, selectionInitialOrigin.posX, selectionInitialOrigin.posY, selectionInitialOrigin.posZ,
-                    clientVoxelSelection.getSelection(), clientVoxelSelection.getUnavailableVoxels());
+                    clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels());
           }
         }
         break;
       }
       case CREATING_RENDERLISTS: {
-        ChunkCoordinates wOrigin = clientVoxelSelection.getWorldOrigin();
+        ChunkCoordinates wOrigin = clientVoxelMultiSelector.getWorldOrigin();
         float progress = voxelSelectionRenderer.createRenderListContinue(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ,
-                clientVoxelSelection.getSelection(), clientVoxelSelection.getUnavailableVoxels(), maxDurationInNS);
+                clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels(), maxDurationInNS);
 
         if (progress >= 0) {
           renderlistGenerationFractionComplete = progress;
         } else {  // -1 means finished
           clientSelectionState = ClientSelectionState.COMPLETE;
+          selectionBeingDisplayed = clientVoxelMultiSelector.getSelection();
           selectionUpdatedFlag = true;
         }
         break;
@@ -374,7 +376,7 @@ public class ClientVoxelSelection
     final int TICKS_BETWEEN_STATUS_REQUEST = 20;
     switch (serverSelectionState) {
       case IDLE: {
-        if (clientSelectionState != ClientSelectionState.IDLE && clientVoxelSelection.containsUnavailableVoxels()) {     // need the server to generate the selection.
+        if (clientSelectionState != ClientSelectionState.IDLE && clientVoxelMultiSelector.containsUnavailableVoxels()) {     // need the server to generate the selection.
           serverSelectionState = ServerSelectionState.WAITING_FOR_START;
           packetSenderClient.sendPacket(packet250ServerSelectionGeneration);
           lastStatusRequestTick = tickCount;
@@ -406,6 +408,7 @@ public class ClientVoxelSelection
           voxelSelectionRenderer.resize(serverVoxelSelection.getWxOrigin(), serverVoxelSelection.getWyOrigin(), serverVoxelSelection.getWzOrigin(),
                                         serverVoxelSelection.getxSize(), serverVoxelSelection.getySize(), serverVoxelSelection.getzSize());
           voxelSelectionRenderer.refreshRenderListStart();
+          selectionBeingDisplayed = serverVoxelSelection;
           selectionUpdatedFlag = true;
         }
         break;
@@ -433,10 +436,10 @@ public class ClientVoxelSelection
     switch (outgoingTransmissionState) {
       case IDLE: {
         if (clientSelectionState == ClientSelectionState.COMPLETE) {
-          if (clientVoxelSelection.containsUnavailableVoxels()) {
+          if (clientVoxelMultiSelector.containsUnavailableVoxels()) {
             outgoingTransmissionState = OutgoingTransmissionState.NOT_REQUIRED;
           } else {
-            boolean success = selectionPacketSender.startSendingSelection(clientVoxelSelection);
+            boolean success = selectionPacketSender.startSendingSelection(clientVoxelMultiSelector);
             if (success) {
               outgoingTransmissionState = OutgoingTransmissionState.SENDING;
             }
@@ -474,7 +477,7 @@ public class ClientVoxelSelection
 //    // if the selection has been freshly generated, keep trying to transmit it until we successfully start transmission
 //    if (clientSelectionState == ClientSelectionState.COMPLETE
 //        && selectionPacketSender.getCurrentPacketProgress() == SelectionPacketSender.PacketProgress.IDLE) {
-//      selectionPacketSender.startSendingSelection(clientVoxelSelection);
+//      selectionPacketSender.startSendingSelection(clientVoxelMultiSelector);
 //    }
     selectionPacketSender.tick();
   }
@@ -488,7 +491,7 @@ public class ClientVoxelSelection
     }
   }
 
-  private BlockVoxelMultiSelector clientVoxelSelection;
+  private BlockVoxelMultiSelector clientVoxelMultiSelector;
   private int currentSelectionUniqueID;
   private static int nextUniqueID = -2366236; // arbitrary
   private int tickCount;
@@ -502,6 +505,8 @@ public class ClientVoxelSelection
   private float renderlistGenerationFractionComplete;
   private float selectionGenerationFractionComplete;
   private boolean selectionUpdatedFlag;
+
+  private VoxelSelectionWithOrigin selectionBeingDisplayed;
 
   private float serverGenerationFractionComplete;
   private float incomingSelectionFractionComplete;

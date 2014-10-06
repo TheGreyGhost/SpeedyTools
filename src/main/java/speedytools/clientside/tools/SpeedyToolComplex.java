@@ -522,17 +522,17 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     clientVoxelSelection.performTick(world, MAX_TIME_IN_NS);
     if (clientVoxelSelection.hasSelectionBeenUpdated()) {   // update the origin and orientation if the selection has been updated
       if (oldState != ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY) {
-        initialSelectionOrigin = clientVoxelSelection.getInitialOrigin();
-        initialSelectionOrientation = clientVoxelSelection.getInitialQuadOrientation();
+        initialSelectionOrigin = clientVoxelSelection.getSourceWorldOrigin();
+        initialSelectionOrientation = clientVoxelSelection.getSourceQuadOrientation();
         selectionOrigin = initialSelectionOrigin;
         selectionOrientation = initialSelectionOrientation;
       } else {                                                         // apply any user translations and orientation changes to the new values
         int dx = selectionOrigin.posX - initialSelectionOrigin.posX;
         int dy = selectionOrigin.posY - initialSelectionOrigin.posY;
         int dz = selectionOrigin.posZ - initialSelectionOrigin.posZ;
-        ChunkCoordinates newOrigin = clientVoxelSelection.getInitialOrigin();
+        ChunkCoordinates newOrigin = clientVoxelSelection.getSourceWorldOrigin();
         selectionOrigin = new ChunkCoordinates(newOrigin.posX + dx, newOrigin.posY + dy, newOrigin.posZ + dz);
-        QuadOrientation newOrientation = clientVoxelSelection.getInitialQuadOrientation();
+        QuadOrientation newOrientation = clientVoxelSelection.getSourceQuadOrientation();
         if (initialSelectionOrientation.isFlippedX()) newOrientation.flipX();
         newOrientation.rotateClockwise(initialSelectionOrientation.getClockwiseRotationCount());
         selectionOrientation = newOrientation;

@@ -2,10 +2,15 @@ package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.GLAllocation;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.IIcon;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -50,6 +55,15 @@ public class BlockVoxelMultiSelectorRenderer
 
     mode = OperationInProgress.INVALID;
     displayListMapping = null;
+  }
+
+  /**
+   * gets the origin for the renderer in world coordinates
+   *
+   * @return the origin for the selection in world coordinates
+   */
+  public ChunkCoordinates getWorldOrigin() {
+    return new ChunkCoordinates(sourceWXorigin, sourceWYorigin, sourceWZorigin);
   }
 
   private int displayListWireFrameXY = 0;
@@ -115,12 +129,17 @@ public class BlockVoxelMultiSelectorRenderer
     resizeDisplayList(displayListCubesBase, true, startChunkX - (sourceWXorigin >> 4), startChunkY - (sourceWYorigin >> 4), startChunkZ - (sourceWZorigin >> 4),
                        newChunkCountX, newChunkCountY, newchunkCountZ);
 
+    xSize = newXsize;
+    ySize = newYsize;
+    zSize = newZsize;
+
     chunkCountX = newChunkCountX;
     chunkCountY = newChunkCountY;
     chunkCountZ = newchunkCountZ;
 
     xOffset = newWXorigin & 0x0f;
     yOffset = newWYorigin & 0x0f;
+    zOffset = newWZorigin & 0x0f;
 
     sourceWXorigin = newWXorigin;
     sourceWYorigin = newWYorigin;
@@ -134,7 +153,7 @@ public class BlockVoxelMultiSelectorRenderer
   /**
    * resizes the render displayList; keeps the original displayLists but moves them to their new position relative to the new origin
    * fills newly created chunk slots with the indicated displaylist numbers
-   * @param nextListIndexStart the index of the first displaylist to use; n empty chunks will use indices nextListIndexStart to nextListIndexStart + n-1 inclusive
+   * @param nextListIndexStart the index of the first displaylist to use for new chunks; n empty chunks will use indices nextListIndexStart to nextListIndexStart + n-1 inclusive
    * @param overwrite if true, create the new display list and move the old entries.  If false, just count the number of new displaylistindices required.
    * @param newCX0 the origin of the render relative to the old origin (eg newCX0 == -2 means that the new display starts 2 chunks to the left of the old)
    * @param newCY0
@@ -160,24 +179,27 @@ public class BlockVoxelMultiSelectorRenderer
     for (int cx = 0; cx < newCXsize; ++cx) {
       for (int cy = 0; cy < newCYsize; ++cy) {
         for (int cz = 0; cz < newCZsize; ++cz) {
-          boolean isNewChunk = (cx + newCX0 >= 0 && cx + newCX0 < chunkCountX)
-                              && (cy + newCY0 >= 0 && cy + newCY0 < chunkCountY)
-                              && (cz + newCZ0 >= 0 && cz + newCZ0 < chunkCountZ);
-          if (isNewChunk) {
+          boolean isExistingChunk = (cx + newCX0 >= 0 && cx + newCX0 < chunkCountX)
+                                    && (cy + newCY0 >= 0 && cy + newCY0 < chunkCountY)
+                                    && (cz + newCZ0 >= 0 && cz + newCZ0 < chunkCountZ);
+          if (!isExistingChunk) {
             ++newChunkCount;
           }
           if (overwrite) {
             int newChunkIndex = cx + cy * newCXsize + cz * newCXsize * newCYsize;
-            if (isNewChunk) {
-              newDisplayListMapping[newChunkIndex] = nextListIndexStart++;
+            if (isExistingChunk) {
+              newDisplayListMapping[newChunkIndex] = getDisplayListIndex(cx + newCX0, cy + newCY0, cz + newCZ0);
             } else {
-              newDisplayListMapping[newChunkIndex] = displayListMapping[getDisplayListIndex(cx + newCX0, cy + newCY0, cz + newCZ0)];
+              newDisplayListMapping[newChunkIndex] = nextListIndexStart++;
             }
           }
         }
       }
     }
 
+    if (overwrite) {
+      displayListMapping = newDisplayListMapping;
+    }
     return newChunkCount;
   }
 
@@ -833,16 +855,16 @@ public class BlockVoxelMultiSelectorRenderer
 
   /**
    * create the "cage" wireframes for the selection
-   * @param xSize
+   * @param meshXSize
    * @param ySize
-   * @param zSize
+   * @param meshZSize
    */
-  private void createMeshRenderLists(int xSize, int ySize, int zSize)
+  private void createMeshRenderLists(int meshXSize, int ySize, int meshZSize)
   {
     final int MESH_HEIGHT = 256;
-    generateWireFrame2DMesh(displayListWireFrameXY, xSize, MESH_HEIGHT,     0);
-    generateWireFrame2DMesh(displayListWireFrameXZ, xSize,           0, zSize);
-    generateWireFrame2DMesh(displayListWireFrameYZ,     0, MESH_HEIGHT, zSize);
+    generateWireFrame2DMesh(displayListWireFrameXY, meshXSize, MESH_HEIGHT,     0);
+    generateWireFrame2DMesh(displayListWireFrameXZ, meshXSize,           0, meshZSize);
+    generateWireFrame2DMesh(displayListWireFrameYZ,     0, MESH_HEIGHT, meshZSize);
   }
 
   /**

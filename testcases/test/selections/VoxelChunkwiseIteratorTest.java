@@ -85,7 +85,7 @@ public class VoxelChunkwiseIteratorTest
         assert vci.getChunkX() == cx;
         assert vci.getChunkZ() == cz;
       }
-      vci.next();
+      vci.next(false);
       assert vci.estimatedFractionComplete() > progress;
       progress= vci.estimatedFractionComplete();
     }
