@@ -5,7 +5,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.RenderCursorStatus;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.sound.SpeedyToolSounds;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.common.items.ItemComplexDelete;
 import speedytools.common.utilities.Colour;

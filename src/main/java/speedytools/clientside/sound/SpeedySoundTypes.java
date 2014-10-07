@@ -1,4 +1,4 @@
-package speedytools.clientside.rendering;
+package speedytools.clientside.sound;
 
 /**
  * User: The Grey Ghost

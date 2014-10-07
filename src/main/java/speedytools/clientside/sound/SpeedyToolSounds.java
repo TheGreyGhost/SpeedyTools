@@ -1,6 +1,5 @@
-package speedytools.clientside.rendering;
+package speedytools.clientside.sound;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.util.Vec3;
 
 /**

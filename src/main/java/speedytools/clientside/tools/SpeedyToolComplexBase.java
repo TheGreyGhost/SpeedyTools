@@ -11,6 +11,7 @@ import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
+import speedytools.clientside.sound.SpeedyToolSounds;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyTool;

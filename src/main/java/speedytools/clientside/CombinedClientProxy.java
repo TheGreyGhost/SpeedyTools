@@ -4,7 +4,7 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.clientside.rendering.ItemEventHandler;
 import speedytools.clientside.rendering.RenderEventHandlers;
-import speedytools.clientside.rendering.SoundsRegistry;
+import speedytools.clientside.sound.SoundsRegistry;
 import speedytools.clientside.tools.*;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;

@@ -8,6 +8,8 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
+import speedytools.clientside.sound.SpeedySoundTypes;
+import speedytools.clientside.sound.SpeedyToolSounds;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyBoundary;
 import speedytools.common.utilities.UsefulConstants;

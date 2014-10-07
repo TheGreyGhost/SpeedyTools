@@ -7,7 +7,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.sound.SpeedyToolSounds;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.tools.SelectionPacketSender;
@@ -18,7 +18,7 @@ import speedytools.common.items.RegistryForItems;
 //import speedytools.clientside.network.CloneToolsNetworkClient;
 //import speedytools.clientside.network.PacketSenderClient;
 //import speedytools.clientside.rendering.SpeedyToolRenderers;
-//import speedytools.clientside.rendering.SpeedyToolSounds;
+//import speedytools.clientside.sound.SpeedyToolSounds;
 
 /**
  * User: The Grey Ghost

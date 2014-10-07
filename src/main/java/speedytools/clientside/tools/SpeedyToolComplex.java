@@ -10,6 +10,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.ClientVoxelSelection;
+import speedytools.clientside.sound.SpeedyToolSounds;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;

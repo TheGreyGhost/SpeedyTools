@@ -1,4 +1,4 @@
-package speedytools.clientside.rendering;
+package speedytools.clientside.sound;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.client.event.sound.SoundLoadEvent;

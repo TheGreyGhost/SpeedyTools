@@ -1,0 +1,60 @@
+How sounds work
+Two basic types of sound
+1) triggered, plays for a short time, stops.  eg simple tool placement, boundary grab
+2) attack, sustain, release, eg powerup for complex placement
+
+The speedy tool will play the sound by creating an instance of the desired sound and then calling the SoundController with it.
+After that, the speedy tool can call methods on the instance to
+1) start the sound
+2) stop the sound
+3) for ASR: transition from A to S to R
+
+
+Ensure The sounds.json File Is In Correct Folder
+Key point: The sounds.json file should not be in the actual sounds asset folder, but rather at top level of assets for the mod.
+For example, in one of my mods, the sounds.json is in: ModdingWorkspace\WildAnimalsPlus\src\main\resources\assets\wildanimals
+
+            this.mc.getSoundHandler().playSound(new MovingSoundMinecartRiding(this, (EntityMinecart)p_70078_1_));
+
+
+@SideOnly(Side.CLIENT)
+public class MovingSoundMinecartRiding extends MovingSound
+{
+    private final EntityPlayer field_147672_k;
+    private final EntityMinecart field_147671_l;
+    private static final String __OBFID = "CL_00001119";
+
+    public MovingSoundMinecartRiding(EntityPlayer p_i45106_1_, EntityMinecart p_i45106_2_)
+    {
+        super(new ResourceLocation("minecraft:minecart.inside"));
+        this.field_147672_k = p_i45106_1_;
+        this.field_147671_l = p_i45106_2_;
+        this.field_147666_i = ISound.AttenuationType.NONE;
+        this.repeat = true;
+        this.field_147665_h = 0;
+    }
+
+    /**
+     * Updates the JList with a new model.
+     */
+    public void update()
+    {
+        if (!this.field_147671_l.isDead && this.field_147672_k.isRiding() && this.field_147672_k.ridingEntity == this.field_147671_l)
+        {
+            float f = MathHelper.sqrt_double(this.field_147671_l.motionX * this.field_147671_l.motionX + this.field_147671_l.motionZ * this.field_147671_l.motionZ);
+
+            if ((double)f >= 0.01D)
+            {
+                this.volume = 0.0F + MathHelper.clamp_float(f, 0.0F, 1.0F) * 0.75F;
+            }
+            else
+            {
+                this.volume = 0.0F;
+            }
+        }
+        else
+        {
+            this.donePlaying = true;
+        }
+    }
+}

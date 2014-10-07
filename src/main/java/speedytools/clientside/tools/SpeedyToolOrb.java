@@ -7,9 +7,9 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
-import speedytools.clientside.rendering.SpeedySoundTypes;
+import speedytools.clientside.sound.SpeedySoundTypes;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.sound.SpeedyToolSounds;
 import speedytools.common.items.ItemSpeedyTool;
 
 import java.util.List;

@@ -6,7 +6,7 @@ import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.rendering.SpeedyToolSounds;
+import speedytools.clientside.sound.SpeedyToolSounds;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.Packet250SpeedyIngameTester;
