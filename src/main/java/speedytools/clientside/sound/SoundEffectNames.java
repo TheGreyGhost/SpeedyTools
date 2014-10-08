@@ -5,7 +5,7 @@ package speedytools.clientside.sound;
  * Date: 17/04/2014
  * Contains all the Speedy Sound effects
  */
-public enum SpeedySoundTypes
+public enum SoundEffectNames
 {
   BOUNDARY_GRAB("complex.boundarygrab"),
   BOUNDARY_UNGRAB("complex.boundaryungrab"),
@@ -29,9 +29,9 @@ public enum SpeedySoundTypes
   CREATESELECTION("complex.createselection");
 
 
-  public final String getJsonName() {return jsonName;}
+  public final String getJsonName() {return "speedytoolsmod:" + jsonName;}
 
-  private SpeedySoundTypes(String i_jsonName) {
+  private SoundEffectNames(String i_jsonName) {
     jsonName = i_jsonName;
   }
   private final String jsonName;

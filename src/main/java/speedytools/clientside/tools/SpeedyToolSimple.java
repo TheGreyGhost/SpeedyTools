@@ -17,7 +17,7 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
-import speedytools.clientside.sound.SpeedyToolSounds;
+import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
@@ -33,7 +33,7 @@ import java.util.List;
 */
 public abstract class SpeedyToolSimple extends SpeedyTool
 {
-  public SpeedyToolSimple(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds,
+  public SpeedyToolSimple(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds,
                           UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient)
   {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);

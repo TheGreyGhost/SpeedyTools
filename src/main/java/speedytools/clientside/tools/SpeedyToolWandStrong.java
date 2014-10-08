@@ -9,8 +9,9 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
-import speedytools.clientside.sound.SpeedySoundTypes;
-import speedytools.clientside.sound.SpeedyToolSounds;
+import speedytools.clientside.sound.SoundController;
+import speedytools.clientside.sound.SoundEffectNames;
+import speedytools.clientside.sound.SoundEffectSimple;
 import speedytools.common.items.ItemSpeedyTool;
 
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.List;
 */
 public class SpeedyToolWandStrong extends SpeedyToolSimple
 {
-  public SpeedyToolWandStrong(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds,
+  public SpeedyToolWandStrong(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds,
                               UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient)
   {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
@@ -46,12 +47,14 @@ public class SpeedyToolWandStrong extends SpeedyToolSimple
   @Override
   protected void playPlacementSound(Vec3 playerPosition)
   {
-    speedyToolSounds.playSound(SpeedySoundTypes.STRONGWAND_PLACE, playerPosition);
+    SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.STRONGWAND_PLACE, soundController);
+    soundEffectSimple.startPlaying();
   }
 
   @Override
   protected void playUndoSound(Vec3 playerPosition)
   {
-    speedyToolSounds.playSound(SpeedySoundTypes.STRONGWAND_UNPLACE, playerPosition);
+    SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.STRONGWAND_UNPLACE, soundController);
+    soundEffectSimple.startPlaying();
   }
 }

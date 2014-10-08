@@ -6,7 +6,7 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.RendererWireframeSelection;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.sound.SpeedyToolSounds;
+import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyTool;
 
@@ -16,13 +16,13 @@ import speedytools.common.items.ItemSpeedyTool;
 */
 public abstract class SpeedyTool
 {
-  public SpeedyTool(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds,
+  public SpeedyTool(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds,
                     UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient) {
     speedyToolRenderers = i_renderers;
     parentItem = i_parentItem;
     iAmActive = false;
     undoManagerClient = i_undoManagerClient;
-    speedyToolSounds = i_speedyToolSounds;
+    soundController = i_speedyToolSounds;
     packetSenderClient = i_packetSenderClient;
   }
 
@@ -58,7 +58,7 @@ public abstract class SpeedyTool
 
   protected boolean iAmActive;
   protected SpeedyToolRenderers speedyToolRenderers;
-  protected SpeedyToolSounds speedyToolSounds;
+  protected SoundController soundController;
   protected UndoManagerClient undoManagerClient;
   protected PacketSenderClient packetSenderClient;
   protected ItemSpeedyTool parentItem;

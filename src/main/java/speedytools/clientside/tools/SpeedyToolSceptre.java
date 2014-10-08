@@ -7,9 +7,10 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
-import speedytools.clientside.sound.SpeedySoundTypes;
+import speedytools.clientside.sound.SoundController;
+import speedytools.clientside.sound.SoundEffectNames;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.sound.SpeedyToolSounds;
+import speedytools.clientside.sound.SoundEffectSimple;
 import speedytools.common.items.ItemSpeedyTool;
 
 import java.util.List;
@@ -20,7 +21,7 @@ import java.util.List;
 */
 public class SpeedyToolSceptre extends SpeedyToolSimple
 {
-  public SpeedyToolSceptre(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds,
+  public SpeedyToolSceptre(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds,
                            UndoManagerClient i_undoManagerClient, PacketSenderClient i_PacketSenderClient)
   {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_PacketSenderClient);
@@ -45,12 +46,14 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
   @Override
   protected void playPlacementSound(Vec3 playerPosition)
   {
-    speedyToolSounds.playSound(SpeedySoundTypes.SCEPTRE_PLACE, playerPosition);
+    SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.SCEPTRE_PLACE, soundController);
+    soundEffectSimple.startPlaying();
   }
 
   @Override
   protected void playUndoSound(Vec3 playerPosition)
   {
-    speedyToolSounds.playSound(SpeedySoundTypes.SCEPTRE_UNPLACE, playerPosition);
+    SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.SCEPTRE_UNPLACE, soundController);
+    soundEffectSimple.startPlaying();
   }
 }

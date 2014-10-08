@@ -5,7 +5,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.RenderCursorStatus;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.sound.SpeedyToolSounds;
+import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.common.items.ItemComplexCopy;
 import speedytools.common.utilities.Colour;
@@ -16,7 +16,7 @@ import speedytools.common.utilities.Colour;
 */
 public class SpeedyToolComplexCopy extends SpeedyToolComplex
 {
-  public SpeedyToolComplexCopy(ItemComplexCopy i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds, UndoManagerClient i_undoManagerClient, CloneToolsNetworkClient i_cloneToolsNetworkClient,
+  public SpeedyToolComplexCopy(ItemComplexCopy i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds, UndoManagerClient i_undoManagerClient, CloneToolsNetworkClient i_cloneToolsNetworkClient,
                                SpeedyToolBoundary i_speedyToolBoundary, ClientVoxelSelection i_clientVoxelSelection,
                                SelectionPacketSender packetSender, PacketSenderClient i_packetSenderClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_cloneToolsNetworkClient, i_speedyToolBoundary,

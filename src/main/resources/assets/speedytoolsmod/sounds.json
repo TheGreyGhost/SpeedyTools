@@ -1,0 +1,20 @@
+{
+   "complex.boundarygrab": {"category": "neutral", "sounds": ["complex/boundarygrab"]},
+   "complex.boundaryplace1st": {"category": "neutral", "sounds": ["complex/boundaryplace1st"]},
+   "complex.boundaryplace2nd": {"category": "neutral", "sounds": ["complex/boundaryplace2nd"]},
+   "complex.boundaryungrab": {"category": "neutral", "sounds": ["complex/boundaryungrab"]},
+   "complex.boundaryunplace": {"category": "neutral", "sounds": ["complex/boundaryunplace"]},
+   "simple.orbplace": {"category": "neutral", "sounds": ["simple/orbplace"]},
+   "simple.orbunplace": {"category": "neutral", "sounds": ["simple/orbunplace"]},
+   "simple.sceptreplace": {"category": "neutral", "sounds": ["simple/sceptreplace"]},
+   "simple.sceptreunplace": {"category": "neutral", "sounds": ["simple/sceptreunplace"]},
+   "simple.wandplace": {"category": "neutral", "sounds": ["simple/wandplace"]},
+   "simple.wandunplace": {"category": "neutral", "sounds": ["simple/wandunplace"]},
+   "complex.powerup": {"category": "neutral", "sounds": ["complex/powerup"]},
+   "complex.poweruphold": {"category": "neutral", "sounds": ["complex/poweruphold"]},
+   "complex.undopowerup": {"category": "neutral", "sounds": ["complex/undopowerup"]},
+   "complex.undopoweruphold": {"category": "neutral", "sounds": ["complex/undopoweruphold"]},
+   "complex.performingaction": {"category": "neutral", "sounds": ["complex/performingaction"]},
+   "complex.performingundo": {"category": "neutral", "sounds": ["complex/performingundo"]},
+   "complex.createselection": {"category": "neutral", "sounds": ["complex/createselection"]}
+}

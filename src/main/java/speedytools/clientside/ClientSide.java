@@ -7,7 +7,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.sound.SpeedyToolSounds;
+import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.tools.SelectionPacketSender;
@@ -46,7 +46,7 @@ public class ClientSide
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
     cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
     speedyToolRenderers = new SpeedyToolRenderers();
-    speedyToolSounds = new SpeedyToolSounds();
+    speedyToolSounds = new SoundController();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
     undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
     selectionPacketSenderComplex = new SelectionPacketSender(packetHandlerRegistry, packetSenderClient);
@@ -92,7 +92,7 @@ public class ClientSide
   public static UserInput userInput;
   public static UndoManagerClient undoManagerSimple;
   public static UndoManagerClient undoManagerComplex;
-  public static SpeedyToolSounds speedyToolSounds;
+  public static SoundController speedyToolSounds;
   public static PacketSenderClient packetSenderClient;
   public static PacketHandlerRegistryClient packetHandlerRegistry;
   public static SelectionPacketSender selectionPacketSenderComplex;

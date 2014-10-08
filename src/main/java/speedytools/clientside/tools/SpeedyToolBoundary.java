@@ -8,8 +8,9 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
-import speedytools.clientside.sound.SpeedySoundTypes;
-import speedytools.clientside.sound.SpeedyToolSounds;
+import speedytools.clientside.sound.SoundController;
+import speedytools.clientside.sound.SoundEffectNames;
+import speedytools.clientside.sound.SoundEffectSimple;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyBoundary;
 import speedytools.common.utilities.UsefulConstants;
@@ -24,7 +25,7 @@ import java.util.LinkedList;
 */
 public class SpeedyToolBoundary extends SpeedyToolComplexBase
 {
-  public SpeedyToolBoundary(ItemSpeedyBoundary i_parentItem, SpeedyToolRenderers i_renderers, SpeedyToolSounds i_speedyToolSounds,
+  public SpeedyToolBoundary(ItemSpeedyBoundary i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds,
                             UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
     itemSpeedyBoundary = i_parentItem;
@@ -75,7 +76,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
         case LEFT_CLICK_DOWN: {
           boundaryCorner1 = null;
           boundaryCorner2 = null;
-          speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_UNPLACE, player.getPosition(partialTick));
+          SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_UNPLACE, soundController);
+          soundEffectSimple.startPlaying();
           break;
         }
         case RIGHT_CLICK_DOWN: {
@@ -97,11 +99,13 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     if (boundaryCorner1 == null) {
       if (blockUnderCursor == null) return;
       boundaryCorner1 = new ChunkCoordinates(blockUnderCursor);
-      speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_PLACE_1ST, player.getPosition(partialTick));
+      SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_PLACE_1ST, soundController);
+      soundEffectSimple.startPlaying();
     } else if (boundaryCorner2 == null) {
       if (blockUnderCursor == null) return;
       addCornerPointWithMaxSize(blockUnderCursor);
-      speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_PLACE_2ND, player.getPosition(partialTick));
+      SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_PLACE_2ND, soundController);
+      soundEffectSimple.startPlaying();
     } else {
       if (boundaryGrabActivated) {  // ungrab
         Vec3 playerPosition = player.getPosition(partialTick);
@@ -113,7 +117,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
         boundaryCorner2.posY = (int)Math.round(newBoundaryField.maxY - 1);
         boundaryCorner2.posZ = (int)Math.round(newBoundaryField.maxZ - 1);
         boundaryGrabActivated = false;
-        speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_UNGRAB, playerPosition);
+        SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_UNGRAB, soundController);
+        soundEffectSimple.startPlaying();
       } else {
         MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
         if (highlightedFace == null) return;
@@ -122,7 +127,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
         boundaryGrabSide = highlightedFace.sideHit;
         Vec3 playerPosition = player.getPosition(1.0F);
         boundaryGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
-        speedyToolSounds.playSound(SpeedySoundTypes.BOUNDARY_GRAB, playerPosition);
+        SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_GRAB, soundController);
+        soundEffectSimple.startPlaying();
       }
     }
   }
