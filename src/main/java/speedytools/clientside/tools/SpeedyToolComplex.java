@@ -1,5 +1,6 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -11,6 +12,8 @@ import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.SoundController;
+import speedytools.clientside.sound.SoundEffectBoundaryHum;
+import speedytools.clientside.sound.SoundEffectNames;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
@@ -72,6 +75,13 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     rendererElements.add(new RendererStatusMessage(statusMessageRenderInfoUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
 //    selectionPacketSender.reset();
+
+    if (soundEffectBoundaryHum == null) {
+      BoundaryHumLink boundaryHumLink = this.new BoundaryHumLink();
+      soundEffectBoundaryHum = new SoundEffectBoundaryHum(SoundEffectNames.BOUNDARY_HUM, soundController, boundaryHumLink);
+    }
+    soundEffectBoundaryHum.startPlayingLoop();
+
     iAmActive = true;
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     toolState = ToolState.IDLE;
@@ -96,6 +106,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     if (this.iAmBusy()) return false;
 
     speedyToolRenderers.setRenderers(null);
+    if (soundEffectBoundaryHum != null) {
+      soundEffectBoundaryHum.stopPlaying();
+    }
     iAmActive = false;
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.IDLE);
     return true;
@@ -682,6 +695,40 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
   }
 
+  /** find the closest part of the boundary field (the epicentre), calculate the distance to it.
+   *
+   */
+  private class BoundaryHumLink implements SoundEffectBoundaryHum.BoundaryHumUpdateLink
+  {
+
+    @Override
+    public boolean refreshHumInfo(SoundEffectBoundaryHum.BoundaryHumInfo infoToUpdate) {
+      EntityClientPlayerMP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
+
+      ToolSelectionStates currentToolSelectionState = ToolSelectionStates.getState(clientVoxelSelection.getReadinessForDisplaying());
+      if (!currentToolSelectionState.displayBoundaryField) return false;
+      if (speedyToolBoundary == null) return false;
+      AxisAlignedBB boundaryFieldAABB = speedyToolBoundary.getBoundaryField();
+      if (boundaryFieldAABB == null) return false;
+
+      Vec3 playerPosition = entityClientPlayerMP.getPosition(0);
+      Vec3 epicentre = Vec3.createVectorHelper((boundaryFieldAABB.minX + boundaryFieldAABB.maxX) / 2.0,
+              (boundaryFieldAABB.minY + boundaryFieldAABB.maxY) / 2.0,
+              (boundaryFieldAABB.minZ + boundaryFieldAABB.maxZ) / 2.0);
+      MovingObjectPosition mop = boundaryFieldAABB.calculateIntercept(playerPosition, epicentre);
+
+      if (mop == null) {        // full volume when inside field
+        infoToUpdate.soundEpicentre = playerPosition;
+        infoToUpdate.distanceToEpicentre = 0;
+        return true;
+      }
+      infoToUpdate.soundEpicentre = mop.hitVec;
+      infoToUpdate.distanceToEpicentre = (float)playerPosition.distanceTo(infoToUpdate.soundEpicentre);
+
+      return true;
+    }
+  }
+
   /**
    * returns the current position of the selection, i.e. the corner where it will be placed if the user performs an action
    * @param snapToGrid if true, snap to the nearest integer coordinates
@@ -961,4 +1008,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   private PowerUpEffect leftClickPowerup = new PowerUpEffect();
   private PowerUpEffect rightClickPowerup = new PowerUpEffect();
   private PowerUpEffect lastPowerupStarted = null;  // points to the last powerup which was started (to detect when it has been released)
+
+  private SoundEffectBoundaryHum soundEffectBoundaryHum;
+
 }

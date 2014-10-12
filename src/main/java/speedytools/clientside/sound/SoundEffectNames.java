@@ -12,6 +12,7 @@ public enum SoundEffectNames
   BOUNDARY_PLACE_1ST("complex.boundaryplace1st"),
   BOUNDARY_PLACE_2ND("complex.boundaryplace2nd"),
   BOUNDARY_UNPLACE("complex.boundaryunplace"),
+  BOUNDARY_HUM("complex.boundaryfieldhumloop"),
   STRONGWAND_PLACE("simple.wandplace"),
   STRONGWAND_UNPLACE("simple.wandunplace"),
   WEAKWAND_PLACE("simple.wandplace"),

@@ -5,10 +5,22 @@ import net.minecraft.util.ResourceLocation;
 
 /**
  * Created by TheGreyGhost on 8/10/14.
+ *
+ * Used to create sound effects for the complex tool - powerup, sustain, and failure
+ *
+ * There are several basic states created from a couple of overlaid sounds
+ * 1) power up - including sustain while the user holds down the button
+ * 1b) failure (eg busy)
+ * 2) working
+ * 3) finishing
+ * There are two overlaid sounds:
+ * a1) powerringchargeup followed by powerringchargeloop while the ring is powering up
+ * a2) powerringchargefailure when a failure message is received
+ * b) powerringwhooshloop which is faded in during powering up, then looped while working and faded out when finished
  */
-public class SoundEffectSimple
+public class SoundEffectComplexTool
 {
-  public SoundEffectSimple(SoundEffectNames i_soundEffectName, SoundController i_soundController)
+  public SoundEffectComplexTool(SoundEffectNames i_soundEffectName, SoundController i_soundController)
   {
     soundEffectName = i_soundEffectName;
     soundController = i_soundController;
@@ -17,8 +29,12 @@ public class SoundEffectSimple
 
   public void startPlaying()
   {
+    if (nonPositionedSound != null) {
+      stopPlaying();
+    }
     final float VOLUME = 1.0F;
-    startPlaying(VOLUME);
+    nonPositionedSound = new NonPositionedSound(resourceLocation, VOLUME, false);
+    soundController.playSound(nonPositionedSound);
   }
 
   public void startPlayingLoop()
@@ -28,15 +44,6 @@ public class SoundEffectSimple
     }
     final float VOLUME = 1.0F;
     nonPositionedSound = new NonPositionedSound(resourceLocation, VOLUME, true);
-    soundController.playSound(nonPositionedSound);
-  }
-
-  public void startPlaying(float initialVolume)
-  {
-    if (nonPositionedSound != null) {
-      stopPlaying();
-    }
-    nonPositionedSound = new NonPositionedSound(resourceLocation, initialVolume, false);
     soundController.playSound(nonPositionedSound);
   }
 

@@ -1,6 +1,7 @@
 package speedytools.clientside.tools;
 
 import cpw.mods.fml.common.FMLLog;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
@@ -9,6 +10,7 @@ import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
+import speedytools.clientside.sound.SoundEffectBoundaryHum;
 import speedytools.clientside.sound.SoundEffectNames;
 import speedytools.clientside.sound.SoundEffectSimple;
 import speedytools.clientside.userinput.UserInput;
@@ -35,6 +37,11 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
 
   @Override
   public boolean activateTool() {
+    if (soundEffectBoundaryHum == null) {
+      BoundaryHumLink boundaryHumLink = this.new BoundaryHumLink();
+      soundEffectBoundaryHum = new SoundEffectBoundaryHum(SoundEffectNames.BOUNDARY_HUM, soundController, boundaryHumLink);
+    }
+    soundEffectBoundaryHum.startPlayingLoop();
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
@@ -49,6 +56,9 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
   @Override
   public boolean deactivateTool() {
     speedyToolRenderers.setRenderers(null);
+    if (soundEffectBoundaryHum != null) {
+      soundEffectBoundaryHum.stopPlaying();
+    }
     iAmActive = false;
     return true;
   }
@@ -224,6 +234,36 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     }
   }
 
+  /** find the closest part of the boundary field (the epicentre), calculate the distance to it.
+   */
+  private class BoundaryHumLink implements SoundEffectBoundaryHum.BoundaryHumUpdateLink
+  {
+    @Override
+    public boolean refreshHumInfo(SoundEffectBoundaryHum.BoundaryHumInfo infoToUpdate) {
+      EntityClientPlayerMP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
+
+      AxisAlignedBB boundaryFieldAABB = getBoundaryField();
+      if (boundaryFieldAABB == null) return false;
+
+      Vec3 playerPosition = entityClientPlayerMP.getPosition(0);
+      Vec3 epicentre = Vec3.createVectorHelper((boundaryFieldAABB.minX + boundaryFieldAABB.maxX) / 2.0,
+              (boundaryFieldAABB.minY + boundaryFieldAABB.maxY) / 2.0,
+              (boundaryFieldAABB.minZ + boundaryFieldAABB.maxZ) / 2.0);
+      MovingObjectPosition mop = boundaryFieldAABB.calculateIntercept(playerPosition, epicentre);
+
+      if (mop == null) {        // full volume when inside field
+        infoToUpdate.soundEpicentre = playerPosition;
+        infoToUpdate.distanceToEpicentre = 0;
+        return true;
+      }
+      infoToUpdate.soundEpicentre = mop.hitVec;
+      infoToUpdate.distanceToEpicentre = (float)playerPosition.distanceTo(infoToUpdate.soundEpicentre);
+
+      return true;
+    }
+  }
+
+
   /**
    * Calculate the current boundary field
    * @return the new boundary field, null if a problem occurred.  The AABB must be used for only one tick because it
@@ -349,6 +389,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
   private Vec3 boundaryGrabPoint = null;
   protected int boundaryCursorSide = UsefulConstants.FACE_NONE;
 
+  private SoundEffectBoundaryHum soundEffectBoundaryHum;
 
   private ItemSpeedyBoundary itemSpeedyBoundary;
 }
