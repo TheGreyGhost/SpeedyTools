@@ -21,14 +21,11 @@ public enum SoundEffectNames
   ORB_UNPLACE("simple.orbunplace"),
   SCEPTRE_UNPLACE("simple.sceptreunplace"),
   SCEPTRE_PLACE("simple.sceptreplace"),
-  POWERUP("complex.powerup"),
-  POWERUPHOLD("complex.poweruphold"),
-  UNDOPOWERUP("complex.undopowerup"),
-  UNDOPOWERUPHOLD("complex.underpoweruphold"),
-  PERFORMINGACTION("complex.performingaction"),
-  PERFORMINGUNDO("complex.performingundo"),
-  CREATESELECTION("complex.createselection");
-
+  POWERUP("complex.powerringchargeup"),
+  POWERUP_HOLD("complex.powerringchargeloop"),
+  PERFORMING_ACTION("complex.powerringwhooshloop"),
+  POWERUP_FAILURE("complex.powerringchargefailure"),
+  CREATE_SELECTION("complex.createselection");
 
   public final String getJsonName() {return "speedytoolsmod:" + jsonName;}
 

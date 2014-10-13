@@ -13,6 +13,7 @@ import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.sound.SoundEffectBoundaryHum;
+import speedytools.clientside.sound.SoundEffectComplexTool;
 import speedytools.clientside.sound.SoundEffectNames;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
@@ -81,6 +82,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       soundEffectBoundaryHum = new SoundEffectBoundaryHum(SoundEffectNames.BOUNDARY_HUM, soundController, boundaryHumLink);
     }
     soundEffectBoundaryHum.startPlayingLoop();
+    if (soundEffectComplexTool == null)  {
+      RingSoundLink ringSoundLink = this.new RingSoundLink();
+      soundEffectComplexTool = new SoundEffectComplexTool(soundController, ringSoundLink);
+    }
 
     iAmActive = true;
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
@@ -583,6 +588,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       }
     }
 
+    if (!leftClickPowerup.isIdle() || !rightClickPowerup.isIdle() && soundEffectComplexTool != null) {
+      soundEffectComplexTool.startPlayingIfNotAlreadyPlaying();
+    }
     checkInvariants();
   }
 
@@ -724,6 +732,55 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       }
       infoToUpdate.soundEpicentre = mop.hitVec;
       infoToUpdate.distanceToEpicentre = (float)playerPosition.distanceTo(infoToUpdate.soundEpicentre);
+
+      return true;
+    }
+  }
+
+  private class RingSoundLink implements SoundEffectComplexTool.RingSoundUpdateLink
+  {
+    @Override
+    public boolean refreshRingSoundInfo(SoundEffectComplexTool.RingSoundInfo infoToUpdate) {
+      switch (toolState) {
+        case ACTION_FAILED:
+        case ACTION_SUCCEEDED:
+        case UNDO_FAILED:
+        case UNDO_SUCCEEDED:
+        case IDLE: {
+          if (!rightClickPowerup.isIdle()) {
+            infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP;
+          } else if (!leftClickPowerup.isIdle()) {
+            infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP;
+          } else {
+            if (lastPowerupStarted != null && lastPowerupStarted.isIdle()) {
+              infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP_ABORT;
+            } else {
+              switch (toolState) {
+                case UNDO_FAILED:
+                case ACTION_FAILED: {
+                  infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.FAILURE;
+                  break;
+                }
+                case UNDO_SUCCEEDED:
+                case ACTION_SUCCEEDED: {
+                  infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_DOWN;
+                  break;
+                }
+              }
+            }
+          }
+          break;
+        }
+        case PERFORMING_UNDO_FROM_PARTIAL:
+        case PERFORMING_UNDO_FROM_FULL:
+        case PERFORMING_ACTION: {
+          infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.PERFORMING_ACTION;
+          break;
+        }
+        default: {
+          assert false : "Invalid toolstate = " + toolState + " in refreshRenderInfo()";
+        }
+      }
 
       return true;
     }
@@ -1010,5 +1067,6 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   private PowerUpEffect lastPowerupStarted = null;  // points to the last powerup which was started (to detect when it has been released)
 
   private SoundEffectBoundaryHum soundEffectBoundaryHum;
+  private SoundEffectComplexTool soundEffectComplexTool;
 
 }
