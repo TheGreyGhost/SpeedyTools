@@ -12,8 +12,15 @@
    "simple.wandplace": {"category": "player", "sounds": ["simple/wandplace"]},
    "simple.wandunplace": {"category": "player", "sounds": ["simple/wandunplace"]},
    "complex.powerringchargeup": {"category": "player", "sounds": ["complex/powerringchargeup"]},
-   "complex.powerringchargeloop": {"category": "player", "sounds": ["complex/powerringchargeloop"]},
+   "complex.powerringchargeuploop": {"category": "player", "sounds": ["complex/powerringchargeuploop"]},
    "complex.powerringchargefailure": {"category": "player", "sounds": ["complex/powerringchargefailure"]},
    "complex.powerringwhooshloop": {"category": "player", "sounds": ["complex/powerringwhooshloop"]},
-   "complex.createselection": {"category": "player", "sounds": ["complex/createselection"]}
+   "complex.createselection1": {"category": "player", "sounds": ["complex/createselectionrocks1"]},
+   "complex.createselection2": {"category": "player", "sounds": ["complex/createselectionrocks2"]},
+   "complex.createselection3": {"category": "player", "sounds": ["complex/createselectionrocks3"]},
+   "complex.createselection4": {"category": "player", "sounds": ["complex/createselectionrocks4"]},
+   "complex.createselection5": {"category": "player", "sounds": ["complex/createselectionrocks5"]},
+   "complex.createselection6": {"category": "player", "sounds": ["complex/createselectionrocks6"]},
+   "complex.createselection7": {"category": "player", "sounds": ["complex/createselectionrocks7"]},
+   "complex.createselection8": {"category": "player", "sounds": ["complex/createselectionrocks8"]}
 }

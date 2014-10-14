@@ -399,6 +399,11 @@ public class RenderCursorStatus implements RendererElement
     public boolean refreshRenderInfo(CursorRenderInfo infoToUpdate);
   }
 
+  public CursorRenderInfo.AnimationState getAnimationState()
+  {
+    return animationState;
+  }
+
   public static class CursorRenderInfo
   {
     public boolean vanillaCursorSpin;    // if true - spin the vanilla cursor

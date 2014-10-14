@@ -20,6 +20,7 @@ import speedytools.common.utilities.UsefulFunctions;
  * a1) CHARGE powerringchargeup followed by CHARGELOOP powerringchargeloop while the ring is powering up
  * a2) FAIL powerringchargefailure when a failure message is received
  * b) PERFORM powerringwhooshloop which is faded in during powering up, then looped while working and faded out when finished
+ * performTick() should be called every tick by the client
  */
 public class SoundEffectComplexTool
 {
@@ -45,7 +46,7 @@ public class SoundEffectComplexTool
     stopAllSounds();
 //    chargeSound = new RingSpinSound(chargeResource, CHARGE_MIN_VOLUME, false, );
     currentRingState = RingSoundInfo.State.IDLE;
-    updateSoundState();
+    performTick();
   }
 
   public void startPlayingIfNotAlreadyPlaying()
@@ -87,7 +88,7 @@ public class SoundEffectComplexTool
     if (failSound != null) { failSound.donePlaying = true;}
   }
 
-  private void updateSoundState()
+  public void performTick()
   {
     ++ticksElapsed;
     RingSoundInfo ringSoundInfo = new RingSoundInfo();
@@ -103,13 +104,15 @@ public class SoundEffectComplexTool
         }
         case SPIN_UP: {
           if (chargeSound != null) {
-            chargeSound.donePlaying = true;
+//             chargeSound.donePlaying = true;
+            soundController.stopSound(chargeSound);
           }
-          chargeSound = new RingSpinSound(chargeResource, CHARGE_MIN_VOLUME, RepeatType.NO_REPEAT, chargeSettings, UpdateType.SLAVE);
+          chargeSound = new RingSpinSound(chargeResource, CHARGE_MIN_VOLUME, RepeatType.NO_REPEAT, chargeSettings);
           if (performSound != null) {
-            performSound.donePlaying = true;
+//            performSound.donePlaying = true;
+            soundController.stopSound(performSound);
           }
-          performSound = new RingSpinSound(performingResource, PERFORM_MIN_VOLUME, RepeatType.REPEAT, performSettings, UpdateType.MASTER);
+          performSound = new RingSpinSound(performingResource, PERFORM_MIN_VOLUME, RepeatType.REPEAT, performSettings);
           powerupStartTick = ticksElapsed;
           soundController.playSound(chargeSound);
           soundController.playSound(performSound);
@@ -117,7 +120,8 @@ public class SoundEffectComplexTool
         }
         case SPIN_UP_ABORT: {
           if (chargeSound != null) {
-            chargeSound.donePlaying = true;
+//            chargeSound.donePlaying = true;
+            soundController.stopSound(chargeSound);
           }
           spinupAbortTick = ticksElapsed;
           break;
@@ -132,12 +136,14 @@ public class SoundEffectComplexTool
         }
         case FAILURE: {
           if (chargeSound != null) {
-            chargeSound.donePlaying = true;
+//            chargeSound.donePlaying = true;
+            soundController.stopSound(chargeSound);
           }
           if (failSound != null) {
-            failSound.donePlaying = true;
+//            failSound.donePlaying = true;
+            soundController.stopSound(failSound);
           }
-          failSound = new RingSpinSound(failResource, FAIL_MAX_VOLUME, RepeatType.NO_REPEAT, failSettings, UpdateType.SLAVE);
+          failSound = new RingSpinSound(failResource, FAIL_MAX_VOLUME, RepeatType.NO_REPEAT, failSettings);
           soundController.playSound(failSound);
           failureStartTick = ticksElapsed;
           break;
@@ -157,9 +163,10 @@ public class SoundEffectComplexTool
         final int POWERUP_VOLUME_CROSSFADE_TICKS = 10;
         if (ticksElapsed - powerupStartTick == POWERUP_SOUND_DURATION_TICKS) {
           if (chargeLoopSound != null) {
-            chargeLoopSound.donePlaying = true;
+//            chargeLoopSound.donePlaying = true;
+            soundController.stopSound(chargeLoopSound);
           }
-          chargeLoopSound = new RingSpinSound(chargeloopResource, CHARGE_MIN_VOLUME, RepeatType.REPEAT, chargeLoopSettings, UpdateType.SLAVE);
+          chargeLoopSound = new RingSpinSound(chargeloopResource, CHARGE_MIN_VOLUME, RepeatType.REPEAT, chargeLoopSettings);
           soundController.playSound(chargeLoopSound);
         }
 
@@ -207,7 +214,8 @@ public class SoundEffectComplexTool
         if (performSettings.volume < 0) {
           performSettings.volume = 0;
           if (performSound != null) {
-            performSound.donePlaying = true;
+//            performSound.donePlaying = true;
+            soundController.stopSound(performSound);
           }
         }
         break;
@@ -222,8 +230,17 @@ public class SoundEffectComplexTool
         if (performSettings.volume < 0) {
           performSettings.volume = 0;
           if (performSound != null) {
-            performSound.donePlaying = true;
+//            performSound.donePlaying = true;
+            soundController.stopSound(performSound);
           }
+        }
+        break;
+      }
+      case IDLE: {
+//        performSound.donePlaying = true;
+        if (performSound != null) {
+          soundController.stopSound(performSound);
+          performSound = null;
         }
         break;
       }
@@ -276,7 +293,7 @@ public class SoundEffectComplexTool
   public static class RingSoundInfo
   {
     public enum State {IDLE, SPIN_UP, SPIN_UP_ABORT, PERFORMING_ACTION, SPIN_DOWN, FAILURE}
-    public State ringState;
+    public State ringState = State.IDLE;
   }
 
 //  private interface RingSpinSoundUpdateMethod
@@ -293,24 +310,21 @@ public class SoundEffectComplexTool
     public float volume;
   }
 
-  public enum UpdateType {MASTER, SLAVE}
   public enum RepeatType {REPEAT, NO_REPEAT}
 
   private class RingSpinSound extends PositionedSound implements ITickableSound
   {
-    public RingSpinSound(ResourceLocation i_resourceLocation, float i_volume, RepeatType i_repeat, ComponentSoundSettings i_soundSettings, UpdateType i_isMasterForUpdate)
+    public RingSpinSound(ResourceLocation i_resourceLocation, float i_volume, RepeatType i_repeat, ComponentSoundSettings i_soundSettings)
     {
       super(i_resourceLocation);
       repeat = (i_repeat == RepeatType.REPEAT);
       volume = i_volume;
       field_147666_i = AttenuationType.NONE;
       componentSoundSettings = i_soundSettings;
-      isMasterForUpdate = i_isMasterForUpdate;
     }
 
     private boolean donePlaying;
     ComponentSoundSettings componentSoundSettings;
-    UpdateType isMasterForUpdate;
 
     @Override
     public boolean isDonePlaying() {
@@ -319,9 +333,6 @@ public class SoundEffectComplexTool
 
     @Override
     public void update() {
-      if (isMasterForUpdate == UpdateType.MASTER) {
-        updateSoundState();
-      }
       this.volume = componentSoundSettings.volume;
     }
   }

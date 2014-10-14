@@ -22,7 +22,7 @@ public enum SoundEffectNames
   SCEPTRE_UNPLACE("simple.sceptreunplace"),
   SCEPTRE_PLACE("simple.sceptreplace"),
   POWERUP("complex.powerringchargeup"),
-  POWERUP_HOLD("complex.powerringchargeloop"),
+  POWERUP_HOLD("complex.powerringchargeuploop"),
   PERFORMING_ACTION("complex.powerringwhooshloop"),
   POWERUP_FAILURE("complex.powerringchargefailure"),
   CREATE_SELECTION("complex.createselection");

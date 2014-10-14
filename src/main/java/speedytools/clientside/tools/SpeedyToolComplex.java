@@ -72,7 +72,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     rendererElements.add(new RendererSolidSelection(solidSelectionRendererUpdateLink));
-    rendererElements.add(new RenderCursorStatus(cursorRenderInfoUpdateLink));
+    renderCursorStatus = new RenderCursorStatus(cursorRenderInfoUpdateLink);
+    rendererElements.add(renderCursorStatus);
     rendererElements.add(new RendererStatusMessage(statusMessageRenderInfoUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
 //    selectionPacketSender.reset();
@@ -111,8 +112,12 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     if (this.iAmBusy()) return false;
 
     speedyToolRenderers.setRenderers(null);
+    renderCursorStatus = null;
     if (soundEffectBoundaryHum != null) {
       soundEffectBoundaryHum.stopPlaying();
+    }
+    if (soundEffectComplexTool != null) {
+      soundEffectComplexTool.stopPlaying();
     }
     iAmActive = false;
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.IDLE);
@@ -591,6 +596,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     if (!leftClickPowerup.isIdle() || !rightClickPowerup.isIdle() && soundEffectComplexTool != null) {
       soundEffectComplexTool.startPlayingIfNotAlreadyPlaying();
     }
+    if (soundEffectComplexTool != null) {
+      soundEffectComplexTool.performTick();
+    }
+
     checkInvariants();
   }
 
@@ -741,42 +750,71 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   {
     @Override
     public boolean refreshRingSoundInfo(SoundEffectComplexTool.RingSoundInfo infoToUpdate) {
-      switch (toolState) {
-        case ACTION_FAILED:
-        case ACTION_SUCCEEDED:
-        case UNDO_FAILED:
-        case UNDO_SUCCEEDED:
+      switch (renderCursorStatus.getAnimationState()) {
         case IDLE: {
-          if (!rightClickPowerup.isIdle()) {
-            infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP;
-          } else if (!leftClickPowerup.isIdle()) {
-            infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP;
+          infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.IDLE;
+          break;
+        }
+        case SPIN_UP_CW:
+        case SPIN_UP_CCW: {
+          infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP;
+          break;
+        }
+        case SPINNING_CW:
+        case SPINNING_CCW_FROM_FULL:
+        case SPINNING_CCW_FROM_PARTIAL: {
+         infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.PERFORMING_ACTION;
+          break;
+        }
+        case SPIN_DOWN_CW_CANCELLED:
+        case SPIN_DOWN_CCW_CANCELLED: {
+          if (toolState == ToolState.UNDO_FAILED || toolState == ToolState.ACTION_FAILED) {
+            infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.FAILURE;
           } else {
-            if (lastPowerupStarted != null && lastPowerupStarted.isIdle()) {
-              infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP_ABORT;
-            } else {
-              switch (toolState) {
-                case UNDO_FAILED:
-                case ACTION_FAILED: {
-                  infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.FAILURE;
-                  break;
-                }
-                case UNDO_SUCCEEDED:
-                case ACTION_SUCCEEDED: {
-                  infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_DOWN;
-                  break;
-                }
-              }
-            }
+            infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP_ABORT;
           }
           break;
         }
-        case PERFORMING_UNDO_FROM_PARTIAL:
-        case PERFORMING_UNDO_FROM_FULL:
-        case PERFORMING_ACTION: {
-          infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.PERFORMING_ACTION;
+        case SPIN_DOWN_CW_SUCCESS:
+        case SPIN_DOWN_CCW_SUCCESS: {
+          infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_DOWN;
           break;
         }
+//        case ACTION_FAILED:
+//        case ACTION_SUCCEEDED:
+//        case UNDO_FAILED:
+//        case UNDO_SUCCEEDED:
+//        case IDLE: {
+//          if (!rightClickPowerup.isIdle()) {
+//            infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP;
+//          } else if (!leftClickPowerup.isIdle()) {
+//            infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP;
+//          } else {
+//            if (lastPowerupStarted != null && lastPowerupStarted.isIdle()) {
+//              infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_UP_ABORT;
+//            } else {
+//              switch (toolState) {
+//                case UNDO_FAILED:
+//                case ACTION_FAILED: {
+//                  infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.FAILURE;
+//                  break;
+//                }
+//                case UNDO_SUCCEEDED:
+//                case ACTION_SUCCEEDED: {
+//                  infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.SPIN_DOWN;
+//                  break;
+//                }
+//              }
+//            }
+//          }
+//          break;
+//        }
+//        case PERFORMING_UNDO_FROM_PARTIAL:
+//        case PERFORMING_UNDO_FROM_FULL:
+//        case PERFORMING_ACTION: {
+//          infoToUpdate.ringState = SoundEffectComplexTool.RingSoundInfo.State.PERFORMING_ACTION;
+//          break;
+//        }
         default: {
           assert false : "Invalid toolstate = " + toolState + " in refreshRenderInfo()";
         }
@@ -1068,5 +1106,5 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   private SoundEffectBoundaryHum soundEffectBoundaryHum;
   private SoundEffectComplexTool soundEffectComplexTool;
-
+  private RenderCursorStatus renderCursorStatus;
 }
