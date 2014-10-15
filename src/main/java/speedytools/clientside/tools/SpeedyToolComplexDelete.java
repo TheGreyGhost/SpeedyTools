@@ -33,4 +33,9 @@ public class SpeedyToolComplexDelete extends SpeedyToolComplex
   protected Colour getSelectionRenderColour() {
     return Colour.LIGHTRED_40;
   }
+
+  @Override
+  protected boolean cancelSelectionAfterAction() {
+    return false;
+  }
 }

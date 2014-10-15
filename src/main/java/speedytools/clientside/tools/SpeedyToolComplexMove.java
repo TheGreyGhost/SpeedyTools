@@ -33,4 +33,9 @@ public class SpeedyToolComplexMove extends SpeedyToolComplex
   protected Colour getSelectionRenderColour() {
     return Colour.LIGHTBLUE_40;
   }
+
+  @Override
+  protected boolean cancelSelectionAfterAction() {
+    return true;
+  }
 }

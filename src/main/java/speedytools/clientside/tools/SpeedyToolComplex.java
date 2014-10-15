@@ -11,10 +11,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
 import speedytools.clientside.selections.ClientVoxelSelection;
-import speedytools.clientside.sound.SoundController;
-import speedytools.clientside.sound.SoundEffectBoundaryHum;
-import speedytools.clientside.sound.SoundEffectComplexTool;
-import speedytools.clientside.sound.SoundEffectNames;
+import speedytools.clientside.sound.*;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptions;
@@ -88,6 +85,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       soundEffectComplexTool = new SoundEffectComplexTool(soundController, ringSoundLink);
     }
 
+    if (soundEffectComplexSelectionGeneration == null) {
+      soundEffectComplexSelectionGeneration = new SoundEffectComplexSelectionGeneration(soundController);
+    }
+
     iAmActive = true;
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
     toolState = ToolState.IDLE;
@@ -119,6 +120,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     if (soundEffectComplexTool != null) {
       soundEffectComplexTool.stopPlaying();
     }
+    if (soundEffectComplexSelectionGeneration != null) {
+      soundEffectComplexSelectionGeneration.stopPlaying();
+    }
+
     iAmActive = false;
     cloneToolsNetworkClient.changeClientStatus(ClientStatus.IDLE);
     return true;
@@ -262,6 +267,11 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   protected abstract RenderCursorStatus.CursorRenderInfo.CursorType getCursorType();
 
   protected abstract Colour getSelectionRenderColour();
+
+  /** if true, the current selection is cancelled after an action is performed with it
+   * @return
+   */
+  protected abstract boolean cancelSelectionAfterAction();
 
     /** Is the tool currently busy with something?
      * @return true if busy, false if not
@@ -527,6 +537,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
 
     cloneToolsNetworkClient.informSelectionMade();
+    soundEffectComplexSelectionGeneration.startPlaying();
   }
 
   /** called once per tick on the client side while the user is holding an ItemCloneTool
@@ -584,6 +595,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         toolState = ToolState.ACTION_SUCCEEDED;
         cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
         hasBeenMoved = false;
+        if (cancelSelectionAfterAction()) {
+          undoSelectionCreation();
+        }
       }
       if (actionStatus == CloneToolsNetworkClient.ActionStatus.REJECTED) {
         lastActionWasRejected = true;
@@ -599,7 +613,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     if (soundEffectComplexTool != null) {
       soundEffectComplexTool.performTick();
     }
-
+    if (soundEffectComplexSelectionGeneration != null) {
+      boolean generationInProgress = clientVoxelSelection.isGenerationInProgress();
+      soundEffectComplexSelectionGeneration.performTick(generationInProgress);
+    }
     checkInvariants();
   }
 
@@ -1106,5 +1123,6 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   private SoundEffectBoundaryHum soundEffectBoundaryHum;
   private SoundEffectComplexTool soundEffectComplexTool;
+  private SoundEffectComplexSelectionGeneration soundEffectComplexSelectionGeneration;
   private RenderCursorStatus renderCursorStatus;
 }

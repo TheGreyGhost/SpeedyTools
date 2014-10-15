@@ -33,4 +33,9 @@ public class SpeedyToolComplexCopy extends SpeedyToolComplex
     return Colour.LIGHTGREEN_40;
   }
 
+  @Override
+  protected boolean cancelSelectionAfterAction() {
+    return false;
+  }
+
 }

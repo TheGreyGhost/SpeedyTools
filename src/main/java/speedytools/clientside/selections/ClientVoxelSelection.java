@@ -114,10 +114,29 @@ public class ClientVoxelSelection
     }
   }
 
+  /** return true if the selection is currently being generated, either locally or on the server.
+   * i.e. - returns false if IDLE or COMPLETE, true otherwise.
+   * @return
+   */
+  public boolean isGenerationInProgress()
+  {
+    if (  (clientSelectionState != ClientSelectionState.IDLE && clientSelectionState != ClientSelectionState.COMPLETE)
+        || (serverSelectionState != ServerSelectionState.IDLE && serverSelectionState != ServerSelectionState.COMPLETE
+            && serverSelectionState != ServerSelectionState.CREATING_RENDERLISTS )
+       ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public final float FULLY_COMPLETE = 1.000F;
+  private final float FULLY_COMPLETE_PLUS_DELTA = FULLY_COMPLETE + 0.001F;
+
   /**
    * returns the progress of the selection generation on (or transmission to ) server
    * @return [0 .. 1] for the estimated fractional completion of the voxel selection generation / transmission
-   *         returns 0 if not started yet, returns 1.000F if complete
+   *         returns 0 if not started yet, returns > FULLY_COMPLETE if complete
    */
   public float getServerSelectionFractionComplete()
   {
@@ -127,13 +146,13 @@ public class ClientVoxelSelection
         return 0.0F;
       }
       case COMPLETE: {
-        return 1.000F;
+        return FULLY_COMPLETE_PLUS_DELTA;
       }
       case NOT_REQUIRED: {
         if (serverSelectionState == ServerSelectionState.RECEIVING
                 || serverSelectionState == ServerSelectionState.CREATING_RENDERLISTS
                 || serverSelectionState == ServerSelectionState.COMPLETE) {
-          return 1.000F;
+          return FULLY_COMPLETE_PLUS_DELTA;
         }
         return serverGenerationFractionComplete;
       }
