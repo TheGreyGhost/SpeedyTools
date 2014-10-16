@@ -469,7 +469,7 @@ public abstract class MultipartPacket
       deflater.finish();
       byte[] compressedData = new byte[START_FLAG_SIZE + START_LEN_SIZE + dataToCompress.length];
       int compressedSize = deflater.deflate(compressedData,START_FLAG_SIZE + START_LEN_SIZE, compressedData.length - START_FLAG_SIZE - START_LEN_SIZE );
-      if (compressedSize < uncompressedLength + START_FLAG_SIZE + START_LEN_SIZE) { // worthwhile
+      if (compressedSize + START_FLAG_SIZE + START_LEN_SIZE < uncompressedLength + START_FLAG_SIZE) { // worthwhile
         final int COMPRESSED_FLAG = 1;
         compressedData[0] = COMPRESSED_FLAG;
         int i = START_FLAG_SIZE;
@@ -667,6 +667,11 @@ public abstract class MultipartPacket
   private Packet250Types packet250Type;
   private int uniquePacketID;
   private int segmentSize;
+
+  public int getSegmentCount() {
+    return segmentCount;
+  }
+
   private int segmentCount;
   private byte [] rawData;                      // the raw data.  The first byte is compression flag; non-zero --> compressed
 

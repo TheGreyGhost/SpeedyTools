@@ -60,7 +60,7 @@ public class MultipartHandlerTest
   public final static String TEST_ERROR_LOG = "MultipartPacketHandlerTestErrorLog.log";
   public static final String TEST_TEMP_ROOT_DIRECTORY = "temp";
   public static final  String CHANNEL = "mychannel";
-  public static final  byte PACKET_ID = 35;
+  public static final  byte PACKET_ID = Packet250Types.PACKET250_TEST_HARNESS.getPacketTypeID();
   public static final  int SEGMENT_SIZE = 4;
 
   @Before
@@ -90,7 +90,7 @@ public class MultipartHandlerTest
 
     final byte[] TEST_DATA = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
     sender.setTestData(TEST_DATA);
-    final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+    final int SEGMENT_COUNT = sender.getSegmentCount();  // (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
@@ -384,7 +384,7 @@ public class MultipartHandlerTest
 
     final byte[] TEST_DATA = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
     sender.setTestData(TEST_DATA);
-    final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+    final int SEGMENT_COUNT = sender.getSegmentCount(); //(TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);
@@ -510,7 +510,7 @@ public class MultipartHandlerTest
 
     final byte[] TEST_DATA = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
     sender.setTestData(TEST_DATA);
-    final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+    final int SEGMENT_COUNT = sender.getSegmentCount();// (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
 
     senderLinkage = new SenderLinkage(sender);
     mpSender.sendMultipartPacket(senderLinkage, sender);

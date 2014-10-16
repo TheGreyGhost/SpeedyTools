@@ -65,7 +65,7 @@ public class MultipartPacketTest
 
     final byte[] TEST_DATA = {10, 11, 12, 13, 20, 22, 24, 26, -52, -48, -44, -40, 100, 110, 120, 127};
     sender.setTestData(TEST_DATA);
-    final int SEGMENT_COUNT = (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+    final int SEGMENT_COUNT = sender.getSegmentCount(); // (TEST_DATA.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
     ArrayList<Packet250MultipartSegment> savedPackets = new ArrayList<Packet250MultipartSegment>();
     for (int i = 0; i < SEGMENT_COUNT; ++i) {
       Assert.assertFalse(sender.allSegmentsSent());
@@ -94,13 +94,14 @@ public class MultipartPacketTest
     Assert.assertTrue(receiver.allSegmentsReceived());
     Assert.assertTrue(receiver.matchesTestData(TEST_DATA));
 
+    final int EXTRA_HEADER_LEN = 1;
     // test (1-a) - different data lengths
     for (int datalen = 1; datalen < TEST_DATA.length; ++datalen) {
       sender = MultipartPacketTester.createSenderPacket(CHANNEL, Side.SERVER, PACKET_ID, SEGMENT_SIZE);
       receiver = null;
       byte[] testDataTrim = Arrays.copyOfRange(TEST_DATA, 0, datalen);
       sender.setTestData(testDataTrim);
-      final int segmentCountTrim = (testDataTrim.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+      final int segmentCountTrim = sender.getSegmentCount(); //(testDataTrim.length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
       for (int i = 0; i < segmentCountTrim; ++i) {
         Assert.assertFalse(sender.allSegmentsSent());
         Assert.assertTrue(sender.getPercentComplete() == 100 * i / 2 / segmentCountTrim);
@@ -379,7 +380,7 @@ public class MultipartPacketTest
     Assert.assertFalse(receiver.processIncomingSegment(badPacket));
     badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)3, (short)(SEGMENT_SIZE-1), TEST_DATA.length);
     Assert.assertFalse(receiver.processIncomingSegment(badPacket));
-    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)3, (short)SEGMENT_SIZE, TEST_DATA.length+1);
+    badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)3, (short)SEGMENT_SIZE, TEST_DATA.length+2);
     Assert.assertFalse(receiver.processIncomingSegment(badPacket));
     badPacket = MultipartPacketTester.corruptSegPacket(packet, (short)3, (short)SEGMENT_SIZE, TEST_DATA.length-1);
     Assert.assertFalse(receiver.processIncomingSegment(badPacket));

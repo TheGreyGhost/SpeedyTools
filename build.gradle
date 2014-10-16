@@ -17,9 +17,9 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = "1.0"
-group= "com.yourname.modid" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "modid"
+version = "2.0.0"
+group= "com.thegreyghost.speedytoolsmod" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "speedytoolsmod"
 
 minecraft {
     version = "1.7.10-10.13.0.1180"
@@ -27,7 +27,7 @@ minecraft {
 }
 
 dependencies {
-
+    compile "org.objenesis:objenesis:2.1"
     // you may put jars on which you depend on in ./libs
     // or you may define them like so..
     //compile "some.group:artifact:version:classifier"
@@ -41,6 +41,10 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
+}
+
+test {
+    exclude '*'
 }
 
 processResources
