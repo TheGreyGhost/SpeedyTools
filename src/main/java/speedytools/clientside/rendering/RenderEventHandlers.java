@@ -1,6 +1,5 @@
 package speedytools.clientside.rendering;
 
-import com.sun.deploy.util.SessionState;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;

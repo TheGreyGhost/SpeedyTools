@@ -220,14 +220,6 @@ public class SelectionFillTester
     ChunkCoordinates checkPosition = new ChunkCoordinates(0, 0, 0);
     ChunkCoordinates checkPositionSupport = new ChunkCoordinates(0, 0, 0);
 
-    // algorithm is:
-    //   for each block in the list of search positions, iterate through each adjacent block to see whether it meets the criteria for expansion:
-    //     a) matches the block-to-be-replaced (if matchAnyNonAir: non-air, otherwise if blockID and metaData match.  For lava or water metadata doesn't need to match).
-    //     b) hasn't been filled already during this contour search
-    //   if the criteria are met, select the block and add it to the list of blocks to be search next round.
-    //   if the criteria aren't met, keep trying other directions from the same position until all positions are searched.  Then delete the search position and move onto the next.
-    //   This will ensure that the fill spreads evenly out from the starting point.   Check the boundary to stop fill spreading outside it.
-    //todo containsUnavailableVoxels = true; if any unavailable found
     while (!currentSearchPositions.isEmpty()) {
       SearchPosition currentSearchPosition = currentSearchPositions.getFirst();
       checkPosition.set(currentSearchPosition.chunkCoordinates.posX + searchDirectionsX[currentSearchPosition.nextSearchDirection],

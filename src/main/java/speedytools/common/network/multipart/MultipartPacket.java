@@ -478,7 +478,7 @@ public abstract class MultipartPacket
         compressedData[i++] = (byte)((uncompressedLength >> 16) & 0xff);
         compressedData[i++] = (byte)((uncompressedLength >> 24) & 0xff);
         compressedSize += START_FLAG_SIZE + START_LEN_SIZE;
-        System.out.println("Compressed multipartPart from " + dataToCompress.length + " to " + compressedSize);
+//        System.out.println("Compressed multipartPart from " + dataToCompress.length + " to " + compressedSize);
         return Arrays.copyOf(compressedData, compressedSize);
       }
     } catch (Exception exception) {
@@ -492,7 +492,7 @@ public abstract class MultipartPacket
     final int UNCOMPRESSED_FLAG = 0;
     retval[0] = UNCOMPRESSED_FLAG;
     System.arraycopy(dataToCompress, 0, retval, START_FLAG_SIZE, dataToCompress.length);
-    System.out.println("Uncompressed multipartPart  " + dataToCompress.length);
+//    System.out.println("Uncompressed multipartPart  " + dataToCompress.length);
     return retval;
   }
 

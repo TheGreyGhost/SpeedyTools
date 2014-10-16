@@ -49,7 +49,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   public SpeedyToolComplex(ItemComplexBase i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
                            CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary,
                            ClientVoxelSelection i_clientVoxelSelection,
-                           SelectionPacketSender i_selectionPacketSender, PacketSenderClient i_packetSenderClient) {
+                           CommonSelectionState i_commonSelectionState, SelectionPacketSender i_selectionPacketSender, PacketSenderClient i_packetSenderClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
     itemComplexBase = i_parentItem;
     speedyToolBoundary = i_speedyToolBoundary;
@@ -61,6 +61,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
 //    selectionPacketSender = i_selectionPacketSender;
     clientVoxelSelection = i_clientVoxelSelection;
+    commonSelectionState = i_commonSelectionState;
   }
 
   @Override
@@ -325,17 +326,21 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
           if (inputEvent.controlKeyDown) {
             flipSelection(player);
           } else { // toggle selection grabbing
-            hasBeenMoved = true;
+            commonSelectionState.hasBeenMoved = true;
             Vec3 playerPosition = player.getPosition(partialTick);  // beware, Vec3 is short-lived
-            selectionGrabActivated = !selectionGrabActivated;
-            if (selectionGrabActivated) {
-              selectionMovedFastYet = false;
-              selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
+            commonSelectionState.selectionGrabActivated = !commonSelectionState.selectionGrabActivated;
+            if (commonSelectionState.selectionGrabActivated) {
+              commonSelectionState.selectionMovedFastYet = false;
+              commonSelectionState.selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
+              SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_GRAB, soundController);
+              soundEffectSimple.startPlaying();
             } else {
-              Vec3 distanceMoved = selectionGrabPoint.subtract(playerPosition);
-              selectionOrigin.posX += (int)Math.round(distanceMoved.xCoord);
-              selectionOrigin.posY += (int)Math.round(distanceMoved.yCoord);
-              selectionOrigin.posZ += (int)Math.round(distanceMoved.zCoord);
+              Vec3 distanceMoved = commonSelectionState.selectionGrabPoint.subtract(playerPosition);
+              commonSelectionState.selectionOrigin.posX += (int)Math.round(distanceMoved.xCoord);
+              commonSelectionState.selectionOrigin.posY += (int)Math.round(distanceMoved.yCoord);
+              commonSelectionState.selectionOrigin.posZ += (int)Math.round(distanceMoved.zCoord);
+              SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_UNGRAB, soundController);
+              soundEffectSimple.startPlaying();
             }
           }
         } else if (inputEvent.eventDuration >= MIN_PLACE_HOLD_DURATION_NS) {
@@ -485,7 +490,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
             Math.round((float) selectionPosition.xCoord),
             Math.round((float) selectionPosition.yCoord),
             Math.round((float) selectionPosition.zCoord),
-            selectionOrientation);
+            commonSelectionState.selectionOrientation);
     if (result.succeeded()) {
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
       toolState = ToolState.PERFORMING_ACTION;
@@ -499,20 +504,20 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     float modulusYaw =  MathHelper.wrapAngleTo180_float(entityClientPlayerMP.rotationYaw);
 
     if (Math.abs(modulusYaw) < 45 || Math.abs(modulusYaw) > 135) { // looking mostly north-south
-      selectionOrientation.flipWX();
+      commonSelectionState.selectionOrientation.flipWX();
     } else {
-      selectionOrientation.flipWZ();
+      commonSelectionState.selectionOrientation.flipWZ();
     }
   }
 
   private void rotateSelection(int rotationCountAndDirection)
   {
-    selectionOrientation.rotateClockwise(rotationCountAndDirection);
+    commonSelectionState.selectionOrientation.rotateClockwise(rotationCountAndDirection);
   }
 
   private void initiateSelectionCreation(EntityClientPlayerMP thePlayer)
   {
-    selectionGrabActivated = false;
+    commonSelectionState.selectionGrabActivated = false;
     switch (currentHighlighting) {
       case NONE: {
         if (updateBoundaryCornersFromToolBoundary()) {
@@ -550,27 +555,27 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   public void performTick(World world) {
     checkInvariants();
     super.performTick(world);
-    updateGrabRenderTick(selectionGrabActivated && clientVoxelSelection.getReadinessForDisplaying() == ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY);
+    updateGrabRenderTick(commonSelectionState.selectionGrabActivated && clientVoxelSelection.getReadinessForDisplaying() == ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY);
 
     final long MAX_TIME_IN_NS = SpeedyToolsOptions.getMaxClientBusyTimeMS() * 1000L * 1000L;
     ClientVoxelSelection.VoxelSelectionState oldState = clientVoxelSelection.getReadinessForDisplaying();
     clientVoxelSelection.performTick(world, MAX_TIME_IN_NS);
     if (clientVoxelSelection.hasSelectionBeenUpdated()) {   // update the origin and orientation if the selection has been updated
       if (oldState != ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY) {
-        initialSelectionOrigin = clientVoxelSelection.getSourceWorldOrigin();
-        initialSelectionOrientation = clientVoxelSelection.getSourceQuadOrientation();
-        selectionOrigin = initialSelectionOrigin;
-        selectionOrientation = initialSelectionOrientation;
+        commonSelectionState.initialSelectionOrigin = clientVoxelSelection.getSourceWorldOrigin();
+        commonSelectionState.initialSelectionOrientation = clientVoxelSelection.getSourceQuadOrientation();
+        commonSelectionState.selectionOrigin = commonSelectionState.initialSelectionOrigin;
+        commonSelectionState.selectionOrientation = commonSelectionState.initialSelectionOrientation;
       } else {                                                         // apply any user translations and orientation changes to the new values
-        int dx = selectionOrigin.posX - initialSelectionOrigin.posX;
-        int dy = selectionOrigin.posY - initialSelectionOrigin.posY;
-        int dz = selectionOrigin.posZ - initialSelectionOrigin.posZ;
+        int dx = commonSelectionState.selectionOrigin.posX - commonSelectionState.initialSelectionOrigin.posX;
+        int dy = commonSelectionState.selectionOrigin.posY - commonSelectionState.initialSelectionOrigin.posY;
+        int dz = commonSelectionState.selectionOrigin.posZ - commonSelectionState.initialSelectionOrigin.posZ;
         ChunkCoordinates newOrigin = clientVoxelSelection.getSourceWorldOrigin();
-        selectionOrigin = new ChunkCoordinates(newOrigin.posX + dx, newOrigin.posY + dy, newOrigin.posZ + dz);
+        commonSelectionState.selectionOrigin = new ChunkCoordinates(newOrigin.posX + dx, newOrigin.posY + dy, newOrigin.posZ + dz);
         QuadOrientation newOrientation = clientVoxelSelection.getSourceQuadOrientation();
-        if (initialSelectionOrientation.isFlippedX()) newOrientation.flipX();
-        newOrientation.rotateClockwise(initialSelectionOrientation.getClockwiseRotationCount());
-        selectionOrientation = newOrientation;
+        if (commonSelectionState.initialSelectionOrientation.isFlippedX()) newOrientation.flipX();
+        newOrientation.rotateClockwise(commonSelectionState.initialSelectionOrientation.getClockwiseRotationCount());
+        commonSelectionState.selectionOrientation = newOrientation;
       }
     }
 
@@ -594,7 +599,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         lastActionWasRejected = false;
         toolState = ToolState.ACTION_SUCCEEDED;
         cloneToolsNetworkClient.changeClientStatus(ClientStatus.MONITORING_STATUS);
-        hasBeenMoved = false;
+        commonSelectionState.hasBeenMoved = false;
         if (cancelSelectionAfterAction()) {
           undoSelectionCreation();
         }
@@ -714,17 +719,17 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
       double currentSpeedSquared = player.motionX * player.motionX + player.motionY * player.motionY + player.motionZ * player.motionZ;
       if (currentSpeedSquared >= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID) {
-        selectionMovedFastYet = true;
+        commonSelectionState.selectionMovedFastYet = true;
       }
-      final boolean snapToGridWhileMoving = selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
+      final boolean snapToGridWhileMoving = commonSelectionState.selectionMovedFastYet && currentSpeedSquared <= THRESHOLD_SPEED_SQUARED_FOR_SNAP_GRID;
       Vec3 selectionPosition = getSelectionPosition(player, partialTick, snapToGridWhileMoving);
       infoToUpdate.selectorRenderer = clientVoxelSelection.getVoxelSelectionRenderer();
       infoToUpdate.draggedSelectionOriginX = selectionPosition.xCoord;
       infoToUpdate.draggedSelectionOriginY = selectionPosition.yCoord;
       infoToUpdate.draggedSelectionOriginZ = selectionPosition.zCoord;
-      infoToUpdate.opaque = hasBeenMoved;
+      infoToUpdate.opaque = commonSelectionState.hasBeenMoved;
       infoToUpdate.renderColour = SpeedyToolComplex.this.getSelectionRenderColour();
-      infoToUpdate.selectionOrientation = selectionOrientation;
+      infoToUpdate.selectionOrientation = commonSelectionState.selectionOrientation;
       return true;
     }
   }
@@ -850,11 +855,11 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   {
     Vec3 playerOrigin = player.getPosition(partialTick);
 
-    double draggedSelectionOriginX = selectionOrigin.posX;
-    double draggedSelectionOriginY = selectionOrigin.posY;
-    double draggedSelectionOriginZ = selectionOrigin.posZ;
-    if (selectionGrabActivated) {
-      Vec3 distanceMoved = selectionGrabPoint.subtract(playerOrigin);
+    double draggedSelectionOriginX = commonSelectionState.selectionOrigin.posX;
+    double draggedSelectionOriginY = commonSelectionState.selectionOrigin.posY;
+    double draggedSelectionOriginZ = commonSelectionState.selectionOrigin.posZ;
+    if (commonSelectionState.selectionGrabActivated) {
+      Vec3 distanceMoved = commonSelectionState.selectionGrabPoint.subtract(playerOrigin);
       draggedSelectionOriginX += distanceMoved.xCoord;
       draggedSelectionOriginY += distanceMoved.yCoord;
       draggedSelectionOriginZ += distanceMoved.zCoord;
@@ -1020,7 +1025,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //    assert (   currentToolSelectionState != ToolSelectionStates.DISPLAYING_SELECTION
 //            || (voxelSelectionManager != null && selectionOrigin != null) );
 
-    assert (    selectionGrabActivated == false || selectionGrabPoint != null);
+    assert (    commonSelectionState.selectionGrabActivated == false || commonSelectionState.selectionGrabPoint != null);
   }
 
 
@@ -1053,14 +1058,15 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
 //  private BlockVoxelMultiSelector voxelSelectionManager;
 //  private BlockVoxelMultiSelectorRenderer voxelSelectionRenderer;
-  private ChunkCoordinates selectionOrigin;
-  private boolean selectionGrabActivated = false;
-  private Vec3    selectionGrabPoint = null;
-  private boolean selectionMovedFastYet;
-  private boolean hasBeenMoved;               // used to change the appearance when freshed created or placed.
-  private QuadOrientation selectionOrientation;
-  ChunkCoordinates initialSelectionOrigin;
-  QuadOrientation initialSelectionOrientation;
+//  private ChunkCoordinates selectionOrigin;
+//  private boolean selectionGrabActivated = false;
+//  private Vec3    selectionGrabPoint = null;
+//  private boolean selectionMovedFastYet;
+//  private boolean hasBeenMoved;               // used to change the appearance when freshly created or placed.
+//  private QuadOrientation selectionOrientation;
+//  ChunkCoordinates initialSelectionOrigin;
+//  QuadOrientation initialSelectionOrientation;
+  private CommonSelectionState commonSelectionState;
 
   private ClientVoxelSelection clientVoxelSelection;
   private CloneToolsNetworkClient cloneToolsNetworkClient;

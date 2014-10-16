@@ -43,7 +43,6 @@ public class SpeedyToolServerActions
   /**
    * performed in response to a "I've made a selection" message from the client
    * @return true for success, false otherwise
-   * TODO: make asynchronous later;
    */
   public ResultWithReason prepareForToolAction(EntityPlayerMP player)
   {

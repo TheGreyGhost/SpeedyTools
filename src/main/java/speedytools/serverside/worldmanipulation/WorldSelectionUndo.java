@@ -121,7 +121,7 @@ public class WorldSelectionUndo
        If we haven't gotten to the WRITING yet, just erase the changedBlocksMask.  Otherwise, abort the WRITE SUBTASK and proceed with the remaining stages as normal
      */
 
-//    System.out.println("WorldSelectionUndo stage: " + state.getStage() + " fractionComplete:" + state.getFractionComplete()); // todo remove
+//    System.out.println("WorldSelectionUndo stage: " + state.getStage() + " fractionComplete:" + state.getFractionComplete());
 
     WorldFragment fragmentToWrite = state.fragmentToWrite;
     QuadOrientation quadOrientation = state.quadOrientation;

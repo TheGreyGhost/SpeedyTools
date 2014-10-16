@@ -310,7 +310,7 @@ public class BlockVoxelMultiSelectorRenderer
               renderThisChunk(world, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cx, cy, cz);
             }
             unloadedChunks.clear(cx + cz * chunkCountX);
-            System.out.println("update clear [" + cx + ", " + cz + "]");
+//            System.out.println("update clear [" + cx + ", " + cz + "]");
           }
         }
       }

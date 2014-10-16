@@ -74,13 +74,15 @@ public class CombinedClientProxy extends CommonProxy {
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
 
+    CommonSelectionState commonSelectionState = new CommonSelectionState();
+
     ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexCopy,
             new SpeedyToolComplexCopy(RegistryForItems.itemComplexCopy,
                                       ClientSide.speedyToolRenderers,
                                       ClientSide.speedyToolSounds,
                                       ClientSide.undoManagerComplex,
                                       ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
-                                      ClientSide.clientVoxelSelection,
+                                      ClientSide.clientVoxelSelection, commonSelectionState,
                                       ClientSide.selectionPacketSenderComplex,
                     ClientSide.packetSenderClient
                                     )
@@ -92,7 +94,7 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerComplex,
                     ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
-                    ClientSide.clientVoxelSelection,
+                    ClientSide.clientVoxelSelection, commonSelectionState,
                     ClientSide.selectionPacketSenderComplex,
                     ClientSide.packetSenderClient
             )
@@ -104,7 +106,7 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.speedyToolSounds,
                     ClientSide.undoManagerComplex,
                     ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
-                    ClientSide.clientVoxelSelection,
+                    ClientSide.clientVoxelSelection, commonSelectionState,
                     ClientSide.selectionPacketSenderComplex,
                     ClientSide.packetSenderClient
             )

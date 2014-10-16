@@ -1142,7 +1142,7 @@ public class WorldFragment
 //    double oldY = ((NBTTagDouble)nbttaglist.tagAt(1)).data;
 //    double oldZ = ((NBTTagDouble)nbttaglist.tagAt(2)).data;
 //
-//    System.out.println("OldPos: ["+ oldX + ", " + oldY + ", " + oldZ + "]"); // todo remove
+//    System.out.println("OldPos: ["+ oldX + ", " + oldY + ", " + oldZ + "]");
 //
 //    double newX = oldX + deltaX;
 //    double newY = oldY + deltaY;

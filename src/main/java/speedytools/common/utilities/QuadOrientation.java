@@ -6,13 +6,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-//NOTE
-//bugs:
-//undo is offset when rotated 2x5 pattern is placed and undone
-//place/unplace highlighting is confusing
-// todo: check if selection cancel and remake still gives problems if drag mode is still on.
-
-
 /**
  * User: The Grey Ghost
  * Date: 12/07/2014
