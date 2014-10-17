@@ -3,13 +3,14 @@ package speedytools.serverside.ingametester;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
-import org.objenesis.Objenesis;
-import org.objenesis.ObjenesisStd;
+//import org.objenesis.Objenesis;
+//import org.objenesis.ObjenesisStd;
 import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.network.SpeedyToolsNetworkServer;
+
 
 /**
 * Created by TheGreyGhost on 26/06/14.
@@ -49,8 +50,9 @@ public class InGameStatusSimulator
 {
   public InGameStatusSimulator()
   {
-    Objenesis objenesis = new ObjenesisStd();
-    entityPlayerMPDummy = (EntityPlayerMPDummy) objenesis.newInstance(EntityPlayerMPDummy.class);
+//    Objenesis objenesis = new ObjenesisStd();               //todo - reinstate Objenesis for entityPlayerMPDummy
+//
+//    entityPlayerMPDummy = (EntityPlayerMPDummy) objenesis.newInstance(EntityPlayerMPDummy.class);
     testMode = 0;
   }
 

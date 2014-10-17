@@ -27,6 +27,7 @@ minecraft {
 }
 
 dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.+'
     compile "org.objenesis:objenesis:2.1"
     // you may put jars on which you depend on in ./libs
     // or you may define them like so..
@@ -45,6 +46,12 @@ dependencies {
 
 test {
     exclude '*'
+}
+
+jar {
+    manifest {
+        attributes 'FMLAT': 'speedytoolsmod_at.cfg'
+    }
 }
 
 processResources
