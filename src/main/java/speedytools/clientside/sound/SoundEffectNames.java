@@ -25,7 +25,9 @@ public enum SoundEffectNames
   POWERUP_HOLD("complex.powerringchargeuploop"),
   PERFORMING_ACTION("complex.powerringwhooshloop"),
   POWERUP_FAILURE("complex.powerringchargefailure"),
-  CREATE_SELECTION("complex.createselection");
+  CREATE_SELECTION1("complex.createselection1"),
+  CREATE_SELECTION2("complex.createselection2"),
+  CREATE_SELECTION3("complex.createselection3");
 
   public final String getJsonName() {return "speedytoolsmod:" + jsonName;}
 

@@ -11,7 +11,6 @@ import java.util.HashMap;
 /**
 * User: The Grey Ghost
 * Date: 14/04/14
-* TODO: when the player logs out of a world and loads another, reset the tools (selection, boundary field, etc)
 */
 public class ActiveTool
 {

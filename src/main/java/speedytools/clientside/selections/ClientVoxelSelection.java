@@ -180,10 +180,11 @@ public class ClientVoxelSelection
       case IDLE: return 0.0F;
       case COMPLETE: return 1.000F;
       case GENERATING: {
-        return selectionGenerationFractionComplete * SELECTION_GENERATION_FULL;
+        return localSelectionGenerationFractionComplete * SELECTION_GENERATION_FULL;
       }
       case CREATING_RENDERLISTS: {
-        float scaledProgress = SELECTION_GENERATION_FULL * selectionGenerationFractionComplete;
+
+        float scaledProgress = SELECTION_GENERATION_FULL * localSelectionGenerationFractionComplete;
         return scaledProgress + (1.0F - scaledProgress) * renderlistGenerationFractionComplete;
       }
       default: {
@@ -252,7 +253,7 @@ public class ClientVoxelSelection
     selectionBeingDisplayed = null;
     clientSelectionState = ClientSelectionState.GENERATING;
     outgoingTransmissionState = OutgoingTransmissionState.IDLE;
-    selectionGenerationFractionComplete = 0;
+    localSelectionGenerationFractionComplete = 0;
     renderlistGenerationFractionComplete = 0;
     clientVoxelMultiSelector = new BlockVoxelMultiSelector();
     currentSelectionUniqueID = nextUniqueID++;
@@ -354,9 +355,9 @@ public class ClientVoxelSelection
       case GENERATING: {   // keep generating; if complete, switch to creation of rendering lists
         float progress = clientVoxelMultiSelector.continueSelectionGeneration(world, maxDurationInNS);
         if (progress >= 0) {
-          selectionGenerationFractionComplete = progress;
+          localSelectionGenerationFractionComplete = progress;
         } else {   // -1 means complete
-
+          localSelectionGenerationFractionComplete = 1.0F;
 //          selectionPacketSender.reset();
           if (clientVoxelMultiSelector.isEmpty()) {
             clientSelectionState = ClientSelectionState.IDLE;
@@ -422,7 +423,8 @@ public class ClientVoxelSelection
         break;
       }
       case RECEIVING: {
-        if (serverVoxelSelection != null) {  // incoming packet transmission has finished
+        if (serverVoxelSelection != null && clientSelectionState == ClientSelectionState.COMPLETE) {  // incoming packet transmission has finished and client selection is done
+
           serverSelectionState = ServerSelectionState.CREATING_RENDERLISTS;
           voxelSelectionRenderer.resize(serverVoxelSelection.getWxOrigin(), serverVoxelSelection.getWyOrigin(), serverVoxelSelection.getWzOrigin(),
                                         serverVoxelSelection.getxSize(), serverVoxelSelection.getySize(), serverVoxelSelection.getzSize());
@@ -522,7 +524,7 @@ public class ClientVoxelSelection
 
   private BlockVoxelMultiSelectorRenderer voxelSelectionRenderer;
   private float renderlistGenerationFractionComplete;
-  private float selectionGenerationFractionComplete;
+  private float localSelectionGenerationFractionComplete;
   private boolean selectionUpdatedFlag;
 
   private VoxelSelectionWithOrigin selectionBeingDisplayed;
