@@ -14,7 +14,7 @@ import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.*;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
-import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.SpeedyToolsOptionsClient;
 import speedytools.common.items.ItemComplexBase;
 import speedytools.common.network.ClientStatus;
 import speedytools.common.network.ServerStatus;
@@ -157,9 +157,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput) {
     if (!iAmActive) return false;
 
-    final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for undo
-    final long MIN_PLACE_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for action (place)
-    final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptions.getShortClickMaxDurationNS();  // maximum length of time for a "short" click
+    final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptionsClient.getLongClickMinDurationNS(); // length of time to hold for undo
+    final long MIN_PLACE_HOLD_DURATION_NS = SpeedyToolsOptionsClient.getLongClickMinDurationNS(); // length of time to hold for action (place)
+    final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptionsClient.getShortClickMaxDurationNS();  // maximum length of time for a "short" click
 
     checkInvariants();
 
@@ -308,9 +308,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    * @return
    */
   private boolean processSelectionUserInput(EntityClientPlayerMP player, float partialTick, UserInput.InputEvent inputEvent) {
-    final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for undo
-    final long MIN_PLACE_HOLD_DURATION_NS = SpeedyToolsOptions.getLongClickMinDurationNS(); // length of time to hold for action (place)
-    final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptions.getShortClickMaxDurationNS();  // maximum length of time for a "short" click
+    final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptionsClient.getLongClickMinDurationNS(); // length of time to hold for undo
+    final long MIN_PLACE_HOLD_DURATION_NS = SpeedyToolsOptionsClient.getLongClickMinDurationNS(); // length of time to hold for action (place)
+    final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptionsClient.getShortClickMaxDurationNS();  // maximum length of time for a "short" click
 
     switch (inputEvent.eventType) {
       case LEFT_CLICK_UP: {
@@ -557,7 +557,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     super.performTick(world);
     updateGrabRenderTick(commonSelectionState.selectionGrabActivated && clientVoxelSelection.getReadinessForDisplaying() == ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY);
 
-    final long MAX_TIME_IN_NS = SpeedyToolsOptions.getMaxClientBusyTimeMS() * 1000L * 1000L;
+    final long MAX_TIME_IN_NS = SpeedyToolsOptionsClient.getMaxClientBusyTimeMS() * 1000L * 1000L;
     ClientVoxelSelection.VoxelSelectionState oldState = clientVoxelSelection.getReadinessForDisplaying();
     clientVoxelSelection.performTick(world, MAX_TIME_IN_NS);
     if (clientVoxelSelection.hasSelectionBeenUpdated()) {   // update the origin and orientation if the selection has been updated
@@ -1008,7 +1008,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     @Override
     public boolean refreshRenderInfo(RendererStatusMessage.StatusMessageRenderInfo infoToUpdate) {
       long timeMessageHasBeenDisplayed =  System.nanoTime() - errorMessageDisplayTimeStartNS;
-      if (timeMessageHasBeenDisplayed <= SpeedyToolsOptions.getErrorMessageDisplayDurationNS()) {
+      if (timeMessageHasBeenDisplayed <= SpeedyToolsOptionsClient.getErrorMessageDisplayDurationNS()) {
         infoToUpdate.messageToDisplay = errorMessageBeingDisplayed;
       } else {
         infoToUpdate.messageToDisplay = "";

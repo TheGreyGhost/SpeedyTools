@@ -28,13 +28,24 @@ package speedytools.clientside.userinput;
 *    (c) Will not work in GUI
  *   (d) Uses AccessTransformer to make the KeyBinding fields public
 */
+
+import com.google.common.base.Throwables;
+import cpw.mods.fml.relauncher.ReflectionHelper;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.settings.KeyBinding;
 
+import java.lang.reflect.Field;
+import java.util.List;
+
 @SideOnly(Side.CLIENT)
 public class KeyBindingInterceptor extends KeyBinding
 {
+  private static final Field keybindArrayField = ReflectionHelper.findField(KeyBinding.class, "keybindArray", "field_74516_a");
+  private static final Field keyCodeField = ReflectionHelper.findField(KeyBinding.class, "keyCode", "field_74512_d");
+  private static final Field pressedField = ReflectionHelper.findField(KeyBinding.class, "pressed", "field_74513_e");
+  private static final Field pressTimeField = ReflectionHelper.findField(KeyBinding.class, "pressTime", "field_151474_i");
+
   /**
    *  Create an Interceptor based on an existing binding.
    *  The initial interception mode is OFF.
@@ -44,12 +55,20 @@ public class KeyBindingInterceptor extends KeyBinding
   public KeyBindingInterceptor(KeyBinding existingKeyBinding)
   {
     super(existingKeyBinding.getKeyDescription(), existingKeyBinding.getKeyCode(), existingKeyBinding.getKeyCategory());
-    // the base constructor automatically adds the class to the keybindArray and hash, which we don't want, so undo it
-    keybindArray.remove(this);
+    try {
+      // the base constructor automatically adds the class to the keybindArray and hash, which we don't want, so undo it
+      List reflectkeybindArray = (List) keybindArrayField.get(this);
+      reflectkeybindArray.remove(this);
 
+      pressedField.setBoolean(this, false);
+      pressTimeField.setInt(this, 0);
+//      this.pressed = false;
+//      this.pressTime = 0;
+
+    } catch (Exception e) {
+      throw Throwables.propagate(e);
+    }
     this.interceptionActive = false;
-    this.pressed = false;
-    this.pressTime = 0;
     this.interceptedPressTime = 0;
 
     if (existingKeyBinding instanceof KeyBindingInterceptor) {
@@ -72,7 +91,13 @@ public class KeyBindingInterceptor extends KeyBinding
   public boolean isKeyDown()
   {
     copyKeyCodeToOriginal();
-    return interceptedKeyBinding.pressed;
+//    return interceptedKeyBinding.pressed;
+    try {
+      return pressedField.getBoolean(interceptedKeyBinding);
+    } catch (Exception e) {
+      Throwables.propagate(e);
+      return false;
+    }
   }
 
   /**
@@ -107,17 +132,27 @@ public class KeyBindingInterceptor extends KeyBinding
     copyKeyCodeToOriginal();
     copyClickInfoFromOriginal();
 
-    if (interceptionActive) {
-      this.pressTime = 0;
-      this.pressed = false;
-      return false;
-    } else {
-      if (this.pressTime == 0) {
+    try {
+
+      if (interceptionActive) {
+        pressTimeField.setInt(this, 0);
+        pressedField.setBoolean(this, false);
+//        this.pressTime = 0;
+//        this.pressed = false;
         return false;
       } else {
-        --this.pressTime;
-        return true;
+//        if (this.pressTime == 0) {
+        if (pressTimeField.getInt(this) == 0) {
+          return false;
+        } else {
+          pressTimeField.setInt(this, pressTimeField.getInt(this) - 1);
+//          --this.pressTime;
+          return true;
+        }
       }
+    } catch (Exception e) {
+      Throwables.propagate(e);
+      return false;
     }
   }
 
@@ -132,18 +167,34 @@ public class KeyBindingInterceptor extends KeyBinding
 
   protected void copyClickInfoFromOriginal()
   {
-    this.pressTime += interceptedKeyBinding.pressTime;
-    this.interceptedPressTime += interceptedKeyBinding.pressTime;
-    interceptedKeyBinding.pressTime = 0;
-    this.pressed = interceptedKeyBinding.pressed;
+    try {
+//      this.pressTime += interceptedKeyBinding.pressTime;
+//      this.interceptedPressTime += interceptedKeyBinding.pressTime;
+//      interceptedKeyBinding.pressTime = 0;
+//      this.pressed = interceptedKeyBinding.pressed;
+      int value =  pressTimeField.getInt(this);
+      value += pressTimeField.getInt(interceptedKeyBinding);
+      pressTimeField.setInt(this, value);
+      this.interceptedPressTime += pressTimeField.getInt(interceptedKeyBinding);
+      pressTimeField.setInt(interceptedKeyBinding, 0);
+      pressedField.setBoolean(this, pressedField.getBoolean(interceptedKeyBinding));
+    } catch (Exception e) {
+      Throwables.propagate(e);
+    }
   }
 
   protected void copyKeyCodeToOriginal()
   {
-    // only copy if necessary
-    if (this.keyCode != interceptedKeyBinding.keyCode) {
-      this.keyCode = interceptedKeyBinding.keyCode;
-      resetKeyBindingArrayAndHash();
+    try {
+      // only copy if necessary
+//      if (this.keyCode != interceptedKeyBinding.keyCode) {
+//        this.keyCode = interceptedKeyBinding.keyCode;
+      if (keyCodeField.getInt(this) != keyCodeField.getInt(interceptedKeyBinding)) {
+        keyCodeField.setInt(this, keyCodeField.getInt(interceptedKeyBinding));
+        resetKeyBindingArrayAndHash();
+      }
+    } catch (Exception e) {
+      Throwables.propagate(e);
     }
   }
 

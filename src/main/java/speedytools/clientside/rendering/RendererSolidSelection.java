@@ -1,18 +1,16 @@
 package speedytools.clientside.rendering;
 
+import cpw.mods.fml.common.eventhandler.Event;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.Vec3;
-import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
-import cpw.mods.fml.common.eventhandler.Event;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientside.ClientSide;
 import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
-import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.SpeedyToolsOptionsClient;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.QuadOrientation;
 
@@ -81,7 +79,7 @@ public class RendererSolidSelection implements RendererElement
       Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.locationBlocksTexture);
       GL11.glDisable(GL11.GL_ALPHA_TEST);
 
-      int renderDistanceBlocks = SpeedyToolsOptions.getRenderDistanceInBlocks();
+      int renderDistanceBlocks = SpeedyToolsOptionsClient.getRenderDistanceInBlocks();
       if (renderInfo.selectorRenderer != null) {
         renderInfo.selectorRenderer.renderSelection(playerRelativeToSelectionOrigin, renderDistanceBlocks,
                                                     renderInfo.selectionOrientation, renderInfo.renderColour);         // todo: later - maybe - clip by frustrum
