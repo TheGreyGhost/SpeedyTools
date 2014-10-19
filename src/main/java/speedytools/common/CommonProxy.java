@@ -8,11 +8,14 @@ import speedytools.serverside.ServerEventHandler;
 import speedytools.serverside.ServerSide;
 import speedytools.serverside.ServerTickHandler;
 
+import java.io.IOException;
+import java.nio.file.Path;
+
 /**
  * CommonProxy is used to set up the mod and start it running.  It contains all the code that should run on both the
  *   Standalone client and the dedicated server.
  */
-public class CommonProxy {
+public abstract class CommonProxy {
 
   /**
    * Run before anything else. Read your config, create blocks, items, etc, and register them with the GameRegistry
@@ -41,6 +44,14 @@ public class CommonProxy {
     FMLCommonHandler.instance().bus().register(new ServerTickHandler());
     FMLCommonHandler.instance().bus().register(ServerSide.getPlayerTrackerRegistry());
   }
+
+  /**
+   * Obtains the folder that world save backups should be stored in.
+   * For Integrated Server, this is the saves folder
+   * For Dedicated Server, a new 'backupsaves' folder is created in the same folder that contains the world save directory
+   * @return the folder where backup saves should be created
+   */
+  public abstract Path getOrCreateSaveBackupsFolder() throws IOException;
 
 //  /**
 //   * Gets the NetworkTrafficMonitor used to monitor network traffic on the current side

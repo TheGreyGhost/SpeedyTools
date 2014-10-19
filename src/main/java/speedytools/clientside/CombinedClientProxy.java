@@ -1,6 +1,7 @@
 package speedytools.clientside;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.clientside.rendering.ItemEventHandler;
 import speedytools.clientside.rendering.RenderEventHandlers;
@@ -10,6 +11,10 @@ import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * CombinedClientProxy is used to set up the mod and start it running when installed on a standalone client.
@@ -143,5 +148,17 @@ public class CombinedClientProxy extends CommonProxy {
     MinecraftForge.EVENT_BUS.register(new ClientEventHandler());
 
 
+  }
+
+  /**
+   * Obtains the folder that world save backups should be stored in.
+   * For Integrated Server, this is the saves folder
+   * For Dedicated Server, a new 'backupsaves' folder is created in the same folder that contains the world save directory
+   *
+   * @return the folder where backup saves should be created
+   */
+  @Override
+  public Path getOrCreateSaveBackupsFolder() throws IOException {
+    return new File(Minecraft.getMinecraft().mcDataDir, "saves").toPath();
   }
 }

@@ -1,7 +1,13 @@
 package speedytools.serverside;
 
 
+import cpw.mods.fml.server.FMLServerHandler;
 import speedytools.common.CommonProxy;
+import speedytools.common.SpeedyToolsOptions;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * DedicatedServerProxy is used to set up the mod and start it running when installed on a dedicated server.
@@ -36,6 +42,23 @@ public class DedicatedServerProxy extends CommonProxy
   public void postInit()
   {
     super.postInit();
+  }
+
+  /**
+   * Obtains the folder that world save backups should be stored in.
+   * For Integrated Server, this is the saves folder
+   * For Dedicated Server, a new 'backupsaves' folder is created in the same folder that contains the world save directory
+   *
+   * @return the folder where backup saves should be created
+   */
+  @Override
+  public Path getOrCreateSaveBackupsFolder() throws IOException {
+    Path universeFolder = FMLServerHandler.instance().getSavesDirectory().toPath();
+    Path backupsFolder = universeFolder.resolve(SpeedyToolsOptions.nameForSavesBackupFolder());
+    if (!Files.exists(backupsFolder)) {
+      Files.createDirectory(backupsFolder);
+    }
+    return backupsFolder;
   }
 
 }

@@ -43,4 +43,6 @@ public class SpeedyToolsOptions
   }
   public static int getNetworkLoggingPeriodInTicks() {return 20 * 10;}
 
+  public static String nameForSavesBackupFolder() { return "backups";}
+
 }
