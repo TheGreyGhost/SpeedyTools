@@ -6,7 +6,7 @@ package speedytools.common.network;
  */
 public enum Packet250Types
 {
-  PACKET250_SPEEDY_TOOL_USE_ID(0),
+  PACKET250_SPEEDY_TOOL_USE_ID(8),
   PACKET250_CLONE_TOOL_USE_ID(1),
   PACKET250_TOOL_STATUS_ID(2),
   PACKET250_TOOL_ACKNOWLEDGE_ID(3),

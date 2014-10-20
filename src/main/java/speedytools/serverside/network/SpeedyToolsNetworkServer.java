@@ -64,6 +64,9 @@ public class SpeedyToolsNetworkServer
     packetHandlerSpeedyToolUse = this.new PacketHandlerSpeedyToolUse();
     Packet250SpeedyToolUse.registerHandler(i_packetHandlerRegistry, packetHandlerSpeedyToolUse, Side.SERVER);
 
+    // no handler, but need to register the discriminator!
+    Packet250CloneToolAcknowledge.registerHandler(packetHandlerRegistry, null, Side.SERVER);
+
     playerTracker = this.new PlayerTracker();
     playerTrackerRegistry.registerHandler(playerTracker);
   }

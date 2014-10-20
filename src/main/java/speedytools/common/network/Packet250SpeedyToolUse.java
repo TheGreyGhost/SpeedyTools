@@ -119,7 +119,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
         newCC.posZ = buf.readInt();
         currentlySelectedBlocks.add(newCC);
       }
-    } catch (ArrayIndexOutOfBoundsException ioe) {
+    } catch (IndexOutOfBoundsException ioe) {
       ErrorLog.defaultLog().info("Exception while reading Packet250SpeedyToolUse: " + ioe);
       return;
     }
