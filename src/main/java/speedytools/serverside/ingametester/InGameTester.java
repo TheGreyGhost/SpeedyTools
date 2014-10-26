@@ -22,6 +22,7 @@ import speedytools.serverside.worldmanipulation.WorldHistory;
 import speedytools.serverside.worldmanipulation.WorldSelectionUndo;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -86,6 +87,7 @@ public class
         case 16: success = performTest16(entityPlayerMP, performTest); break;
         case 17: success = performTest17(performTest); break;
         case 18: success = performTest18(entityPlayerMP, performTest); break;
+        case 19: success = performTest19(entityPlayerMP, performTest); break;
         default: blankTest = true; break;
       }
       if (blankTest) {
@@ -638,22 +640,22 @@ public class
     BlockWithMetadata blockWithMetadata = new BlockWithMetadata();
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
-    blockWithMetadata.block = Blocks.gold_block; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple1);
+    blockWithMetadata.block = Blocks.gold_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, simple1);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(1).sourceRegion.posX, testRegions.get(1).sourceRegion.posY, testRegions.get(1).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
-    blockWithMetadata.block = Blocks.emerald_block; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple2);
+    blockWithMetadata.block = Blocks.emerald_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, simple2);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(2).sourceRegion.posX, testRegions.get(2).sourceRegion.posY, testRegions.get(2).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
-    blockWithMetadata.block = Blocks.lapis_block; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple3);
+    blockWithMetadata.block = Blocks.lapis_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, simple3);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(3).sourceRegion.posX, testRegions.get(3).sourceRegion.posY, testRegions.get(3).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
-    blockWithMetadata.block = Blocks.diamond_block; worldSelectionUndo.writeToWorld(worldServer, blockWithMetadata, simple4);
+    blockWithMetadata.block = Blocks.diamond_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, simple4);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(6).sourceRegion.posX, testRegions.get(6).sourceRegion.posY, testRegions.get(6).sourceRegion.posZ, null);
 
@@ -914,6 +916,36 @@ public class
     SelectionFillTester selectionFillTester = new SelectionFillTester();
     return selectionFillTester.runFillTests(entityPlayerMP, performTest);
   }
+
+  public boolean performTest19(EntityPlayerMP entityPlayerMP, boolean performTest)
+  {
+    // try placing all registered blocks using the wand, to see if rotation placement works properly (eg for stairs)
+
+    System.out.println("Test19 started");
+    WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
+    WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
+
+    Iterator blockIt = Block.blockRegistry.iterator();
+
+    int xpos = (int)entityPlayerMP.posX + 1;
+    int ypos = (int)entityPlayerMP.posY;
+    int zpos = (int)entityPlayerMP.posZ;
+
+    while (blockIt.hasNext()) {
+      Block block = (Block)blockIt.next();
+      BlockWithMetadata blockToPlace = new BlockWithMetadata();
+      blockToPlace.block = performTest ? block : Blocks.air;
+      final int LENGTH_OF_TEST_BLOCK_LINE = 4;
+      List<ChunkCoordinates> locations = new ArrayList<ChunkCoordinates>(LENGTH_OF_TEST_BLOCK_LINE);
+      for (int i = 0; i < LENGTH_OF_TEST_BLOCK_LINE; ++i) {
+        locations.add(new ChunkCoordinates(xpos, ypos, zpos+i));
+      }
+      worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockToPlace, locations);
+      xpos += 2;
+    }
+    return true;
+  }
+
 
   public boolean standardCopyAndTest(boolean performTest, boolean expectedMatchesSource,
                                      int xOrigin, int yOrigin, int zOrigin, int xSize, int ySize, int zSize)

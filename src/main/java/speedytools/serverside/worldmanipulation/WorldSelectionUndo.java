@@ -1,5 +1,9 @@
 package speedytools.serverside.worldmanipulation;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
@@ -339,8 +343,9 @@ public class WorldSelectionUndo
   /**
    * writes the given list of blocks into the world, saving enough information to allow for a subsequent undo
    * @param worldServer
+   * @param entityPlayerMP
    */
-  public void writeToWorld(WorldServer worldServer, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
   {
     /* algorithm is:
        (1) create a border mask for the blocks to be written, i.e. a mask showing all voxels which are adjacent to a block in the selection
@@ -392,11 +397,14 @@ public class WorldSelectionUndo
     undoWorldFragment = new WorldFragment(xSize, ySize, zSize);
     undoWorldFragment.readFromWorld(worldServer, wxOfOrigin, wyOfOrigin, wzOfOrigin, expandedSelection);
 
+    Item blockItem = (blockToPlace.block == null) ? null : Item.getItemFromBlock(blockToPlace.block);
+    ItemStack dummyPlaceItemStack = new ItemStack(blockItem == null ? Items.diamond : blockItem);
     for (ChunkCoordinates cc : blockSelection) {
       if (blockToPlace.block == null) {
         worldServer.setBlockToAir(cc.posX, cc.posY, cc.posZ);
       } else {
         worldServer.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block, blockToPlace.metaData, 1+2);
+        blockToPlace.block.onBlockPlacedBy(worldServer, cc.posX, cc.posY, cc.posZ, entityPlayerMP, dummyPlaceItemStack);
       }
     }
 

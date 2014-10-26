@@ -98,7 +98,7 @@ public class WorldHistory
     }
     if (blockSelection.isEmpty()) return;
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer, blockToPlace, blockSelection);
+    worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockToPlace, blockSelection);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, entityPlayerMP, worldSelectionUndo);
     undoLayersSimple.add(undoLayerInfo);
 
