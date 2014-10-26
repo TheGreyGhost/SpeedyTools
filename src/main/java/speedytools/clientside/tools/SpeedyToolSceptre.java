@@ -7,11 +7,12 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
+import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.sound.SoundEffectNames;
-import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.sound.SoundEffectSimple;
 import speedytools.common.items.ItemSpeedyTool;
+import speedytools.common.utilities.Pair;
 
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
   {
     boolean additiveContour = itemStackToPlace != null;
     return selectContourBlocks(target, player, maxSelectionSize, additiveContour, partialTick);

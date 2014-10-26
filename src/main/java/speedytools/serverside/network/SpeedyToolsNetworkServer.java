@@ -443,7 +443,7 @@ public class SpeedyToolsNetworkServer
       if (!packet250SpeedyToolUse.isPacketIsValid()) return false;
       SpeedyToolsNetworkServer.this.speedyToolServerActions.performSimpleAction(ctx.getServerHandler().playerEntity,
               packet250SpeedyToolUse.getButton(),
-              packet250SpeedyToolUse.getBlockToPlace(), packet250SpeedyToolUse.getCurrentlySelectedBlocks());
+              packet250SpeedyToolUse.getBlockToPlace(), packet250SpeedyToolUse.getSideToPlace(), packet250SpeedyToolUse.getCurrentlySelectedBlocks());
       return true;
     }
   }

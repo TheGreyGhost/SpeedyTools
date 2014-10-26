@@ -344,8 +344,9 @@ public class WorldSelectionUndo
    * writes the given list of blocks into the world, saving enough information to allow for a subsequent undo
    * @param worldServer
    * @param entityPlayerMP
+   * @param sideToPlace where the player's cursor is pointing when they placed the blocks
    */
-  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, int sideToPlace, List<ChunkCoordinates> blockSelection)
   {
     /* algorithm is:
        (1) create a border mask for the blocks to be written, i.e. a mask showing all voxels which are adjacent to a block in the selection
@@ -403,6 +404,9 @@ public class WorldSelectionUndo
       if (blockToPlace.block == null) {
         worldServer.setBlockToAir(cc.posX, cc.posY, cc.posZ);
       } else {
+        final float DUMMY_HIT_XYZ = 0.5F;
+        blockToPlace.metaData = blockToPlace.block.onBlockPlaced(worldServer, cc.posX, cc.posY, cc.posZ,
+                                                                 sideToPlace, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ, blockToPlace.metaData);
         worldServer.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block, blockToPlace.metaData, 1+2);
         blockToPlace.block.onBlockPlacedBy(worldServer, cc.posX, cc.posY, cc.posZ, entityPlayerMP, dummyPlaceItemStack);
       }

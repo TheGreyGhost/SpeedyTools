@@ -32,6 +32,8 @@ public class Packet250SpeedyToolUse extends Packet250Base
     return blockToPlace;
   }
 
+  public int getSideToPlace() {return sideToPlace;}
+
   public List<ChunkCoordinates> getCurrentlySelectedBlocks() {
     return currentlySelectedBlocks;
   }
@@ -39,15 +41,17 @@ public class Packet250SpeedyToolUse extends Packet250Base
   /**
    * Packet sent from client to server, to indicate when the user has used a SpeedyTool
    * @param newButton       - left mouse button (attack) = 0; right mouse button (use) = 1
+   * @param i_sideToPlace - the side on which the block is being placed (top, east, etc)
    * @param newCurrentlySelectedBlocks - a list of the blocks selected by the tool when the button was clicked
    */
-  public Packet250SpeedyToolUse(int newButton, BlockWithMetadata newBlockToPlace, List<ChunkCoordinates> newCurrentlySelectedBlocks)
+  public Packet250SpeedyToolUse(int newButton, BlockWithMetadata newBlockToPlace, int i_sideToPlace, List<ChunkCoordinates> newCurrentlySelectedBlocks)
   {
     super();
 
 //    toolItemID = newToolItemID;
     button = newButton;
     blockToPlace = newBlockToPlace;
+    sideToPlace = i_sideToPlace;
     currentlySelectedBlocks = newCurrentlySelectedBlocks;
     packetIsValid = true;
   }
@@ -110,6 +114,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
       blockToPlace = new BlockWithMetadata();
       blockToPlace.block = Block.getBlockById(blockID);
       blockToPlace.metaData = buf.readInt();
+      sideToPlace = buf.readInt();
 
       int blockCount = buf.readInt();
       for (int i = 0; i < blockCount; ++i) {
@@ -137,6 +142,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
     buf.writeInt(button);
     buf.writeInt(blockID);
     buf.writeInt(metaData);
+    buf.writeInt(sideToPlace);
     buf.writeInt(currentlySelectedBlocks.size());
 
     for (ChunkCoordinates cc : currentlySelectedBlocks) {
@@ -153,12 +159,14 @@ public class Packet250SpeedyToolUse extends Packet250Base
   private boolean checkInvariants()
   {
     if (button != 0 && button != 1) return false;
+    if (sideToPlace < 0 || sideToPlace >= 6) return false;
     return true;
   }
 
   private int toolItemID;
   private int button;
   private BlockWithMetadata blockToPlace;
+  private int sideToPlace;
   private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
 
   private static PacketHandlerMethod serverSideHandler;

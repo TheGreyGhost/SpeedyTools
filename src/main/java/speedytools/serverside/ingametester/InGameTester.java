@@ -639,23 +639,24 @@ public class
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
     BlockWithMetadata blockWithMetadata = new BlockWithMetadata();
 
+    final int DUMMY_SIDETOPLACE = 0;
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
-    blockWithMetadata.block = Blocks.gold_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, simple1);
+    blockWithMetadata.block = Blocks.gold_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple1);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(1).sourceRegion.posX, testRegions.get(1).sourceRegion.posY, testRegions.get(1).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
-    blockWithMetadata.block = Blocks.emerald_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, simple2);
+    blockWithMetadata.block = Blocks.emerald_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple2);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(2).sourceRegion.posX, testRegions.get(2).sourceRegion.posY, testRegions.get(2).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
-    blockWithMetadata.block = Blocks.lapis_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, simple3);
+    blockWithMetadata.block = Blocks.lapis_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple3);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(3).sourceRegion.posX, testRegions.get(3).sourceRegion.posY, testRegions.get(3).sourceRegion.posZ, null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
-    blockWithMetadata.block = Blocks.diamond_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, simple4);
+    blockWithMetadata.block = Blocks.diamond_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple4);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(6).sourceRegion.posX, testRegions.get(6).sourceRegion.posY, testRegions.get(6).sourceRegion.posZ, null);
 
@@ -665,17 +666,17 @@ public class
     final int ARBITRARY_LARGE_DEPTH = 100;
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     WorldHistory worldHistory = new WorldHistory(ARBITRARY_LARGE_DEPTH, ARBITRARY_LARGE_DEPTH);
-    blockWithMetadata.block = Blocks.gold_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, simple1);
+    blockWithMetadata.block = Blocks.gold_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple1);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(1).testOutputRegion.posX, testRegions.get(1).testOutputRegion.posY, testRegions.get(1).testOutputRegion.posZ, null);
 
     // placement 2
-    blockWithMetadata.block = Blocks.emerald_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP2, blockWithMetadata, simple2);
+    blockWithMetadata.block = Blocks.emerald_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP2, blockWithMetadata, DUMMY_SIDETOPLACE, simple2);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(2).testOutputRegion.posX, testRegions.get(2).testOutputRegion.posY, testRegions.get(2).testOutputRegion.posZ, null);
 
     // placement 3
-    blockWithMetadata.block = Blocks.lapis_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, simple3);
+    blockWithMetadata.block = Blocks.lapis_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple3);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(3).testOutputRegion.posX, testRegions.get(3).testOutputRegion.posY, testRegions.get(3).testOutputRegion.posZ, null);
 
@@ -689,7 +690,7 @@ public class
     worldFragment.writeToWorld(worldServer, testRegions.get(4).testOutputRegion.posX, testRegions.get(4).testOutputRegion.posY, testRegions.get(4).testOutputRegion.posZ, null);
 
     // placement 6
-    blockWithMetadata.block = Blocks.diamond_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP2, blockWithMetadata, simple4);
+    blockWithMetadata.block = Blocks.diamond_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP2, blockWithMetadata, DUMMY_SIDETOPLACE, simple4);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
     worldFragment.writeToWorld(worldServer, testRegions.get(6).testOutputRegion.posX, testRegions.get(6).testOutputRegion.posY, testRegions.get(6).testOutputRegion.posZ, null);
 
@@ -931,6 +932,7 @@ public class
     int ypos = (int)entityPlayerMP.posY;
     int zpos = (int)entityPlayerMP.posZ;
 
+    final int TOP_SIDE = 1;
     while (blockIt.hasNext()) {
       Block block = (Block)blockIt.next();
       BlockWithMetadata blockToPlace = new BlockWithMetadata();
@@ -940,7 +942,7 @@ public class
       for (int i = 0; i < LENGTH_OF_TEST_BLOCK_LINE; ++i) {
         locations.add(new ChunkCoordinates(xpos, ypos, zpos+i));
       }
-      worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockToPlace, locations);
+      worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockToPlace, TOP_SIDE, locations);
       xpos += 2;
     }
     return true;

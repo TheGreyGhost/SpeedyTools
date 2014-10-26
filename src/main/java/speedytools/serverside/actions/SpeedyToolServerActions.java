@@ -66,9 +66,10 @@ public class SpeedyToolServerActions
    * @param entityPlayerMP the user sending the packet
    * @param buttonClicked 0 = left (undo), 1 = right (place)
    * @param blockToPlace the Block and metadata to fill the selection with (buttonClicked = 1 only)
+   * @param sideToPlace
    * @param blockSelection the blocks in the selection to be filled (buttonClicked = 1 only)
    */
-  public void performSimpleAction(EntityPlayerMP entityPlayerMP, int buttonClicked, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void performSimpleAction(EntityPlayerMP entityPlayerMP, int buttonClicked, BlockWithMetadata blockToPlace, int sideToPlace, List<ChunkCoordinates> blockSelection)
   {
     WorldServer worldServer = entityPlayerMP.getServerForPlayer();
     switch (buttonClicked) {
@@ -77,7 +78,7 @@ public class SpeedyToolServerActions
         return;
       }
       case 1: {
-        worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockToPlace, blockSelection);
+        worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockToPlace, sideToPlace, blockSelection);
         return;
       }
       default: {

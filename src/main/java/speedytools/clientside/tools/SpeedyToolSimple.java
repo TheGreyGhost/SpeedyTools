@@ -15,13 +15,18 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
-import speedytools.clientside.rendering.*;
+import speedytools.clientside.rendering.RendererElement;
+import speedytools.clientside.rendering.RendererHotbarCurrentItem;
+import speedytools.clientside.rendering.RendererWireframeSelection;
+import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.Packet250SpeedyToolUse;
+import speedytools.common.utilities.Pair;
+import speedytools.common.utilities.UsefulConstants;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -107,7 +112,9 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     currentBlockToPlace = getPlacedBlockFromItemStack(itemStackToPlace);
 
     MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
-    currentlySelectedBlocks = selectBlocks(target, player, maxSelectionSize, itemStackToPlace, partialTick);
+    Pair<List<ChunkCoordinates>, Integer> retval = selectBlocks(target, player, maxSelectionSize, itemStackToPlace, partialTick);
+    currentlySelectedBlocks = retval.getFirst();
+    currentSideToBePlaced = retval.getSecond();
     return true;
   }
 
@@ -194,17 +201,17 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected List<ChunkCoordinates> selectLineOfBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize,
+  protected Pair<List<ChunkCoordinates>, Integer>  selectLineOfBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize,
                                                       BlockMultiSelector.CollisionOptions stopWhenCollide, float partialTick)
   {
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
-    if (startBlock == null) return new ArrayList<ChunkCoordinates>();
+    if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
 
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
     boolean diagonalOK =  controlKeyIsDown;
     List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, startBlock.hitVec,
             maxSelectionSize, diagonalOK, stopWhenCollide);
-    return selection;
+    return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
   }
 
   protected boolean sendPlaceCommand()
@@ -212,7 +219,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     if (currentlySelectedBlocks == null || currentlySelectedBlocks.isEmpty()) return false;
 
     final int RIGHT_BUTTON = 1;
-    Packet250SpeedyToolUse packet = new Packet250SpeedyToolUse(RIGHT_BUTTON, currentBlockToPlace, currentlySelectedBlocks);
+    Packet250SpeedyToolUse packet = new Packet250SpeedyToolUse(RIGHT_BUTTON, currentBlockToPlace, currentSideToBePlaced, currentlySelectedBlocks);
     packetSenderClient.sendPacket(packet);
     return true;
   }
@@ -220,7 +227,8 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   protected boolean sendUndoCommand()
   {
     final int LEFT_BUTTON = 0;
-    Packet250SpeedyToolUse packet = new Packet250SpeedyToolUse(LEFT_BUTTON, currentBlockToPlace, currentlySelectedBlocks);
+    final int DUMMY_SIDE = 0;
+    Packet250SpeedyToolUse packet = new Packet250SpeedyToolUse(LEFT_BUTTON, currentBlockToPlace, DUMMY_SIDE, currentlySelectedBlocks);
     packetSenderClient.sendPacket(packet);
     return true;
   }
@@ -279,15 +287,18 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
   {
     ArrayList<ChunkCoordinates> retval = new ArrayList<ChunkCoordinates>();
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
+    int sideToPlace = UsefulConstants.FACE_YPOS;
     if (startBlock != null) {
       ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
       retval.add(startBlockCoordinates);
+      sideToPlace = startBlock.sideHit;
     }
-    return retval;
+
+    return new Pair<List<ChunkCoordinates>, Integer> (retval, sideToPlace);
   }
 
   /**
@@ -303,14 +314,13 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected List<ChunkCoordinates> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, boolean additiveContour, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, boolean additiveContour, float partialTick)
   {
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
-    if (startBlock == null) return new ArrayList<ChunkCoordinates>();
-
+    if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
     boolean diagonalOK =  controlKeyIsDown;
     List<ChunkCoordinates> selection = BlockMultiSelector.selectContour(target, player.worldObj, maxSelectionSize, diagonalOK, additiveContour);
-    return selection;
+    return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
   }
 
   /**
@@ -322,16 +332,16 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick
    * @return   returns the list of blocks in the selection (may be zero length)
    */
-  protected List<ChunkCoordinates> selectFillBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectFillBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
-    if (startBlock == null) return new ArrayList<ChunkCoordinates>();
-
+    if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
     boolean diagonalOK =  controlKeyIsDown;
     List<ChunkCoordinates> selection = BlockMultiSelector.selectFill(target, player.worldObj, maxSelectionSize, diagonalOK);
-    return selection;
+    return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
   }
   protected List<ChunkCoordinates> currentlySelectedBlocks;
   protected BlockWithMetadata currentBlockToPlace;
+  protected int currentSideToBePlaced;
   private RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink hotbarRenderInfoUpdateLink;
 }
