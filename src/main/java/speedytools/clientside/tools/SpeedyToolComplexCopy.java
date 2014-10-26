@@ -38,4 +38,24 @@ public class SpeedyToolComplexCopy extends SpeedyToolComplex
     return false;
   }
 
+  /**
+   * if true, selections made using this tool can be dragged around
+   *
+   * @return
+   */
+  @Override
+  protected boolean selectionIsMoveable() {
+    return true;
+  }
+
+  /**
+   * if true, CTRL + mousewheel changes the item count
+   *
+   * @return
+   */
+  @Override
+  protected boolean mouseWheelChangesCount() {
+    return false;
+  }
+
 }

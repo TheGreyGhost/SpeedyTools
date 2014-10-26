@@ -48,5 +48,7 @@ public class Colour
   public static final Colour LIGHTGREEN_40 = new Colour(0.4F, 1.0F, 0.4F, 0.4F);
   public static final Colour LIGHTBLUE_40 = new Colour(0.4F, 0.4F, 1.0F, 0.4F);
   public static final Colour LIGHTRED_40 = new Colour(1.0F, 0.4F, 0.4F, 0.4F);
+  public static final Colour PURPLE_100 = new Colour(163/255.0F, 73 / 255.0F, 164/255.0F, 1.0F);
+  public static final Colour ORANGE_100 = new Colour(1.0F, 0.5F, 0.0F, 1.0F);
 }
 

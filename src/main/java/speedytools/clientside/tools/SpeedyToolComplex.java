@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -18,10 +19,7 @@ import speedytools.common.SpeedyToolsOptionsClient;
 import speedytools.common.items.ItemComplexBase;
 import speedytools.common.network.ClientStatus;
 import speedytools.common.network.ServerStatus;
-import speedytools.common.utilities.Colour;
-import speedytools.common.utilities.QuadOrientation;
-import speedytools.common.utilities.ResultWithReason;
-import speedytools.common.utilities.UsefulConstants;
+import speedytools.common.utilities.*;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -164,6 +162,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     checkInvariants();
 
     UserInput.InputEvent nextEvent;
+    controlKeyIsDown = userInput.isControlKeyDown();
+
     while (null != (nextEvent = userInput.poll())) {
       // if we are busy with an action - a short left click will abort current action
       if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
@@ -274,6 +274,18 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    */
   protected abstract boolean cancelSelectionAfterAction();
 
+  /**
+   * if true, selections made using this tool can be dragged around
+   * @return
+   */
+  protected abstract boolean selectionIsMoveable();
+
+  /**
+   * if true, CTRL + mousewheel changes the item count
+   * @return
+   */
+  protected abstract boolean mouseWheelChangesCount();
+
     /** Is the tool currently busy with something?
      * @return true if busy, false if not
      */
@@ -322,7 +334,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         break;
       }
       case RIGHT_CLICK_UP: {
-        if (inputEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
+        if (inputEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS && selectionIsMoveable()) {  // only if this tool type allows selection moving / flipping
           if (inputEvent.controlKeyDown) {
             flipSelection(player);
           } else { // toggle selection grabbing
@@ -349,7 +361,19 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         break;
       }
       case WHEEL_MOVE: {
-        rotateSelection(-inputEvent.count);  // wheel down rotates clockwise
+        if (selectionIsMoveable()) {
+          rotateSelection(-inputEvent.count);  // wheel down rotates clockwise
+        } else if (mouseWheelChangesCount()) {
+          ItemStack currentItem = player.inventory.getCurrentItem();
+          int currentcount = currentItem.stackSize;
+          int maxStackSize = currentItem.getMaxStackSize();
+          if (currentcount >= 1 && currentcount <= maxStackSize) {
+            currentcount += inputEvent.count;
+            currentcount = ((currentcount - 1) % maxStackSize);
+            currentcount = ((currentcount + maxStackSize) % maxStackSize) + 1;    // take care of negative
+            currentItem.stackSize = currentcount;
+          }
+        }
         break;
       }
     }
@@ -539,6 +563,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         clientVoxelSelection.createBoundFillSelection(thePlayer, blockUnderCursor, boundaryCorner1, boundaryCorner2);
         break;
       }
+      default: {
+        ErrorLog.defaultLog().severe("Invalid currentHighlighting in initiateSelectionCreation:" + currentHighlighting);
+        break;
+      }
     }
 
     cloneToolsNetworkClient.informSelectionMade();
@@ -643,7 +671,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    * copies the boundary field coordinates from the boundary tool, if a boundary is defined
    * @return true if a boundary field is defined, false otherwise
    */
-  private boolean updateBoundaryCornersFromToolBoundary()
+  protected boolean updateBoundaryCornersFromToolBoundary()
   {
     boundaryCorner1 = null;
     boundaryCorner2 = null;
@@ -1017,7 +1045,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
   }
 
-  private ItemComplexBase itemComplexBase;
+  protected ItemComplexBase itemComplexBase;
 
   private void checkInvariants()
   {
@@ -1049,8 +1077,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   //  2) performing an action / waiting for server
   //  3) performing an undo / waiting for server
 
-  private SelectionType currentHighlighting = SelectionType.NONE;
-  private List<ChunkCoordinates> highlightedBlocks;
+  protected SelectionType currentHighlighting = SelectionType.NONE;
+  protected List<ChunkCoordinates> highlightedBlocks;
 
 //  private float selectionGenerationPercentComplete;
   private boolean lastActionWasRejected;
@@ -1068,14 +1096,14 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //  QuadOrientation initialSelectionOrientation;
   private CommonSelectionState commonSelectionState;
 
-  private ClientVoxelSelection clientVoxelSelection;
+  protected ClientVoxelSelection clientVoxelSelection;
   private CloneToolsNetworkClient cloneToolsNetworkClient;
 //  private SelectionPacketSender selectionPacketSender;
 
   private SpeedyToolBoundary speedyToolBoundary;   // used to retrieve the boundary field coordinates, if selected
 
-  private enum SelectionType {
-    NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL
+  protected enum SelectionType {
+    NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL, BOUND_FILL_STRICT, UNBOUND_FILL_STRICT, CONTOUR_ADD, CONTOUR_REPLACE
   }
 
   // logic table used to determine which renderer parts to display

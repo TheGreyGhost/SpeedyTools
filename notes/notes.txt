@@ -2,7 +2,6 @@ Reminders
 
 To do:
 Try to reduce horrible lag after large place.  Light calcs?
-Correct placement of oriented blocks using wand, eg stairs
 Infinite replace / place - orb and sceptre
-Mod option buttons
+Mod option buttons   - actually, I don't really need this.
 
