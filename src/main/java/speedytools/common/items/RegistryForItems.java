@@ -19,6 +19,7 @@ public class RegistryForItems
   public static ItemComplexMove itemComplexMove;
   public static ItemComplexDelete itemComplexDelete;
   public static ItemSpeedyTester itemSpeedyTester;
+//  public static ItemComplexOrb itemComplexOrb;
 
   public static void initialise()
   {
@@ -30,6 +31,7 @@ public class RegistryForItems
     itemComplexCopy = new ItemComplexCopy();
     itemComplexMove = new ItemComplexMove();
     itemComplexDelete = new ItemComplexDelete();
+//    itemComplexOrb = new ItemComplexOrb();
 
     GameRegistry.registerItem(itemSpeedyWandStrong, itemSpeedyWandStrong.NAME);
     GameRegistry.registerItem(itemSpeedyWandWeak, itemSpeedyWandWeak.NAME);
@@ -39,6 +41,7 @@ public class RegistryForItems
     GameRegistry.registerItem(itemComplexCopy, itemComplexCopy.NAME);
     GameRegistry.registerItem(itemComplexDelete, itemComplexDelete.NAME);
     GameRegistry.registerItem(itemComplexMove, itemComplexMove.NAME);
+//    GameRegistry.registerItem(itemComplexOrb, itemComplexOrb.NAME);
 
     if (SpeedyToolsOptions.getTesterToolsEnabled()) {
       itemSpeedyTester = new ItemSpeedyTester();

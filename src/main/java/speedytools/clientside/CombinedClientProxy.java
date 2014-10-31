@@ -2,9 +2,11 @@ package speedytools.clientside;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import net.minecraft.client.Minecraft;
+import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.clientside.rendering.ItemEventHandler;
 import speedytools.clientside.rendering.RenderEventHandlers;
+import speedytools.clientside.rendering.RendererInventoryItemInfinite;
 import speedytools.clientside.tools.*;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
@@ -57,13 +59,37 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.undoManagerSimple,
                     ClientSide.packetSenderClient
             ));
-    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyOrb,
-            new SpeedyToolOrb(RegistryForItems.itemSpeedyOrb,
-                    ClientSide.speedyToolRenderers,
-                    ClientSide.speedyToolSounds,
-                    ClientSide.undoManagerSimple,
-                    ClientSide.packetSenderClient
-            ));
+
+    CommonSelectionState commonSelectionState = new CommonSelectionState();
+    SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
+            ClientSide.speedyToolRenderers,
+            ClientSide.speedyToolSounds,
+            ClientSide.undoManagerSimple,
+            ClientSide.packetSenderClient);
+
+    SpeedyToolOrb speedyToolOrb = new SpeedyToolOrb(RegistryForItems.itemSpeedyOrb,
+            ClientSide.speedyToolRenderers,
+            ClientSide.speedyToolSounds,
+            ClientSide.undoManagerSimple,
+            ClientSide.packetSenderClient);
+    SpeedyToolComplexOrb speedyToolComplexOrb = new SpeedyToolComplexOrb(RegistryForItems.itemSpeedyOrb,
+            ClientSide.speedyToolRenderers,
+            ClientSide.speedyToolSounds,
+            ClientSide.undoManagerComplex,
+            ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
+            ClientSide.clientVoxelSelection, commonSelectionState,
+            ClientSide.selectionPacketSenderComplex,
+            ClientSide.packetSenderClient);
+
+    SpeedyToolSimpleAndComplex simpleComplexOrb = new SpeedyToolSimpleAndComplex(speedyToolOrb, speedyToolComplexOrb,
+            RegistryForItems.itemSpeedyOrb,
+            ClientSide.speedyToolRenderers,
+            ClientSide.speedyToolSounds,
+            ClientSide.undoManagerComplex,
+            ClientSide.packetSenderClient);
+
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyOrb, simpleComplexOrb);
+
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre,
             new SpeedyToolSceptre(RegistryForItems.itemSpeedySceptre,
                     ClientSide.speedyToolRenderers,
@@ -71,15 +97,8 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.undoManagerSimple,
                     ClientSide.packetSenderClient
             ));
-    SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
-            ClientSide.speedyToolRenderers,
-            ClientSide.speedyToolSounds,
-            ClientSide.undoManagerSimple,
-            ClientSide.packetSenderClient);
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
-
-    CommonSelectionState commonSelectionState = new CommonSelectionState();
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexCopy,
             new SpeedyToolComplexCopy(RegistryForItems.itemComplexCopy,
@@ -128,6 +147,7 @@ public class CombinedClientProxy extends CommonProxy {
 
     }
 
+    MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedyOrb, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedyOrb));
   }
 
   /**

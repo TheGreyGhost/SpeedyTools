@@ -128,7 +128,7 @@ public class PowerUpEffect
     return 0.0;
   }
 
-  private State state;
+  private State state = State.IDLE;
   private long initiationTime = 0;
   private long initialHoldDuration = 0;    // the duration the button had been held down when powerup started
   private long currentHoldDuration = 0;    // the duration the button had currently been held down

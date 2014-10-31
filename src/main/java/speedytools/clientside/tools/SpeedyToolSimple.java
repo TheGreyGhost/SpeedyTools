@@ -73,14 +73,9 @@ public abstract class SpeedyToolSimple extends SpeedyTool
           break;
         }
         case WHEEL_MOVE: {
-          ItemStack currentItem = player.inventory.getCurrentItem();
-          int currentcount = currentItem.stackSize;
-          int maxStackSize = currentItem.getMaxStackSize();
-          if (currentcount >= 1 && currentcount <= maxStackSize) {
-            currentcount += nextEvent.count;
-            currentcount = ((currentcount - 1) % maxStackSize);
-            currentcount = ((currentcount + maxStackSize) % maxStackSize) + 1;    // take care of negative
-            currentItem.stackSize = currentcount;
+          if (currentToolItemStack != null) {
+            int newCount = parentItem.getPlacementCount(currentToolItemStack) + nextEvent.count;
+            parentItem.setPlacementCount(currentToolItemStack, newCount);
           }
           break;
         }
@@ -100,9 +95,10 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
   {
     if (!iAmActive) return false;
-    ItemStack currentItem = player.inventory.getCurrentItem();
-    if (currentItem == null) return false;                      // can be null if the user has just moved the active tool out of hotbar
-    int maxSelectionSize = currentItem.stackSize;
+//    ItemStack currentItem = player.inventory.getCurrentItem();
+
+    if (currentToolItemStack == null) return false;                      // can be null if the user has just moved the active tool out of hotbar
+    int maxSelectionSize = currentToolItemStack.stackSize;
 
     // the block to be placed is the one to the right of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;
@@ -120,10 +116,12 @@ public abstract class SpeedyToolSimple extends SpeedyTool
 
   /** The user is now holding this tool, prepare it
    * @return
+   * @param newToolItemStack
    */
   @Override
-  public boolean activateTool()
+  public boolean activateTool(ItemStack newToolItemStack)
   {
+    currentToolItemStack = newToolItemStack;
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererHotbarCurrentItem(hotbarRenderInfoUpdateLink));

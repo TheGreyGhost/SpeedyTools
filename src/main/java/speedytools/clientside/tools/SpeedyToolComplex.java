@@ -16,7 +16,7 @@ import speedytools.clientside.sound.*;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptionsClient;
-import speedytools.common.items.ItemComplexBase;
+import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.ClientStatus;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.*;
@@ -44,12 +44,12 @@ import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 */
 public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 {
-  public SpeedyToolComplex(ItemComplexBase i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
+  public SpeedyToolComplex(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
                            CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary,
                            ClientVoxelSelection i_clientVoxelSelection,
                            CommonSelectionState i_commonSelectionState, SelectionPacketSender i_selectionPacketSender, PacketSenderClient i_packetSenderClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
-    itemComplexBase = i_parentItem;
+//    itemComplexBase = i_parentItem;
     speedyToolBoundary = i_speedyToolBoundary;
     boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
@@ -63,7 +63,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   }
 
   @Override
-  public boolean activateTool() {
+  public boolean activateTool(ItemStack newToolItemStack) {
+    currentToolItemStack = newToolItemStack;
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
@@ -162,8 +163,6 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     checkInvariants();
 
     UserInput.InputEvent nextEvent;
-    controlKeyIsDown = userInput.isControlKeyDown();
-
     while (null != (nextEvent = userInput.poll())) {
       // if we are busy with an action - a short left click will abort current action
       if (cloneToolsNetworkClient.peekCurrentActionStatus() != CloneToolsNetworkClient.ActionStatus.NONE_PENDING) {
@@ -276,15 +275,11 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   /**
    * if true, selections made using this tool can be dragged around
+   *
    * @return
    */
-  protected abstract boolean selectionIsMoveable();
 
-  /**
-   * if true, CTRL + mousewheel changes the item count
-   * @return
-   */
-  protected abstract boolean mouseWheelChangesCount();
+  protected abstract boolean selectionIsMoveable();
 
     /** Is the tool currently busy with something?
      * @return true if busy, false if not
@@ -364,14 +359,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         if (selectionIsMoveable()) {
           rotateSelection(-inputEvent.count);  // wheel down rotates clockwise
         } else if (mouseWheelChangesCount()) {
-          ItemStack currentItem = player.inventory.getCurrentItem();
-          int currentcount = currentItem.stackSize;
-          int maxStackSize = currentItem.getMaxStackSize();
-          if (currentcount >= 1 && currentcount <= maxStackSize) {
-            currentcount += inputEvent.count;
-            currentcount = ((currentcount - 1) % maxStackSize);
-            currentcount = ((currentcount + maxStackSize) % maxStackSize) + 1;    // take care of negative
-            currentItem.stackSize = currentcount;
+          if (currentToolItemStack != null) {
+            int newCount = parentItem.getPlacementCount(currentToolItemStack) + inputEvent.count;
+            parentItem.setPlacementCount(currentToolItemStack, newCount);
           }
         }
         break;
@@ -379,6 +369,29 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
     return true;
   }
+
+  /**
+   * if true, CTRL + mousewheel changes the item count
+   * @return
+   */
+  protected abstract boolean mouseWheelChangesCount();
+
+  /**
+   * Change the object count (simple tools)
+   * @param player
+   * @param inputEvent
+   */
+//  protected void changeObjectCount(EntityClientPlayerMP player, UserInput.InputEvent inputEvent) {
+//    ItemStack currentItem = player.inventory.getCurrentItem();
+//    int currentcount = currentItem.stackSize;
+//    int maxStackSize = currentItem.getMaxStackSize();
+//    if (currentcount >= 1 && currentcount <= maxStackSize) {
+//      currentcount += inputEvent.count;
+// sdfs     currentcount = ((currentcount - 1) % maxStackSize);
+//      currentcount = ((currentcount + maxStackSize) % maxStackSize) + 1;    // take care of negative
+//      currentItem.stackSize = currentcount;
+//    }
+//  }
 
   /**
    * (1) Selects the first Block that will be affected by the tool when the player presses right-click,
@@ -404,7 +417,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     if (clientVoxelSelection.getReadinessForDisplaying() != ClientVoxelSelection.VoxelSelectionState.NO_SELECTION) return false;
     updateBoundaryCornersFromToolBoundary();
 
-    MovingObjectPosition target = itemComplexBase.rayTraceLineOfSight(player.worldObj, player);
+    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
 
     final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
     blockUnderCursor = null;
@@ -510,7 +523,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
 
     Vec3 selectionPosition = getSelectionPosition(player, partialTick, false);
-    ResultWithReason result = cloneToolsNetworkClient.performComplexToolAction(Item.getIdFromItem(itemComplexBase),
+    ResultWithReason result = cloneToolsNetworkClient.performComplexToolAction(Item.getIdFromItem(parentItem),
             Math.round((float) selectionPosition.xCoord),
             Math.round((float) selectionPosition.yCoord),
             Math.round((float) selectionPosition.zCoord),
@@ -1045,7 +1058,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
   }
 
-  protected ItemComplexBase itemComplexBase;
+//  protected ItemSpeedyTool itemComplexBase;
 
   private void checkInvariants()
   {
@@ -1077,8 +1090,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   //  2) performing an action / waiting for server
   //  3) performing an undo / waiting for server
 
-  protected SelectionType currentHighlighting = SelectionType.NONE;
-  protected List<ChunkCoordinates> highlightedBlocks;
+  private SelectionType currentHighlighting = SelectionType.NONE;
+  private List<ChunkCoordinates> highlightedBlocks;
 
 //  private float selectionGenerationPercentComplete;
   private boolean lastActionWasRejected;
@@ -1096,14 +1109,14 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //  QuadOrientation initialSelectionOrientation;
   private CommonSelectionState commonSelectionState;
 
-  protected ClientVoxelSelection clientVoxelSelection;
+  private ClientVoxelSelection clientVoxelSelection;
   private CloneToolsNetworkClient cloneToolsNetworkClient;
 //  private SelectionPacketSender selectionPacketSender;
 
   private SpeedyToolBoundary speedyToolBoundary;   // used to retrieve the boundary field coordinates, if selected
 
-  protected enum SelectionType {
-    NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL, BOUND_FILL_STRICT, UNBOUND_FILL_STRICT, CONTOUR_ADD, CONTOUR_REPLACE
+  private enum SelectionType {
+    NONE, FULL_BOX, BOUND_FILL, UNBOUND_FILL
   }
 
   // logic table used to determine which renderer parts to display

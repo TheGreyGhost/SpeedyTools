@@ -7,7 +7,7 @@ package speedytools.common.items;
 public abstract class ItemComplexBase extends ItemSpeedyTool
 {
   public ItemComplexBase() {
-    super();
+    super(PlacementCountModes.INFINITE_ONLY);
   }
 
   @Override

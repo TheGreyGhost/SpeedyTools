@@ -9,7 +9,7 @@ import java.util.List;
 public class ItemSpeedyWandStrong extends ItemSpeedyTool {
   public static final String NAME = "simplewandstrong";
   public ItemSpeedyWandStrong() {
-    super();
+    super(PlacementCountModes.FINITE_ONLY);
     setMaxStackSize(64);
     setUnlocalizedName(NAME);
     setFull3D();

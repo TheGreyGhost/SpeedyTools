@@ -46,15 +46,21 @@ public class SpeedyToolTester extends SpeedyTool
           break;
         }
         case WHEEL_MOVE: {
-          ItemStack currentItem = player.inventory.getCurrentItem();
-          int currentcount = currentItem.stackSize;
-          int maxStackSize = currentItem.getMaxStackSize();
-          if (currentcount >= 1 && currentcount <= maxStackSize) {
-            currentcount += nextEvent.count;
-            currentcount = ((currentcount - 1) % maxStackSize);
-            currentcount = ((currentcount + maxStackSize) % maxStackSize) + 1;    // take care of negative
-            currentItem.stackSize = currentcount;
+          if (currentToolItemStack != null) {
+            int newCount = parentItem.getPlacementCount(currentToolItemStack) + nextEvent.count;
+            parentItem.setPlacementCount(currentToolItemStack, newCount);
           }
+//
+//
+//          ItemStack currentItem = player.inventory.getCurrentItem();
+//          int currentcount = currentItem.stackSize;
+//          int maxStackSize = currentItem.getMaxStackSize();
+//          if (currentcount >= 1 && currentcount <= maxStackSize) {
+//            currentcount += nextEvent.count;
+//            currentcount = ((currentcount - 1) % maxStackSize);
+//            currentcount = ((currentcount + maxStackSize) % maxStackSize) + 1;    // take care of negative
+//            currentItem.stackSize = currentcount;
+//          }
           break;
         }
       }
@@ -82,10 +88,12 @@ public class SpeedyToolTester extends SpeedyTool
 
   /** The user is now holding this tool, prepare it
    * @return
+   * @param newToolItemStack
    */
   @Override
-  public boolean activateTool()
+  public boolean activateTool(ItemStack newToolItemStack)
   {
+    currentToolItemStack = newToolItemStack;
     iAmActive = true;
     return true;
   }
