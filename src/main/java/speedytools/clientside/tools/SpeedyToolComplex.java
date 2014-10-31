@@ -56,6 +56,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
     cursorRenderInfoUpdateLink = this.new CursorRenderInfoLink();
     statusMessageRenderInfoUpdateLink = this.new StatusMessageRenderInfoLink();
+    hotbarRenderInfoUpdateLink = this.new HotbarRenderInfoUpdateLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
 //    selectionPacketSender = i_selectionPacketSender;
     clientVoxelSelection = i_clientVoxelSelection;
@@ -69,6 +70,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     rendererElements.add(new RendererSolidSelection(solidSelectionRendererUpdateLink));
+    rendererElements.add(new RendererHotbarCurrentItem(hotbarRenderInfoUpdateLink));
     renderCursorStatus = new RenderCursorStatus(cursorRenderInfoUpdateLink);
     rendererElements.add(renderCursorStatus);
     rendererElements.add(new RendererStatusMessage(statusMessageRenderInfoUpdateLink));
@@ -185,7 +187,16 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
         // otherwise - split up according to whether we have a selection or not
       } else {
-        switch (clientVoxelSelection.getReadinessForDisplaying()) {
+        // todo put scrolling count here
+//      } else if (mouseWheelChangesCount()) {
+//        if (currentToolItemStack != null) {
+//          int newCount = parentItem.getPlacementCount(currentToolItemStack) + inputEvent.count;
+//          parentItem.setPlacementCount(currentToolItemStack, newCount);
+//        }
+//      }
+
+
+      switch (clientVoxelSelection.getReadinessForDisplaying()) {
           case NO_SELECTION: {
 //            System.out.println("TEST:" + nextEvent.eventType + " : " + nextEvent.eventDuration);
             if (nextEvent.eventType == UserInput.InputEventType.RIGHT_CLICK_UP &&
@@ -745,6 +756,22 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   }
 
   /**
+   * This class is used to provide information to the Boundary Field Renderer when it needs it.
+   * The information is taken from the reference to the SpeedyToolBoundary.
+   */
+  public class HotbarRenderInfoUpdateLink implements RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink
+  {
+    @Override
+    public boolean refreshRenderInfo(RendererHotbarCurrentItem.HotbarRenderInfo infoToUpdate, ItemStack currentlyHeldItem) {
+      if (currentlyHeldItem == null || !(currentlyHeldItem.getItem() instanceof ItemSpeedyTool)) {
+        return false;
+      }
+      ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool) currentlyHeldItem.getItem();
+      return itemSpeedyTool.usesAdjacentBlockInHotbar();
+    }
+  }
+
+  /**
    * This class passes the needed information for the rendering of the solid selection:
    *  - the voxelManager
    *  - the coordinates of the selectionOrigin after it has been dragged from its starting point
@@ -1158,6 +1185,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
   private RenderCursorStatus.CursorRenderInfoUpdateLink cursorRenderInfoUpdateLink;
   private RendererStatusMessage.StatusMessageRenderInfoUpdateLink statusMessageRenderInfoUpdateLink;
+  private RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink hotbarRenderInfoUpdateLink;
 
   private enum ToolState {
     IDLE, PERFORMING_ACTION, PERFORMING_UNDO_FROM_FULL, PERFORMING_UNDO_FROM_PARTIAL, ACTION_SUCCEEDED, ACTION_FAILED, UNDO_SUCCEEDED, UNDO_FAILED

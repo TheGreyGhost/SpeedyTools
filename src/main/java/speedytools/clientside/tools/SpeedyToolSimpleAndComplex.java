@@ -5,6 +5,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
+import speedytools.clientside.rendering.RendererHotbarCurrentItem;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.userinput.UserInput;
@@ -95,7 +96,4 @@ public class SpeedyToolSimpleAndComplex extends SpeedyTool
   private ToolMode currentToolMode;
   private SpeedyToolSimple speedyToolSimple;
   private SpeedyToolComplex speedyToolComplex;
-//  private ItemSpeedyTool complexItem;
-//  private ItemSpeedyTool simpleItem;
-
 }

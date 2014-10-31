@@ -60,7 +60,7 @@ public abstract class ItemSpeedyTool extends Item
     if (validPlacementCountModes == PlacementCountModes.INFINITE_ONLY) {
       makeInfinite = true;
     } else {
-      if (newCount == 0) {
+      if (newCount == 0 && validPlacementCountModes != PlacementCountModes.FINITE_ONLY) {
         makeInfinite = true;
       } else {
         newCount = ((newCount - 1) % maxStackSize);
