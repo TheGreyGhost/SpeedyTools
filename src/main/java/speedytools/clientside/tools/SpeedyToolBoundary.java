@@ -3,6 +3,7 @@ package speedytools.clientside.tools;
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -36,7 +37,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
   }
 
   @Override
-  public boolean activateTool() {
+  public boolean activateTool(ItemStack newToolItemStack) {
+    currentToolItemStack = newToolItemStack;
     if (soundEffectBoundaryHum == null) {
       BoundaryHumLink boundaryHumLink = this.new BoundaryHumLink();
       soundEffectBoundaryHum = new SoundEffectBoundaryHum(SoundEffectNames.BOUNDARY_HUM, soundController, boundaryHumLink);

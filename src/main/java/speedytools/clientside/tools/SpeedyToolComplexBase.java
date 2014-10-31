@@ -3,6 +3,7 @@ package speedytools.clientside.tools;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
@@ -29,7 +30,7 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
   }
 
   @Override
-  public abstract boolean activateTool();
+  public abstract boolean activateTool(ItemStack newToolItemStack);
 
   /** The user has unequipped this tool, deactivate it, stop any effects, etc
    * @return
