@@ -338,7 +338,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     List<ChunkCoordinates> selection = BlockMultiSelector.selectFill(target, player.worldObj, maxSelectionSize, diagonalOK);
     return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
   }
-  protected List<ChunkCoordinates> currentlySelectedBlocks;
+  protected List<ChunkCoordinates> currentlySelectedBlocks = new LinkedList<ChunkCoordinates>();
   protected BlockWithMetadata currentBlockToPlace;
   protected int currentSideToBePlaced;
   private RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink hotbarRenderInfoUpdateLink;

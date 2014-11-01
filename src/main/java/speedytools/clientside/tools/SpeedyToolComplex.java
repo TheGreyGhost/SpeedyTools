@@ -187,16 +187,14 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
         // otherwise - split up according to whether we have a selection or not
       } else {
-        // todo put scrolling count here
-//      } else if (mouseWheelChangesCount()) {
-//        if (currentToolItemStack != null) {
-//          int newCount = parentItem.getPlacementCount(currentToolItemStack) + inputEvent.count;
-//          parentItem.setPlacementCount(currentToolItemStack, newCount);
-//        }
-//      }
+        if (nextEvent.eventType == UserInput.InputEventType.WHEEL_MOVE && mouseWheelChangesCount()) {
+          if (currentToolItemStack != null) {
+            int newCount = parentItem.getPlacementCount(currentToolItemStack) + nextEvent.count;
+            parentItem.setPlacementCount(currentToolItemStack, newCount);
+          }
+        }
 
-
-      switch (clientVoxelSelection.getReadinessForDisplaying()) {
+        switch (clientVoxelSelection.getReadinessForDisplaying()) {
           case NO_SELECTION: {
 //            System.out.println("TEST:" + nextEvent.eventType + " : " + nextEvent.eventDuration);
             if (nextEvent.eventType == UserInput.InputEventType.RIGHT_CLICK_UP &&
@@ -369,11 +367,11 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       case WHEEL_MOVE: {
         if (selectionIsMoveable()) {
           rotateSelection(-inputEvent.count);  // wheel down rotates clockwise
-        } else if (mouseWheelChangesCount()) {
-          if (currentToolItemStack != null) {
-            int newCount = parentItem.getPlacementCount(currentToolItemStack) + inputEvent.count;
-            parentItem.setPlacementCount(currentToolItemStack, newCount);
-          }
+//        } else if (mouseWheelChangesCount()) {
+//          if (currentToolItemStack != null) {
+//            int newCount = parentItem.getPlacementCount(currentToolItemStack) + inputEvent.count;
+//            parentItem.setPlacementCount(currentToolItemStack, newCount);
+//          }
         }
         break;
       }
