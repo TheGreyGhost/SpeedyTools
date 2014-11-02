@@ -2,6 +2,7 @@ package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
+import net.minecraft.block.Block;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
@@ -296,7 +297,9 @@ public class ClientVoxelSelection
    * Will not fill any blocks outside of the box defined by corner1 and corner2
    * If a selection is already in place, cancel it.
    */
-  public ResultWithReason createBoundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock, ChunkCoordinates boundaryCorner1, ChunkCoordinates boundaryCorner2)
+  public ResultWithReason createBoundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock,
+                                                   FILL CRITERION (matcher), block override texture,
+                                                   ChunkCoordinates boundaryCorner1, ChunkCoordinates boundaryCorner2)
   {
     initialiseForGeneration();
     clientVoxelMultiSelector.selectBoundFillStart(thePlayer.worldObj, fillStartingBlock, boundaryCorner1, boundaryCorner2);
@@ -367,8 +370,8 @@ public class ClientVoxelSelection
             if (voxelSelectionRenderer == null) {
               voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
             }
-            voxelSelectionRenderer.createRenderListStart(world, selectionInitialOrigin.posX, selectionInitialOrigin.posY, selectionInitialOrigin.posZ,
-                    clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels());
+            voxelSelectionRenderer.createRenderListStart(world, fillBlock, selectionInitialOrigin.posX, selectionInitialOrigin.posY,
+                    selectionInitialOrigin.posZ, clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels());
           }
         }
         break;
@@ -517,6 +520,8 @@ public class ClientVoxelSelection
   private static int nextUniqueID = -2366236; // arbitrary
   private int tickCount;
   private int lastStatusRequestTick;
+
+  private Block fillBlock;  // for the complex fill; the block that will fill the selection
 
   public BlockVoxelMultiSelectorRenderer getVoxelSelectionRenderer() {
     return voxelSelectionRenderer;
