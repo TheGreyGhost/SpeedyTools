@@ -1,5 +1,10 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.block.Block;
+import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
@@ -7,7 +12,9 @@ import speedytools.clientside.rendering.RenderCursorStatus;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.SoundController;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
+import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.utilities.Colour;
 
 /**
@@ -58,6 +65,31 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
     return true;
   }
 
+  @Override
+  protected Packet250ServerSelectionGeneration.MatcherType getMatcherTypeForSelectionCreation()
+  {
+    return Packet250ServerSelectionGeneration.MatcherType.STARTING_BLOCK_ONLY;
+  }
+
+  @Override
+  protected BlockWithMetadata getOverrideTexture()
+  {
+    return currentBlockToPlace;
+  }
+
+  @Override
+  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick) {
+    boolean retval = super.updateForThisFrame(world, player, partialTick);
+
+    // the block to be placed is the one to the right of the tool in the hotbar
+    int currentlySelectedHotbarSlot = player.inventory.currentItem;
+
+    final int MAX_HOTBAR_SLOT = 8;
+    ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == MAX_HOTBAR_SLOT) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot + 1);
+    currentBlockToPlace = getPlacedBlockFromItemStack(itemStackToPlace);
+    return retval;
+  }
+
 //  @Override
 //  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
 //  {
@@ -103,5 +135,5 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
 //    return false;
 //  }
 
-
+   private BlockWithMetadata currentBlockToPlace;
 }

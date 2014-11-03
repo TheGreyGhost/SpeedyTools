@@ -1,5 +1,6 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
@@ -16,8 +17,10 @@ import speedytools.clientside.sound.*;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.SpeedyToolsOptionsClient;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.ClientStatus;
+import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.utilities.*;
 
@@ -447,13 +450,15 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
       if (selectedBlockIsInsideBoundaryField) {
         currentHighlighting = SelectionType.BOUND_FILL;
-        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
+        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true,
+                                       getMatcherTypeForSelectionCreation() == Packet250ServerSelectionGeneration.MatcherType.ANY_NON_AIR,
                 boundaryCorner1.posX, boundaryCorner2.posX,
                 boundaryCorner1.posY, boundaryCorner2.posY,
                 boundaryCorner1.posZ, boundaryCorner2.posZ);
       } else {
         currentHighlighting = SelectionType.UNBOUND_FILL;
-        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
+        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true,
+                getMatcherTypeForSelectionCreation() == Packet250ServerSelectionGeneration.MatcherType.ANY_NON_AIR,
                 Integer.MIN_VALUE, Integer.MAX_VALUE,
                 blockUnderCursor.posY, 255,
                 Integer.MIN_VALUE, Integer.MAX_VALUE);
@@ -578,11 +583,11 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         break;
       }
       case UNBOUND_FILL: {
-        clientVoxelSelection.createUnboundFillSelection(thePlayer, blockUnderCursor);
+        clientVoxelSelection.createUnboundFillSelection(thePlayer, blockUnderCursor, getMatcherTypeForSelectionCreation(), getOverrideTexture());
         break;
       }
       case BOUND_FILL: {
-        clientVoxelSelection.createBoundFillSelection(thePlayer, blockUnderCursor, boundaryCorner1, boundaryCorner2);
+        clientVoxelSelection.createBoundFillSelection(thePlayer, blockUnderCursor, getMatcherTypeForSelectionCreation(), getOverrideTexture(), boundaryCorner1, boundaryCorner2);
         break;
       }
       default: {
@@ -593,6 +598,16 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
     cloneToolsNetworkClient.informSelectionMade();
     soundEffectComplexSelectionGeneration.startPlaying();
+  }
+
+  protected Packet250ServerSelectionGeneration.MatcherType getMatcherTypeForSelectionCreation()
+  {
+    return Packet250ServerSelectionGeneration.MatcherType.ANY_NON_AIR;
+  }
+
+  protected BlockWithMetadata getOverrideTexture()
+  {
+    return null;
   }
 
   /** called once per tick on the client side while the user is holding an ItemCloneTool

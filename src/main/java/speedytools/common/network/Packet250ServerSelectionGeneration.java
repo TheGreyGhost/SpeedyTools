@@ -49,9 +49,10 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performBoundFill(int whichTaskID, ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+  public static Packet250ServerSelectionGeneration performBoundFill(MatcherType i_matcherType, int whichTaskID, ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.BOUND_FILL, whichTaskID);
+    retval.matcherType = i_matcherType;
     retval.cursorPosition = i_cursorPosition;
     retval.corner1 = i_corner1;
     retval.corner2 = i_corner2;
@@ -61,9 +62,10 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performUnboundFill(int whichTaskID, ChunkCoordinates i_cursorPosition)
+  public static Packet250ServerSelectionGeneration performUnboundFill(MatcherType i_matcherType, int whichTaskID, ChunkCoordinates i_cursorPosition)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.UNBOUND_FILL, whichTaskID);
+    retval.matcherType = i_matcherType;
     retval.cursorPosition = i_cursorPosition;
 
     assert (retval.checkInvariants());
@@ -101,12 +103,14 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
           break;
         }
         case BOUND_FILL: {
+          matcherType = MatcherType.byteToMatcherType(buf.readByte());
           cursorPosition = readChunkCoordinates(buf);
           corner1 = readChunkCoordinates(buf);
           corner2 = readChunkCoordinates(buf);
           break;
         }
         case UNBOUND_FILL: {
+          matcherType = MatcherType.byteToMatcherType(buf.readByte());
           cursorPosition = readChunkCoordinates(buf);
           break;
         }
@@ -151,12 +155,14 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
         break;
       }
       case BOUND_FILL: {
+        buf.writeByte(matcherType.getMatcherTypeID());
         writeChunkCoordinates(buf, cursorPosition);
         writeChunkCoordinates(buf, corner1);
         writeChunkCoordinates(buf, corner2);
         break;
       }
       case UNBOUND_FILL: {
+        buf.writeByte(matcherType.getMatcherTypeID());
         writeChunkCoordinates(buf, cursorPosition);
         break;
       }
@@ -204,13 +210,37 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     private Command(int i_commandID) {
       commandID = (byte)i_commandID;
     }
-    public final byte commandID;
+    private final byte commandID;
   }
+
+  public static enum MatcherType {
+    ANY_NON_AIR(163), STARTING_BLOCK_ONLY(164);
+
+    public byte getMatcherTypeID() {return matcherTypeID;}
+
+    private static MatcherType byteToMatcherType(byte value)
+    {
+      for (MatcherType matcherType : MatcherType.values()) {
+        if (value == matcherType.getMatcherTypeID()) return matcherType;
+      }
+      return null;
+    }
+
+    private MatcherType(int i_matcherTypeID) {matcherTypeID = (byte)i_matcherTypeID;}
+    private final byte matcherTypeID;
+  }
+
 
   public Command getCommand()
   {
     assert (checkInvariants());
     return command;
+  }
+
+  public MatcherType getMatcherType()
+  {
+    assert (checkInvariants());
+    return matcherType;
   }
 
   public int getUniqueID()
@@ -312,16 +342,16 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
       case STATUS_REPLY:
       case STATUS_REQUEST:
       case ABORT: {
-        return (cursorPosition == null && corner1 == null && corner2 == null);
+        return (matcherType == null && cursorPosition == null && corner1 == null && corner2 == null);
       }
       case ALL_IN_BOX: {
-        return (cursorPosition == null && corner1 != null && corner2 != null);
+        return (matcherType == null && cursorPosition == null && corner1 != null && corner2 != null);
       }
       case UNBOUND_FILL: {
-        return (cursorPosition != null && corner1 == null && corner2 == null);
+        return (matcherType != null && cursorPosition != null && corner1 == null && corner2 == null);
       }
       case BOUND_FILL: {
-        return (cursorPosition != null && corner1 != null && corner2 != null);
+        return (matcherType != null && cursorPosition != null && corner1 != null && corner2 != null);
       }
       default: {
         return false;
@@ -349,6 +379,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return new ChunkCoordinates(corner2);
   }
 
+  private MatcherType matcherType;
   private ChunkCoordinates cursorPosition;
   private ChunkCoordinates corner1;
   private ChunkCoordinates corner2;

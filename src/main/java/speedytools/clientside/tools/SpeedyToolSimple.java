@@ -236,46 +236,6 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   protected abstract void playUndoSound(Vec3 playerPosition);
 
   /**
-   * For the given ItemStack, returns the corresponding Block that will be placed by the tool
-   *   eg ItemCloth will give the Block cloth
-   *   ItemBlocks are converted to the appropriate block
-   *   Others:
-   * @param itemToBePlaced - the Item to be placed, or null for none.
-   * @return the Block (and metadata) corresponding to the item, or null for none.
-   */
-  protected BlockWithMetadata getPlacedBlockFromItemStack(ItemStack itemToBePlaced)
-  {
-    assert FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT;
-
-    if (itemToBePlaced == null) return null;
-    BlockWithMetadata retval = new BlockWithMetadata();
-
-    Item item = itemToBePlaced.getItem();
-    if (item instanceof ItemBlock) {
-      ItemBlock itemBlock = (ItemBlock)item;
-      retval.block =  Block.getBlockFromItem(itemBlock);
-      retval.metaData = itemBlock.getMetadata(itemToBePlaced.getItemDamage());
-    } else if (item == Items.water_bucket) {
-      retval.block = Blocks.water;
-      retval.metaData = 0;
-    } else if (item == Items.lava_bucket) {
-      retval.block = Blocks.lava;
-      retval.metaData = 0;
-    } else if (item instanceof ItemSeeds) {
-      ItemSeeds itemSeeds = (ItemSeeds)item;
-      World world = Minecraft.getMinecraft().theWorld;
-      retval.block = itemSeeds.getPlant(world, 0, 0, 0);      // method doesn't actually use x,y,z
-      retval.metaData = itemSeeds.getPlantMetadata(world, 0, 0, 0);
-    } else if (item instanceof ItemRedstone) {
-      retval.block = Blocks.redstone_wire;
-      retval.metaData = 0;
-    } else  {
-      retval = null;
-    }
-    return retval;
-  }
-
-  /**
    * Selects the Blocks that will be affected by the tool when the player presses right-click
    *   default method just selects the first block.
    * @param target the position of the cursor

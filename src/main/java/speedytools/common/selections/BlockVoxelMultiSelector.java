@@ -1,10 +1,13 @@
 package speedytools.common.selections;
 
 import cpw.mods.fml.common.FMLLog;
+import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
+import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.ByteArrayOutputStream;
 
@@ -26,6 +29,8 @@ import java.io.ByteArrayOutputStream;
  */
 public class BlockVoxelMultiSelector
 {
+  public enum Matcher {ALL_NON_AIR, STARTING_BLOCK_ONLY}
+
   /**
    * initialise conversion of the selected box to a VoxelSelection
    *
@@ -39,6 +44,7 @@ public class BlockVoxelMultiSelector
 //    ypos = 0;
 //    zpos = 0;
     voxelIterator = new VoxelChunkwiseIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
+    matcher = Matcher.ALL_NON_AIR;
     mode = OperationInProgress.ALL_IN_BOX;
     initialiseVoxelRange();
   }
@@ -51,7 +57,7 @@ public class BlockVoxelMultiSelector
    * @param world
    * @param blockUnderCursor the block being highlighted by the cursor
    */
-  public void selectUnboundFillStart(World world, ChunkCoordinates blockUnderCursor) {
+  public void selectUnboundFillStart(World world, ChunkCoordinates blockUnderCursor, Matcher i_matcher) {
     ChunkCoordinates corner1 = new ChunkCoordinates();
     ChunkCoordinates corner2 = new ChunkCoordinates();
     final int BORDER_ALLOWANCE = 2;
@@ -62,7 +68,7 @@ public class BlockVoxelMultiSelector
     corner1.posZ = blockUnderCursor.posZ - VoxelSelection.MAX_Z_SIZE / 2 + BORDER_ALLOWANCE;
     corner2.posZ = blockUnderCursor.posZ + VoxelSelection.MAX_Z_SIZE / 2 - BORDER_ALLOWANCE;
 
-    selectBoundFillStart(world, blockUnderCursor, corner1, corner2);
+    selectBoundFillStart(world, blockUnderCursor, i_matcher, corner1, corner2);
   }
 
   /**
@@ -73,7 +79,7 @@ public class BlockVoxelMultiSelector
    * @param world
    * @param blockUnderCursor the block being highlighted by the cursor
    */
-  public void selectBoundFillStart(World world, ChunkCoordinates blockUnderCursor, ChunkCoordinates corner1, ChunkCoordinates corner2) {
+  public void selectBoundFillStart(World world, ChunkCoordinates blockUnderCursor, Matcher i_matcher, ChunkCoordinates corner1, ChunkCoordinates corner2) {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
     assert (blockUnderCursor.posX >= wxOrigin && blockUnderCursor.posY >= wyOrigin && blockUnderCursor.posZ >= wzOrigin);
     assert (blockUnderCursor.posX < wxOrigin + xSize && blockUnderCursor.posY < wyOrigin + ySize && blockUnderCursor.posZ < wzOrigin + zSize);
@@ -82,6 +88,10 @@ public class BlockVoxelMultiSelector
 
     VoxelChunkwiseFillIterator newIterator = new VoxelChunkwiseFillIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
     newIterator.setStartPosition(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    matcher = i_matcher;
+    blockToMatch = new BlockWithMetadata();
+    blockToMatch.block = world.getBlock(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    blockToMatch.metaData = world.getBlockMetadata(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
     voxelIterator = newIterator;
     mode = OperationInProgress.FILL;
   }
@@ -116,7 +126,24 @@ public class BlockVoxelMultiSelector
         }
       } else {
         while (!voxelIterator.isAtEnd() && !voxelIterator.hasEnteredNewChunk()) {
-          if (Blocks.air != currentChunk.getBlock(voxelIterator.getWX() & 0x0f, voxelIterator.getWY(), voxelIterator.getWZ() & 0x0f)) {
+          Block block = currentChunk.getBlock(voxelIterator.getWX() & 0x0f, voxelIterator.getWY(), voxelIterator.getWZ() & 0x0f);
+          boolean matches = false;
+          switch (matcher) {
+            case ALL_NON_AIR: {
+              matches = (block != Blocks.air);
+              break;
+            }
+            case STARTING_BLOCK_ONLY: {
+              int metadata = currentChunk.getBlockMetadata(voxelIterator.getWX() & 0x0f, voxelIterator.getWY(), voxelIterator.getWZ() & 0x0f);
+              matches = (block == blockToMatch.block) && (metadata == blockToMatch.metaData);
+              break;
+            }
+            default: {
+              ErrorLog.defaultLog().severe("Illegal matcher:" + matcher);
+              break;
+            }
+          }
+          if (matches) {
             selection.setVoxel(voxelIterator.getXpos(), voxelIterator.getYpos(), voxelIterator.getZpos());
             expandVoxelRange(voxelIterator.getXpos(), voxelIterator.getYpos(), voxelIterator.getZpos());
             voxelIterator.next(true);
@@ -358,15 +385,10 @@ public class BlockVoxelMultiSelector
   private int wyOrigin;
   private int wzOrigin;
 
-//  private int xpos;
-//  private int ypos;
-//  private int zpos;
-
   private IVoxelIterator voxelIterator;
 
   private boolean empty = true;
   private OperationInProgress mode;
-
-
-
+  private Matcher matcher;
+  private BlockWithMetadata blockToMatch;
 }

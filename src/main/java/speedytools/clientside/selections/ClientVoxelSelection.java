@@ -9,6 +9,7 @@ import net.minecraft.world.World;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.tools.SelectionPacketSender;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;
@@ -282,12 +283,16 @@ public class ClientVoxelSelection
    * Will not fill any blocks with y less than the blockUnderCursor.
    * If a selection is already in place, cancel it.
    * @param fillStartingBlock the block being highlighted by the cursor
+   * @param matcherType the type of matching to use when filling
+   * @param i_overrideTexture the block texture to use when displaying the selection; null for use world block at each [x,y,z]
   */
-  public ResultWithReason createUnboundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock)
+  public ResultWithReason createUnboundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock,
+                                                     Packet250ServerSelectionGeneration.MatcherType matcherType, BlockWithMetadata i_overrideTexture)
   {
     initialiseForGeneration();
-    clientVoxelMultiSelector.selectUnboundFillStart(thePlayer.worldObj, fillStartingBlock);
-    packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performUnboundFill(currentSelectionUniqueID, fillStartingBlock);
+    overrideTexture = i_overrideTexture;
+    clientVoxelMultiSelector.selectUnboundFillStart(thePlayer.worldObj, fillStartingBlock, convertMatcherType(matcherType));
+    packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performUnboundFill(matcherType, currentSelectionUniqueID, fillStartingBlock);
     return ResultWithReason.success();
   }
 
@@ -296,16 +301,36 @@ public class ClientVoxelSelection
    * From the starting block, performs a flood fill on all non-air blocks.
    * Will not fill any blocks outside of the box defined by corner1 and corner2
    * If a selection is already in place, cancel it.
+   * @param matcherType the type of matching to use when filling
+   * @param i_overrideTexture the block texture to use when displaying the selection; null for use world block at each [x,y,z]
    */
   public ResultWithReason createBoundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock,
-                                                   FILL CRITERION (matcher), block override texture,
+                                                   Packet250ServerSelectionGeneration.MatcherType matcherType, BlockWithMetadata i_overrideTexture,
                                                    ChunkCoordinates boundaryCorner1, ChunkCoordinates boundaryCorner2)
   {
     initialiseForGeneration();
-    clientVoxelMultiSelector.selectBoundFillStart(thePlayer.worldObj, fillStartingBlock, boundaryCorner1, boundaryCorner2);
-    packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performBoundFill(currentSelectionUniqueID, fillStartingBlock, boundaryCorner1, boundaryCorner2);
+    overrideTexture = i_overrideTexture;
+    clientVoxelMultiSelector.selectBoundFillStart(thePlayer.worldObj, fillStartingBlock, convertMatcherType(matcherType), boundaryCorner1, boundaryCorner2);
+    packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performBoundFill(matcherType, currentSelectionUniqueID, fillStartingBlock, boundaryCorner1, boundaryCorner2);
     return ResultWithReason.success();
   }
+
+  public BlockVoxelMultiSelector.Matcher convertMatcherType(Packet250ServerSelectionGeneration.MatcherType matcherType)
+  {
+    switch (matcherType) {
+      case ANY_NON_AIR: {
+        return BlockVoxelMultiSelector.Matcher.ALL_NON_AIR;
+      }
+      case STARTING_BLOCK_ONLY: {
+        return BlockVoxelMultiSelector.Matcher.STARTING_BLOCK_ONLY;
+      }
+      default: {
+        ErrorLog.defaultLog().severe("Illegal matcherType:" + matcherType);
+        return null;
+      }
+    }
+  }
+
 
   /**
    * Returns true if the selection has been updated since the last call to this function; resets flag after the call.
@@ -370,7 +395,7 @@ public class ClientVoxelSelection
             if (voxelSelectionRenderer == null) {
               voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
             }
-            voxelSelectionRenderer.createRenderListStart(world, fillBlock, selectionInitialOrigin.posX, selectionInitialOrigin.posY,
+            voxelSelectionRenderer.createRenderListStart(world, overrideTexture, selectionInitialOrigin.posX, selectionInitialOrigin.posY,
                     selectionInitialOrigin.posZ, clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels());
           }
         }
@@ -521,7 +546,7 @@ public class ClientVoxelSelection
   private int tickCount;
   private int lastStatusRequestTick;
 
-  private Block fillBlock;  // for the complex fill; the block that will fill the selection
+  private BlockWithMetadata overrideTexture;  // for the complex fill; the block that will fill the displayed selection; null for no override
 
   public BlockVoxelMultiSelectorRenderer getVoxelSelectionRenderer() {
     return voxelSelectionRenderer;

@@ -46,7 +46,7 @@ public class SpeedyToolSimpleAndComplex extends SpeedyTool
       boolean retval = speedyToolSimple.processUserInput(player, partialTick, userInput);
       if (!retval) return false;
 
-      System.out.println("simple CurrentItem:" + currentToolItemStack); // todo remove
+//      System.out.println("simple CurrentItem:" + currentToolItemStack);
       if (parentItem.isInfiniteMode(currentToolItemStack)) {
         boolean deactivationComplete = speedyToolSimple.deactivateTool();
         if (!deactivationComplete) return true;
@@ -57,7 +57,7 @@ public class SpeedyToolSimpleAndComplex extends SpeedyTool
     } else {
       boolean retval = speedyToolComplex.processUserInput(player, partialTick, userInput);
       if (!retval) return false;
-      System.out.println("complex CurrentItem:" + currentToolItemStack); // todo remove
+//      System.out.println("complex CurrentItem:" + currentToolItemStack);
       if (!parentItem.isInfiniteMode(currentToolItemStack)) {
         boolean deactivationComplete = speedyToolComplex.deactivateTool();
         if (!deactivationComplete) return true;
