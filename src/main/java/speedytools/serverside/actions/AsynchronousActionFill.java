@@ -2,23 +2,28 @@ package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.QuadOrientation;
-import speedytools.serverside.worldmanipulation.*;
+import speedytools.serverside.worldmanipulation.AsynchronousToken;
+import speedytools.serverside.worldmanipulation.WorldFragment;
+import speedytools.serverside.worldmanipulation.WorldHistory;
+import speedytools.serverside.worldmanipulation.WorldServerReaderFill;
 
 /**
 * User: The Grey Ghost
 * Date: 3/08/2014
-* Deletes the selection (overwrites it with air)
+* Fills the selection with a single block (overwrites it with air or the specified block)
 */
-public class AsynchronousActionDelete extends AsynchronousActionBase
+public class AsynchronousActionFill extends AsynchronousActionBase
 {
-  public AsynchronousActionDelete(WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory,
-                                  VoxelSelectionWithOrigin i_voxelSelection,
-                                  int i_sequenceNumber, int i_toolID, int i_xpos, int i_ypos, int i_zpos, QuadOrientation i_quadOrientation)
+  public AsynchronousActionFill(WorldServer i_worldServer, EntityPlayerMP i_player, WorldHistory i_worldHistory,
+                                VoxelSelectionWithOrigin i_voxelSelection,
+                                BlockWithMetadata i_fillBlock, int i_sequenceNumber, int i_toolID, int i_xpos, int i_ypos, int i_zpos, QuadOrientation i_quadOrientation)
   {
     super(i_worldServer, i_player, i_worldHistory, i_sequenceNumber);
     sourceVoxelSelection = i_voxelSelection;
+    fillBlock = i_fillBlock;
     toolID = i_toolID;
     xpos = i_xpos;
     ypos = i_ypos;
@@ -46,7 +51,8 @@ public class AsynchronousActionDelete extends AsynchronousActionBase
     switch (currentStage) {
       case SETUP: {
         sourceWorldFragment = new WorldFragment(sourceVoxelSelection.getxSize(), sourceVoxelSelection.getySize(), sourceVoxelSelection.getzSize());
-        AsynchronousToken token = sourceWorldFragment.readFromWorldAsynchronous(new WorldServerReaderAllAir(worldServer),
+        WorldServerReaderFill worldServerReaderFill = new WorldServerReaderFill(worldServer, fillBlock);
+        AsynchronousToken token = sourceWorldFragment.readFromWorldAsynchronous(worldServerReaderFill,
                                                                                sourceVoxelSelection.getWxOrigin(), sourceVoxelSelection.getWyOrigin(), sourceVoxelSelection.getWzOrigin(),
                                                                                sourceVoxelSelection);
         currentStage = ActionStage.READ;
@@ -175,6 +181,7 @@ public class AsynchronousActionDelete extends AsynchronousActionBase
     public double durationWeight;
   }
 
+  private BlockWithMetadata fillBlock;
   private int toolID;
   private int xpos;
   private int ypos;

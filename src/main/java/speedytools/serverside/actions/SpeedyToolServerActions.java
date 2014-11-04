@@ -1,6 +1,7 @@
 package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
@@ -92,13 +93,13 @@ public class SpeedyToolServerActions
    * @param player
    * @param sequenceNumber
    * @param toolID
-   * @param xpos
+   * @param fillBlock for fill tools, the block that will be used to fill
+   *@param xpos
    * @param ypos
    * @param zpos
-   * @param quadOrientation
-   * @return
+   * @param quadOrientation     @return
    */
-  public ResultWithReason performComplexAction(EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
+  public ResultWithReason performComplexAction(EntityPlayerMP player, int sequenceNumber, int toolID, BlockWithMetadata fillBlock, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
   {
     assert (!isAsynchronousActionInProgress());
 //    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos
@@ -129,9 +130,12 @@ public class SpeedyToolServerActions
     if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexCopy)) {
       token = new AsynchronousActionCopy(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     } else if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexDelete)) {
-      token = new AsynchronousActionDelete(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+      BlockWithMetadata airBWM = new BlockWithMetadata(Blocks.air, 0);
+      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, airBWM, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     } else if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexMove)) {
       token = new AsynchronousActionMove(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+    } else if (toolID == Item.getIdFromItem(RegistryForItems.itemSpeedyOrb)) {
+      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, fillBlock, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     } else {
       ErrorLog.defaultLog().info("Invalid toolID received in performComplexAction:" + toolID);
       return ResultWithReason.failure();

@@ -1,6 +1,5 @@
 package speedytools.clientside.tools;
 
-import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
@@ -528,7 +527,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   /**
    * don't call if an action is already pending
    */
-  private void placeSelection(EntityClientPlayerMP player, float partialTick)
+  protected void placeSelection(EntityClientPlayerMP player, float partialTick)
   {
     checkInvariants();
     if (!clientVoxelSelection.isSelectionCompleteOnServer()) {
@@ -537,17 +536,21 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
 
     Vec3 selectionPosition = getSelectionPosition(player, partialTick, false);
-    ResultWithReason result = cloneToolsNetworkClient.performComplexToolAction(Item.getIdFromItem(parentItem),
-            Math.round((float) selectionPosition.xCoord),
-            Math.round((float) selectionPosition.yCoord),
-            Math.round((float) selectionPosition.zCoord),
-            commonSelectionState.selectionOrientation);
+    ResultWithReason result = performComplexToolAction(selectionPosition);
     if (result.succeeded()) {
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
       toolState = ToolState.PERFORMING_ACTION;
     } else {
       displayNewErrorMessage(result.getReason());
     }
+  }
+
+  protected ResultWithReason performComplexToolAction(Vec3 selectionPosition) {
+    return cloneToolsNetworkClient.performComplexToolAction(Item.getIdFromItem(parentItem),
+              Math.round((float) selectionPosition.xCoord),
+              Math.round((float) selectionPosition.yCoord),
+              Math.round((float) selectionPosition.zCoord),
+              commonSelectionState.selectionOrientation);
   }
 
   private void flipSelection(EntityClientPlayerMP entityClientPlayerMP)
@@ -1147,10 +1150,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //  private QuadOrientation selectionOrientation;
 //  ChunkCoordinates initialSelectionOrigin;
 //  QuadOrientation initialSelectionOrientation;
-  private CommonSelectionState commonSelectionState;
+  protected CommonSelectionState commonSelectionState;
 
   private ClientVoxelSelection clientVoxelSelection;
-  private CloneToolsNetworkClient cloneToolsNetworkClient;
+  protected CloneToolsNetworkClient cloneToolsNetworkClient;
 //  private SelectionPacketSender selectionPacketSender;
 
   private SpeedyToolBoundary speedyToolBoundary;   // used to retrieve the boundary field coordinates, if selected

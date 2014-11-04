@@ -1,10 +1,13 @@
 package speedytools.serverside.worldmanipulation;
 
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.EmptyChunk;
+import speedytools.common.blocks.BlockWithMetadata;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -13,17 +16,24 @@ import java.util.List;
 * Created by TheGreyGhost on 8/08/14.
 * Wrapper for WorldServer to allow us to transparently read world data from a non-WorldServer
 */
-public class WorldServerReaderAllAir extends WorldServerReader
+public class WorldServerReaderFill extends WorldServerReader
 {
-  public WorldServerReaderAllAir(WorldServer worldServer)
+  public WorldServerReaderFill(WorldServer worldServer, BlockWithMetadata i_fillBlock)
   {
     super(worldServer);
     emptyChunk = new EmptyChunk(worldServer, 0, 0);
+    if (i_fillBlock == null) {
+      fillBlock = new BlockWithMetadata();
+      fillBlock.block = Blocks.air;
+    } else {
+      fillBlock = i_fillBlock;
+    }
+    blockID = Block.getIdFromBlock(fillBlock.block);
   }
 
   @Override
   public int getBlockId(int wx, int wy, int wz) {
-    return 0;
+    return blockID;
   }
 
   public Chunk getChunkFromChunkCoords(int cx, int cz) {
@@ -31,7 +41,7 @@ public class WorldServerReaderAllAir extends WorldServerReader
   }
 
   public int getBlockMetadata(int wx, int wy, int wz) {
-    return 0;
+    return fillBlock.metaData;
   }
 
   public TileEntity getBlockTileEntity(int wx, int wy, int wz) {
@@ -43,5 +53,7 @@ public class WorldServerReaderAllAir extends WorldServerReader
   }
 
   private EmptyChunk emptyChunk;
-  List<Object> emptyList = new LinkedList<Object>();
+  private List<Object> emptyList = new LinkedList<Object>();
+  private BlockWithMetadata fillBlock;
+  private int blockID;
 }

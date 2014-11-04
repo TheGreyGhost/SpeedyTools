@@ -1,9 +1,9 @@
 package speedytools.clientside.tools;
 
-import net.minecraft.block.Block;
 import net.minecraft.client.entity.EntityClientPlayerMP;
-import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
@@ -16,6 +16,7 @@ import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.utilities.Colour;
+import speedytools.common.utilities.ResultWithReason;
 
 /**
 * User: The Grey Ghost
@@ -90,6 +91,15 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
     return retval;
   }
 
+  @Override
+  protected ResultWithReason performComplexToolAction(Vec3 selectionPosition) {
+    if (currentBlockToPlace == null) return ResultWithReason.failure("I am confused...");
+    return cloneToolsNetworkClient.performComplexToolFillAction(Item.getIdFromItem(parentItem), currentBlockToPlace,
+            Math.round((float) selectionPosition.xCoord),
+            Math.round((float) selectionPosition.yCoord),
+            Math.round((float) selectionPosition.zCoord),
+            commonSelectionState.selectionOrientation);
+  }
 //  @Override
 //  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
 //  {

@@ -4,6 +4,7 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
@@ -104,6 +105,31 @@ public class CloneToolsNetworkClient
     if (!result.succeeded()) return result;
 
     Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, quadOrientation);
+    lastActionPacket = packet;
+    if (lastActionPacket != null) {
+      packetSender.sendPacket(lastActionPacket);
+      lastActionStatus = ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT;
+      lastActionSentTime = System.nanoTime();
+      return ResultWithReason.success();
+    }
+    return ResultWithReason.failure("I am confused...");
+  }
+
+  /**
+   * sends the "Tool Action Performed" command to the server for a fill action (orb, sceptre)
+   * @param toolID
+   * @param x
+   * @param y
+   * @param z
+   * @param quadOrientation the flipped and rotation status of the placement
+   * @return true for success, false otherwise
+   */
+  public ResultWithReason performComplexToolFillAction(int toolID, BlockWithMetadata blockWithMetadata, int x, int y, int z, QuadOrientation quadOrientation)
+  {
+    ResultWithReason result = isReadyToPerformAction();
+    if (!result.succeeded()) return result;
+
+    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolFillAction(currentActionSequenceNumber, toolID, blockWithMetadata, x, y, z, quadOrientation);
     lastActionPacket = packet;
     if (lastActionPacket != null) {
       packetSender.sendPacket(lastActionPacket);

@@ -269,7 +269,8 @@ public class SpeedyToolsNetworkServer
 
           ResultWithReason result = ResultWithReason.failure();
           if (serverStatus == ServerStatus.IDLE) {
-            result = speedyToolServerActions.performComplexAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
+            result = speedyToolServerActions.performComplexAction(player, sequenceNumber, packet.getToolID(), packet.getBlockWithMetadata(),
+                                                                  packet.getXpos(), packet.getYpos(), packet.getZpos(),
                                                                   packet.getQuadOrientation());
           } else {
             switch (serverStatus) {
