@@ -6,6 +6,7 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.ChunkCoordinates;
+import speedytools.common.selections.FillMatcher;
 import speedytools.common.utilities.ErrorLog;
 
 /**
@@ -49,7 +50,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performBoundFill(MatcherType i_matcherType, int whichTaskID, ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+  public static Packet250ServerSelectionGeneration performBoundFill(FillMatcher i_fillMatcher, int whichTaskID, ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.BOUND_FILL, whichTaskID);
     retval.matcherType = i_matcherType;

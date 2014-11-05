@@ -45,6 +45,7 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
     chunksToVisitFirst = new BitSet(cxCount * czCount);
     chunksToVisitLater = new BitSet(cxCount * czCount);
     blocksChecked = new BitSet(xSize * ySize * zSize);
+    diagonalAllowed = true;
     reset();
   }
 
@@ -58,6 +59,15 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
   public void setStartPosition(int wx, int wy, int wz) {
     if (!isWithinBounds(wx, wy, wz)) return;
     currentCheckPosition = new ChunkCoordinates(wx, wy, wz);
+  }
+
+  /**
+   * true if diagonal filling is allowed; false if cardinal directions only
+   * @param i_diagonalAllowed
+   */
+  public void setDiagonalAllowed(boolean i_diagonalAllowed)
+  {
+    diagonalAllowed = i_diagonalAllowed;
   }
 
   /**
@@ -130,7 +140,8 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
       int wy = currentPosition.chunkCoordinates.posY + searchDirectionsY[currentPosition.nextSearchDirection];
       int wz = currentPosition.chunkCoordinates.posZ + searchDirectionsZ[currentPosition.nextSearchDirection];
       ++(currentPosition.nextSearchDirection);
-      if (currentPosition.nextSearchDirection >= ALL_DIRECTIONS) {
+      if (   !diagonalAllowed && currentPosition.nextSearchDirection >= NON_DIAGONAL_DIRECTIONS
+          ||  diagonalAllowed && currentPosition.nextSearchDirection >= ALL_DIRECTIONS) {
         currentSearchStartPositions.removeFirst();
       }
       if (isWithinBounds(wx, wy, wz) && !blocksChecked.get(getBlockIndex(wx, wy, wz))) {
@@ -333,5 +344,6 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
   private int xSize;
   private int ySize;
   private int zSize;
+  private boolean diagonalAllowed;
 }
 
