@@ -15,7 +15,7 @@ import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.*;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
-import speedytools.common.SpeedyToolsOptionsClient;
+import speedytools.clientside.SpeedyToolsOptionsClient;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.ClientStatus;

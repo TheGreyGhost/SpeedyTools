@@ -8,7 +8,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.utilities.ErrorLog;
-import speedytools.common.utilities.QuadOrientation;
 
 /**
  * FillMatcher is used by fill algorithm to decide the type of blocks that should be added to the selection
@@ -128,6 +127,14 @@ public abstract class FillMatcher
 
   // -----------------------
 
+  public static class NullMatcher extends FillMatcher {
+    public MatchResult matches(Chunk chunk, int wcx, int wcy, int wcz) {
+      return null;
+    }
+    protected byte getUniqueID() {return NULL;}
+  }
+  // -----------------------
+
   public static class OnlySpecifiedBlock extends FillMatcher {
     public OnlySpecifiedBlock(BlockWithMetadata i_blockToMatch) {
       blockToMatch = i_blockToMatch;
@@ -158,5 +165,6 @@ public abstract class FillMatcher
   static private final byte ANY_NON_AIR = 1;
   static private final byte ANY_SOLID = 3;
   static private final byte ONLY_SPECIFIED_BLOCK = 5;
+  static private final byte NULL = 7;
 
 }

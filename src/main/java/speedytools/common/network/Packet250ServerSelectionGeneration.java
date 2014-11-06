@@ -6,7 +6,7 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.ChunkCoordinates;
-import speedytools.common.selections.FillMatcher;
+import speedytools.common.selections.FillAlgorithmSettings;
 import speedytools.common.utilities.ErrorLog;
 
 /**
@@ -50,27 +50,29 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performBoundFill(FillMatcher i_fillMatcher, int whichTaskID, ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+  public static Packet250ServerSelectionGeneration performBoundFill(FillAlgorithmSettings i_fillAlgorithmSettings,
+                                                                    int whichTaskID, ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.BOUND_FILL, whichTaskID);
-    retval.matcherType = i_matcherType;
-    retval.cursorPosition = i_cursorPosition;
+    retval.fillAlgorithmSettings = i_fillAlgorithmSettings;
+//    retval.cursorPosition = i_cursorPosition;
     retval.corner1 = i_corner1;
     retval.corner2 = i_corner2;
 
     assert (retval.checkInvariants());
-    retval.packetIsValid= true;
+    retval.packetIsValid = true;
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performUnboundFill(MatcherType i_matcherType, int whichTaskID, ChunkCoordinates i_cursorPosition)
+  public static Packet250ServerSelectionGeneration performUnboundFill(FillAlgorithmSettings i_fillAlgorithmSettings,
+                                                                      int whichTaskID, ChunkCoordinates i_cursorPosition)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.UNBOUND_FILL, whichTaskID);
-    retval.matcherType = i_matcherType;
-    retval.cursorPosition = i_cursorPosition;
+    retval.fillAlgorithmSettings = i_fillAlgorithmSettings;
+//    retval.cursorPosition = i_cursorPosition;
 
     assert (retval.checkInvariants());
-    retval.packetIsValid= true;
+    retval.packetIsValid = true;
     return retval;
   }
 
@@ -81,7 +83,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     retval.corner2 = i_corner2;
 
     assert (retval.checkInvariants());
-    retval.packetIsValid= true;
+    retval.packetIsValid = true;
     return retval;
   }
 
@@ -104,15 +106,15 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
           break;
         }
         case BOUND_FILL: {
-          matcherType = MatcherType.byteToMatcherType(buf.readByte());
-          cursorPosition = readChunkCoordinates(buf);
+          fillAlgorithmSettings = FillAlgorithmSettings.createFromBuffer(buf);// = MatcherType.byteToMatcherType(buf.readByte());
+//          cursorPosition = readChunkCoordinates(buf);
           corner1 = readChunkCoordinates(buf);
           corner2 = readChunkCoordinates(buf);
           break;
         }
         case UNBOUND_FILL: {
-          matcherType = MatcherType.byteToMatcherType(buf.readByte());
-          cursorPosition = readChunkCoordinates(buf);
+          fillAlgorithmSettings = FillAlgorithmSettings.createFromBuffer(buf); //MatcherType.byteToMatcherType(buf.readByte());
+//          cursorPosition = readChunkCoordinates(buf);
           break;
         }
         case ALL_IN_BOX: {
@@ -156,15 +158,15 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
         break;
       }
       case BOUND_FILL: {
-        buf.writeByte(matcherType.getMatcherTypeID());
-        writeChunkCoordinates(buf, cursorPosition);
+        fillAlgorithmSettings.writeToBuffer(buf);
+//        writeChunkCoordinates(buf, cursorPosition);
         writeChunkCoordinates(buf, corner1);
         writeChunkCoordinates(buf, corner2);
         break;
       }
       case UNBOUND_FILL: {
-        buf.writeByte(matcherType.getMatcherTypeID());
-        writeChunkCoordinates(buf, cursorPosition);
+        fillAlgorithmSettings.writeToBuffer(buf);
+//        writeChunkCoordinates(buf, cursorPosition);
         break;
       }
       case ALL_IN_BOX: {
@@ -214,22 +216,22 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     private final byte commandID;
   }
 
-  public static enum MatcherType {
-    ANY_NON_AIR(163), STARTING_BLOCK_ONLY(164);
-
-    public byte getMatcherTypeID() {return matcherTypeID;}
-
-    private static MatcherType byteToMatcherType(byte value)
-    {
-      for (MatcherType matcherType : MatcherType.values()) {
-        if (value == matcherType.getMatcherTypeID()) return matcherType;
-      }
-      return null;
-    }
-
-    private MatcherType(int i_matcherTypeID) {matcherTypeID = (byte)i_matcherTypeID;}
-    private final byte matcherTypeID;
-  }
+//  public static enum MatcherType {
+//    ANY_NON_AIR(163), STARTING_BLOCK_ONLY(164);
+//
+//    public byte getMatcherTypeID() {return matcherTypeID;}
+//
+//    private static MatcherType byteToMatcherType(byte value)
+//    {
+//      for (MatcherType matcherType : MatcherType.values()) {
+//        if (value == matcherType.getMatcherTypeID()) return matcherType;
+//      }
+//      return null;
+//    }
+//
+//    private MatcherType(int i_matcherTypeID) {matcherTypeID = (byte)i_matcherTypeID;}
+//    private final byte matcherTypeID;
+//  }
 
 
   public Command getCommand()
@@ -238,11 +240,11 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return command;
   }
 
-  public MatcherType getMatcherType()
-  {
-    assert (checkInvariants());
-    return matcherType;
-  }
+//  public MatcherType getMatcherType()
+//  {
+//    assert (checkInvariants());
+//    return matcherType;
+//  }
 
   public int getUniqueID()
   {
@@ -343,16 +345,16 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
       case STATUS_REPLY:
       case STATUS_REQUEST:
       case ABORT: {
-        return (matcherType == null && cursorPosition == null && corner1 == null && corner2 == null);
+        return (fillAlgorithmSettings == null && corner1 == null && corner2 == null);
       }
       case ALL_IN_BOX: {
-        return (matcherType == null && cursorPosition == null && corner1 != null && corner2 != null);
+        return (fillAlgorithmSettings == null && corner1 != null && corner2 != null);
       }
       case UNBOUND_FILL: {
-        return (matcherType != null && cursorPosition != null && corner1 == null && corner2 == null);
+        return (fillAlgorithmSettings != null  && corner1 == null && corner2 == null);
       }
       case BOUND_FILL: {
-        return (matcherType != null && cursorPosition != null && corner1 != null && corner2 != null);
+        return (fillAlgorithmSettings != null  && corner1 != null && corner2 != null);
       }
       default: {
         return false;
@@ -368,9 +370,10 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
 
   private float completedFraction;
 
-  public ChunkCoordinates getCursorPosition() {
-    return new ChunkCoordinates(cursorPosition);
-  }
+//  public ChunkCoordinates getCursorPosition() {
+//    return new ChunkCoordinates(cursorPosition);
+//  }
+
 
   public ChunkCoordinates getCorner1() {
     return new ChunkCoordinates(corner1);
@@ -380,8 +383,12 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return new ChunkCoordinates(corner2);
   }
 
-  private MatcherType matcherType;
-  private ChunkCoordinates cursorPosition;
+  public FillAlgorithmSettings getFillAlgorithmSettings() {
+    return fillAlgorithmSettings;
+  }
+
+  private FillAlgorithmSettings fillAlgorithmSettings;
+//  private ChunkCoordinates cursorPosition;
   private ChunkCoordinates corner1;
   private ChunkCoordinates corner2;
   private int uniqueID;
