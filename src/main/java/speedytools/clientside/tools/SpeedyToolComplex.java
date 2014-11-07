@@ -1,6 +1,5 @@
 package speedytools.clientside.tools;
 
-import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
@@ -8,6 +7,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import speedytools.clientside.SpeedyToolsOptionsClient;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
@@ -17,11 +17,9 @@ import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.*;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
-import speedytools.clientside.SpeedyToolsOptionsClient;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.ClientStatus;
-import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.FillAlgorithmSettings;
 import speedytools.common.selections.FillMatcher;
@@ -170,6 +168,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptionsClient.getShortClickMaxDurationNS();  // maximum length of time for a "short" click
 
     checkInvariants();
+
+    fillAlgorithmSettings.setDiagonalPropagationAllowed(isDiagonalPropagationAllowed(userInput.isControlKeyDown()));
 
     UserInput.InputEvent nextEvent;
     while (null != (nextEvent = userInput.poll())) {
@@ -617,6 +617,11 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   {
     FillMatcher fillMatcher = new FillMatcher.AnyNonAir();
     return fillMatcher;
+  }
+
+  protected boolean isDiagonalPropagationAllowed(boolean userRequested)
+  {
+    return false;
   }
 
   protected FillAlgorithmSettings fillAlgorithmSettings = new FillAlgorithmSettings();

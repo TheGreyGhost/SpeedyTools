@@ -16,8 +16,6 @@ import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.SoundController;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
-import speedytools.common.network.Packet250ServerSelectionGeneration;
-import speedytools.common.selections.FillAlgorithmSettings;
 import speedytools.common.selections.FillMatcher;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.ResultWithReason;
@@ -70,6 +68,12 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
   @Override
   protected boolean  mouseWheelChangesCount() {
     return true;
+  }
+
+  @Override
+  protected boolean isDiagonalPropagationAllowed(boolean userRequested)
+  {
+    return userRequested;
   }
 
   @Override

@@ -10,7 +10,6 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
-import speedytools.clientside.rendering.RendererHotbarCurrentItem;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
@@ -23,7 +22,6 @@ import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.UsefulConstants;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -99,4 +97,5 @@ public class SpeedyToolOrb extends SpeedyToolSimple
     List<ChunkCoordinates> selection = BlockMultiSelector.selectFillUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK, fillMatcher);
     return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
   }
+
 }

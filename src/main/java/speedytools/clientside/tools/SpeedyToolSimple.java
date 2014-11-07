@@ -253,28 +253,6 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     return new Pair<List<ChunkCoordinates>, Integer> (retval, sideToPlace);
   }
 
-  /**
-   * Selects the contour of Blocks that will be affected by the tool when the player presses right-click
-   * Starting from the block identified by mouseTarget, the selection will attempt to follow any contours in the same plane as the side hit.
-   * (for example: if there is a zigzagging wall, it will select the layer of blocks that follows the top of the wall.)
-   * Depending on additiveContour, it will either select the non-solid blocks on top of the contour (to make the wall "taller"), or
-   *   select the solid blocks that form the top layer of the contour (to remove the top layer of the wall).
-   * @param target the position of the cursor
-   * @param player the player
-   * @param maxSelectionSize the maximum number of blocks in the selection
-   * @param additiveContour if true, selects the layer of non-solid blocks adjacent to the contour.  if false, selects the solid blocks in the contour itself
-   * @param partialTick partial tick time.
-   * @return returns the list of blocks in the selection (may be zero length)
-   */
-  protected Pair<List<ChunkCoordinates>, Integer> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, boolean additiveContour, float partialTick)
-  {
-    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, BlockMultiSelector.BlockTypeToSelect.NON_SOLID_OK, player, partialTick);
-    if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
-    boolean diagonalOK =  controlKeyIsDown;
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectContour(target, player.worldObj, maxSelectionSize, diagonalOK, additiveContour);
-    return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
-  }
-
   protected List<ChunkCoordinates> currentlySelectedBlocks = new LinkedList<ChunkCoordinates>();
   protected BlockWithMetadata currentBlockToPlace;
   protected int currentSideToBePlaced;

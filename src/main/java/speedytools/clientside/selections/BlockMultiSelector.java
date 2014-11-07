@@ -10,7 +10,6 @@ import speedytools.common.selections.FillMatcher;
 import speedytools.common.utilities.ErrorLog;
 
 import java.util.*;
-import java.lang.Math;
 
 /**
 * Created with IntelliJ IDEA.
@@ -179,21 +178,22 @@ public class BlockMultiSelector
    * selectContour is used to select a contoured line of blocks, and return a list of their coordinates.
    * Starting from the block identified by mouseTarget, the selection will attempt to follow any contours in the same plane as the side hit.
    * (for example: if there is a zigzagging wall, it will select the layer of blocks that follows the top of the wall.)
-   * Depending on selectAdditiveContour, it will either select the non-solid blocks on top of the contour (to make the wall "taller"), or
+   * Depending on fillMatcher, it will either select the non-solid blocks on top of the contour (to make the wall "taller"), or
    *   select the solid blocks that form the top layer of the contour (to remove the top layer of the wall).
    * depending on diagonalOK it will follow diagonals or only the cardinal directions.
    * Keeps going until it reaches maxBlockCount, y goes outside the valid range, or hits a solid block.  The search algorithm is to look for closest blocks first
    *   ("closest" meaning the shortest distance travelled along the contour being created)
-   * @param mouseTarget the block under the player's cursor.  Uses [x,y,z] and sidehit
+   * @param startingBlockPosition the block to start from
    * @param world       the world
    * @param maxBlockCount the maximum number of blocks to select
    * @param diagonalOK    if true, diagonal 45 degree lines are allowed
-   * @param selectAdditiveContour if true, selects the layer of non-solid blocks adjacent to the contour.  if false, selects the solid blocks in the contour itself
+   * @param fillMatcher   the matcher used to determine which blocks should be added to the fill
+   * @param normalDirection specifies the plane that will be searched in (Facing directions; specifies the normal to the plane)
    * @return a list of the coordinates of all blocks in the selection, including the mouseTarget block.   Will be empty if the mouseTarget is not a tile.
    */
 
-  public static List<ChunkCoordinates> selectContour(MovingObjectPosition mouseTarget, World world,
-                                                     int maxBlockCount, boolean diagonalOK, boolean selectAdditiveContour)
+  public static List<ChunkCoordinates> selectContour(ChunkCoordinates startingBlockPosition, World world,
+                                                     int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, int normalDirection)
   {
     // lookup table to give the possible search directions for any given search plane
     //  row index 0 = xz plane, 1 = xy plane, 2 = yz plane
@@ -216,11 +216,11 @@ public class BlockMultiSelector
 
     List<ChunkCoordinates> selection = new ArrayList<ChunkCoordinates>();
 
-    if (mouseTarget == null || mouseTarget.typeOfHit !=  MovingObjectPosition.MovingObjectType.BLOCK) return selection;
+//    if (mouseTarget == null || mouseTarget.typeOfHit !=  MovingObjectPosition.MovingObjectType.BLOCK) return selection;
 
-    ChunkCoordinates startingBlock = new ChunkCoordinates();
+//    ChunkCoordinates startingBlock = new ChunkCoordinates();
     int searchPlane;
-    switch (mouseTarget.sideHit) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
+    switch (normalDirection) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
       case 0:
       case 1:
         searchPlane = PLANE_XZ;
@@ -238,26 +238,26 @@ public class BlockMultiSelector
 
     // first step is to identify the starting block depending on whether this is an additive contour or subtractive contour,
 
-    EnumFacing blockInFront = EnumFacing.getFront(mouseTarget.sideHit);
-    startingBlock.posX = mouseTarget.blockX;
-    startingBlock.posY = mouseTarget.blockY;
-    startingBlock.posZ = mouseTarget.blockZ;
-    if (selectAdditiveContour && isBlockSolid(world, startingBlock)) {
-      startingBlock.posX += blockInFront.getFrontOffsetX();
-      startingBlock.posY += blockInFront.getFrontOffsetY();
-      startingBlock.posZ += blockInFront.getFrontOffsetZ();
-    }
-    selection.add(startingBlock);
+//    EnumFacing blockInFront = EnumFacing.getFront(mouseTarget.sideHit);
+//    startingBlock.posX = mouseTarget.blockX;
+//    startingBlock.posY = mouseTarget.blockY;
+//    startingBlock.posZ = mouseTarget.blockZ;
+//    if (selectAdditiveContour && isBlockSolid(world, startingBlock)) {
+//      startingBlock.posX += blockInFront.getFrontOffsetX();
+//      startingBlock.posY += blockInFront.getFrontOffsetY();
+//      startingBlock.posZ += blockInFront.getFrontOffsetZ();
+//    }
+    selection.add(startingBlockPosition);
 
     final int INITIAL_CAPACITY = 128;
     Set<ChunkCoordinates> locationsFilled = new HashSet<ChunkCoordinates>(INITIAL_CAPACITY);                                   // locations which have been selected during the fill
     Deque<SearchPosition> currentSearchPositions = new LinkedList<SearchPosition>();
     Deque<SearchPosition> nextDepthSearchPositions = new LinkedList<SearchPosition>();
     ChunkCoordinates checkPosition = new ChunkCoordinates(0,0,0);
-    ChunkCoordinates checkPositionSupport = new ChunkCoordinates(0,0,0);
+//    ChunkCoordinates checkPositionSupport = new ChunkCoordinates(0,0,0);
 
-    locationsFilled.add(startingBlock);
-    currentSearchPositions.add(new SearchPosition(startingBlock));
+    locationsFilled.add(startingBlockPosition);
+    currentSearchPositions.add(new SearchPosition(startingBlockPosition));
 
     // algorithm is:
     //   for each block in the list of search positions, iterate through each adjacent block to see whether it meets the criteria for expansion:
@@ -275,19 +275,20 @@ public class BlockMultiSelector
                         currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[searchPlane][currentSearchPosition.nextSearchDirection]
                        );
       if (!locationsFilled.contains(checkPosition)) {
-        boolean blockIsSuitable = false;
-        if (selectAdditiveContour) {
-          if (!isBlockSolid(world, checkPosition)) {
-            checkPositionSupport.set(checkPosition.posX - blockInFront.getFrontOffsetX(),      // block behind
-                                     checkPosition.posY - blockInFront.getFrontOffsetY(),
-                                     checkPosition.posZ - blockInFront.getFrontOffsetZ()
-                                    );
-            blockIsSuitable = isBlockSolid(world, checkPositionSupport);
-          }
-        } else { // subtractive contour
-          blockIsSuitable = isBlockSolid(world, checkPosition);
-        }
-        if (blockIsSuitable) {
+        FillMatcher.MatchResult matchResult = fillMatcher.matches(world, checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+
+//        if (selectAdditiveContour) {
+//          if (!isBlockSolid(world, checkPosition)) {
+//            checkPositionSupport.set(checkPosition.posX - blockInFront.getFrontOffsetX(),      // block behind
+//                                     checkPosition.posY - blockInFront.getFrontOffsetY(),
+//                                     checkPosition.posZ - blockInFront.getFrontOffsetZ()
+//                                    );
+//            blockIsSuitable = isBlockSolid(world, checkPositionSupport);
+//          }
+//        } else { // subtractive contour
+//          blockIsSuitable = isBlockSolid(world, checkPosition);
+//        }
+        if (matchResult == FillMatcher.MatchResult.MATCH) {
           ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
           SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
           nextDepthSearchPositions.addLast(nextSearchPosition);
