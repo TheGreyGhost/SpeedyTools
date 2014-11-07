@@ -58,10 +58,13 @@ public class BlockVoxelMultiSelector
     ChunkCoordinates corner2 = new ChunkCoordinates();
     ChunkCoordinates blockUnderCursor = fillAlgorithmSettings.getStartPosition();
     final int BORDER_ALLOWANCE = 2;
+    final int MAXIMUM_Y = 255;
+    final int MINIMUM_Y = 0;
     corner1.posX = blockUnderCursor.posX - VoxelSelection.MAX_X_SIZE / 2 + BORDER_ALLOWANCE;
     corner2.posX = blockUnderCursor.posX + VoxelSelection.MAX_X_SIZE / 2 - BORDER_ALLOWANCE;
-    corner1.posY = blockUnderCursor.posY;
-    corner2.posY = Math.min(255, blockUnderCursor.posY + VoxelSelection.MAX_Y_SIZE - 2 * BORDER_ALLOWANCE);
+    corner1.posY = fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.posY : MINIMUM_Y;
+    corner1.posY = Math.max(MINIMUM_Y, corner1.posY);
+    corner2.posY = Math.min(MAXIMUM_Y, corner1.posY + VoxelSelection.MAX_Y_SIZE - 2 * BORDER_ALLOWANCE);
     corner1.posZ = blockUnderCursor.posZ - VoxelSelection.MAX_Z_SIZE / 2 + BORDER_ALLOWANCE;
     corner2.posZ = blockUnderCursor.posZ + VoxelSelection.MAX_Z_SIZE / 2 - BORDER_ALLOWANCE;
 

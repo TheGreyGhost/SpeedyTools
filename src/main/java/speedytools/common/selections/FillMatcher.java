@@ -63,7 +63,7 @@ public abstract class FillMatcher
     return retval;
   }
 
-  enum MatchResult {MATCH, NO_MATCH, NOT_LOADED, OUT_OF_BOUNDS}
+  public enum MatchResult {MATCH, NO_MATCH, NOT_LOADED, OUT_OF_BOUNDS}
 
   /**
    * does this block meet the matcher criteria?  (i.e. it should be added to the selection)
@@ -90,6 +90,7 @@ public abstract class FillMatcher
    * @return NOT_LOADED if the matcher can't tell because one of the chunks isn't loaded
    */
   public MatchResult matches(World world, int wx, int wy, int wz) {
+    Block block = world.getBlock(wx, wy, wz);
     Chunk chunk = world.getChunkFromChunkCoords(wx >> 4, wz >> 4);
     if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
     return matches(chunk, wx & 0x0f, wy, wz & 0x0f);
@@ -135,6 +136,7 @@ public abstract class FillMatcher
   }
   // -----------------------
 
+  // matches the specified block only; metadata sensitive except for lava and water materials
   public static class OnlySpecifiedBlock extends FillMatcher {
     public OnlySpecifiedBlock(BlockWithMetadata i_blockToMatch) {
       blockToMatch = i_blockToMatch;
@@ -143,8 +145,12 @@ public abstract class FillMatcher
     public MatchResult matches(Chunk chunk, int wcx, int wcy, int wcz) {
       if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
       Block block = chunk.getBlock(wcx, wcy, wcz);
+      if (block != blockToMatch.block) return MatchResult.NO_MATCH;
+
       int metadata = chunk.getBlockMetadata(wcx, wcy, wcz);
-      return (block == blockToMatch.block) && (metadata == blockToMatch.metaData) ? MatchResult.MATCH : MatchResult.NO_MATCH;
+      if (metadata == blockToMatch.metaData) return MatchResult.MATCH;
+      if (block.getMaterial() == Material.lava || block.getMaterial() == Material.water) return MatchResult.MATCH;
+      return MatchResult.NO_MATCH;
     }
     @Override
     public void writeToBuffer(ByteBuf buf) {

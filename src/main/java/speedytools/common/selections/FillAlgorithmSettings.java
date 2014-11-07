@@ -17,7 +17,7 @@ public class FillAlgorithmSettings
    */
   public static FillAlgorithmSettings createFromBuffer(ByteBuf buf)
   {
-    FillAlgorithmSettings retval = null;
+    FillAlgorithmSettings retval = new FillAlgorithmSettings();
     try {
       retval.propagation = Propagation.values()[buf.readInt()];
       retval.diagonalPropagationAllowed = buf.readBoolean();
@@ -32,7 +32,7 @@ public class FillAlgorithmSettings
   }
 
   public void writeToBuffer(ByteBuf buf) {
-    buf.writeByte(propagation.ordinal());
+    buf.writeInt(propagation.ordinal());
     buf.writeBoolean(diagonalPropagationAllowed);
     buf.writeBoolean(automaticLowerBound);
     buf.writeInt(startPosition.posX);

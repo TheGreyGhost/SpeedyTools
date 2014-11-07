@@ -1,13 +1,7 @@
 package speedytools.clientside.tools;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.relauncher.Side;
-import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
 import net.minecraft.item.*;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
@@ -202,7 +196,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   protected Pair<List<ChunkCoordinates>, Integer>  selectLineOfBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize,
                                                       BlockMultiSelector.CollisionOptions stopWhenCollide, float partialTick)
   {
-    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
+    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, BlockMultiSelector.BlockTypeToSelect.NON_SOLID_OK, player, partialTick);
     if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
 
     ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
@@ -248,7 +242,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
   {
     ArrayList<ChunkCoordinates> retval = new ArrayList<ChunkCoordinates>();
-    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
+    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
     int sideToPlace = UsefulConstants.FACE_YPOS;
     if (startBlock != null) {
       ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
@@ -274,30 +268,13 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    */
   protected Pair<List<ChunkCoordinates>, Integer> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, boolean additiveContour, float partialTick)
   {
-    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
+    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, BlockMultiSelector.BlockTypeToSelect.NON_SOLID_OK, player, partialTick);
     if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
     boolean diagonalOK =  controlKeyIsDown;
     List<ChunkCoordinates> selection = BlockMultiSelector.selectContour(target, player.worldObj, maxSelectionSize, diagonalOK, additiveContour);
     return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
   }
 
-  /**
-   * Selects the "blob" of blocks that will be affected by the tool when the player presses right-click
-   * Starting from the block identified by mouseTarget, the selection will flood fill all matching blocks.
-   * @param target  the block to start the flood fill from
-   * @param player
-   * @param maxSelectionSize the maximum number of blocks in the selection
-   * @param partialTick
-   * @return   returns the list of blocks in the selection (may be zero length)
-   */
-  protected Pair<List<ChunkCoordinates>, Integer> selectFillBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
-  {
-    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, player, partialTick);
-    if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
-    boolean diagonalOK =  controlKeyIsDown;
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectFill(target, player.worldObj, maxSelectionSize, diagonalOK);
-    return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
-  }
   protected List<ChunkCoordinates> currentlySelectedBlocks = new LinkedList<ChunkCoordinates>();
   protected BlockWithMetadata currentBlockToPlace;
   protected int currentSideToBePlaced;

@@ -1,5 +1,6 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
@@ -11,6 +12,7 @@ import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.*;
 import speedytools.clientside.userinput.PowerUpEffect;
@@ -21,12 +23,12 @@ import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.ClientStatus;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.ServerStatus;
+import speedytools.common.selections.FillAlgorithmSettings;
+import speedytools.common.selections.FillMatcher;
 import speedytools.common.utilities.*;
 
 import java.util.LinkedList;
 import java.util.List;
-
-import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 
 /**
 * User: The Grey Ghost
@@ -63,6 +65,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //    selectionPacketSender = i_selectionPacketSender;
     clientVoxelSelection = i_clientVoxelSelection;
     commonSelectionState = i_commonSelectionState;
+
+    fillAlgorithmSettings.setAutomaticLowerBound(true);
+    fillAlgorithmSettings.setPropagation(FillAlgorithmSettings.Propagation.FLOODFILL);
   }
 
   @Override
@@ -437,6 +442,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
     if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
       blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+      fillAlgorithmSettings.setStartPosition(blockUnderCursor);
       boolean selectedBlockIsInsideBoundaryField = false;
 
       if (boundaryCorner1 != null && boundaryCorner2 != null) {
@@ -447,19 +453,23 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         }
       }
 
+
+      fillAlgorithmSettings.setFillMatcher(getFillMatcherForSelectionCreation(world, blockUnderCursor));
       if (selectedBlockIsInsideBoundaryField) {
         currentHighlighting = SelectionType.BOUND_FILL;
-        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true,
-                                       getMatcherTypeForSelectionCreation() == Packet250ServerSelectionGeneration.MatcherType.ANY_NON_AIR,
+        highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                fillAlgorithmSettings.getFillMatcher(),
                 boundaryCorner1.posX, boundaryCorner2.posX,
                 boundaryCorner1.posY, boundaryCorner2.posY,
                 boundaryCorner1.posZ, boundaryCorner2.posZ);
       } else {
+        final int MAXIMUM_Y = 255;
+        final int MINIMUM_Y = 0;
         currentHighlighting = SelectionType.UNBOUND_FILL;
-        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true,
-                getMatcherTypeForSelectionCreation() == Packet250ServerSelectionGeneration.MatcherType.ANY_NON_AIR,
+        highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                fillAlgorithmSettings.getFillMatcher(),
                 Integer.MIN_VALUE, Integer.MAX_VALUE,
-                blockUnderCursor.posY, 255,
+                (fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.posY : MINIMUM_Y), MAXIMUM_Y,
                 Integer.MIN_VALUE, Integer.MAX_VALUE);
       }
       checkInvariants();
@@ -586,11 +596,11 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         break;
       }
       case UNBOUND_FILL: {
-        clientVoxelSelection.createUnboundFillSelection(thePlayer, blockUnderCursor, getMatcherTypeForSelectionCreation(), getOverrideTexture());
+        clientVoxelSelection.createUnboundFillSelection(thePlayer, fillAlgorithmSettings, getOverrideTexture());
         break;
       }
       case BOUND_FILL: {
-        clientVoxelSelection.createBoundFillSelection(thePlayer, blockUnderCursor, getMatcherTypeForSelectionCreation(), getOverrideTexture(), boundaryCorner1, boundaryCorner2);
+        clientVoxelSelection.createBoundFillSelection(thePlayer, fillAlgorithmSettings, getOverrideTexture(), boundaryCorner1, boundaryCorner2);
         break;
       }
       default: {
@@ -603,10 +613,13 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     soundEffectComplexSelectionGeneration.startPlaying();
   }
 
-  protected Packet250ServerSelectionGeneration.MatcherType getMatcherTypeForSelectionCreation()
+  protected FillMatcher getFillMatcherForSelectionCreation(World world, ChunkCoordinates blockUnderCursor)
   {
-    return Packet250ServerSelectionGeneration.MatcherType.ANY_NON_AIR;
+    FillMatcher fillMatcher = new FillMatcher.AnyNonAir();
+    return fillMatcher;
   }
+
+  protected FillAlgorithmSettings fillAlgorithmSettings = new FillAlgorithmSettings();
 
   protected BlockWithMetadata getOverrideTexture()
   {

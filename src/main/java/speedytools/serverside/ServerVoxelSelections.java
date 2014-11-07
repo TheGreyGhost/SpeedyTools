@@ -104,11 +104,11 @@ public class ServerVoxelSelections
           break;
         }
         case UNBOUND_FILL: {
-          blockVoxelMultiSelector.selectUnboundFillStart(playerWorld, commandPacket.getCursorPosition(), getMatcherTranslation(commandPacket.getMatcherType()));
+          blockVoxelMultiSelector.selectUnboundFillStart(playerWorld, commandPacket.getFillAlgorithmSettings());
           break;
         }
         case BOUND_FILL: {
-          blockVoxelMultiSelector.selectBoundFillStart(playerWorld, commandPacket.getCursorPosition(), getMatcherTranslation(commandPacket.getMatcherType()),
+          blockVoxelMultiSelector.selectBoundFillStart(playerWorld, commandPacket.getFillAlgorithmSettings(),
                                                         commandPacket.getCorner1(), commandPacket.getCorner2());
           break;
         }
@@ -143,21 +143,21 @@ public class ServerVoxelSelections
     }
   }
 
-  private BlockVoxelMultiSelector.Matcher getMatcherTranslation(Packet250ServerSelectionGeneration.MatcherType matcherType)
-  {
-    switch (matcherType) {
-      case ANY_NON_AIR: {
-        return BlockVoxelMultiSelector.Matcher.ALL_NON_AIR;
-      }
-      case STARTING_BLOCK_ONLY: {
-        return BlockVoxelMultiSelector.Matcher.STARTING_BLOCK_ONLY;
-      }
-      default: {
-        ErrorLog.defaultLog().severe("Illegal matcherType:" + matcherType);
-        return null;
-      }
-    }
-  }
+//  private BlockVoxelMultiSelector.Matcher getMatcherTranslation(Packet250ServerSelectionGeneration.MatcherType matcherType)
+//  {
+//    switch (matcherType) {
+//      case ANY_NON_AIR: {
+//        return BlockVoxelMultiSelector.Matcher.ALL_NON_AIR;
+//      }
+//      case STARTING_BLOCK_ONLY: {
+//        return BlockVoxelMultiSelector.Matcher.STARTING_BLOCK_ONLY;
+//      }
+//      default: {
+//        ErrorLog.defaultLog().severe("Illegal matcherType:" + matcherType);
+//        return null;
+//      }
+//    }
+//  }
 
 
 // the linkage doesn't actually need to do anything

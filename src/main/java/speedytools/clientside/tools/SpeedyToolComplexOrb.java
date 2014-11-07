@@ -1,8 +1,10 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -15,6 +17,8 @@ import speedytools.clientside.sound.SoundController;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
+import speedytools.common.selections.FillAlgorithmSettings;
+import speedytools.common.selections.FillMatcher;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.ResultWithReason;
 
@@ -29,6 +33,8 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
                               SelectionPacketSender packetSender, PacketSenderClient i_packetSenderClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_cloneToolsNetworkClient, i_speedyToolBoundary,
           i_clientVoxelSelection, i_commonSelectionState, packetSender, i_packetSenderClient);
+
+    fillAlgorithmSettings.setAutomaticLowerBound(false);
   }
 
   @Override
@@ -67,9 +73,13 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
   }
 
   @Override
-  protected Packet250ServerSelectionGeneration.MatcherType getMatcherTypeForSelectionCreation()
+  protected FillMatcher getFillMatcherForSelectionCreation(World world, ChunkCoordinates blockUnderCursor)
   {
-    return Packet250ServerSelectionGeneration.MatcherType.STARTING_BLOCK_ONLY;
+    Block block = world.getBlock(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    int metadata = world.getBlockMetadata(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    BlockWithMetadata blockWithMetadata = new BlockWithMetadata(block, metadata);
+    FillMatcher fillMatcher = new FillMatcher.OnlySpecifiedBlock(blockWithMetadata);
+    return fillMatcher;
   }
 
   @Override

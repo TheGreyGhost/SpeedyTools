@@ -183,7 +183,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
 
     // choose a starting block
     blockUnderCursor = null;
-    MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, player, partialTick);
+    MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
     if (airSelectionIgnoringBlocks == null) return false;
 
     MovingObjectPosition target = itemSpeedyBoundary.rayTraceLineOfSight(player.worldObj, player);

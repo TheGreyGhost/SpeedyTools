@@ -51,7 +51,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
   }
 
   public static Packet250ServerSelectionGeneration performBoundFill(FillAlgorithmSettings i_fillAlgorithmSettings,
-                                                                    int whichTaskID, ChunkCoordinates i_cursorPosition, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+                                                                    int whichTaskID, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.BOUND_FILL, whichTaskID);
     retval.fillAlgorithmSettings = i_fillAlgorithmSettings;
@@ -64,8 +64,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performUnboundFill(FillAlgorithmSettings i_fillAlgorithmSettings,
-                                                                      int whichTaskID, ChunkCoordinates i_cursorPosition)
+  public static Packet250ServerSelectionGeneration performUnboundFill(FillAlgorithmSettings i_fillAlgorithmSettings, int whichTaskID)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.UNBOUND_FILL, whichTaskID);
     retval.fillAlgorithmSettings = i_fillAlgorithmSettings;
