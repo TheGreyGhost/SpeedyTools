@@ -112,7 +112,8 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
   }
 
 
-  protected static ChunkCoordinates blockUnderCursor = null;      // why is this static?      // todo - try removing static later
+  protected ChunkCoordinates blockUnderCursor = null;   // todo - removed static - still ok?
+  protected int blockUnderCursorSideHit;  // which side of the block under cursor is the cursor on?
   protected ChunkCoordinates boundaryCorner1 = null;
   protected ChunkCoordinates boundaryCorner2 = null;
 

@@ -433,15 +433,15 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     if (clientVoxelSelection.getReadinessForDisplaying() != ClientVoxelSelection.VoxelSelectionState.NO_SELECTION) return false;
     updateBoundaryCornersFromToolBoundary();
 
-    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
-
     final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
     blockUnderCursor = null;
     highlightedBlocks = null;
     currentHighlighting = SelectionType.NONE;
 
+    MovingObjectPosition target = getBlockUnderCursor(player, partialTick);
     if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
       blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+      blockUnderCursorSideHit = target.sideHit;
       fillAlgorithmSettings.setStartPosition(blockUnderCursor);
       boolean selectedBlockIsInsideBoundaryField = false;
 
@@ -453,8 +453,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         }
       }
 
-
-      fillAlgorithmSettings.setFillMatcher(getFillMatcherForSelectionCreation(world, blockUnderCursor));
+      FillMatcher fillMatcher = getFillMatcherForSelectionCreation(world, blockUnderCursor);
+      fillAlgorithmSettings.setFillMatcher(fillMatcher);
       if (selectedBlockIsInsideBoundaryField) {
         currentHighlighting = SelectionType.BOUND_FILL;
         highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
@@ -489,6 +489,16 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     currentHighlighting = SelectionType.FULL_BOX;
     checkInvariants();
     return true;
+  }
+
+  protected MovingObjectPosition getBlockUnderCursor(EntityClientPlayerMP player, float partialTick)
+  {
+    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
+    if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+      return target;
+    } else {
+      return null;
+    }
   }
 
   @Override
