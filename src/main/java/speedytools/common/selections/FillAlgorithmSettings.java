@@ -23,6 +23,7 @@ public class FillAlgorithmSettings
       retval.diagonalPropagationAllowed = buf.readBoolean();
       retval.automaticLowerBound = buf.readBoolean();
       retval.startPosition = new ChunkCoordinates(buf.readInt(), buf.readInt(), buf.readInt());
+      retval.normalDirection = buf.readInt();
       retval.fillMatcher = FillMatcher.createMatcherFromBuffer(buf);
     } catch (IndexOutOfBoundsException ioe) {
       ErrorLog.defaultLog().info("Exception while createMatcherFromBuffer: " + ioe);
@@ -38,6 +39,7 @@ public class FillAlgorithmSettings
     buf.writeInt(startPosition.posX);
     buf.writeInt(startPosition.posY);
     buf.writeInt(startPosition.posZ);
+    buf.writeInt(normalDirection);
     fillMatcher.writeToBuffer(buf);
   }
 
@@ -81,9 +83,18 @@ public class FillAlgorithmSettings
     this.automaticLowerBound = automaticLowerBound;
   }
 
+  public int getNormalDirection() {
+    return normalDirection;
+  }
+
+  public void setNormalDirection(int normalDirection) {
+    this.normalDirection = normalDirection;
+  }
+
   private Propagation propagation = Propagation.FLOODFILL;
   private boolean diagonalPropagationAllowed = false;
   private ChunkCoordinates startPosition = new ChunkCoordinates();
   private FillMatcher fillMatcher = new FillMatcher.NullMatcher();
   private boolean automaticLowerBound = true;
+  private int normalDirection; // for contour: defines the plane to fill in
 }

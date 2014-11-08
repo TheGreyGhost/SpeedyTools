@@ -90,13 +90,26 @@ public class CombinedClientProxy extends CommonProxy {
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyOrb, simpleComplexOrb);
 
-    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre,
-            new SpeedyToolSceptre(RegistryForItems.itemSpeedySceptre,
-                    ClientSide.speedyToolRenderers,
-                    ClientSide.speedyToolSounds,
-                    ClientSide.undoManagerSimple,
-                    ClientSide.packetSenderClient
-            ));
+    SpeedyToolSceptre speedyToolSceptre = new SpeedyToolSceptre(RegistryForItems.itemSpeedySceptre,
+            ClientSide.speedyToolRenderers,
+            ClientSide.speedyToolSounds,
+            ClientSide.undoManagerSimple,
+            ClientSide.packetSenderClient);
+    SpeedyToolComplexSceptre speedyToolComplexSceptre = new SpeedyToolComplexSceptre(RegistryForItems.itemSpeedySceptre,
+            ClientSide.speedyToolRenderers,
+            ClientSide.speedyToolSounds,
+            ClientSide.undoManagerComplex,
+            ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
+            ClientSide.clientVoxelSelection, commonSelectionState,
+            ClientSide.selectionPacketSenderComplex,
+            ClientSide.packetSenderClient);
+    SpeedyToolSimpleAndComplex simpleComplexSceptre = new SpeedyToolSimpleAndComplex(speedyToolSceptre, speedyToolComplexSceptre,
+            RegistryForItems.itemSpeedySceptre,
+            ClientSide.speedyToolRenderers,
+            ClientSide.speedyToolSounds,
+            ClientSide.undoManagerComplex,
+            ClientSide.packetSenderClient);
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre, simpleComplexSceptre);
 
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
 
@@ -148,6 +161,7 @@ public class CombinedClientProxy extends CommonProxy {
     }
 
     MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedyOrb, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedyOrb));
+    MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedySceptre, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedySceptre));
   }
 
   /**

@@ -100,8 +100,8 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
       fillMatcher = new FillMatcher.AnySolid();
     }
 
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectContour(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK,
-                                                                        fillMatcher, startBlock.sideHit);
+    List<ChunkCoordinates> selection = BlockMultiSelector.selectContourUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK,
+            fillMatcher, startBlock.sideHit);
     return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
   }
 

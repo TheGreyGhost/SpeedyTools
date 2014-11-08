@@ -19,6 +19,7 @@ import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.SoundController;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
+import speedytools.common.selections.FillAlgorithmSettings;
 import speedytools.common.selections.FillMatcher;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.ResultWithReason;
@@ -36,6 +37,8 @@ public class SpeedyToolComplexSceptre extends SpeedyToolComplex
           i_clientVoxelSelection, i_commonSelectionState, packetSender, i_packetSenderClient);
 
     fillAlgorithmSettings.setAutomaticLowerBound(false);
+    fillAlgorithmSettings.setPropagation(FillAlgorithmSettings.Propagation.CONTOUR);
+
   }
 
   @Override
@@ -115,14 +118,13 @@ public class SpeedyToolComplexSceptre extends SpeedyToolComplex
 
   @Override
   public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick) {
-    boolean retval = super.updateForThisFrame(world, player, partialTick);
-
     // the block to be placed is the one to the right of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;
 
     final int MAX_HOTBAR_SLOT = 8;
     ItemStack itemStackToPlace = (currentlySelectedHotbarSlot == MAX_HOTBAR_SLOT) ? null : player.inventory.getStackInSlot(currentlySelectedHotbarSlot + 1);
     currentBlockToPlace = getPlacedBlockFromItemStack(itemStackToPlace);
+    boolean retval = super.updateForThisFrame(world, player, partialTick);
     return retval;
   }
 

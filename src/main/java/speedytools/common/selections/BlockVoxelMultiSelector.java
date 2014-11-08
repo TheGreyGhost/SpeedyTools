@@ -86,10 +86,28 @@ public class BlockVoxelMultiSelector
     assert (blockUnderCursor.posX < wxOrigin + xSize && blockUnderCursor.posY < wyOrigin + ySize && blockUnderCursor.posZ < wzOrigin + zSize);
     mode = OperationInProgress.FILL;
     initialiseVoxelRange();
+    IVoxelIterator newIterator = null;
+    switch(fillAlgorithmSettings.getPropagation()) {
+      case FLOODFILL: {
+        VoxelChunkwiseFillIterator newVCFIterator = new VoxelChunkwiseFillIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
+        newVCFIterator.setStartPosition(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+        newVCFIterator.setDiagonalAllowed(fillAlgorithmSettings.isDiagonalPropagationAllowed());
+        newIterator = newVCFIterator;
+        break;
+      }
+      case CONTOUR: {
+        VoxelChunkwiseContourIterator newVCCIterator = new VoxelChunkwiseContourIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
+        newVCCIterator.setStartPositionAndPlane(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ, fillAlgorithmSettings.getNormalDirection());
+        newVCCIterator.setDiagonalAllowed(fillAlgorithmSettings.isDiagonalPropagationAllowed());
+        newIterator = newVCCIterator;
+        break;
+      }
+      default: {
+        ErrorLog.defaultLog().debug("Illegal propagation:" + fillAlgorithmSettings.getPropagation());
+        break;
+      }
+    }
 
-    VoxelChunkwiseFillIterator newIterator = new VoxelChunkwiseFillIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
-    newIterator.setStartPosition(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
-    newIterator.setDiagonalAllowed(fillAlgorithmSettings.isDiagonalPropagationAllowed());
     matcher = fillAlgorithmSettings.getFillMatcher();
 //    blockToMatch = new BlockWithMetadata();
 //    blockToMatch.block = world.getBlock(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);

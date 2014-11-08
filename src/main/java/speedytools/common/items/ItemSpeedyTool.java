@@ -92,6 +92,13 @@ public abstract class ItemSpeedyTool extends Item
     return itemStack.stackSize;
   }
 
+  // revalidate the placement count, in case the user has changed it (eg merged a stack of items)
+
+  public void revalidatePlacementCount(ItemStack itemStack)
+  {
+    setPlacementCount(itemStack, getPlacementCount(itemStack));
+  }
+
   /**
    * returns true if this tool is in "infinite placement" mode.
    * @param itemStack

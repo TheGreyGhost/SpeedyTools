@@ -457,20 +457,37 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       fillAlgorithmSettings.setFillMatcher(fillMatcher);
       if (selectedBlockIsInsideBoundaryField) {
         currentHighlighting = SelectionType.BOUND_FILL;
-        highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
-                fillAlgorithmSettings.getFillMatcher(),
-                boundaryCorner1.posX, boundaryCorner2.posX,
-                boundaryCorner1.posY, boundaryCorner2.posY,
-                boundaryCorner1.posZ, boundaryCorner2.posZ);
+        if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.FLOODFILL) {
+          highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                  fillAlgorithmSettings.getFillMatcher(),
+                  boundaryCorner1.posX, boundaryCorner2.posX,
+                  boundaryCorner1.posY, boundaryCorner2.posY,
+                  boundaryCorner1.posZ, boundaryCorner2.posZ);
+        } else if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.CONTOUR) {
+          highlightedBlocks = BlockMultiSelector.selectContourBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS,
+                  fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                  fillAlgorithmSettings.getFillMatcher(),
+                  blockUnderCursorSideHit,
+                  boundaryCorner1.posX, boundaryCorner2.posX,
+                  boundaryCorner1.posY, boundaryCorner2.posY,
+                  boundaryCorner1.posZ, boundaryCorner2.posZ);
+        }
       } else {
         final int MAXIMUM_Y = 255;
         final int MINIMUM_Y = 0;
         currentHighlighting = SelectionType.UNBOUND_FILL;
-        highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
-                fillAlgorithmSettings.getFillMatcher(),
-                Integer.MIN_VALUE, Integer.MAX_VALUE,
-                (fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.posY : MINIMUM_Y), MAXIMUM_Y,
-                Integer.MIN_VALUE, Integer.MAX_VALUE);
+        if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.FLOODFILL) {
+          highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                  fillAlgorithmSettings.getFillMatcher(),
+                  Integer.MIN_VALUE, Integer.MAX_VALUE,
+                  (fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.posY : MINIMUM_Y), MAXIMUM_Y,
+                  Integer.MIN_VALUE, Integer.MAX_VALUE);
+        } else if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.CONTOUR) {
+          highlightedBlocks = BlockMultiSelector.selectContourUnbounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS,
+                  fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                  fillAlgorithmSettings.getFillMatcher(),
+                  blockUnderCursorSideHit);
+        }
       }
       checkInvariants();
       return true;

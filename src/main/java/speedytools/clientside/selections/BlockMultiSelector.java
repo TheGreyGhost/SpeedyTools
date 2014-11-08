@@ -174,6 +174,13 @@ public class BlockMultiSelector
     return selection;
   }
 
+  public static List<ChunkCoordinates> selectContourUnbounded(ChunkCoordinates startingBlockPosition, World world,
+                                                              int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, int normalDirection)
+  {
+    return selectContourBounded(startingBlockPosition, world, maxBlockCount, diagonalOK, fillMatcher, normalDirection,
+                                Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+  }
+
   /**
    * selectContour is used to select a contoured line of blocks, and return a list of their coordinates.
    * Starting from the block identified by mouseTarget, the selection will attempt to follow any contours in the same plane as the side hit.
@@ -192,8 +199,9 @@ public class BlockMultiSelector
    * @return a list of the coordinates of all blocks in the selection, including the mouseTarget block.   Will be empty if the mouseTarget is not a tile.
    */
 
-  public static List<ChunkCoordinates> selectContour(ChunkCoordinates startingBlockPosition, World world,
-                                                     int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, int normalDirection)
+  public static List<ChunkCoordinates> selectContourBounded(ChunkCoordinates startingBlockPosition, World world,
+                                                              int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, int normalDirection,
+                                                              int xMin, int xMax, int yMin, int yMax, int zMin, int zMax)
   {
     // lookup table to give the possible search directions for any given search plane
     //  row index 0 = xz plane, 1 = xy plane, 2 = yz plane
@@ -274,7 +282,10 @@ public class BlockMultiSelector
                         currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[searchPlane][currentSearchPosition.nextSearchDirection],
                         currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[searchPlane][currentSearchPosition.nextSearchDirection]
                        );
-      if (!locationsFilled.contains(checkPosition)) {
+      if (currentSearchPosition.chunkCoordinates.posX >= xMin && currentSearchPosition.chunkCoordinates.posX <= xMax &&
+          currentSearchPosition.chunkCoordinates.posY >= yMin && currentSearchPosition.chunkCoordinates.posY <= yMax &&
+          currentSearchPosition.chunkCoordinates.posZ >= zMin && currentSearchPosition.chunkCoordinates.posZ <= zMax &&
+          !locationsFilled.contains(checkPosition)) {
         FillMatcher.MatchResult matchResult = fillMatcher.matches(world, checkPosition.posX, checkPosition.posY, checkPosition.posZ);
 
 //        if (selectAdditiveContour) {
