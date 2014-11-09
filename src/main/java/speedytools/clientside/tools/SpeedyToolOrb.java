@@ -1,18 +1,26 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
+import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.sound.SoundEffectNames;
-import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.sound.SoundEffectSimple;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
+import speedytools.common.selections.FillMatcher;
+import speedytools.common.utilities.Pair;
+import speedytools.common.utilities.UsefulConstants;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,12 +40,11 @@ public class SpeedyToolOrb extends SpeedyToolSimple
    * @param target the position of the cursor
    * @param player the player
    * @param maxSelectionSize the maximum number of blocks in the selection
-   * @param itemStackToPlace the item that would be placed in the selection
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected List<ChunkCoordinates> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
     return selectFillBlocks(target, player, maxSelectionSize, partialTick);
   }
@@ -55,4 +62,42 @@ public class SpeedyToolOrb extends SpeedyToolSimple
     SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.ORB_UNPLACE, soundController);
     soundEffectSimple.startPlaying();
   }
+
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {return BlockMultiSelector.BlockSelectionBehaviour.ORB_STYLE;}
+
+  /**
+   * Selects the "blob" of blocks that will be affected by the tool when the player presses right-click
+   * Starting from the block identified by mouseTarget, the selection will flood fill all matching blocks.
+   * @param blockUnderCursorMOP  the block to start the flood fill from
+   * @param player
+   * @param maxSelectionSize the maximum number of blocks in the selection
+   * @param partialTick
+   * @return   returns the list of blocks in the selection (may be zero length)
+   */
+  protected Pair<List<ChunkCoordinates>, Integer> selectFillBlocks(MovingObjectPosition blockUnderCursorMOP,
+                                                                   EntityPlayer player, int maxSelectionSize, float partialTick)
+  {
+//    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(blockUnderCursorMOP, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
+    if (blockUnderCursorMOP == null || blockUnderCursorMOP.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
+      return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
+    }
+    ChunkCoordinates blockUnderCursor = new ChunkCoordinates(blockUnderCursorMOP.blockX, blockUnderCursorMOP.blockY, blockUnderCursorMOP.blockZ);
+
+    boolean diagonalOK =  controlKeyIsDown;
+
+    World world = player.worldObj;
+    Block block = world.getBlock(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    if (block == Blocks.air) {
+      return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
+    }
+
+    int metadata = world.getBlockMetadata(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+    BlockWithMetadata blockWithMetadata = new BlockWithMetadata(block, metadata);
+    FillMatcher fillMatcher = new FillMatcher.OnlySpecifiedBlock(blockWithMetadata);
+
+    List<ChunkCoordinates> selection = BlockMultiSelector.selectFillUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK, fillMatcher);
+    return new Pair<List<ChunkCoordinates>, Integer> (selection, blockUnderCursorMOP.sideHit);
+  }
+
 }

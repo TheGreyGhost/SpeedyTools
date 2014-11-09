@@ -2,19 +2,16 @@ package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.GLAllocation;
-import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.IIcon;
-import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import org.lwjgl.opengl.GL11;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
@@ -80,6 +77,7 @@ public class BlockVoxelMultiSelectorRenderer
   private int xSize, ySize, zSize;
   private int xOffset, yOffset, zOffset;
   private int sourceWXorigin, sourceWYorigin, sourceWZorigin;
+  private BlockWithMetadata overrideTextureBlock;
   private BitSet unloadedChunks = new BitSet();  // unloadedChunks[cx + cz * chunkCountX] = 1 if this chunk was unloaded when trying to get textures -> don't know what the block is
 
   private int [] displayListMapping;  // mapping of the cx, cy, cz to displayListIndex used by OpenGL.
@@ -235,7 +233,7 @@ public class BlockVoxelMultiSelectorRenderer
       for (; cyCurrent < chunkCountY; ++cyCurrent, czCurrent = 0) {
         for (; czCurrent < chunkCountZ; ++czCurrent) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (cxCurrent / (float)chunkCountX);
-          renderThisChunk(world, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cxCurrent, cyCurrent, czCurrent);
+          renderThisChunk(world, overrideTextureBlock, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cxCurrent, cyCurrent, czCurrent);
           Chunk chunk = world.getChunkFromBlockCoords(sourceWXorigin + cxCurrent * DISPLAY_LIST_XSIZE, sourceWZorigin + czCurrent * DISPLAY_LIST_ZSIZE);
           if (!chunk.isEmpty()) {
             unloadedChunks.clear(cxCurrent + czCurrent * chunkCountX);
@@ -248,7 +246,20 @@ public class BlockVoxelMultiSelectorRenderer
     return -1;
   }
 
-  private void renderThisChunk(World world, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels,
+  /**
+   * create the render list for this chunk
+   * @param world
+   * @param textureOverride if non null, uses this block texture instead of the world blocks textures
+   * @param selectedVoxels
+   * @param unknownVoxels
+   * @param wxOrigin
+   * @param wyOrigin
+   * @param wzOrigin
+   * @param cx
+   * @param cy
+   * @param cz
+   */
+  private void renderThisChunk(World world, BlockWithMetadata textureOverride, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels,
                                int wxOrigin, int wyOrigin, int wzOrigin,
                                int cx, int cy, int cz)
   {
@@ -261,7 +272,7 @@ public class BlockVoxelMultiSelectorRenderer
     GL11.glDisable(GL11.GL_LIGHTING);
     GL11.glEnable(GL11.GL_TEXTURE_2D);
     Tessellator tessellator = Tessellator.instance;
-    tessellateSurfaceWithTexture(world, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin,
+    tessellateSurfaceWithTexture(world, textureOverride, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin,
             cx * DISPLAY_LIST_XSIZE - xOffset, cy * DISPLAY_LIST_YSIZE - yOffset, cz * DISPLAY_LIST_ZSIZE - zOffset,
             tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
 
@@ -307,7 +318,7 @@ public class BlockVoxelMultiSelectorRenderer
           Chunk chunk = world.getChunkFromBlockCoords(sourceWXorigin + cx * DISPLAY_LIST_XSIZE, sourceWZorigin + cz * DISPLAY_LIST_ZSIZE);
           if (!chunk.isEmpty()) {
             for (int cy = 0; cy < chunkCountY; ++cy) {
-              renderThisChunk(world, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cx, cy, cz);
+              renderThisChunk(world, overrideTextureBlock, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cx, cy, cz);
             }
             unloadedChunks.clear(cx + cz * chunkCountX);
 //            System.out.println("update clear [" + cx + ", " + cz + "]");
@@ -324,10 +335,11 @@ public class BlockVoxelMultiSelectorRenderer
    * Quads, with lines to outline them
    * Aligns to world chunk boundaries
    * @param world
+   * @param textureOverride if not null, draw the render list with the texture of the given block
    * @param selectedVoxels the current selection
    * @param unknownVoxels any unknown voxels in the current selection (voxels that might be selected - not known).  Must be the same size [x,y,z] as selectedVoxels
    */
-  public void createRenderListStart(World world, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels)
+  public void createRenderListStart(World world, BlockWithMetadata textureOverride, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels)
   {
     release();
     displayListWireFrameXY = GLAllocation.generateDisplayLists(1);
@@ -390,6 +402,7 @@ public class BlockVoxelMultiSelectorRenderer
     cxCurrent = 0;
     cyCurrent = 0;
     czCurrent = 0;
+    overrideTextureBlock = textureOverride;
 
     mode = OperationInProgress.IN_PROGRESS;
   }
@@ -416,7 +429,7 @@ public class BlockVoxelMultiSelectorRenderer
       for (; cyCurrent < chunkCountY; ++cyCurrent, czCurrent = 0) {
         for (; czCurrent < chunkCountZ; ++czCurrent) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (cxCurrent / (float)chunkCountX);
-          renderThisChunk(world, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin, cxCurrent, cyCurrent, czCurrent);
+          renderThisChunk(world, overrideTextureBlock, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin, cxCurrent, cyCurrent, czCurrent);
           Chunk chunk = world.getChunkFromBlockCoords(wxOrigin + cxCurrent * DISPLAY_LIST_XSIZE, wzOrigin + DISPLAY_LIST_ZSIZE);
           if (!chunk.isEmpty()) {
             unloadedChunks.clear(cxCurrent + czCurrent * chunkCountX);
@@ -705,6 +718,7 @@ public class BlockVoxelMultiSelectorRenderer
   /**
    * draw the textured surface of this chunk starting from the [x0,y0,z0] index into the selection
    * @param world
+   * @param overrideTexture if not null, use the texture from this block
    * @param unknownVoxels
    * @param wxOrigin world x of the selection
    * @param wyOrigin world y of the selection
@@ -716,9 +730,10 @@ public class BlockVoxelMultiSelectorRenderer
    * @param whatToDraw
    * @param nudgeDistance how far to nudge the face (to prevent overlap)
    */
-  private void tessellateSurfaceWithTexture(World world, VoxelSelection selection, VoxelSelection unknownVoxels, int wxOrigin, int wyOrigin, int wzOrigin,
-                                               int sx0, int sy0, int sz0,
-                                               Tessellator tessellator, WhatToDraw whatToDraw, double nudgeDistance)
+  private void tessellateSurfaceWithTexture(World world, BlockWithMetadata overrideTexture,
+                                            VoxelSelection selection, VoxelSelection unknownVoxels, int wxOrigin, int wyOrigin, int wzOrigin,
+                                            int sx0, int sy0, int sz0,
+                                            Tessellator tessellator, WhatToDraw whatToDraw, double nudgeDistance)
   {
     int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
 
@@ -745,8 +760,15 @@ public class BlockVoxelMultiSelectorRenderer
             // unknown blocks get SelectionFog
             // selected blocks which are air (either because the block is air, or because the chunk is not loaded), get SelectionSolidFog
             Block block = RegistryForBlocks.blockSelectionFog;
+            int metaData = 0;
             if (selected) {
-              block = world.getBlock(wx, wy, wz);
+              if (overrideTexture != null) {
+                block = overrideTexture.block;
+                metaData = overrideTexture.metaData;
+              } else {
+                block = world.getBlock(wx, wy, wz);
+                metaData = world.getBlockMetadata(wx, wy, wz);
+              }
               if (block == Blocks.air) {
                 block = RegistryForBlocks.blockSelectionSolidFog;
               }
@@ -758,7 +780,7 @@ public class BlockVoxelMultiSelectorRenderer
               yPosNudge = (selection.getVoxel(sx-1, sy+1, sz+0) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(sx-1, sy+0, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx-1, sy+0, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
-              IIcon icon = block.getBlockTextureFromSide(UsefulConstants.FACE_XNEG);
+              IIcon icon = block.getIcon(UsefulConstants.FACE_XNEG, metaData);
 
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
               tessellator.addVertexWithUV(x - nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
@@ -773,7 +795,7 @@ public class BlockVoxelMultiSelectorRenderer
               yPosNudge = (selection.getVoxel(sx+1, sy+1, sz+0) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(sx+1, sy+0, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+1, sy+0, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
-              IIcon icon = block.getBlockTextureFromSide(UsefulConstants.FACE_XPOS);
+              IIcon icon = block.getIcon(UsefulConstants.FACE_XPOS, metaData);
 
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
               tessellator.addVertexWithUV(x + 1 + nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
@@ -788,7 +810,7 @@ public class BlockVoxelMultiSelectorRenderer
               xPosNudge = (selection.getVoxel(sx+1, sy-1, sz+0) ? -1 : (selection.getVoxel(sx+1, sy+0, sz+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(sx+0, sy-1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+0, sy-1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
-              IIcon icon = block.getBlockTextureFromSide(UsefulConstants.FACE_YNEG);
+              IIcon icon = block.getIcon(UsefulConstants.FACE_YNEG, metaData);
               // NB yneg face is flipped left-right in vanilla
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
               tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
@@ -803,7 +825,7 @@ public class BlockVoxelMultiSelectorRenderer
               xPosNudge = (selection.getVoxel(sx+1, sy+1, sz+0) ? -1 : (selection.getVoxel(sx+1, sy+0, sz+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(sx+0, sy+1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+0, sy+1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
-              IIcon icon = block.getBlockTextureFromSide(UsefulConstants.FACE_YPOS);
+              IIcon icon = block.getIcon(UsefulConstants.FACE_YPOS, metaData);
 
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
               tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
@@ -818,7 +840,7 @@ public class BlockVoxelMultiSelectorRenderer
               xPosNudge = (selection.getVoxel(sx+1, sy+0, sz-1) ? -1 : (selection.getVoxel(sx+1, sy+0, sz+0) ? 0 : 1) );
               yNegNudge = (selection.getVoxel(sx+0, sy-1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy-1, sz+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(sx+0, sy+1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
-              IIcon icon = block.getBlockTextureFromSide(UsefulConstants.FACE_ZNEG);
+              IIcon icon = block.getIcon(UsefulConstants.FACE_ZNEG, metaData);
 
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
               tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMaxU(), icon.getMaxV());
@@ -833,7 +855,7 @@ public class BlockVoxelMultiSelectorRenderer
               xPosNudge = (selection.getVoxel(sx+1, sy+0, sz+1) ? -1 : (selection.getVoxel(sx+1, sy+0, sz+0) ? 0 : 1) );
               yNegNudge = (selection.getVoxel(sx+0, sy-1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy-1, sz+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(sx+0, sy+1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
-              IIcon icon = block.getBlockTextureFromSide(UsefulConstants.FACE_ZNEG);
+              IIcon icon = block.getIcon(UsefulConstants.FACE_ZPOS, metaData);
 
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
               tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMinU(), icon.getMaxV());

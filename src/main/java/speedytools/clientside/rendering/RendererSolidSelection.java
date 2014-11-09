@@ -10,7 +10,7 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import org.lwjgl.opengl.GL11;
 import speedytools.clientside.ClientSide;
 import speedytools.clientside.selections.BlockVoxelMultiSelectorRenderer;
-import speedytools.common.SpeedyToolsOptionsClient;
+import speedytools.clientside.SpeedyToolsOptionsClient;
 import speedytools.common.utilities.Colour;
 import speedytools.common.utilities.QuadOrientation;
 

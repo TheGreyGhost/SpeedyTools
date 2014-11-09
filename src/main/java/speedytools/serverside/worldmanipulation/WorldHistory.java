@@ -91,14 +91,14 @@ public class WorldHistory
    * @param worldServer
 
    */
-  public void writeToWorldWithUndo(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, List<ChunkCoordinates> blockSelection)
+  public void writeToWorldWithUndo(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, int sideToPlace, List<ChunkCoordinates> blockSelection)
   {
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
       blockSelection = currentAsynchronousTask.cullLockedVoxels(worldServer, blockSelection);
     }
     if (blockSelection.isEmpty()) return;
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer, blockToPlace, blockSelection);
+    worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockToPlace, sideToPlace, blockSelection);
     UndoLayerInfo undoLayerInfo = new UndoLayerInfo(System.nanoTime(), worldServer, entityPlayerMP, worldSelectionUndo);
     undoLayersSimple.add(undoLayerInfo);
 

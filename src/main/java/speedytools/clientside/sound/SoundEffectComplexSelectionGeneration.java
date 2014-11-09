@@ -1,13 +1,8 @@
 package speedytools.clientside.sound;
 
-import net.minecraft.client.audio.ITickableSound;
 import net.minecraft.client.audio.PositionedSound;
 import net.minecraft.util.ResourceLocation;
-import speedytools.common.utilities.ErrorLog;
-import speedytools.common.utilities.UsefulFunctions;
 
-import java.lang.ref.WeakReference;
-import java.util.Deque;
 import java.util.Random;
 
 /**
@@ -22,7 +17,9 @@ public class SoundEffectComplexSelectionGeneration
   public SoundEffectComplexSelectionGeneration(SoundController i_soundController)
   {
     soundController = i_soundController;
-    generationResource = new ResourceLocation(SoundEffectNames.CREATE_SELECTION.getJsonName());
+    generationResource1 = new ResourceLocation(SoundEffectNames.CREATE_SELECTION1.getJsonName());
+    generationResource2 = new ResourceLocation(SoundEffectNames.CREATE_SELECTION2.getJsonName());
+    generationResource3 = new ResourceLocation(SoundEffectNames.CREATE_SELECTION3.getJsonName());
   }
 
   public void startPlaying()
@@ -64,7 +61,9 @@ public class SoundEffectComplexSelectionGeneration
       final float MAX_VOLUME = 1.0F;
       final float MIN_VOLUME = 0.4F;
       float volume = MIN_VOLUME + (MAX_VOLUME - MIN_VOLUME) * random.nextFloat();
-      NonPositionedSound nonPositionedSound = new NonPositionedSound(generationResource, volume, false);
+      int whichSound = random.nextInt(NUMBER_OF_SOUNDS);
+      ResourceLocation randomSound = (whichSound == 0 ) ? generationResource1 :( (whichSound == 1) ? generationResource2 : generationResource3);
+      NonPositionedSound nonPositionedSound = new NonPositionedSound(randomSound, volume, false);
       soundController.playSound(nonPositionedSound);
       tickCountOfCurrentSounds += TICKS_PER_SOUND;
     }
@@ -74,7 +73,11 @@ public class SoundEffectComplexSelectionGeneration
   private boolean soundActive = false;
 //  private Boolean lastGenerationInProgress;
   private Random random = new Random();
-  ResourceLocation generationResource;
+
+  final int NUMBER_OF_SOUNDS = 3;
+  private ResourceLocation generationResource1;
+  private ResourceLocation generationResource2;
+  private ResourceLocation generationResource3;
 
   private SoundController soundController;
 

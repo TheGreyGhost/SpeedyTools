@@ -85,7 +85,7 @@ public class Packet250MultipartSegment extends Packet250Base
           return;
         }
       }
-    } catch (ArrayIndexOutOfBoundsException ioe) {
+    } catch (IndexOutOfBoundsException ioe) {
       ErrorLog.defaultLog().info("Exception while reading Packet250MultipartSegment: " + ioe);
       return;
     }

@@ -215,6 +215,8 @@ public class RenderCursorStatus implements RendererElement
       case COPY: { lineColour = Colour.GREEN_100; break;}
       case MOVE: { lineColour = Colour.BLUE_100; break;}
       case DELETE: { lineColour = Colour.RED_100; break;}
+      case CONTOUR: { lineColour = Colour.PURPLE_100; break;}
+      case REPLACE: { lineColour = Colour.ORANGE_100; break;}
       default: assert false : "illegal cursorType:" + renderInfo.cursorType;
     }
 
@@ -424,7 +426,7 @@ public class RenderCursorStatus implements RendererElement
     }
 
     public enum CursorType {
-      COPY, MOVE, DELETE
+      COPY, MOVE, DELETE, REPLACE, CONTOUR
     }
   }
 

@@ -4,29 +4,29 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import speedytools.clientside.SpeedyToolsOptionsClient;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.*;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.*;
 import speedytools.clientside.userinput.PowerUpEffect;
 import speedytools.clientside.userinput.UserInput;
-import speedytools.common.SpeedyToolsOptionsClient;
-import speedytools.common.items.ItemComplexBase;
+import speedytools.common.blocks.BlockWithMetadata;
+import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.network.ClientStatus;
 import speedytools.common.network.ServerStatus;
-import speedytools.common.utilities.Colour;
-import speedytools.common.utilities.QuadOrientation;
-import speedytools.common.utilities.ResultWithReason;
-import speedytools.common.utilities.UsefulConstants;
+import speedytools.common.selections.FillAlgorithmSettings;
+import speedytools.common.selections.FillMatcher;
+import speedytools.common.utilities.*;
 
 import java.util.LinkedList;
 import java.util.List;
-
-import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 
 /**
 * User: The Grey Ghost
@@ -46,30 +46,36 @@ import static speedytools.clientside.selections.BlockMultiSelector.selectFill;
 */
 public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 {
-  public SpeedyToolComplex(ItemComplexBase i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
+  public SpeedyToolComplex(ItemSpeedyTool i_parentItem, SpeedyToolRenderers i_renderers, SoundController i_speedyToolSounds, UndoManagerClient i_undoManagerClient,
                            CloneToolsNetworkClient i_cloneToolsNetworkClient, SpeedyToolBoundary i_speedyToolBoundary,
                            ClientVoxelSelection i_clientVoxelSelection,
                            CommonSelectionState i_commonSelectionState, SelectionPacketSender i_selectionPacketSender, PacketSenderClient i_packetSenderClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
-    itemComplexBase = i_parentItem;
+//    itemComplexBase = i_parentItem;
     speedyToolBoundary = i_speedyToolBoundary;
     boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
     wireframeRendererUpdateLink = this.new CopyToolWireframeRendererLink();
     solidSelectionRendererUpdateLink = this.new SolidSelectionRendererLink();
     cursorRenderInfoUpdateLink = this.new CursorRenderInfoLink();
     statusMessageRenderInfoUpdateLink = this.new StatusMessageRenderInfoLink();
+    hotbarRenderInfoUpdateLink = this.new HotbarRenderInfoUpdateLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
 //    selectionPacketSender = i_selectionPacketSender;
     clientVoxelSelection = i_clientVoxelSelection;
     commonSelectionState = i_commonSelectionState;
+
+    fillAlgorithmSettings.setAutomaticLowerBound(true);
+    fillAlgorithmSettings.setPropagation(FillAlgorithmSettings.Propagation.FLOODFILL);
   }
 
   @Override
-  public boolean activateTool() {
+  public boolean activateTool(ItemStack newToolItemStack) {
+    currentToolItemStack = newToolItemStack;
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
     rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
     rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     rendererElements.add(new RendererSolidSelection(solidSelectionRendererUpdateLink));
+    rendererElements.add(new RendererHotbarCurrentItem(hotbarRenderInfoUpdateLink));
     renderCursorStatus = new RenderCursorStatus(cursorRenderInfoUpdateLink);
     rendererElements.add(renderCursorStatus);
     rendererElements.add(new RendererStatusMessage(statusMessageRenderInfoUpdateLink));
@@ -163,6 +169,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
     checkInvariants();
 
+    fillAlgorithmSettings.setDiagonalPropagationAllowed(isDiagonalPropagationAllowed(userInput.isControlKeyDown()));
+
     UserInput.InputEvent nextEvent;
     while (null != (nextEvent = userInput.poll())) {
       // if we are busy with an action - a short left click will abort current action
@@ -186,6 +194,13 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
         // otherwise - split up according to whether we have a selection or not
       } else {
+        if (nextEvent.eventType == UserInput.InputEventType.WHEEL_MOVE && mouseWheelChangesCount()) {
+          if (currentToolItemStack != null) {
+            int newCount = parentItem.getPlacementCount(currentToolItemStack) + nextEvent.count;
+            parentItem.setPlacementCount(currentToolItemStack, newCount);
+          }
+        }
+
         switch (clientVoxelSelection.getReadinessForDisplaying()) {
           case NO_SELECTION: {
 //            System.out.println("TEST:" + nextEvent.eventType + " : " + nextEvent.eventDuration);
@@ -274,6 +289,14 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    */
   protected abstract boolean cancelSelectionAfterAction();
 
+  /**
+   * if true, selections made using this tool can be dragged around
+   *
+   * @return
+   */
+
+  protected abstract boolean selectionIsMoveable();
+
     /** Is the tool currently busy with something?
      * @return true if busy, false if not
      */
@@ -322,7 +345,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         break;
       }
       case RIGHT_CLICK_UP: {
-        if (inputEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS) {
+        if (inputEvent.eventDuration <= MAX_SHORT_CLICK_DURATION_NS && selectionIsMoveable()) {  // only if this tool type allows selection moving / flipping
           if (inputEvent.controlKeyDown) {
             flipSelection(player);
           } else { // toggle selection grabbing
@@ -349,12 +372,42 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         break;
       }
       case WHEEL_MOVE: {
-        rotateSelection(-inputEvent.count);  // wheel down rotates clockwise
+        if (selectionIsMoveable()) {
+          rotateSelection(-inputEvent.count);  // wheel down rotates clockwise
+//        } else if (mouseWheelChangesCount()) {
+//          if (currentToolItemStack != null) {
+//            int newCount = parentItem.getPlacementCount(currentToolItemStack) + inputEvent.count;
+//            parentItem.setPlacementCount(currentToolItemStack, newCount);
+//          }
+        }
         break;
       }
     }
     return true;
   }
+
+  /**
+   * if true, CTRL + mousewheel changes the item count
+   * @return
+   */
+  protected abstract boolean mouseWheelChangesCount();
+
+  /**
+   * Change the object count (simple tools)
+   * @param player
+   * @param inputEvent
+   */
+//  protected void changeObjectCount(EntityClientPlayerMP player, UserInput.InputEvent inputEvent) {
+//    ItemStack currentItem = player.inventory.getCurrentItem();
+//    int currentcount = currentItem.stackSize;
+//    int maxStackSize = currentItem.getMaxStackSize();
+//    if (currentcount >= 1 && currentcount <= maxStackSize) {
+//      currentcount += inputEvent.count;
+// sdfs     currentcount = ((currentcount - 1) % maxStackSize);
+//      currentcount = ((currentcount + maxStackSize) % maxStackSize) + 1;    // take care of negative
+//      currentItem.stackSize = currentcount;
+//    }
+//  }
 
   /**
    * (1) Selects the first Block that will be affected by the tool when the player presses right-click,
@@ -380,15 +433,17 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     if (clientVoxelSelection.getReadinessForDisplaying() != ClientVoxelSelection.VoxelSelectionState.NO_SELECTION) return false;
     updateBoundaryCornersFromToolBoundary();
 
-    MovingObjectPosition target = itemComplexBase.rayTraceLineOfSight(player.worldObj, player);
-
     final int MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS = 64;
     blockUnderCursor = null;
     highlightedBlocks = null;
     currentHighlighting = SelectionType.NONE;
 
+    MovingObjectPosition target = selectBlockUnderCursor(player, null, partialTick);
     if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
       blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+      blockUnderCursorSideHit = target.sideHit;
+      fillAlgorithmSettings.setStartPosition(blockUnderCursor);
+      fillAlgorithmSettings.setNormalDirection(blockUnderCursorSideHit);
       boolean selectedBlockIsInsideBoundaryField = false;
 
       if (boundaryCorner1 != null && boundaryCorner2 != null) {
@@ -399,18 +454,41 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         }
       }
 
+      FillMatcher fillMatcher = getFillMatcherForSelectionCreation(world, blockUnderCursor);
+      fillAlgorithmSettings.setFillMatcher(fillMatcher);
       if (selectedBlockIsInsideBoundaryField) {
         currentHighlighting = SelectionType.BOUND_FILL;
-        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
-                boundaryCorner1.posX, boundaryCorner2.posX,
-                boundaryCorner1.posY, boundaryCorner2.posY,
-                boundaryCorner1.posZ, boundaryCorner2.posZ);
+        if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.FLOODFILL) {
+          highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                  fillAlgorithmSettings.getFillMatcher(),
+                  boundaryCorner1.posX, boundaryCorner2.posX,
+                  boundaryCorner1.posY, boundaryCorner2.posY,
+                  boundaryCorner1.posZ, boundaryCorner2.posZ);
+        } else if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.CONTOUR) {
+          highlightedBlocks = BlockMultiSelector.selectContourBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS,
+                  fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                  fillAlgorithmSettings.getFillMatcher(),
+                  blockUnderCursorSideHit,
+                  boundaryCorner1.posX, boundaryCorner2.posX,
+                  boundaryCorner1.posY, boundaryCorner2.posY,
+                  boundaryCorner1.posZ, boundaryCorner2.posZ);
+        }
       } else {
+        final int MAXIMUM_Y = 255;
+        final int MINIMUM_Y = 0;
         currentHighlighting = SelectionType.UNBOUND_FILL;
-        highlightedBlocks = selectFill(target, player.worldObj, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, true, true,
-                Integer.MIN_VALUE, Integer.MAX_VALUE,
-                blockUnderCursor.posY, 255,
-                Integer.MIN_VALUE, Integer.MAX_VALUE);
+        if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.FLOODFILL) {
+          highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                  fillAlgorithmSettings.getFillMatcher(),
+                  Integer.MIN_VALUE, Integer.MAX_VALUE,
+                  (fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.posY : MINIMUM_Y), MAXIMUM_Y,
+                  Integer.MIN_VALUE, Integer.MAX_VALUE);
+        } else if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.CONTOUR) {
+          highlightedBlocks = BlockMultiSelector.selectContourUnbounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS,
+                  fillAlgorithmSettings.isDiagonalPropagationAllowed(),
+                  fillAlgorithmSettings.getFillMatcher(),
+                  blockUnderCursorSideHit);
+        }
       }
       checkInvariants();
       return true;
@@ -430,6 +508,16 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     checkInvariants();
     return true;
   }
+
+//  protected MovingObjectPosition getBlockUnderCursor(EntityClientPlayerMP player, float partialTick)
+//  {
+//    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
+//    if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+//      return target;
+//    } else {
+//      return null;
+//    }
+//  }
 
   @Override
   public void resetTool() {
@@ -477,7 +565,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   /**
    * don't call if an action is already pending
    */
-  private void placeSelection(EntityClientPlayerMP player, float partialTick)
+  protected void placeSelection(EntityClientPlayerMP player, float partialTick)
   {
     checkInvariants();
     if (!clientVoxelSelection.isSelectionCompleteOnServer()) {
@@ -486,17 +574,21 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
 
     Vec3 selectionPosition = getSelectionPosition(player, partialTick, false);
-    ResultWithReason result = cloneToolsNetworkClient.performComplexToolAction(Item.getIdFromItem(itemComplexBase),
-            Math.round((float) selectionPosition.xCoord),
-            Math.round((float) selectionPosition.yCoord),
-            Math.round((float) selectionPosition.zCoord),
-            commonSelectionState.selectionOrientation);
+    ResultWithReason result = performComplexToolAction(selectionPosition);
     if (result.succeeded()) {
       cloneToolsNetworkClient.changeClientStatus(ClientStatus.WAITING_FOR_ACTION_COMPLETE);
       toolState = ToolState.PERFORMING_ACTION;
     } else {
       displayNewErrorMessage(result.getReason());
     }
+  }
+
+  protected ResultWithReason performComplexToolAction(Vec3 selectionPosition) {
+    return cloneToolsNetworkClient.performComplexToolAction(Item.getIdFromItem(parentItem),
+              Math.round((float) selectionPosition.xCoord),
+              Math.round((float) selectionPosition.yCoord),
+              Math.round((float) selectionPosition.zCoord),
+              commonSelectionState.selectionOrientation);
   }
 
   private void flipSelection(EntityClientPlayerMP entityClientPlayerMP)
@@ -532,17 +624,39 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         break;
       }
       case UNBOUND_FILL: {
-        clientVoxelSelection.createUnboundFillSelection(thePlayer, blockUnderCursor);
+        clientVoxelSelection.createUnboundFillSelection(thePlayer, fillAlgorithmSettings, getOverrideTexture());
         break;
       }
       case BOUND_FILL: {
-        clientVoxelSelection.createBoundFillSelection(thePlayer, blockUnderCursor, boundaryCorner1, boundaryCorner2);
+        clientVoxelSelection.createBoundFillSelection(thePlayer, fillAlgorithmSettings, getOverrideTexture(), boundaryCorner1, boundaryCorner2);
+        break;
+      }
+      default: {
+        ErrorLog.defaultLog().severe("Invalid currentHighlighting in initiateSelectionCreation:" + currentHighlighting);
         break;
       }
     }
 
     cloneToolsNetworkClient.informSelectionMade();
     soundEffectComplexSelectionGeneration.startPlaying();
+  }
+
+  protected FillMatcher getFillMatcherForSelectionCreation(World world, ChunkCoordinates blockUnderCursor)
+  {
+    FillMatcher fillMatcher = new FillMatcher.AnyNonAir();
+    return fillMatcher;
+  }
+
+  protected boolean isDiagonalPropagationAllowed(boolean userRequested)
+  {
+    return userRequested;
+  }
+
+  protected FillAlgorithmSettings fillAlgorithmSettings = new FillAlgorithmSettings();
+
+  protected BlockWithMetadata getOverrideTexture()
+  {
+    return null;
   }
 
   /** called once per tick on the client side while the user is holding an ItemCloneTool
@@ -643,7 +757,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    * copies the boundary field coordinates from the boundary tool, if a boundary is defined
    * @return true if a boundary field is defined, false otherwise
    */
-  private boolean updateBoundaryCornersFromToolBoundary()
+  protected boolean updateBoundaryCornersFromToolBoundary()
   {
     boundaryCorner1 = null;
     boundaryCorner2 = null;
@@ -700,6 +814,22 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       }
       infoToUpdate.currentlySelectedBlocks = highlightedBlocks;
       return true;
+    }
+  }
+
+  /**
+   * This class is used to provide information to the Boundary Field Renderer when it needs it.
+   * The information is taken from the reference to the SpeedyToolBoundary.
+   */
+  public class HotbarRenderInfoUpdateLink implements RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink
+  {
+    @Override
+    public boolean refreshRenderInfo(RendererHotbarCurrentItem.HotbarRenderInfo infoToUpdate, ItemStack currentlyHeldItem) {
+      if (currentlyHeldItem == null || !(currentlyHeldItem.getItem() instanceof ItemSpeedyTool)) {
+        return false;
+      }
+      ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool) currentlyHeldItem.getItem();
+      return itemSpeedyTool.usesAdjacentBlockInHotbar();
     }
   }
 
@@ -1017,7 +1147,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     }
   }
 
-  private ItemComplexBase itemComplexBase;
+//  protected ItemSpeedyTool itemComplexBase;
 
   private void checkInvariants()
   {
@@ -1066,10 +1196,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 //  private QuadOrientation selectionOrientation;
 //  ChunkCoordinates initialSelectionOrigin;
 //  QuadOrientation initialSelectionOrientation;
-  private CommonSelectionState commonSelectionState;
+  protected CommonSelectionState commonSelectionState;
 
   private ClientVoxelSelection clientVoxelSelection;
-  private CloneToolsNetworkClient cloneToolsNetworkClient;
+  protected CloneToolsNetworkClient cloneToolsNetworkClient;
 //  private SelectionPacketSender selectionPacketSender;
 
   private SpeedyToolBoundary speedyToolBoundary;   // used to retrieve the boundary field coordinates, if selected
@@ -1117,6 +1247,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   private RendererSolidSelection.SolidSelectionRenderInfoUpdateLink solidSelectionRendererUpdateLink;
   private RenderCursorStatus.CursorRenderInfoUpdateLink cursorRenderInfoUpdateLink;
   private RendererStatusMessage.StatusMessageRenderInfoUpdateLink statusMessageRenderInfoUpdateLink;
+  private RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink hotbarRenderInfoUpdateLink;
 
   private enum ToolState {
     IDLE, PERFORMING_ACTION, PERFORMING_UNDO_FROM_FULL, PERFORMING_UNDO_FROM_PARTIAL, ACTION_SUCCEEDED, ACTION_FAILED, UNDO_SUCCEEDED, UNDO_FAILED

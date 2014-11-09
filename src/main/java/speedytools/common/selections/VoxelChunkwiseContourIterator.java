@@ -1,30 +1,28 @@
 package speedytools.common.selections;
 
 import net.minecraft.util.ChunkCoordinates;
+import speedytools.common.utilities.ErrorLog;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Deque;
-import java.util.LinkedList;
+import java.util.*;
 
 /**
  * User: The Grey Ghost
  * Date: 23/09/2014
- * Used to floodfill through a Voxel region in a chunkwise fashion:
+ * Used to contour floodfill through a Voxel region in a chunkwise fashion:
  * Will fill as far as possible within a chunk before starting to search in the next one, and will prefer to search chunks it
  * has already visited before
  * Usage:
  * 1) Create the iterator with the boundaries of the region that limit the fill
- * 2) setStartPosition() to set the fill start point
+ * 2) setStartPositionAndPlane() to set the fill start point and the searching plane (eg XY, XZ, or YZ)
  * 3) Repeat until iterator.isAtEnd:
  *   a) Check the block at .getWX(), .getWY(), .getWZ().
  *   b) if it belongs to the fill, call .next(true), otherwise .next(false)
  *   c) use hasEnteredNewChunk() to determine when to load a new chunk.  getChunkX() and getChunkZ() give the coordinates
  * 4) estimatedFractionComplete() returns a number that indicates an estimate of how complete the fill process is
  */
-public class VoxelChunkwiseFillIterator implements IVoxelIterator
+public class VoxelChunkwiseContourIterator implements IVoxelIterator
 {
-  public VoxelChunkwiseFillIterator(int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, int i_xSize, int i_ySize, int i_zSize) {
+  public VoxelChunkwiseContourIterator(int i_wxOrigin, int i_wyOrigin, int i_wzOrigin, int i_xSize, int i_ySize, int i_zSize) {
     if (i_xSize < 0) throw new IllegalArgumentException("xSize < 0: " + i_xSize);
     if (i_ySize < 0) throw new IllegalArgumentException("ySize < 0: " + i_ySize);
     if (i_zSize < 0) throw new IllegalArgumentException("zSize < 0: " + i_zSize);
@@ -55,10 +53,30 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
    * @param wx
    * @param wy
    * @param wz
+   * @param normalDirection specifies the plane that will be searched in (Facing directions; specifies the normal to the plane)
    */
-  public void setStartPosition(int wx, int wy, int wz) {
+  public void setStartPositionAndPlane(int wx, int wy, int wz, int normalDirection) {
     if (!isWithinBounds(wx, wy, wz)) return;
     currentCheckPosition = new ChunkCoordinates(wx, wy, wz);
+    switch (normalDirection) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
+      case 0:
+      case 1:
+        searchPlane = PLANE_XZ;
+        break;
+      case 2:
+      case 3:
+        searchPlane = PLANE_XY;
+        break;
+      case 4:
+      case 5:
+        searchPlane = PLANE_YZ;
+        break;
+      default: {
+        ErrorLog.defaultLog().debug("Illegal normalDirection:" + normalDirection);
+        searchPlane = PLANE_XY;
+        break;
+      }
+    }
   }
 
   /**
@@ -73,6 +91,7 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
   /**
    * resets the iterator to start at the beginning
    */
+  @Override
   public void reset() {
     atEnd = false;
     enteredNewChunk = true;
@@ -94,54 +113,41 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
    *          criteria to be added to the floodfill selection
    * @return true if the coordinate position is valid, false if not (there are no more positions)
    */
+  @Override
   public boolean next(boolean currentPositionWasFilled) {
     if (atEnd) return false;
     ++blocksAddedCount;
 
-    // algorithm is:
-    // first, for the current chunk, check if there are any currentSearchPositions.
-    //   If so, use one of them and iterate through its search directions until it finds a valid one:
-    //   a) is within the boundary region
-    //   b) hasn't already been checked
-    //   c) is within the same chunk (if outside the current chunk, add it to that chunk's chunkStartSearchPositions)
-    // If there are no currentSearchPositions remaining, check for any chunkStartSearchPositions in the current chunk:
-    //   if there is a valid one (hasn't already been checked), use that.
-    // If there are no more blocks in this chunk, choose the next chunk from chunksToVisitFirst.
-    // If chunksToVisitFirst is empty, choose the next chunk from chunksToVisitLater
-
-    // lookup table to give the possible search directions for non-diagonal and diagonal respectively
-    final int NON_DIAGONAL_DIRECTIONS = 6;
-    final int ALL_DIRECTIONS = 26;
-    final int searchDirectionsX[] = {+0, +0, +0, +0, -1, +1,   // non-diagonal
-            +1, +0, -1, +0, +1, +1, -1, -1, +1, +0, -1, +0,  // top, middle, bottom "edge" blocks
-            +1, +1, -1, -1, +1, +1, -1, -1                   // top, bottom "corner" blocks
+    // lookup table to give the possible search directions for any given search plane
+    //  row index 0 = xz plane, 1 = xy plane, 2 = yz plane
+    //  column index = the eight directions within the plane (even = cardinal, odd = diagonal)
+    final int NUMBER_OF_SEARCH_DIRECTIONS = 8;
+    final int searchDirectionsX[][] = {  {+0, -1, -1, -1, +0, +1, +1, +1},
+            {+0, -1, -1, -1, +0, +1, +1, +1},
+            {+0, +0, +0, +0, +0, +0, +0, +0}
     };
-    final int searchDirectionsY[] = {-1, +1, +0, +0, +0, +0,   // non-diagonal
-            +1, +1, +1, +1, +0, +0, +0, +0, -1, -1, -1, -1,   // top, middle, bottom "edge" blocks
-            +1, +1, +1, +1, -1, -1, -1, -1                      // top, bottom "corner" blocks
+    final int searchDirectionsY[][] = {  {+0, +0, +0, +0, +0, +0, +0, +0},
+            {+1, +1, +0, -1, -1, -1, +0, +1},
+            {+1, +1, +0, -1, -1, -1, +0, +1}
+    };
+    final int searchDirectionsZ[][] = {  {+1, +1, +0, -1, -1, -1, +0, +1},
+            {+0, +0, +0, +0, +0, +0, +0, +0},
+            {+0, -1, -1, -1, +0, +1, +1, +1}
     };
 
-    final int searchDirectionsZ[] = {+0, +0, -1, +1, +0, +0,   // non-diagonal
-            +0, -1, +0, +1, +1, -1, -1, +1, +0, -1, +0, +1,   // top, middle, bottom "edge" blocks
-            +1, -1, -1, +1, +1, -1, -1, +1
-    };
-
-//    LinkedList<ChunkCoordinates> currentChunkStartSearchPositions
-//        = chunkCheckPositions.get(getChunkIndex(currentSearchPosition.chunkCoordinates.posX,
-//                                                currentSearchPosition.chunkCoordinates.posY,
-//                                                currentSearchPosition.chunkCoordinates.posZ));
     if (currentPositionWasFilled) {
       currentSearchStartPositions.add(new SearchPosition(currentCheckPosition));
     }
 
     while (!currentSearchStartPositions.isEmpty()) {
       SearchPosition currentPosition = currentSearchStartPositions.peekFirst();
-      int wx = currentPosition.chunkCoordinates.posX + searchDirectionsX[currentPosition.nextSearchDirection];
-      int wy = currentPosition.chunkCoordinates.posY + searchDirectionsY[currentPosition.nextSearchDirection];
-      int wz = currentPosition.chunkCoordinates.posZ + searchDirectionsZ[currentPosition.nextSearchDirection];
-      ++(currentPosition.nextSearchDirection);
-      if (   !diagonalAllowed && currentPosition.nextSearchDirection >= NON_DIAGONAL_DIRECTIONS
-          ||  diagonalAllowed && currentPosition.nextSearchDirection >= ALL_DIRECTIONS) {
+      int wx = currentPosition.chunkCoordinates.posX + searchDirectionsX[searchPlane][currentPosition.nextSearchDirection];
+      int wy = currentPosition.chunkCoordinates.posY + searchDirectionsY[searchPlane][currentPosition.nextSearchDirection];
+      int wz = currentPosition.chunkCoordinates.posZ + searchDirectionsZ[searchPlane][currentPosition.nextSearchDirection];
+
+      currentPosition.nextSearchDirection += diagonalAllowed ? 1 : 2;  // no diagonals -> even numbers only
+
+      if (currentPosition.nextSearchDirection >= NUMBER_OF_SEARCH_DIRECTIONS) {
         currentSearchStartPositions.removeFirst();
       }
       if (isWithinBounds(wx, wy, wz) && !blocksChecked.get(getBlockIndex(wx, wy, wz))) {
@@ -208,6 +214,7 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
    *
    * @return
    */
+  @Override
   public boolean isAtEnd() {
     return atEnd;
   }
@@ -264,6 +271,7 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
    * (logarithmic transformation to show progress over a much wider range)
    * @return [0 .. 1]
    */
+  @Override
   public float estimatedFractionComplete() {
     if (blocksAddedCount == 0) return 0;
     double fillFraction = blocksAddedCount / (double)(xSize * ySize * zSize);
@@ -345,5 +353,11 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
   private int ySize;
   private int zSize;
   private boolean diagonalAllowed;
+
+  private int searchPlane;
+  private final int PLANE_XZ = 0;
+  private final int PLANE_XY = 1;
+  private final int PLANE_YZ = 2;
+
 }
 

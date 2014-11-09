@@ -1,17 +1,18 @@
 package speedytools.serverside.backup;
 
-import net.minecraft.client.Minecraft;
+//import net.minecraft.client.Minecraft;
 //import net.minecraft.command.CommandServerSay;
+
 import net.minecraft.command.server.CommandBroadcast;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.IProgressUpdate;
 import net.minecraft.world.MinecraftException;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
+import speedytools.SpeedyToolsMod;
 import speedytools.common.utilities.ErrorLog;
 
-import java.io.*;
-import java.nio.file.*;
+import java.nio.file.Path;
 import java.util.Calendar;
 
 /**
@@ -74,7 +75,7 @@ public class MinecraftSaveFolderBackups
       commandSaveOffSilent();
       commandSaveAll();
 
-      Path rootSavesFolder = new File(Minecraft.getMinecraft().mcDataDir, "saves").toPath();
+      Path rootSavesFolder = SpeedyToolsMod.proxy.getOrCreateSaveBackupsFolder();
       Path newBackupPath = storedBackups.createBackupSave(sourceSaveFolder, rootSavesFolder, now.toString());
       Path deletedBackupPath = null;
       if (newBackupPath != null) {

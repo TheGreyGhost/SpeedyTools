@@ -6,6 +6,9 @@ import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
 
@@ -30,6 +33,23 @@ public class Packet250CloneToolUse extends Packet250Base
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_ACTION);
     retval.toolID = i_toolID;
+    retval.xpos = x;
+    retval.ypos = y;
+    retval.zpos = z;
+    retval.quadOrientation = i_quadOrientation;
+    retval.sequenceNumber = i_sequenceNumber;
+
+    assert (retval.checkInvariants());
+    retval.packetIsValid= true;
+    return retval;
+  }
+
+  public static Packet250CloneToolUse performToolFillAction(int i_sequenceNumber, int i_toolID, BlockWithMetadata i_fillBlock,
+                                                            int x, int y, int z, QuadOrientation i_quadOrientation)
+  {
+    Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_ACTION);
+    retval.toolID = i_toolID;
+    retval.blockWithMetadata = i_fillBlock;
     retval.xpos = x;
     retval.ypos = y;
     retval.zpos = z;
@@ -70,6 +90,11 @@ public class Packet250CloneToolUse extends Packet250Base
       toolID = buf.readInt();
       sequenceNumber = buf.readInt();
       actionToBeUndoneSequenceNumber = buf.readInt();
+      int blockID = buf.readInt();
+      blockWithMetadata = new BlockWithMetadata();
+      blockWithMetadata.block = Block.getBlockById(blockID);
+      blockWithMetadata.metaData = buf.readInt();
+
       xpos = buf.readInt();
       ypos = buf.readInt();
       zpos = buf.readInt();
@@ -90,6 +115,13 @@ public class Packet250CloneToolUse extends Packet250Base
     buf.writeInt(toolID);
     buf.writeInt(sequenceNumber);
     buf.writeInt(actionToBeUndoneSequenceNumber);
+    if (blockWithMetadata == null) {
+      buf.writeInt(Block.getIdFromBlock(Blocks.air));
+      buf.writeInt(0);
+    } else {
+      buf.writeInt(Block.getIdFromBlock(blockWithMetadata.block));
+      buf.writeInt(blockWithMetadata.metaData);
+    }
     buf.writeInt(xpos);
     buf.writeInt(ypos);
     buf.writeInt(zpos);
@@ -133,6 +165,10 @@ public class Packet250CloneToolUse extends Packet250Base
   {
     assert (checkInvariants());
     return command;
+  }
+
+  public BlockWithMetadata getBlockWithMetadata() {
+    return blockWithMetadata;
   }
 
   public int getToolID() {
@@ -256,6 +292,8 @@ public class Packet250CloneToolUse extends Packet250Base
   private static final int NULL_SEQUENCE_NUMBER = Integer.MIN_VALUE;
   private Command command;
   private int toolID;
+
+  private BlockWithMetadata blockWithMetadata;
   private int sequenceNumber;
   private int actionToBeUndoneSequenceNumber;
   private int xpos;

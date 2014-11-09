@@ -6,9 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
-import speedytools.common.selections.BlockVoxelMultiSelector;
-import speedytools.common.selections.VoxelSelection;
-import speedytools.common.selections.VoxelSelectionWithOrigin;
+import speedytools.common.selections.*;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 
 import java.io.ByteArrayOutputStream;
@@ -69,8 +67,12 @@ public class SelectionFillTester
       worldFragmentOld.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ,
               null);
 
+      FillAlgorithmSettings fillAlgorithmSettings = new FillAlgorithmSettings();
+      fillAlgorithmSettings.setFillMatcher(new FillMatcher.AnyNonAir());
+      fillAlgorithmSettings.setStartPosition(blockUnderCursor);
       BlockVoxelMultiSelector blockVoxelMultiSelector = new BlockVoxelMultiSelector();
-      blockVoxelMultiSelector.selectBoundFillStart(worldServer, blockUnderCursor, corner1, corner2);
+
+      blockVoxelMultiSelector.selectBoundFillStart(worldServer, fillAlgorithmSettings, corner1, corner2);
       blockVoxelMultiSelector.continueSelectionGeneration(worldServer, Long.MAX_VALUE);
 
       VoxelSelection selectionNew = blockVoxelMultiSelector.getSelection();

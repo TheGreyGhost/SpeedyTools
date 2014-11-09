@@ -10,4 +10,12 @@ public class BlockWithMetadata
 {
   public Block block;
   public int metaData;
+
+  public BlockWithMetadata() {}
+
+  public BlockWithMetadata(Block i_block, int i_metaData)
+  {
+    block = i_block;
+    metaData = i_metaData;
+  }
 }

@@ -11,7 +11,6 @@ import java.util.HashMap;
 /**
 * User: The Grey Ghost
 * Date: 14/04/14
-* TODO: when the player logs out of a world and loads another, reset the tools (selection, boundary field, etc)
 */
 public class ActiveTool
 {
@@ -22,13 +21,14 @@ public class ActiveTool
 
   /**
    * sets the currently held item
-   * @param heldItem
+   * @param heldItemStack
    * @return true if this is a speedy tool
    */
-  public boolean setHeldItem(ItemStack heldItem)
+  public boolean setHeldItem(ItemStack heldItemStack)
   {
-    SpeedyTool heldTool = (heldItem == null) ? null : toolTypeRegistry.get(heldItem.getItem());
-    switchToTool(heldTool);
+    SpeedyTool heldTool = (heldItemStack == null) ? null : toolTypeRegistry.get(heldItemStack.getItem());
+//    activeToolItemStack = heldItemStack;
+    switchToTool(heldTool, heldItemStack);
     return (heldTool != null);
   }
 
@@ -42,14 +42,15 @@ public class ActiveTool
    *    (may fail if the tool is not ready to be deactivated)
    * @param newTool
    */
-  private void switchToTool(SpeedyTool newTool)
+  private void switchToTool(SpeedyTool newTool, ItemStack heldItemStack)
   {
-    if (newTool == activeTool) return;
+    if (newTool == activeTool && heldItemStack == activeToolItemStack) return;
+    activeToolItemStack = heldItemStack;
     if (activeTool != null) {
       boolean deactivationComplete = activeTool.deactivateTool();
       if (!deactivationComplete) return;
     }
-    if (newTool != null) newTool.activateTool();
+    if (newTool != null) newTool.activateTool(heldItemStack);
     activeTool = newTool;
   }
 
@@ -104,7 +105,12 @@ public class ActiveTool
     toolTypeRegistry.put(item, speedyTool);
   }
 
-  SpeedyTool activeTool;
+  public SpeedyTool getActiveTool() {
+    return activeTool;
+  }
+
+  private SpeedyTool activeTool;
+  private ItemStack activeToolItemStack;
 
   private HashMap<Item, SpeedyTool> toolTypeRegistry;
 }

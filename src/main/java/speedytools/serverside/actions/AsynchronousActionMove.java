@@ -1,13 +1,15 @@
 package speedytools.serverside.actions;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.world.WorldServer;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.serverside.worldmanipulation.AsynchronousToken;
 import speedytools.serverside.worldmanipulation.WorldFragment;
 import speedytools.serverside.worldmanipulation.WorldHistory;
-import speedytools.serverside.worldmanipulation.WorldServerReaderAllAir;
+import speedytools.serverside.worldmanipulation.WorldServerReaderFill;
 
 /**
 * User: The Grey Ghost
@@ -52,7 +54,8 @@ public class AsynchronousActionMove extends AsynchronousActionBase
       case READ: {
         if (!executeSubTask()) break;
         eraseWorldFragment = new WorldFragment(sourceVoxelSelection.getxSize(), sourceVoxelSelection.getySize(), sourceVoxelSelection.getzSize());
-        AsynchronousToken token = eraseWorldFragment.readFromWorldAsynchronous(new WorldServerReaderAllAir(worldServer),
+        BlockWithMetadata airblock = new BlockWithMetadata(Blocks.air, 0);
+        AsynchronousToken token = eraseWorldFragment.readFromWorldAsynchronous(new WorldServerReaderFill(worldServer, airblock),
                                                                                 sourceVoxelSelection.getWxOrigin(), sourceVoxelSelection.getWyOrigin(), sourceVoxelSelection.getWzOrigin(),
                                                                                 sourceVoxelSelection);
         currentStage = ActionStage.MAKE_BLANK;

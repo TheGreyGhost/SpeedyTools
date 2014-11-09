@@ -1,4 +1,4 @@
-package speedytools.common;
+package speedytools.clientside;
 
 import net.minecraft.client.Minecraft;
 

@@ -9,7 +9,7 @@ import java.util.List;
 public class ItemSpeedyTester extends ItemSpeedyTool {
   public static final String NAME = "tester";
   public ItemSpeedyTester() {
-    super();
+    super(PlacementCountModes.FINITE_ONLY);
     setMaxStackSize(64);
     setUnlocalizedName(NAME);
     setFull3D();                              // setting this flag causes the sceptre to render vertically in 3rd person view, like a pickaxe

@@ -64,6 +64,9 @@ public class SpeedyToolsNetworkServer
     packetHandlerSpeedyToolUse = this.new PacketHandlerSpeedyToolUse();
     Packet250SpeedyToolUse.registerHandler(i_packetHandlerRegistry, packetHandlerSpeedyToolUse, Side.SERVER);
 
+    // no handler, but need to register the discriminator!
+    Packet250CloneToolAcknowledge.registerHandler(packetHandlerRegistry, null, Side.SERVER);
+
     playerTracker = this.new PlayerTracker();
     playerTrackerRegistry.registerHandler(playerTracker);
   }
@@ -266,7 +269,8 @@ public class SpeedyToolsNetworkServer
 
           ResultWithReason result = ResultWithReason.failure();
           if (serverStatus == ServerStatus.IDLE) {
-            result = speedyToolServerActions.performComplexAction(player, sequenceNumber, packet.getToolID(), packet.getXpos(), packet.getYpos(), packet.getZpos(),
+            result = speedyToolServerActions.performComplexAction(player, sequenceNumber, packet.getToolID(), packet.getBlockWithMetadata(),
+                                                                  packet.getXpos(), packet.getYpos(), packet.getZpos(),
                                                                   packet.getQuadOrientation());
           } else {
             switch (serverStatus) {
@@ -440,7 +444,7 @@ public class SpeedyToolsNetworkServer
       if (!packet250SpeedyToolUse.isPacketIsValid()) return false;
       SpeedyToolsNetworkServer.this.speedyToolServerActions.performSimpleAction(ctx.getServerHandler().playerEntity,
               packet250SpeedyToolUse.getButton(),
-              packet250SpeedyToolUse.getBlockToPlace(), packet250SpeedyToolUse.getCurrentlySelectedBlocks());
+              packet250SpeedyToolUse.getBlockToPlace(), packet250SpeedyToolUse.getSideToPlace(), packet250SpeedyToolUse.getCurrentlySelectedBlocks());
       return true;
     }
   }

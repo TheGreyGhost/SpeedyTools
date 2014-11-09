@@ -1,6 +1,7 @@
 tile.selectionfog.name=Selection Fog
 tile.selectionsolidfog.name=Selection Solid Fog
 item.simpleorb.name=Orb of Transmutation
+item.complexorb.name=Orb of Transmutation
 item.simplesceptre.name=Enchanted Sceptre of Contour Extrusion
 item.simplewandweak.name=Wand of Non-destructive Linear Conjuration
 item.simplewandstrong.name=Wand of Destructive Linear Conjuration

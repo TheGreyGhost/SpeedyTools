@@ -15,12 +15,12 @@
    "complex.powerringchargeuploop": {"category": "player", "sounds": ["complex/powerringchargeuploop"]},
    "complex.powerringchargefailure": {"category": "player", "sounds": ["complex/powerringchargefailure"]},
    "complex.powerringwhooshloop": {"category": "player", "sounds": ["complex/powerringwhooshloop"]},
-   "complex.createselection": {"category": "player", "sounds": ["complex/selectioncreaterocks1",
-                                                                "complex/selectioncreaterocks2",
-                                                                "complex/selectioncreaterocks3",
-                                                                "complex/selectioncreaterocks4",
-                                                                "complex/selectioncreaterocks5",
-                                                                "complex/selectioncreaterocks6",
-                                                                "complex/selectioncreaterocks7",
-                                                                "complex/selectioncreaterocks8" ]}
+   "complex.createselection1": {"category": "player", "sounds": ["complex/selectioncreaterocks1-1",
+                                                                "complex/selectioncreaterocks1-2",
+                                                                "complex/selectioncreaterocks1-3"]},
+   "complex.createselection2": {"category": "player", "sounds": ["complex/selectioncreaterocks2-1",
+                                                                "complex/selectioncreaterocks2-2",
+                                                                "complex/selectioncreaterocks2-3"]},
+   "complex.createselection3": {"category": "player", "sounds": ["complex/selectioncreaterocks3-1",
+                                                                "complex/selectioncreaterocks3-2"]}
 }

@@ -808,7 +808,6 @@ public class WorldFragment
       for (; cx < xCount; ++cx, cz = 0) {
         for (; cz < zCount; ++cz) {
           Chunk chunk = worldServer.getChunkFromChunkCoords(cx + cxMin, cz + czMin);
-          chunk.generateHeightMap();
           chunk.generateSkylightMap();
           if (state.isTimeToInterrupt()) {
             state.x = cx;

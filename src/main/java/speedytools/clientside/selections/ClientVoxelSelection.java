@@ -2,12 +2,14 @@ package speedytools.clientside.selections;
 
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
+import net.minecraft.block.Block;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.tools.SelectionPacketSender;
+import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.multipart.MultipartOneAtATimeReceiver;
@@ -15,6 +17,7 @@ import speedytools.common.network.multipart.MultipartPacket;
 import speedytools.common.network.multipart.Packet250MultipartSegment;
 import speedytools.common.network.multipart.SelectionPacket;
 import speedytools.common.selections.BlockVoxelMultiSelector;
+import speedytools.common.selections.FillAlgorithmSettings;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
@@ -180,10 +183,11 @@ public class ClientVoxelSelection
       case IDLE: return 0.0F;
       case COMPLETE: return 1.000F;
       case GENERATING: {
-        return selectionGenerationFractionComplete * SELECTION_GENERATION_FULL;
+        return localSelectionGenerationFractionComplete * SELECTION_GENERATION_FULL;
       }
       case CREATING_RENDERLISTS: {
-        float scaledProgress = SELECTION_GENERATION_FULL * selectionGenerationFractionComplete;
+
+        float scaledProgress = SELECTION_GENERATION_FULL * localSelectionGenerationFractionComplete;
         return scaledProgress + (1.0F - scaledProgress) * renderlistGenerationFractionComplete;
       }
       default: {
@@ -252,7 +256,7 @@ public class ClientVoxelSelection
     selectionBeingDisplayed = null;
     clientSelectionState = ClientSelectionState.GENERATING;
     outgoingTransmissionState = OutgoingTransmissionState.IDLE;
-    selectionGenerationFractionComplete = 0;
+    localSelectionGenerationFractionComplete = 0;
     renderlistGenerationFractionComplete = 0;
     clientVoxelMultiSelector = new BlockVoxelMultiSelector();
     currentSelectionUniqueID = nextUniqueID++;
@@ -276,32 +280,53 @@ public class ClientVoxelSelection
 
   /**
    * initialise conversion of the selected fill to a VoxelSelection
-   * From the starting block, performs a flood fill on all non-air blocks.
-   * Will not fill any blocks with y less than the blockUnderCursor.
    * If a selection is already in place, cancel it.
-   * @param fillStartingBlock the block being highlighted by the cursor
+   * @param fillAlgorithmSettings the fill settings to use
+   * @param i_overrideTexture the block texture to use when displaying the selection; null for use world block at each [x,y,z]
   */
-  public ResultWithReason createUnboundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock)
+  public ResultWithReason createUnboundFillSelection(EntityClientPlayerMP thePlayer, FillAlgorithmSettings fillAlgorithmSettings, BlockWithMetadata i_overrideTexture)
   {
     initialiseForGeneration();
-    clientVoxelMultiSelector.selectUnboundFillStart(thePlayer.worldObj, fillStartingBlock);
-    packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performUnboundFill(currentSelectionUniqueID, fillStartingBlock);
+    overrideTexture = i_overrideTexture;
+    clientVoxelMultiSelector.selectUnboundFillStart(thePlayer.worldObj, fillAlgorithmSettings);
+    packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performUnboundFill(fillAlgorithmSettings, currentSelectionUniqueID);
     return ResultWithReason.success();
   }
 
   /**
    * initialise conversion of the selected fill to a VoxelSelection
-   * From the starting block, performs a flood fill on all non-air blocks.
    * Will not fill any blocks outside of the box defined by corner1 and corner2
    * If a selection is already in place, cancel it.
+   * @param fillAlgorithmSettings the fill settings to use
+   * @param i_overrideTexture the block texture to use when displaying the selection; null for use world block at each [x,y,z]
+   * @param boundaryCorner1 first corner of the fill boundary
+   * @param boundaryCorner2 opposite corner of the fill boundary
    */
-  public ResultWithReason createBoundFillSelection(EntityClientPlayerMP thePlayer, ChunkCoordinates fillStartingBlock, ChunkCoordinates boundaryCorner1, ChunkCoordinates boundaryCorner2)
+  public ResultWithReason createBoundFillSelection(EntityClientPlayerMP thePlayer, FillAlgorithmSettings fillAlgorithmSettings, BlockWithMetadata i_overrideTexture,
+                                                   ChunkCoordinates boundaryCorner1, ChunkCoordinates boundaryCorner2)
   {
     initialiseForGeneration();
-    clientVoxelMultiSelector.selectBoundFillStart(thePlayer.worldObj, fillStartingBlock, boundaryCorner1, boundaryCorner2);
-    packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performBoundFill(currentSelectionUniqueID, fillStartingBlock, boundaryCorner1, boundaryCorner2);
+    overrideTexture = i_overrideTexture;
+    clientVoxelMultiSelector.selectBoundFillStart(thePlayer.worldObj, fillAlgorithmSettings, boundaryCorner1, boundaryCorner2);
+    packet250ServerSelectionGeneration = Packet250ServerSelectionGeneration.performBoundFill(fillAlgorithmSettings, currentSelectionUniqueID, boundaryCorner1, boundaryCorner2);
     return ResultWithReason.success();
   }
+
+//  public BlockVoxelMultiSelector.Matcher convertMatcherType(Packet250ServerSelectionGeneration.MatcherType matcherType)
+//  {
+//    switch (matcherType) {
+//      case ANY_NON_AIR: {
+//        return BlockVoxelMultiSelector.Matcher.ALL_NON_AIR;
+//      }
+//      case STARTING_BLOCK_ONLY: {
+//        return BlockVoxelMultiSelector.Matcher.STARTING_BLOCK_ONLY;
+//      }
+//      default: {
+//        ErrorLog.defaultLog().severe("Illegal matcherType:" + matcherType);
+//        return null;
+//      }
+//    }
+//  }
 
   /**
    * Returns true if the selection has been updated since the last call to this function; resets flag after the call.
@@ -354,9 +379,9 @@ public class ClientVoxelSelection
       case GENERATING: {   // keep generating; if complete, switch to creation of rendering lists
         float progress = clientVoxelMultiSelector.continueSelectionGeneration(world, maxDurationInNS);
         if (progress >= 0) {
-          selectionGenerationFractionComplete = progress;
+          localSelectionGenerationFractionComplete = progress;
         } else {   // -1 means complete
-
+          localSelectionGenerationFractionComplete = 1.0F;
 //          selectionPacketSender.reset();
           if (clientVoxelMultiSelector.isEmpty()) {
             clientSelectionState = ClientSelectionState.IDLE;
@@ -366,8 +391,8 @@ public class ClientVoxelSelection
             if (voxelSelectionRenderer == null) {
               voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
             }
-            voxelSelectionRenderer.createRenderListStart(world, selectionInitialOrigin.posX, selectionInitialOrigin.posY, selectionInitialOrigin.posZ,
-                    clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels());
+            voxelSelectionRenderer.createRenderListStart(world, overrideTexture, selectionInitialOrigin.posX, selectionInitialOrigin.posY,
+                    selectionInitialOrigin.posZ, clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels());
           }
         }
         break;
@@ -422,7 +447,8 @@ public class ClientVoxelSelection
         break;
       }
       case RECEIVING: {
-        if (serverVoxelSelection != null) {  // incoming packet transmission has finished
+        if (serverVoxelSelection != null && clientSelectionState == ClientSelectionState.COMPLETE) {  // incoming packet transmission has finished and client selection is done
+
           serverSelectionState = ServerSelectionState.CREATING_RENDERLISTS;
           voxelSelectionRenderer.resize(serverVoxelSelection.getWxOrigin(), serverVoxelSelection.getWyOrigin(), serverVoxelSelection.getWzOrigin(),
                                         serverVoxelSelection.getxSize(), serverVoxelSelection.getySize(), serverVoxelSelection.getzSize());
@@ -516,13 +542,15 @@ public class ClientVoxelSelection
   private int tickCount;
   private int lastStatusRequestTick;
 
+  private BlockWithMetadata overrideTexture;  // for the complex fill; the block that will fill the displayed selection; null for no override
+
   public BlockVoxelMultiSelectorRenderer getVoxelSelectionRenderer() {
     return voxelSelectionRenderer;
   }
 
   private BlockVoxelMultiSelectorRenderer voxelSelectionRenderer;
   private float renderlistGenerationFractionComplete;
-  private float selectionGenerationFractionComplete;
+  private float localSelectionGenerationFractionComplete;
   private boolean selectionUpdatedFlag;
 
   private VoxelSelectionWithOrigin selectionBeingDisplayed;

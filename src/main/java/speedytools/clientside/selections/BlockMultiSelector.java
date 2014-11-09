@@ -6,9 +6,10 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
+import speedytools.common.selections.FillMatcher;
+import speedytools.common.utilities.ErrorLog;
 
 import java.util.*;
-import java.lang.Math;
 
 /**
 * Created with IntelliJ IDEA.
@@ -19,24 +20,78 @@ import java.lang.Math;
 */
 public class BlockMultiSelector
 {
+//  public enum BlockTypeToSelect {AIR_ONLY, NON_SOLID_OK, SOLID_OK}
+
+  /**
+   * Used to specify the type of behaviour when selecting the starting block
+   * 0) should we perform a collision test, or just skip to placing a block in mid air?
+   * 1) if no block collided, should we select a position in mid air?
+   * 2) should we collide with water?
+   * 3) if the collided block is water, should we pull back one to the adjacent block?
+   * 4) if the collided block is non-solid (eg grass), should we pull back one to the adjacent block?
+   * 5) if the collided block is solid, should we pull back one to the adjacent block?
+   */
+  public enum BlockSelectionBehaviour {
+               WAND_STYLE( true,  true, false, false, false,  true),
+                ORB_STYLE( true, false,  true, false, false, false),
+        SCEPTRE_ADD_STYLE( true, false,  true,  true, false,  true),
+    SCEPTRE_REPLACE_SYTLE( true, false,  true, false, false, false),
+           BOUNDARY_STYLE(false,  true, false, false, false, false);
+
+    BlockSelectionBehaviour(boolean i_performCollisionTest, boolean i_selectAirIfNoCollision, boolean i_waterCollision,
+                            boolean i_waterPullback, boolean i_nonSolidPullback, boolean i_solidPullback)
+    {
+      performCollisionTest = i_performCollisionTest;
+      selectAirIfNoCollision = i_selectAirIfNoCollision;
+      waterCollision = i_waterCollision;
+      waterPullback = i_waterPullback;
+      nonSolidPullback = i_nonSolidPullback;
+      solidPullback = i_solidPullback;
+    }
+
+    public boolean isPerformCollisionTest() { return performCollisionTest;}
+    public boolean isSelectAirIfNoCollision() {
+      return selectAirIfNoCollision;
+    }
+    public boolean isWaterCollision() {
+      return waterCollision;
+    }
+    public boolean isWaterPullback() {
+      return waterPullback;
+    }
+    public boolean isNonSolidPullback() {
+      return nonSolidPullback;
+    }
+    public boolean isSolidPullback() {
+      return solidPullback;
+    }
+
+    private boolean performCollisionTest;
+    private boolean selectAirIfNoCollision;
+    private boolean waterCollision;
+    private boolean waterPullback;
+    private boolean nonSolidPullback;
+    private boolean solidPullback;
+  }
+
   /**
    * selectStartingBlock is used to select a starting block based on the player's position and look
    * There are three distinct cases for the starting block:
    * (1) the mouse is not on any target: the first block selected will be the one corresponding to the line of sight from the player's head:
    *     a) which doesn't intersect the player's bounding box
    *     b) which is at least 0.5 m from the player's eyes in each of the the x, y, and z directions.
-   * (2) the mouse is on a tile target: the first block selected will be:
-   *     if the block is not "solid" (eg flowers, grass, snow, redstone, etc): the mouseTarget block itself
-   *     if the block is "solid": the one adjacent to the tile in mouseTarget, on the face in mouseTarget.
+   * (2) the mouse is on a tile target: the first block selected will be according to blockSelectionBehaviour
    * (3) the mouse is on an entity: no selection.
    * The method also returns the look vector snapped to the midpoint of the face that was hit on the selected Block
    * @param mouseTarget  where the cursor is currently pointed
+   * @param blockSelectionBehaviour the types of blocks that can be selected.
    * @param player       the player (used for position and look information)
    * @param partialTick  used for calculating player head position
    * @return the coordinates of the starting selection block plus the side hit plus the look vector snapped to the midpoint of
    *         side hit.  null if no selection.
    */
-  public static MovingObjectPosition selectStartingBlock(MovingObjectPosition mouseTarget, EntityPlayer player, float partialTick)
+  public static MovingObjectPosition selectStartingBlock(MovingObjectPosition mouseTarget, BlockSelectionBehaviour blockSelectionBehaviour,
+                                                         EntityPlayer player, float partialTick)
   {
     final double MINIMUMHITDISTANCE = 0.5; // minimum distance from the player's eyes (axis-aligned not oblique)
     int blockx, blocky, blockz;
@@ -48,6 +103,10 @@ public class BlockMultiSelector
     Vec3 playerEyesPos = Vec3.createVectorHelper(playerOriginX, playerOriginY, playerOriginZ);
 
     if (mouseTarget == null) {   // no hit
+      if (!blockSelectionBehaviour.isSelectAirIfNoCollision()) {
+        return null;
+      }
+
       // we need to find the closest [x,y,z] in the direction the player is looking in, that the player is not occupying.
       // This will depend on the yaw but also the elevation.
       // The algorithm is:
@@ -82,11 +141,37 @@ public class BlockMultiSelector
       return traceResult;
 
     } else if (mouseTarget.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
-      if (isBlockSolid(player.worldObj, new ChunkCoordinates(mouseTarget.blockX, mouseTarget.blockY, mouseTarget.blockZ))) {
+      World world = player.getEntityWorld();
+      boolean pullback = false;
+      switch (BlockMultiSelector.checkBlockSolidity(world, mouseTarget.blockX, mouseTarget.blockY, mouseTarget.blockZ)) {
+        case AIR: {
+          pullback = false;
+          break;
+        }
+        case WATER: {
+          pullback = blockSelectionBehaviour.isWaterPullback();
+          break;
+        }
+        case NON_SOLID: {
+          pullback = blockSelectionBehaviour.isNonSolidPullback();
+          break;
+        }
+        case SOLID: {
+          pullback = blockSelectionBehaviour.isSolidPullback();
+          break;
+        }
+        default: {
+          ErrorLog.defaultLog().severe("Illegal solidity");
+          break;
+        }
+      }
+
+      if (pullback) {
         EnumFacing blockInFront = EnumFacing.getFront(mouseTarget.sideHit);
         blockx = mouseTarget.blockX + blockInFront.getFrontOffsetX();
         blocky = mouseTarget.blockY + blockInFront.getFrontOffsetY();
         blockz = mouseTarget.blockZ + blockInFront.getFrontOffsetZ();
+        mouseTarget.sideHit = Facing.oppositeSide[mouseTarget.sideHit];   // if pullback, swap the sidehit to point to the solid block
       } else {
         blockx = mouseTarget.blockX;
         blocky = mouseTarget.blockY;
@@ -151,25 +236,34 @@ public class BlockMultiSelector
     return selection;
   }
 
+  public static List<ChunkCoordinates> selectContourUnbounded(ChunkCoordinates startingBlockPosition, World world,
+                                                              int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, int normalDirection)
+  {
+    return selectContourBounded(startingBlockPosition, world, maxBlockCount, diagonalOK, fillMatcher, normalDirection,
+                                Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+  }
+
   /**
    * selectContour is used to select a contoured line of blocks, and return a list of their coordinates.
    * Starting from the block identified by mouseTarget, the selection will attempt to follow any contours in the same plane as the side hit.
    * (for example: if there is a zigzagging wall, it will select the layer of blocks that follows the top of the wall.)
-   * Depending on selectAdditiveContour, it will either select the non-solid blocks on top of the contour (to make the wall "taller"), or
+   * Depending on fillMatcher, it will either select the non-solid blocks on top of the contour (to make the wall "taller"), or
    *   select the solid blocks that form the top layer of the contour (to remove the top layer of the wall).
    * depending on diagonalOK it will follow diagonals or only the cardinal directions.
    * Keeps going until it reaches maxBlockCount, y goes outside the valid range, or hits a solid block.  The search algorithm is to look for closest blocks first
    *   ("closest" meaning the shortest distance travelled along the contour being created)
-   * @param mouseTarget the block under the player's cursor.  Uses [x,y,z] and sidehit
+   * @param startingBlockPosition the block to start from
    * @param world       the world
    * @param maxBlockCount the maximum number of blocks to select
    * @param diagonalOK    if true, diagonal 45 degree lines are allowed
-   * @param selectAdditiveContour if true, selects the layer of non-solid blocks adjacent to the contour.  if false, selects the solid blocks in the contour itself
+   * @param fillMatcher   the matcher used to determine which blocks should be added to the fill
+   * @param normalDirection specifies the plane that will be searched in (Facing directions; specifies the normal to the plane)
    * @return a list of the coordinates of all blocks in the selection, including the mouseTarget block.   Will be empty if the mouseTarget is not a tile.
    */
 
-  public static List<ChunkCoordinates> selectContour(MovingObjectPosition mouseTarget, World world,
-                                                     int maxBlockCount, boolean diagonalOK, boolean selectAdditiveContour)
+  public static List<ChunkCoordinates> selectContourBounded(ChunkCoordinates startingBlockPosition, World world,
+                                                              int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, int normalDirection,
+                                                              int xMin, int xMax, int yMin, int yMax, int zMin, int zMax)
   {
     // lookup table to give the possible search directions for any given search plane
     //  row index 0 = xz plane, 1 = xy plane, 2 = yz plane
@@ -192,11 +286,11 @@ public class BlockMultiSelector
 
     List<ChunkCoordinates> selection = new ArrayList<ChunkCoordinates>();
 
-    if (mouseTarget == null || mouseTarget.typeOfHit !=  MovingObjectPosition.MovingObjectType.BLOCK) return selection;
+//    if (mouseTarget == null || mouseTarget.typeOfHit !=  MovingObjectPosition.MovingObjectType.BLOCK) return selection;
 
-    ChunkCoordinates startingBlock = new ChunkCoordinates();
+//    ChunkCoordinates startingBlock = new ChunkCoordinates();
     int searchPlane;
-    switch (mouseTarget.sideHit) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
+    switch (normalDirection) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
       case 0:
       case 1:
         searchPlane = PLANE_XZ;
@@ -214,26 +308,26 @@ public class BlockMultiSelector
 
     // first step is to identify the starting block depending on whether this is an additive contour or subtractive contour,
 
-    EnumFacing blockInFront = EnumFacing.getFront(mouseTarget.sideHit);
-    startingBlock.posX = mouseTarget.blockX;
-    startingBlock.posY = mouseTarget.blockY;
-    startingBlock.posZ = mouseTarget.blockZ;
-    if (selectAdditiveContour && isBlockSolid(world, startingBlock)) {
-      startingBlock.posX += blockInFront.getFrontOffsetX();
-      startingBlock.posY += blockInFront.getFrontOffsetY();
-      startingBlock.posZ += blockInFront.getFrontOffsetZ();
-    }
-    selection.add(startingBlock);
+//    EnumFacing blockInFront = EnumFacing.getFront(mouseTarget.sideHit);
+//    startingBlock.posX = mouseTarget.blockX;
+//    startingBlock.posY = mouseTarget.blockY;
+//    startingBlock.posZ = mouseTarget.blockZ;
+//    if (selectAdditiveContour && isBlockSolid(world, startingBlock)) {
+//      startingBlock.posX += blockInFront.getFrontOffsetX();
+//      startingBlock.posY += blockInFront.getFrontOffsetY();
+//      startingBlock.posZ += blockInFront.getFrontOffsetZ();
+//    }
+    selection.add(startingBlockPosition);
 
     final int INITIAL_CAPACITY = 128;
     Set<ChunkCoordinates> locationsFilled = new HashSet<ChunkCoordinates>(INITIAL_CAPACITY);                                   // locations which have been selected during the fill
     Deque<SearchPosition> currentSearchPositions = new LinkedList<SearchPosition>();
     Deque<SearchPosition> nextDepthSearchPositions = new LinkedList<SearchPosition>();
     ChunkCoordinates checkPosition = new ChunkCoordinates(0,0,0);
-    ChunkCoordinates checkPositionSupport = new ChunkCoordinates(0,0,0);
+//    ChunkCoordinates checkPositionSupport = new ChunkCoordinates(0,0,0);
 
-    locationsFilled.add(startingBlock);
-    currentSearchPositions.add(new SearchPosition(startingBlock));
+    locationsFilled.add(startingBlockPosition);
+    currentSearchPositions.add(new SearchPosition(startingBlockPosition));
 
     // algorithm is:
     //   for each block in the list of search positions, iterate through each adjacent block to see whether it meets the criteria for expansion:
@@ -250,20 +344,24 @@ public class BlockMultiSelector
                         currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[searchPlane][currentSearchPosition.nextSearchDirection],
                         currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[searchPlane][currentSearchPosition.nextSearchDirection]
                        );
-      if (!locationsFilled.contains(checkPosition)) {
-        boolean blockIsSuitable = false;
-        if (selectAdditiveContour) {
-          if (!isBlockSolid(world, checkPosition)) {
-            checkPositionSupport.set(checkPosition.posX - blockInFront.getFrontOffsetX(),      // block behind
-                                     checkPosition.posY - blockInFront.getFrontOffsetY(),
-                                     checkPosition.posZ - blockInFront.getFrontOffsetZ()
-                                    );
-            blockIsSuitable = isBlockSolid(world, checkPositionSupport);
-          }
-        } else { // subtractive contour
-          blockIsSuitable = isBlockSolid(world, checkPosition);
-        }
-        if (blockIsSuitable) {
+      if (currentSearchPosition.chunkCoordinates.posX >= xMin && currentSearchPosition.chunkCoordinates.posX <= xMax &&
+          currentSearchPosition.chunkCoordinates.posY >= yMin && currentSearchPosition.chunkCoordinates.posY <= yMax &&
+          currentSearchPosition.chunkCoordinates.posZ >= zMin && currentSearchPosition.chunkCoordinates.posZ <= zMax &&
+          !locationsFilled.contains(checkPosition)) {
+        FillMatcher.MatchResult matchResult = fillMatcher.matches(world, checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+
+//        if (selectAdditiveContour) {
+//          if (!isBlockSolid(world, checkPosition)) {
+//            checkPositionSupport.set(checkPosition.posX - blockInFront.getFrontOffsetX(),      // block behind
+//                                     checkPosition.posY - blockInFront.getFrontOffsetY(),
+//                                     checkPosition.posZ - blockInFront.getFrontOffsetZ()
+//                                    );
+//            blockIsSuitable = isBlockSolid(world, checkPositionSupport);
+//          }
+//        } else { // subtractive contour
+//          blockIsSuitable = isBlockSolid(world, checkPosition);
+//        }
+        if (matchResult == FillMatcher.MatchResult.MATCH) {
           ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
           SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
           nextDepthSearchPositions.addLast(nextSearchPosition);
@@ -292,16 +390,15 @@ public class BlockMultiSelector
    * Keeps going until it reaches maxBlockCount, y goes outside the valid range.  The search algorithm is to look for closest blocks first
    *   ("closest" meaning the shortest distance travelled along the blob being created)
    *
-   * @param mouseTarget the block under the player's cursor.  Uses [x,y,z]
    * @param world       the world
    * @param maxBlockCount the maximum number of blocks to select
    * @param diagonalOK    if true, diagonal 45 degree lines are allowed
-   * @param matchAnyNonAir
+   * @param fillMatcher the matcher used to determine which blocks should be added to the fill
    * @param xMin  the fill will not extend below xMin.  Likewise it will not extend above xMax.  Similar for y, z.
    */
-  public static List<ChunkCoordinates> selectFill(MovingObjectPosition mouseTarget, World world,
-                                                  int maxBlockCount, boolean diagonalOK, boolean matchAnyNonAir,
-                                                  int xMin, int xMax, int yMin, int yMax, int zMin, int zMax)
+  public static List<ChunkCoordinates> selectFillBounded(ChunkCoordinates fillStartPosition, World world,
+                                                         int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher,
+                                                         int xMin, int xMax, int yMin, int yMax, int zMin, int zMax)
   {
     // lookup table to give the possible search directions for non-diagonal and diagonal respectively
     final int NON_DIAGONAL_DIRECTIONS = 6;
@@ -322,16 +419,14 @@ public class BlockMultiSelector
 
     List<ChunkCoordinates> selection = new ArrayList<ChunkCoordinates>();
 
-    if (mouseTarget == null || mouseTarget.typeOfHit !=  MovingObjectPosition.MovingObjectType.BLOCK) return selection;
-
-    ChunkCoordinates startingBlock = new ChunkCoordinates();
-    startingBlock.posX = mouseTarget.blockX;
-    startingBlock.posY = mouseTarget.blockY;
-    startingBlock.posZ = mouseTarget.blockZ;
+    ChunkCoordinates startingBlock = new ChunkCoordinates(fillStartPosition);
+    if (FillMatcher.MatchResult.MATCH != fillMatcher.matches(world, fillStartPosition.posX, fillStartPosition.posY, fillStartPosition.posZ)) {
+      return selection;
+    }
     selection.add(startingBlock);
 
-    Block blockToReplace = world.getBlock(startingBlock.posX, startingBlock.posY, startingBlock.posZ);
-    int blockToReplaceMetadata = world.getBlockMetadata(startingBlock.posX, startingBlock.posY, startingBlock.posZ);
+//    Block blockToReplace = world.getBlock(startingBlock.posX, startingBlock.posY, startingBlock.posZ);
+//    int blockToReplaceMetadata = world.getBlockMetadata(startingBlock.posX, startingBlock.posY, startingBlock.posZ);
 
     final int INITIAL_CAPACITY = 128;
     Set<ChunkCoordinates> locationsFilled = new HashSet<ChunkCoordinates>(INITIAL_CAPACITY);                                   // locations which have been selected during the fill
@@ -361,24 +456,23 @@ public class BlockMultiSelector
           &&  checkPosition.posY >= yMin && checkPosition.posY <= yMax
           &&  checkPosition.posZ >= zMin && checkPosition.posZ <= zMax
           && !locationsFilled.contains(checkPosition)) {
-        boolean blockIsSuitable = false;
+        FillMatcher.MatchResult matchResult = fillMatcher.matches(world, checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+//        Block blockToCheck = world.getBlock();
+//
+//        if (matchAnyNonAir && blockToCheck != Blocks.air) {
+//          blockIsSuitable = true;
+//        } else if (blockToCheck == blockToReplace) {
+//          if (world.getBlockMetadata(checkPosition.posX, checkPosition.posY, checkPosition.posZ) == blockToReplaceMetadata) {
+//            blockIsSuitable = true;
+//          } else {
+//            if (blockToCheck.getMaterial() == Material.lava
+//                || blockToCheck.getMaterial() == Material.water) {
+//              blockIsSuitable = true;
+//            }
+//          }
+//        }
 
-        Block blockToCheck = world.getBlock(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
-
-        if (matchAnyNonAir && blockToCheck != Blocks.air) {
-          blockIsSuitable = true;
-        } else if (blockToCheck == blockToReplace) {
-          if (world.getBlockMetadata(checkPosition.posX, checkPosition.posY, checkPosition.posZ) == blockToReplaceMetadata) {
-            blockIsSuitable = true;
-          } else {
-            if (blockToCheck.getMaterial() == Material.lava
-                || blockToCheck.getMaterial() == Material.water) {
-              blockIsSuitable = true;
-            }
-          }
-        }
-
-        if (blockIsSuitable) {
+        if (matchResult == FillMatcher.MatchResult.MATCH) {
           ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
           SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
           nextDepthSearchPositions.addLast(nextSearchPosition);
@@ -402,17 +496,16 @@ public class BlockMultiSelector
 
   /**
    * see selectFill above
-   * @param mouseTarget
    * @param world
    * @param maxBlockCount
    * @param diagonalOK
    * @return
    */
-  public static List<ChunkCoordinates> selectFill(MovingObjectPosition mouseTarget, World world,
-                                                  int maxBlockCount, boolean diagonalOK)
+  public static List<ChunkCoordinates> selectFillUnbounded(ChunkCoordinates fillStartPosition, World world,
+                                                           int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher)
   {
-    return selectFill(mouseTarget, world, maxBlockCount, diagonalOK, false,
-                      Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 255, Integer.MIN_VALUE, Integer.MAX_VALUE);
+    return selectFillBounded(fillStartPosition, world, maxBlockCount, diagonalOK, fillMatcher,
+            Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 255, Integer.MIN_VALUE, Integer.MAX_VALUE);
   }
 
   /**
@@ -571,6 +664,22 @@ public class BlockMultiSelector
       return false;
     }
     return (block.getMaterial() == Material.water || block.getMobilityFlag() != 1);
+  }
+
+  public enum BlockSolidity {AIR, WATER, NON_SOLID, SOLID};
+
+  /** check how solid this block is
+   * @param world
+   * @return
+   */
+  public static BlockSolidity checkBlockSolidity(World world, int wx, int wy, int wz)
+  {
+    if (wy < 0 || wy >= 256) return BlockSolidity.AIR;
+    Block block = world.getBlock(wx, wy, wz);
+    if (block == Blocks.air) return BlockSolidity.AIR;
+    if (block.getMaterial() == Material.water) return BlockSolidity.WATER;
+    if (block.getMobilityFlag() == 1) return BlockSolidity.NON_SOLID;
+    return BlockSolidity.SOLID;
   }
 
   /**

@@ -11,7 +11,7 @@ import java.util.List;
 public class ItemSpeedyWandWeak extends ItemSpeedyTool {
   public static final String NAME = "simplewandweak";
   public ItemSpeedyWandWeak() {
-    super();
+    super(PlacementCountModes.FINITE_ONLY);
     setMaxStackSize(64);
     setUnlocalizedName(NAME);
     setFull3D();                              // setting this flag causes the wand to render vertically in 3rd person view, like a pickaxe
