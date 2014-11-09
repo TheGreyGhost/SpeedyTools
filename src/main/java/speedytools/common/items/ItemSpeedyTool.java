@@ -24,6 +24,8 @@ public abstract class ItemSpeedyTool extends Item
 
   public enum PlacementCountModes {FINITE_ONLY, INFINITE_ONLY, BOTH}
 
+  public enum CollideWithLiquids {COLLIDE_WITH_LIQUIDS, DO_NOT_COLLIDE_WITH_LIQUIDS}
+
   /**
    * Finds the first block in the player's line of sight, including liquids
    * Has to be in here because getMovingObjectPositionFromPlayer is protected.
@@ -31,9 +33,9 @@ public abstract class ItemSpeedyTool extends Item
    * @param entityPlayer
    * @return the corresponding MovingObjectPosition
    */
-  public MovingObjectPosition rayTraceLineOfSight(World world, EntityPlayer entityPlayer)
+  public MovingObjectPosition rayTraceLineOfSight(World world, EntityPlayer entityPlayer, CollideWithLiquids collideWithLiquids)
   {
-    return this.getMovingObjectPositionFromPlayer(world, entityPlayer, true);
+    return this.getMovingObjectPositionFromPlayer(world, entityPlayer, (collideWithLiquids == CollideWithLiquids.COLLIDE_WITH_LIQUIDS));
   }
 
   /**

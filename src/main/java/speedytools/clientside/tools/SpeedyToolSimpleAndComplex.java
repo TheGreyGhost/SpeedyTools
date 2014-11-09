@@ -5,8 +5,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
-import speedytools.clientside.rendering.RendererHotbarCurrentItem;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyTool;
@@ -89,7 +89,16 @@ public class SpeedyToolSimpleAndComplex extends SpeedyTool
     } else {
       speedyToolComplex.performTick(world);
     }
+  }
 
+  /**
+   * when selecting the first block in a selection, how should it be done?
+   *
+   * @return
+   */
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
+    return (currentToolMode == ToolMode.SIMPLE) ? speedyToolSimple.getBlockSelectionBehaviour() : speedyToolComplex.getBlockSelectionBehaviour();
   }
 
   private enum ToolMode {SIMPLE, COMPLEX}

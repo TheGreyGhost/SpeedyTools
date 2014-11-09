@@ -12,6 +12,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.RenderCursorStatus;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.SoundController;
 import speedytools.common.blocks.BlockWithMetadata;
@@ -104,6 +105,16 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
     boolean retval = super.updateForThisFrame(world, player, partialTick);
 
     return retval;
+  }
+
+  /**
+   * when selecting the first block in a selection, how should it be done?
+   *
+   * @return
+   */
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
+    return BlockMultiSelector.BlockSelectionBehaviour.ORB_STYLE;
   }
 
   @Override

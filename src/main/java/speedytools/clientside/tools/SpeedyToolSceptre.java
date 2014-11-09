@@ -2,9 +2,7 @@ package speedytools.clientside.tools;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.Facing;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import speedytools.clientside.UndoManagerClient;
@@ -14,7 +12,6 @@ import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.sound.SoundEffectNames;
 import speedytools.clientside.sound.SoundEffectSimple;
-import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.selections.FillMatcher;
 import speedytools.common.utilities.Pair;
@@ -37,20 +34,19 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
 
   /**
    * Selects the Blocks that will be affected by the tool when the player presses right-click
-   * @param target the position of the cursor
+   * @param blockUnderCursor the position of the cursor
    * @param player the player
    * @param maxSelectionSize the maximum number of blocks in the selection
-   * @param itemStackToPlace the item that would be placed in the selection
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
-    BlockWithMetadata blockWithMetadata = getPlacedBlockFromItemStack(itemStackToPlace);
-    boolean additiveContour = (blockWithMetadata.block != Blocks.air);
+//    BlockWithMetadata blockWithMetadata = getPlacedBlockFromItemStack(itemStackToPlace);
+    boolean additiveContour = (currentBlockToPlace.block != Blocks.air);
 
-    return selectContourBlocks(target, player, maxSelectionSize, additiveContour, partialTick);
+    return selectContourBlocks(blockUnderCursor, player, maxSelectionSize, additiveContour, partialTick);
   }
 
   @Override
@@ -65,6 +61,13 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
   {
     SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.SCEPTRE_UNPLACE, soundController);
     soundEffectSimple.startPlaying();
+  }
+
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour()
+  {
+    boolean additiveMode = (currentBlockToPlace.block != Blocks.air);
+    return additiveMode ? BlockMultiSelector.BlockSelectionBehaviour.SCEPTRE_ADD_STYLE : BlockMultiSelector.BlockSelectionBehaviour.SCEPTRE_REPLACE_SYTLE;
   }
 
   /**
@@ -86,18 +89,17 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
       return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
     }
 
-    BlockMultiSelector.BlockTypeToSelect blockTypeToSelect = additiveContour ? BlockMultiSelector.BlockTypeToSelect.AIR_ONLY
-                                                                             : BlockMultiSelector.BlockTypeToSelect.SOLID_OK;
-    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, blockTypeToSelect, player, partialTick);
+    BlockMultiSelector.BlockSelectionBehaviour blockSelectionBehaviour = getBlockSelectionBehaviour();
+    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, blockSelectionBehaviour, player, partialTick);
     if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
     ChunkCoordinates blockUnderCursor = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
     boolean diagonalOK = controlKeyIsDown;
 
     FillMatcher fillMatcher;
     if (additiveContour) {
-      fillMatcher = new FillMatcher.ContourFollower(Facing.oppositeSide[startBlock.sideHit]);
+      fillMatcher = new FillMatcher.ContourFollower(true, startBlock.sideHit);
     } else {
-      fillMatcher = new FillMatcher.AnySolid();
+      fillMatcher = new FillMatcher.ContourFollower(false, startBlock.sideHit);
     }
 
     List<ChunkCoordinates> selection = BlockMultiSelector.selectContourUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK,

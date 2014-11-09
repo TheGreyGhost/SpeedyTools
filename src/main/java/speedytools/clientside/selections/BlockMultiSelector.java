@@ -20,7 +20,59 @@ import java.util.*;
 */
 public class BlockMultiSelector
 {
-  public enum BlockTypeToSelect {AIR_ONLY, NON_SOLID_OK, SOLID_OK}
+//  public enum BlockTypeToSelect {AIR_ONLY, NON_SOLID_OK, SOLID_OK}
+
+  /**
+   * Used to specify the type of behaviour when selecting the starting block
+   * 0) should we perform a collision test, or just skip to placing a block in mid air?
+   * 1) if no block collided, should we select a position in mid air?
+   * 2) should we collide with water?
+   * 3) if the collided block is water, should we pull back one to the adjacent block?
+   * 4) if the collided block is non-solid (eg grass), should we pull back one to the adjacent block?
+   * 5) if the collided block is solid, should we pull back one to the adjacent block?
+   */
+  public enum BlockSelectionBehaviour {
+               WAND_STYLE( true,  true, false, false, false,  true),
+                ORB_STYLE( true, false,  true, false, false, false),
+        SCEPTRE_ADD_STYLE( true, false,  true,  true, false,  true),
+    SCEPTRE_REPLACE_SYTLE( true, false,  true, false, false, false),
+           BOUNDARY_STYLE(false,  true, false, false, false, false);
+
+    BlockSelectionBehaviour(boolean i_performCollisionTest, boolean i_selectAirIfNoCollision, boolean i_waterCollision,
+                            boolean i_waterPullback, boolean i_nonSolidPullback, boolean i_solidPullback)
+    {
+      performCollisionTest = i_performCollisionTest;
+      selectAirIfNoCollision = i_selectAirIfNoCollision;
+      waterCollision = i_waterCollision;
+      waterPullback = i_waterPullback;
+      nonSolidPullback = i_nonSolidPullback;
+      solidPullback = i_solidPullback;
+    }
+
+    public boolean isPerformCollisionTest() { return performCollisionTest;}
+    public boolean isSelectAirIfNoCollision() {
+      return selectAirIfNoCollision;
+    }
+    public boolean isWaterCollision() {
+      return waterCollision;
+    }
+    public boolean isWaterPullback() {
+      return waterPullback;
+    }
+    public boolean isNonSolidPullback() {
+      return nonSolidPullback;
+    }
+    public boolean isSolidPullback() {
+      return solidPullback;
+    }
+
+    private boolean performCollisionTest;
+    private boolean selectAirIfNoCollision;
+    private boolean waterCollision;
+    private boolean waterPullback;
+    private boolean nonSolidPullback;
+    private boolean solidPullback;
+  }
 
   /**
    * selectStartingBlock is used to select a starting block based on the player's position and look
@@ -28,21 +80,18 @@ public class BlockMultiSelector
    * (1) the mouse is not on any target: the first block selected will be the one corresponding to the line of sight from the player's head:
    *     a) which doesn't intersect the player's bounding box
    *     b) which is at least 0.5 m from the player's eyes in each of the the x, y, and z directions.
-   * (2) the mouse is on a tile target: the first block selected will be according to blockTypeToSelect
+   * (2) the mouse is on a tile target: the first block selected will be according to blockSelectionBehaviour
    * (3) the mouse is on an entity: no selection.
    * The method also returns the look vector snapped to the midpoint of the face that was hit on the selected Block
    * @param mouseTarget  where the cursor is currently pointed
-   * @param blockTypeToSelect the types of blocks that can be selected.  If the cursor is on a block that doesn't meet the criteria, the one adjacent to the tile
-   *                          will be used, i.e. on the face in mouseTarget.
-   *     AIR = air blocks only
-   *     NON_SOLID = if the block is not "solid" (eg flowers, grass, snow, redstone, etc)
-   *     SOLID =  if the block is "solid" (can't be walked through)
+   * @param blockSelectionBehaviour the types of blocks that can be selected.
    * @param player       the player (used for position and look information)
    * @param partialTick  used for calculating player head position
    * @return the coordinates of the starting selection block plus the side hit plus the look vector snapped to the midpoint of
    *         side hit.  null if no selection.
    */
-  public static MovingObjectPosition selectStartingBlock(MovingObjectPosition mouseTarget, BlockTypeToSelect blockTypeToSelect, EntityPlayer player, float partialTick)
+  public static MovingObjectPosition selectStartingBlock(MovingObjectPosition mouseTarget, BlockSelectionBehaviour blockSelectionBehaviour,
+                                                         EntityPlayer player, float partialTick)
   {
     final double MINIMUMHITDISTANCE = 0.5; // minimum distance from the player's eyes (axis-aligned not oblique)
     int blockx, blocky, blockz;
@@ -54,6 +103,10 @@ public class BlockMultiSelector
     Vec3 playerEyesPos = Vec3.createVectorHelper(playerOriginX, playerOriginY, playerOriginZ);
 
     if (mouseTarget == null) {   // no hit
+      if (!blockSelectionBehaviour.isSelectAirIfNoCollision()) {
+        return null;
+      }
+
       // we need to find the closest [x,y,z] in the direction the player is looking in, that the player is not occupying.
       // This will depend on the yaw but also the elevation.
       // The algorithm is:
@@ -88,28 +141,37 @@ public class BlockMultiSelector
       return traceResult;
 
     } else if (mouseTarget.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+      World world = player.getEntityWorld();
       boolean pullback = false;
-      switch (blockTypeToSelect) {
-        case AIR_ONLY: {
-          pullback = true;
-          break;
-        }
-        case NON_SOLID_OK: {
-          pullback = isBlockSolid(player.worldObj, new ChunkCoordinates(mouseTarget.blockX, mouseTarget.blockY, mouseTarget.blockZ));
-          break;
-        }
-        case SOLID_OK: {
+      switch (BlockMultiSelector.checkBlockSolidity(world, mouseTarget.blockX, mouseTarget.blockY, mouseTarget.blockZ)) {
+        case AIR: {
           pullback = false;
+          break;
+        }
+        case WATER: {
+          pullback = blockSelectionBehaviour.isWaterPullback();
+          break;
+        }
+        case NON_SOLID: {
+          pullback = blockSelectionBehaviour.isNonSolidPullback();
+          break;
+        }
+        case SOLID: {
+          pullback = blockSelectionBehaviour.isSolidPullback();
+          break;
         }
         default: {
-          ErrorLog.defaultLog().debug("Illegal BlockTypeToSelect:" + blockTypeToSelect);
+          ErrorLog.defaultLog().severe("Illegal solidity");
+          break;
         }
       }
+
       if (pullback) {
         EnumFacing blockInFront = EnumFacing.getFront(mouseTarget.sideHit);
         blockx = mouseTarget.blockX + blockInFront.getFrontOffsetX();
         blocky = mouseTarget.blockY + blockInFront.getFrontOffsetY();
         blockz = mouseTarget.blockZ + blockInFront.getFrontOffsetZ();
+        mouseTarget.sideHit = Facing.oppositeSide[mouseTarget.sideHit];   // if pullback, swap the sidehit to point to the solid block
       } else {
         blockx = mouseTarget.blockX;
         blocky = mouseTarget.blockY;
@@ -602,6 +664,22 @@ public class BlockMultiSelector
       return false;
     }
     return (block.getMaterial() == Material.water || block.getMobilityFlag() != 1);
+  }
+
+  public enum BlockSolidity {AIR, WATER, NON_SOLID, SOLID};
+
+  /** check how solid this block is
+   * @param world
+   * @return
+   */
+  public static BlockSolidity checkBlockSolidity(World world, int wx, int wy, int wz)
+  {
+    if (wy < 0 || wy >= 256) return BlockSolidity.AIR;
+    Block block = world.getBlock(wx, wy, wz);
+    if (block == Blocks.air) return BlockSolidity.AIR;
+    if (block.getMaterial() == Material.water) return BlockSolidity.WATER;
+    if (block.getMobilityFlag() == 1) return BlockSolidity.NON_SOLID;
+    return BlockSolidity.SOLID;
   }
 
   /**

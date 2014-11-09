@@ -5,14 +5,17 @@ import cpw.mods.fml.relauncher.Side;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.*;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.RendererWireframeSelection;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.blocks.BlockWithMetadata;
@@ -77,13 +80,44 @@ public abstract class SpeedyTool
   protected RendererWireframeSelection.WireframeRenderInfoUpdateLink wireframeRendererUpdateLink;
 
   /**
-   * For the given ItemStack, returns the corresponding Block that will be placed by the tool
-   *   eg ItemCloth will give the Block cloth
-   *   ItemBlocks are converted to the appropriate block
-   *   Others:
-   * @param itemToBePlaced - the Item to be placed, or null for none.
-   * @return the Block (and metadata) corresponding to the item, or null for none.
+   * when selecting the first block in a selection, how should it be done?
+   * @return
    */
+  protected abstract BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour();
+
+  /**
+   * Selects the Blocks that will be affected by the tool when the player presses right-click
+   *   default method just selects the first block.
+   * @param player the player
+   * @param itemStackToPlace the item that would be placed in the selection; or null if none
+   * @param partialTick partial tick time.
+   * @return returns the list of blocks in the selection (may be zero length)
+   */
+  protected MovingObjectPosition selectBlockUnderCursor(EntityPlayer player, ItemStack itemStackToPlace, float partialTick)
+  {
+    BlockMultiSelector.BlockSelectionBehaviour blockSelectionBehaviour = getBlockSelectionBehaviour();
+    ItemSpeedyTool.CollideWithLiquids collideWithLiquids = blockSelectionBehaviour.isWaterCollision()
+                                                          ? ItemSpeedyTool.CollideWithLiquids.COLLIDE_WITH_LIQUIDS
+                                                          : ItemSpeedyTool.CollideWithLiquids.DO_NOT_COLLIDE_WITH_LIQUIDS;
+
+    MovingObjectPosition target = null;
+    if (blockSelectionBehaviour.isPerformCollisionTest()) {
+      target = parentItem.rayTraceLineOfSight(player.worldObj, player, collideWithLiquids);
+    }
+
+    MovingObjectPosition updatedTarget = BlockMultiSelector.selectStartingBlock(target, blockSelectionBehaviour, player, partialTick);
+    return updatedTarget;
+  }
+
+
+    /**
+     * For the given ItemStack, returns the corresponding Block that will be placed by the tool
+     *   eg ItemCloth will give the Block cloth
+     *   ItemBlocks are converted to the appropriate block
+     *   Others:
+     * @param itemToBePlaced - the Item to be placed, or null for none.
+     * @return the Block (and metadata) corresponding to the item, or null for none.
+     */
   protected BlockWithMetadata getPlacedBlockFromItemStack(ItemStack itemToBePlaced)
   {
     assert FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT;

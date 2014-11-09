@@ -1,7 +1,6 @@
 package speedytools.clientside.tools;
 
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
@@ -30,18 +29,27 @@ public class SpeedyToolWandWeak extends SpeedyToolSimple
   }
 
   /**
+   * when selecting the first block in a selection, how should it be done?
+   *
+   * @return
+   */
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
+    return BlockMultiSelector.BlockSelectionBehaviour.WAND_STYLE;
+  }
+
+  /**
    * Selects the Blocks that will be affected by the tool when the player presses right-click
-   * @param target the position of the cursor
+   * @param blockUnderCursor the position of the cursor
    * @param player the player
    * @param maxSelectionSize the maximum number of blocks in the selection
-   * @param itemStackToPlace the item that would be placed in the selection
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
-    return selectLineOfBlocks(target, player, maxSelectionSize, BlockMultiSelector.CollisionOptions.STOP_WHEN_SOLID_BLOCK_REACHED, partialTick);
+    return selectLineOfBlocks(blockUnderCursor, player, maxSelectionSize, BlockMultiSelector.CollisionOptions.STOP_WHEN_SOLID_BLOCK_REACHED, partialTick);
   }
 
   @Override

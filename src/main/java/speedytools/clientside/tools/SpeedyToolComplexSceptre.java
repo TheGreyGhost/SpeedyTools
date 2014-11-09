@@ -5,8 +5,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
-import net.minecraft.util.Facing;
-import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -88,27 +86,26 @@ public class SpeedyToolComplexSceptre extends SpeedyToolComplex
     boolean additiveContour = (currentBlockToPlace != null && currentBlockToPlace.block != Blocks.air);
     FillMatcher fillMatcher;
     if (additiveContour) {
-      fillMatcher = new FillMatcher.ContourFollower(Facing.oppositeSide[blockUnderCursorSideHit]);
+      fillMatcher = new FillMatcher.ContourFollower(true, blockUnderCursorSideHit);
     } else {
-      fillMatcher = new FillMatcher.AnySolid();
+      fillMatcher = new FillMatcher.ContourFollower(false, blockUnderCursorSideHit);
     }
     return fillMatcher;
   }
 
-  @Override
-  protected MovingObjectPosition getBlockUnderCursor(EntityClientPlayerMP player, float partialTick)
-  {
-    boolean additiveContour = (currentBlockToPlace != null && currentBlockToPlace.block != Blocks.air);
-    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
-    if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
-      BlockMultiSelector.BlockTypeToSelect blockTypeToSelect = additiveContour ? BlockMultiSelector.BlockTypeToSelect.AIR_ONLY
-              : BlockMultiSelector.BlockTypeToSelect.SOLID_OK;
-      MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, blockTypeToSelect, player, partialTick);
-      return startBlock;
-    }
-    return target;
-  }
-
+//  @Override
+//  protected MovingObjectPosition getBlockUnderCursor(EntityClientPlayerMP player, float partialTick)
+//  {
+//    boolean additiveContour = (currentBlockToPlace != null && currentBlockToPlace.block != Blocks.air);
+//    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
+//    if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+//      BlockMultiSelector.BlockTypeToSelect blockTypeToSelect = additiveContour ? BlockMultiSelector.BlockTypeToSelect.AIR_ONLY
+//              : BlockMultiSelector.BlockTypeToSelect.SOLID_OK;
+//      MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, blockTypeToSelect, player, partialTick);
+//      return startBlock;
+//    }
+//    return target;
+//  }
 
   @Override
   protected BlockWithMetadata getOverrideTexture()
@@ -126,6 +123,17 @@ public class SpeedyToolComplexSceptre extends SpeedyToolComplex
     currentBlockToPlace = getPlacedBlockFromItemStack(itemStackToPlace);
     boolean retval = super.updateForThisFrame(world, player, partialTick);
     return retval;
+  }
+
+  /**
+   * when selecting the first block in a selection, how should it be done?
+   *
+   * @return
+   */
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
+    boolean additiveMode = (currentBlockToPlace.block != Blocks.air);
+    return additiveMode ? BlockMultiSelector.BlockSelectionBehaviour.SCEPTRE_ADD_STYLE : BlockMultiSelector.BlockSelectionBehaviour.SCEPTRE_REPLACE_SYTLE;
   }
 
   @Override

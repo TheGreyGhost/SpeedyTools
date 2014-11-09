@@ -5,6 +5,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.RenderCursorStatus;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.common.items.ItemComplexDelete;
@@ -58,5 +59,10 @@ public class SpeedyToolComplexDelete extends SpeedyToolComplex
   @Override
   protected boolean mouseWheelChangesCount() {
     return false;
+  }
+
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
+    return BlockMultiSelector.BlockSelectionBehaviour.ORB_STYLE;
   }
 }

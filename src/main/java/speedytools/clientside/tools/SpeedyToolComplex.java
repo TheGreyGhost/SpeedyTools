@@ -438,11 +438,12 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     highlightedBlocks = null;
     currentHighlighting = SelectionType.NONE;
 
-    MovingObjectPosition target = getBlockUnderCursor(player, partialTick);
+    MovingObjectPosition target = selectBlockUnderCursor(player, null, partialTick);
     if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
       blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
       blockUnderCursorSideHit = target.sideHit;
       fillAlgorithmSettings.setStartPosition(blockUnderCursor);
+      fillAlgorithmSettings.setNormalDirection(blockUnderCursorSideHit);
       boolean selectedBlockIsInsideBoundaryField = false;
 
       if (boundaryCorner1 != null && boundaryCorner2 != null) {
@@ -508,15 +509,15 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     return true;
   }
 
-  protected MovingObjectPosition getBlockUnderCursor(EntityClientPlayerMP player, float partialTick)
-  {
-    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
-    if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
-      return target;
-    } else {
-      return null;
-    }
-  }
+//  protected MovingObjectPosition getBlockUnderCursor(EntityClientPlayerMP player, float partialTick)
+//  {
+//    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
+//    if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+//      return target;
+//    } else {
+//      return null;
+//    }
+//  }
 
   @Override
   public void resetTool() {
@@ -648,7 +649,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   protected boolean isDiagonalPropagationAllowed(boolean userRequested)
   {
-    return false;
+    return userRequested;
   }
 
   protected FillAlgorithmSettings fillAlgorithmSettings = new FillAlgorithmSettings();

@@ -3,7 +3,6 @@ package speedytools.clientside.tools;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
@@ -41,12 +40,11 @@ public class SpeedyToolOrb extends SpeedyToolSimple
    * @param target the position of the cursor
    * @param player the player
    * @param maxSelectionSize the maximum number of blocks in the selection
-   * @param itemStackToPlace the item that would be placed in the selection
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, ItemStack itemStackToPlace, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
     return selectFillBlocks(target, player, maxSelectionSize, partialTick);
   }
@@ -65,22 +63,26 @@ public class SpeedyToolOrb extends SpeedyToolSimple
     soundEffectSimple.startPlaying();
   }
 
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {return BlockMultiSelector.BlockSelectionBehaviour.ORB_STYLE;}
+
   /**
    * Selects the "blob" of blocks that will be affected by the tool when the player presses right-click
    * Starting from the block identified by mouseTarget, the selection will flood fill all matching blocks.
-   * @param target  the block to start the flood fill from
+   * @param blockUnderCursorMOP  the block to start the flood fill from
    * @param player
    * @param maxSelectionSize the maximum number of blocks in the selection
    * @param partialTick
    * @return   returns the list of blocks in the selection (may be zero length)
    */
-  protected Pair<List<ChunkCoordinates>, Integer> selectFillBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
+  protected Pair<List<ChunkCoordinates>, Integer> selectFillBlocks(MovingObjectPosition blockUnderCursorMOP,
+                                                                   EntityPlayer player, int maxSelectionSize, float partialTick)
   {
-    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
-    if (startBlock == null || startBlock.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
+//    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(blockUnderCursorMOP, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
+    if (blockUnderCursorMOP == null || blockUnderCursorMOP.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
       return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
     }
-    ChunkCoordinates blockUnderCursor = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
+    ChunkCoordinates blockUnderCursor = new ChunkCoordinates(blockUnderCursorMOP.blockX, blockUnderCursorMOP.blockY, blockUnderCursorMOP.blockZ);
 
     boolean diagonalOK =  controlKeyIsDown;
 
@@ -95,7 +97,7 @@ public class SpeedyToolOrb extends SpeedyToolSimple
     FillMatcher fillMatcher = new FillMatcher.OnlySpecifiedBlock(blockWithMetadata);
 
     List<ChunkCoordinates> selection = BlockMultiSelector.selectFillUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK, fillMatcher);
-    return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
+    return new Pair<List<ChunkCoordinates>, Integer> (selection, blockUnderCursorMOP.sideHit);
   }
 
 }

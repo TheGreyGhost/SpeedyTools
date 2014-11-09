@@ -136,6 +136,8 @@ public class SpeedyToolServerActions
       token = new AsynchronousActionMove(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     } else if (toolID == Item.getIdFromItem(RegistryForItems.itemSpeedyOrb)) {
       token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, fillBlock, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+    } else if (toolID == Item.getIdFromItem(RegistryForItems.itemSpeedySceptre)) {
+      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, fillBlock, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
     } else {
       ErrorLog.defaultLog().info("Invalid toolID received in performComplexAction:" + toolID);
       return ResultWithReason.failure();

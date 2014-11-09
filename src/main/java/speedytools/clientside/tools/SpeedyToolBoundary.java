@@ -16,6 +16,7 @@ import speedytools.clientside.sound.SoundEffectNames;
 import speedytools.clientside.sound.SoundEffectSimple;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyBoundary;
+import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.utilities.UsefulConstants;
 import speedytools.common.utilities.UsefulFunctions;
 
@@ -74,6 +75,16 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
   @Override
   public void performTick(World world) {
     updateGrabRenderTick(boundaryGrabActivated);
+  }
+
+  /**
+   * when selecting the first block in a selection, how should it be done?
+   *
+   * @return
+   */
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
+    return BlockMultiSelector.BlockSelectionBehaviour.BOUNDARY_STYLE;
   }
 
   @Override
@@ -183,10 +194,12 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
 
     // choose a starting block
     blockUnderCursor = null;
-    MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
+    BlockMultiSelector.BlockSelectionBehaviour blockSelectionBehaviour = getBlockSelectionBehaviour();
+    MovingObjectPosition airSelectionIgnoringBlocks = BlockMultiSelector.selectStartingBlock(null, blockSelectionBehaviour, player, partialTick);
     if (airSelectionIgnoringBlocks == null) return false;
 
-    MovingObjectPosition target = itemSpeedyBoundary.rayTraceLineOfSight(player.worldObj, player);
+    ItemSpeedyTool.CollideWithLiquids collideWithLiquids= blockSelectionBehaviour.isWaterCollision() ? ItemSpeedyTool.CollideWithLiquids.COLLIDE_WITH_LIQUIDS : ItemSpeedyTool.CollideWithLiquids.DO_NOT_COLLIDE_WITH_LIQUIDS;
+    MovingObjectPosition target = itemSpeedyBoundary.rayTraceLineOfSight(player.worldObj, player, collideWithLiquids);
 
     // we want to make sure that we only select a block at very short range.  So if we have hit a block beyond this range, shorten the target to eliminate it
     if (target == null) {

@@ -6,6 +6,7 @@ import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
+import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyTool;
@@ -107,4 +108,10 @@ public class SpeedyToolTester extends SpeedyTool
     iAmActive = false;
     return true;
   }
+
+  @Override
+  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
+    return BlockMultiSelector.BlockSelectionBehaviour.ORB_STYLE;
+  }
+
 }

@@ -53,8 +53,9 @@ public abstract class FillMatcher
           break;
         }
         case CONTOUR_FOLLOWER: {
+          boolean additiveMode = buf.readBoolean();
           int contourDirection = buf.readInt();
-          retval = new ContourFollower(contourDirection);
+          retval = new ContourFollower(additiveMode, contourDirection);
           break;
         }
         default: {
@@ -176,34 +177,39 @@ public abstract class FillMatcher
 
   // -----------------------
 
-  // follows a contour of solid blocks, stops when the block itself is solid
+  // follows a contour
+  // additive mode: if true, follows an adjacent contour of solid blocks, stops when the block itself is solid
+  //                if false, follows an adjacent "contour" of air blocks, stops when the block itself is air
   public static class ContourFollower extends FillMatcher {
-    public ContourFollower(int i_directionToContour) {
+    public ContourFollower(boolean i_additiveMode, int i_directionToContour) {
+      additiveMode = i_additiveMode;
       directionToContour = i_directionToContour;
     }
     @Override
     public MatchResult matches(Chunk chunk, int wcx, int wcy, int wcz) {
       if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
 
-        // first check if this block is air or can be moved through
+      final int NO_INTERACTION = 1;
+      // first check if the block itself is suitable based on the additive mode
       Block block = chunk.getBlock(wcx, wcy, wcz);
-      if (block != Blocks.air) {
-        final int NO_INTERACTION = 1;
-        if (block.getMobilityFlag() != NO_INTERACTION) return MatchResult.NO_MATCH;
-      }
+      boolean thisBlockIsSolid = (block != Blocks.air && (block.getMaterial() == Material.water || block.getMobilityFlag() != NO_INTERACTION));
+      if (thisBlockIsSolid == additiveMode) return MatchResult.NO_MATCH;
 
-       // next check if the contour is solid
+       // next check if the contour is suitable based on the additive mode
       wcx += Facing.offsetsXForSide[directionToContour];
       wcy += Facing.offsetsYForSide[directionToContour];
       wcz += Facing.offsetsZForSide[directionToContour];
       if (wcx < 0 || wcx > 15 || wcz < 0 || wcz > 15) return MatchResult.OUT_OF_BOUNDS;
       final int MINIMUM_Y = 0;
       final int MAXIMUM_Y = 255;
-      if (wcy < MINIMUM_Y || wcy > MAXIMUM_Y) return MatchResult.NO_MATCH;
-      block = chunk.getBlock(wcx, wcy, wcz);
-      if (block == Blocks.air) return  MatchResult.NO_MATCH;
-      final int NO_INTERACTION = 1;
-      return (block.getMobilityFlag() == NO_INTERACTION) ? MatchResult.NO_MATCH : MatchResult.MATCH;
+      boolean contourBlockIsSolid;
+      if (wcy < MINIMUM_Y || wcy > MAXIMUM_Y) {
+        contourBlockIsSolid = false;
+      } else {
+        block = chunk.getBlock(wcx, wcy, wcz);
+        contourBlockIsSolid = (block != Blocks.air && (block.getMaterial() == Material.water || block.getMobilityFlag() != NO_INTERACTION));
+      }
+      return (contourBlockIsSolid != additiveMode) ? MatchResult.NO_MATCH : MatchResult.MATCH;
     }
 
     @Override
@@ -211,38 +217,40 @@ public abstract class FillMatcher
       Chunk chunk = world.getChunkFromBlockCoords(wx, wz);
       if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
 
-      // first check if this block is air or can be moved through
+      final int NO_INTERACTION = 1;
+      // first check if the block itself is suitable based on the additive mode
       Block block = chunk.getBlock(wx & 0x0f, wy, wz & 0x0f);
-      if (block != Blocks.air) {
-        final int NO_INTERACTION = 1;
-        if (block.getMobilityFlag() != NO_INTERACTION) return MatchResult.NO_MATCH;
-      }
+      boolean thisBlockIsSolid = (block != Blocks.air && (block.getMaterial() == Material.water || block.getMobilityFlag() != NO_INTERACTION));
+      if (thisBlockIsSolid == additiveMode) return MatchResult.NO_MATCH;
 
-      // next check if the contour is solid
+      // next check if the contour is suitable based on the additive mode
       wx += Facing.offsetsXForSide[directionToContour];
       wy += Facing.offsetsYForSide[directionToContour];
       wz += Facing.offsetsZForSide[directionToContour];
       final int MINIMUM_Y = 0;
       final int MAXIMUM_Y = 255;
-      if (wy < MINIMUM_Y || wy > MAXIMUM_Y) return MatchResult.NO_MATCH;
-
-      chunk = world.getChunkFromBlockCoords(wx, wz);
-      if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
-
-      block = chunk.getBlock(wx & 0x0f, wy, wz & 0x0f);
-      if (block == Blocks.air) return  MatchResult.NO_MATCH;
-      final int NO_INTERACTION = 1;
-      return (block.getMobilityFlag() == NO_INTERACTION) ? MatchResult.NO_MATCH : MatchResult.MATCH;
+      boolean contourBlockIsSolid;
+      if (wy < MINIMUM_Y || wy > MAXIMUM_Y) {
+        contourBlockIsSolid = false;
+      } else {
+        chunk = world.getChunkFromBlockCoords(wx, wz);
+        if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
+        block = chunk.getBlock(wx & 0x0f, wy, wz & 0x0f);
+        contourBlockIsSolid = (block != Blocks.air && (block.getMaterial() == Material.water || block.getMobilityFlag() != NO_INTERACTION));
+      }
+      return (contourBlockIsSolid != additiveMode) ? MatchResult.NO_MATCH : MatchResult.MATCH;
     }
 
     @Override
     public void writeToBuffer(ByteBuf buf) {
       super.writeToBuffer(buf);
+      buf.writeBoolean(additiveMode);
       buf.writeInt(directionToContour);
     }
 
     protected byte getUniqueID() {return ONLY_SPECIFIED_BLOCK;}
     private int directionToContour;
+    private boolean additiveMode;
   }
 
   static private final byte ANY_NON_AIR = 1;

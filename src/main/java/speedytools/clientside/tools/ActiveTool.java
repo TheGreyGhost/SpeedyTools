@@ -44,7 +44,8 @@ public class ActiveTool
    */
   private void switchToTool(SpeedyTool newTool, ItemStack heldItemStack)
   {
-    if (newTool == activeTool) return;
+    if (newTool == activeTool && heldItemStack == activeToolItemStack) return;
+    activeToolItemStack = heldItemStack;
     if (activeTool != null) {
       boolean deactivationComplete = activeTool.deactivateTool();
       if (!deactivationComplete) return;
@@ -109,7 +110,7 @@ public class ActiveTool
   }
 
   private SpeedyTool activeTool;
-//  private ItemStack activeToolItemStack;
+  private ItemStack activeToolItemStack;
 
   private HashMap<Item, SpeedyTool> toolTypeRegistry;
 }
