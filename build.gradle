@@ -17,7 +17,7 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = "2.0.0"
+version = "2.1.0"
 group= "com.thegreyghost.speedytoolsmod" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "speedytoolsmod"
 
