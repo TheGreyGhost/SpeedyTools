@@ -9,10 +9,10 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import speedytools.common.CommonProxy;
 
 
-@Mod(modid="speedytoolsmod", name="Build Faster Mod", version="2.0.0")
+@Mod(modid="speedytoolsmod", name="Build Faster Mod", version="2.1.0")
 public class SpeedyToolsMod {
   public static final String ID = "speedytoolsmod";
-  public static final String VERSION = "2.0.0";
+  public static final String VERSION = "2.1.0";
 
   // The instance of your mod that Forge uses.
   @Mod.Instance("speedytoolsmod")
