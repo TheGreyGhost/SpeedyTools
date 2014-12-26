@@ -370,9 +370,11 @@ public class BlockMultiSelector
           if (world.getBlockMetadata(checkPosition.posX, checkPosition.posY, checkPosition.posZ) == blockToReplaceMetadata) {
             blockIsSuitable = true;
           } else {
-            if (Block.blocksList[blockToCheckID].blockMaterial == Material.lava
-                || Block.blocksList[blockToCheckID].blockMaterial == Material.water) {
-              blockIsSuitable = true;
+            if (Block.blocksList[blockToCheckID] != null) {
+              if (Block.blocksList[blockToCheckID].blockMaterial == Material.lava
+                      || Block.blocksList[blockToCheckID].blockMaterial == Material.water) {
+                blockIsSuitable = true;
+              }
             }
           }
         }
@@ -569,6 +571,7 @@ public class BlockMultiSelector
     if (blockId == 0) {
       return false;
     }
+    if (Block.blocksList[blockId] == null) return false;
     return (Block.blocksList[blockId].blockMaterial == Material.water || Block.blocksList[blockId].getMobilityFlag() != 1);
   }
 

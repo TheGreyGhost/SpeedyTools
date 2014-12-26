@@ -1,6 +1,5 @@
 package speedytools.clientside.rendering;
 
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
@@ -65,7 +64,7 @@ public class RendererWireframeSelection implements RendererElement
   public void renderWorld(EntityPlayer player, int animationTickCount, float partialTick)
   {
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo);
-    if (!shouldIRender) return;
+    if (!shouldIRender || renderInfo.currentlySelectedBlocks == null) return;
 
     try {
       GL11.glPushAttrib(GL11.GL_ENABLE_BIT);

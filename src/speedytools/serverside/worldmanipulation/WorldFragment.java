@@ -921,7 +921,8 @@ public class WorldFragment
               int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
               int blockID = getBlockID(x, y, z);
               if (blockID > 0) {
-                Block.blocksList[blockID].updateTick(worldServer, wx, wy, wz, worldServer.rand);
+                Block blockToTick = Block.blocksList[blockID];
+                if (blockToTick != null) blockToTick.updateTick(worldServer, wx, wy, wz, worldServer.rand);
               }
             }
           }
