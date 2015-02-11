@@ -1,6 +1,6 @@
 package speedytools.serverside;
 
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.Side;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.network.NetworkTrafficMonitor;
 import speedytools.common.utilities.ErrorLog;

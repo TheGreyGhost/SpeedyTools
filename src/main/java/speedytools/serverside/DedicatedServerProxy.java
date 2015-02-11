@@ -1,7 +1,7 @@
 package speedytools.serverside;
 
 
-import cpw.mods.fml.server.FMLServerHandler;
+import net.minecraftforge.fml.server.FMLServerHandler;
 import speedytools.common.CommonProxy;
 import speedytools.common.SpeedyToolsOptions;
 

@@ -1,11 +1,10 @@
 package speedytools.serverside;
 
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.multipart.*;
