@@ -7,12 +7,11 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.selections.ClientVoxelSelection;
+import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.tools.SelectionPacketSender;
 import speedytools.clientside.userinput.UserInput;
-import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
 
 //import speedytools.clientside.network.CloneToolsNetworkClient;
@@ -42,6 +41,7 @@ public class ClientSide
 
   public static void load()
   {
+/*  todo uncomment
     packetHandlerRegistry = new PacketHandlerRegistryClient();
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
     cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
@@ -51,6 +51,7 @@ public class ClientSide
     undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
     selectionPacketSenderComplex = new SelectionPacketSender(packetHandlerRegistry, packetSenderClient);
     clientVoxelSelection = new ClientVoxelSelection(packetHandlerRegistry, selectionPacketSenderComplex, packetSenderClient);
+*/
   }
 
   public static void postInitialise()

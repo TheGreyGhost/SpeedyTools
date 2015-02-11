@@ -1,12 +1,7 @@
 package speedytools.common;
 
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.common.MinecraftForge;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.items.RegistryForItems;
-import speedytools.serverside.ServerEventHandler;
-import speedytools.serverside.ServerSide;
-import speedytools.serverside.ServerTickHandler;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -32,17 +27,19 @@ public abstract class CommonProxy {
    */
   public void load()
   {
-    ServerSide.load();
-  }
+    /*ServerSide.load();  */
+  }         // todo uncomment
 
   /**
    * Handle interaction with other mods, complete your setup based on this.
    */
   public void postInit()
   {
+/*  todo uncomment
     MinecraftForge.EVENT_BUS.register(new ServerEventHandler());
     FMLCommonHandler.instance().bus().register(new ServerTickHandler());
     FMLCommonHandler.instance().bus().register(ServerSide.getPlayerTrackerRegistry());
+*/
   }
 
   /**
