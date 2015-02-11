@@ -1,6 +1,6 @@
 package speedytools.clientside.userinput;
 
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.client.event.MouseEvent;
 import speedytools.clientside.ClientSide;
 

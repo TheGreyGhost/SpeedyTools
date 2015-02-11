@@ -1,10 +1,11 @@
 package speedytools.clientside.tools;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -81,7 +82,7 @@ public class SpeedyToolComplexSceptre extends SpeedyToolComplex
   }
 
   @Override
-  protected FillMatcher getFillMatcherForSelectionCreation(World world, ChunkCoordinates blockUnderCursor)
+  protected FillMatcher getFillMatcherForSelectionCreation(World world, BlockPos blockUnderCursor)
   {
     boolean additiveContour = (currentBlockToPlace != null && currentBlockToPlace.block != Blocks.air);
     FillMatcher fillMatcher;
@@ -114,7 +115,7 @@ public class SpeedyToolComplexSceptre extends SpeedyToolComplex
   }
 
   @Override
-  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick) {
+  public boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick) {
     // the block to be placed is the one to the right of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;
 

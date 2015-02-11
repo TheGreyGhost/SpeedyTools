@@ -1,7 +1,8 @@
 package speedytools.clientside.tools;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.relauncher.Side;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
@@ -47,10 +48,12 @@ public abstract class SpeedyTool
   /**
    * Process user input
    * no effect if the tool is not active.
+   *
+   * @param player
    * @param userInput
    * @return
    */
-  public abstract boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput);
+  public abstract boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput);
 
   /**
    * update the tool state based on the player selected items; where the player is looking; etc
@@ -60,7 +63,7 @@ public abstract class SpeedyTool
    * @param partialTick
    * @return
    */
-  public abstract boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick);
+  public abstract boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick);
 
   /**
    *  resets the tool state eg has a selection, moving selection, etc.

@@ -1,11 +1,11 @@
 package speedytools.common.network;
 
 
-import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import speedytools.common.selections.FillAlgorithmSettings;
 import speedytools.common.utilities.ErrorLog;
 
@@ -51,7 +51,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
   }
 
   public static Packet250ServerSelectionGeneration performBoundFill(FillAlgorithmSettings i_fillAlgorithmSettings,
-                                                                    int whichTaskID, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+                                                                    int whichTaskID, BlockPos i_corner1, BlockPos i_corner2)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.BOUND_FILL, whichTaskID);
     retval.fillAlgorithmSettings = i_fillAlgorithmSettings;
@@ -75,7 +75,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     return retval;
   }
 
-  public static Packet250ServerSelectionGeneration performAllInBox(int whichTaskID, ChunkCoordinates i_corner1, ChunkCoordinates i_corner2)
+  public static Packet250ServerSelectionGeneration performAllInBox(int whichTaskID, BlockPos i_corner1, BlockPos i_corner2)
   {
     Packet250ServerSelectionGeneration retval = new Packet250ServerSelectionGeneration(Command.ALL_IN_BOX, whichTaskID);
     retval.corner1 = i_corner1;
@@ -106,19 +106,19 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
         }
         case BOUND_FILL: {
           fillAlgorithmSettings = FillAlgorithmSettings.createFromBuffer(buf);// = MatcherType.byteToMatcherType(buf.readByte());
-//          cursorPosition = readChunkCoordinates(buf);
-          corner1 = readChunkCoordinates(buf);
-          corner2 = readChunkCoordinates(buf);
+//          cursorPosition = readBlockPos(buf);
+          corner1 = readBlockPos(buf);
+          corner2 = readBlockPos(buf);
           break;
         }
         case UNBOUND_FILL: {
           fillAlgorithmSettings = FillAlgorithmSettings.createFromBuffer(buf); //MatcherType.byteToMatcherType(buf.readByte());
-//          cursorPosition = readChunkCoordinates(buf);
+//          cursorPosition = readBlockPos(buf);
           break;
         }
         case ALL_IN_BOX: {
-          corner1 = readChunkCoordinates(buf);
-          corner2 = readChunkCoordinates(buf);
+          corner1 = readBlockPos(buf);
+          corner2 = readBlockPos(buf);
           break;
         }
         default: {
@@ -158,19 +158,19 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
       }
       case BOUND_FILL: {
         fillAlgorithmSettings.writeToBuffer(buf);
-//        writeChunkCoordinates(buf, cursorPosition);
-        writeChunkCoordinates(buf, corner1);
-        writeChunkCoordinates(buf, corner2);
+//        writeBlockPos(buf, cursorPosition);
+        writeBlockPos(buf, corner1);
+        writeBlockPos(buf, corner2);
         break;
       }
       case UNBOUND_FILL: {
         fillAlgorithmSettings.writeToBuffer(buf);
-//        writeChunkCoordinates(buf, cursorPosition);
+//        writeBlockPos(buf, cursorPosition);
         break;
       }
       case ALL_IN_BOX: {
-        writeChunkCoordinates(buf, corner1);
-        writeChunkCoordinates(buf, corner2);
+        writeBlockPos(buf, corner1);
+        writeBlockPos(buf, corner2);
         break;
       }
       default: {
@@ -180,16 +180,16 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     }
   }
 
-  private ChunkCoordinates readChunkCoordinates(ByteBuf buf)
+  private BlockPos readBlockPos(ByteBuf buf)
   {
-    ChunkCoordinates chunkCoordinates = new ChunkCoordinates();
+    BlockPos chunkCoordinates = new BlockPos();
     chunkCoordinates.posX = buf.readInt();
     chunkCoordinates.posY = buf.readInt();
     chunkCoordinates.posZ = buf.readInt();
     return chunkCoordinates;
   }
 
-  private void writeChunkCoordinates(ByteBuf buf, ChunkCoordinates chunkCoordinates)
+  private void writeBlockPos(ByteBuf buf, BlockPos chunkCoordinates)
   {
     buf.writeInt(chunkCoordinates.posX);
     buf.writeInt(chunkCoordinates.posY);
@@ -369,17 +369,17 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
 
   private float completedFraction;
 
-//  public ChunkCoordinates getCursorPosition() {
-//    return new ChunkCoordinates(cursorPosition);
+//  public BlockPos getCursorPosition() {
+//    return new BlockPos(cursorPosition);
 //  }
 
 
-  public ChunkCoordinates getCorner1() {
-    return new ChunkCoordinates(corner1);
+  public BlockPos getCorner1() {
+    return new BlockPos(corner1);
   }
 
-  public ChunkCoordinates getCorner2() {
-    return new ChunkCoordinates(corner2);
+  public BlockPos getCorner2() {
+    return new BlockPos(corner2);
   }
 
   public FillAlgorithmSettings getFillAlgorithmSettings() {
@@ -387,9 +387,9 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
   }
 
   private FillAlgorithmSettings fillAlgorithmSettings;
-//  private ChunkCoordinates cursorPosition;
-  private ChunkCoordinates corner1;
-  private ChunkCoordinates corner2;
+//  private BlockPos cursorPosition;
+  private BlockPos corner1;
+  private BlockPos corner2;
   private int uniqueID;
 
   private static PacketHandlerMethod serverSideHandler;

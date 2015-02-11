@@ -1,6 +1,7 @@
 package speedytools.clientside.tools;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -40,7 +41,7 @@ public class SpeedyToolSimpleAndComplex extends SpeedyTool
   }
 
   @Override
-  public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput)
+  public boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput)
   {
     if (currentToolMode == ToolMode.SIMPLE) {
       boolean retval = speedyToolSimple.processUserInput(player, partialTick, userInput);
@@ -69,7 +70,7 @@ public class SpeedyToolSimpleAndComplex extends SpeedyTool
   }
 
   @Override
-  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick) {
+  public boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick) {
     return (currentToolMode == ToolMode.SIMPLE) ?
             speedyToolSimple.updateForThisFrame(world, player, partialTick) :
             speedyToolComplex.updateForThisFrame(world, player, partialTick);

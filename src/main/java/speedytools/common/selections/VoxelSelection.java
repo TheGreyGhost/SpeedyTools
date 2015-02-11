@@ -1,6 +1,6 @@
 package speedytools.common.selections;
 
-import cpw.mods.fml.common.FMLLog;
+import net.minecraftforge.fml.common.FMLLog;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;

@@ -1,6 +1,7 @@
 package speedytools.clientside.tools;
 
-import cpw.mods.fml.common.FMLLog;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraftforge.fml.common.FMLLog;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -33,8 +34,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
                             UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
     itemSpeedyBoundary = i_parentItem;
-    wireframeRendererUpdateLink = this.new BoundaryToolWireframeRendererLink();
-    boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
+//    wireframeRendererUpdateLink = this.new BoundaryToolWireframeRendererLink();  todo uncomment
+//    boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
   }
 
   @Override
@@ -46,8 +47,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     }
     soundEffectBoundaryHum.startPlayingLoop();
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
-    rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
-    rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
+//    rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));    todo uncomment
+//    rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
     iAmActive = true;
     return true;
@@ -88,7 +89,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
   }
 
   @Override
-  public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput) {
+  public boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput) {
     if (!iAmActive) return false;
 
     controlKeyIsDown = userInput.isControlKeyDown();
@@ -117,11 +118,11 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
    * @param player
    * @param partialTick
    */
-  protected void doRightClick(EntityClientPlayerMP player, float partialTick)
+  protected void doRightClick(EntityPlayerSP player, float partialTick)
   {
     if (boundaryCorner1 == null) {
       if (blockUnderCursor == null) return;
-      boundaryCorner1 = new ChunkCoordinates(blockUnderCursor);
+      boundaryCorner1 = new BlockPos(blockUnderCursor);
       SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_PLACE_1ST, soundController);
       soundEffectSimple.startPlaying();
     } else if (boundaryCorner2 == null) {
@@ -163,7 +164,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
    * @return
    */
   @Override
-  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick) {
+  public boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick) {
     // update icon renderer
 
     ItemSpeedyBoundary.IconNames itemIcon = ItemSpeedyBoundary.IconNames.BLANK;
@@ -210,7 +211,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
       }
     }
 
-    blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+    blockUnderCursor = new BlockPos(target.blockX, target.blockY, target.blockZ);
     return true;
   }
 
@@ -243,7 +244,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     public boolean refreshRenderInfo(RendererWireframeSelection.WireframeRenderInfo infoToUpdate)
     {
       if (boundaryCorner1 != null && boundaryCorner2 != null) return false;
-      infoToUpdate.currentlySelectedBlocks = new ArrayList<ChunkCoordinates>(1);
+      infoToUpdate.currentlySelectedBlocks = new ArrayList<BlockPos>(1);
       infoToUpdate.currentlySelectedBlocks.add(blockUnderCursor);
       return true;
     }
@@ -289,8 +290,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     sortBoundaryFieldCorners();
 
     if (boundaryCorner1 == null) return null;
-    ChunkCoordinates cnrMin = boundaryCorner1;
-    ChunkCoordinates cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
+    BlockPos cnrMin = boundaryCorner1;
+    BlockPos cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
     double wXmin = cnrMin.posX;
     double wYmin = cnrMin.posY;
     double wZmin = cnrMin.posZ;
@@ -302,20 +303,20 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
   }
 
   /**
-   * Copies the boundary field coordinates into the supplied min and max ChunkCoordinates
+   * Copies the boundary field coordinates into the supplied min and max BlockPos
    * @param minCoord the chunk coordinate to be filled with the minimum x, y, z corner
    * @param maxCoord the chunk coordinate to be filled with the maximum x, y, z corner
    * @return true if the boundary field is valid; false if there is no boundary field
    */
-  public boolean copyBoundaryCorners(ChunkCoordinates minCoord, ChunkCoordinates maxCoord)
+  public boolean copyBoundaryCorners(BlockPos minCoord, BlockPos maxCoord)
   {
     sortBoundaryFieldCorners();
 
     if (boundaryCorner1 == null) {
       return false;
     }
-    ChunkCoordinates cnrMin = boundaryCorner1;
-    ChunkCoordinates cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
+    BlockPos cnrMin = boundaryCorner1;
+    BlockPos cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
     minCoord.posX = cnrMin.posX;
     minCoord.posY = cnrMin.posY;
     minCoord.posZ = cnrMin.posZ;
@@ -337,8 +338,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     sortBoundaryFieldCorners();
 
     if (boundaryCorner1 == null) return null;
-    ChunkCoordinates cnrMin = boundaryCorner1;
-    ChunkCoordinates cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
+    BlockPos cnrMin = boundaryCorner1;
+    BlockPos cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
     double wXmin = cnrMin.posX;
     double wYmin = cnrMin.posY;
     double wZmin = cnrMin.posZ;
@@ -390,9 +391,9 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
    * add a new corner to the boundary (replace boundaryCorner2).  If the selection is too big, move boundaryCorner1.
    * @param newCorner
    */
-  private void addCornerPointWithMaxSize(ChunkCoordinates newCorner)
+  private void addCornerPointWithMaxSize(BlockPos newCorner)
   {
-    boundaryCorner2 = new ChunkCoordinates(newCorner);
+    boundaryCorner2 = new BlockPos(newCorner);
     boundaryCorner1.posX = UsefulFunctions.clipToRange(boundaryCorner1.posX, newCorner.posX - SELECTION_MAX_XSIZE + 1, newCorner.posX + SELECTION_MAX_XSIZE - 1);
     boundaryCorner1.posY = UsefulFunctions.clipToRange(boundaryCorner1.posY, newCorner.posY - SELECTION_MAX_YSIZE + 1, newCorner.posY + SELECTION_MAX_YSIZE - 1);
     boundaryCorner1.posZ = UsefulFunctions.clipToRange(boundaryCorner1.posZ, newCorner.posZ - SELECTION_MAX_ZSIZE + 1, newCorner.posZ + SELECTION_MAX_ZSIZE - 1);

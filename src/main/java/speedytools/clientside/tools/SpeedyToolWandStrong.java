@@ -1,7 +1,7 @@
 package speedytools.clientside.tools;
 
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import speedytools.clientside.UndoManagerClient;
@@ -37,7 +37,7 @@ public class SpeedyToolWandStrong extends SpeedyToolSimple
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize, float partialTick)
+  protected Pair<List<BlockPos>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
     return selectLineOfBlocks(blockUnderCursor, player, maxSelectionSize, BlockMultiSelector.CollisionOptions.CONTINUE_THROUGH_SOLID_BLOCKS, partialTick);
   }

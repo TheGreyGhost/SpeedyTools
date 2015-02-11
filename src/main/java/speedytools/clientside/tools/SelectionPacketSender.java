@@ -1,6 +1,6 @@
 package speedytools.clientside.tools;
 
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.Side;
 import speedytools.common.selections.BlockVoxelMultiSelector;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;

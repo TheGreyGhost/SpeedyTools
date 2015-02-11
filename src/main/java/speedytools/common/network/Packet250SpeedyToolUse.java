@@ -1,14 +1,14 @@
 package speedytools.common.network;
 
 
-import cpw.mods.fml.common.network.simpleimpl.IMessage;
-import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.utilities.ErrorLog;
 
@@ -34,7 +34,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
 
   public int getSideToPlace() {return sideToPlace;}
 
-  public List<ChunkCoordinates> getCurrentlySelectedBlocks() {
+  public List<BlockPos> getCurrentlySelectedBlocks() {
     return currentlySelectedBlocks;
   }
 
@@ -44,7 +44,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
    * @param i_sideToPlace - the side on which the block is being placed (top, east, etc)
    * @param newCurrentlySelectedBlocks - a list of the blocks selected by the tool when the button was clicked
    */
-  public Packet250SpeedyToolUse(int newButton, BlockWithMetadata newBlockToPlace, int i_sideToPlace, List<ChunkCoordinates> newCurrentlySelectedBlocks)
+  public Packet250SpeedyToolUse(int newButton, BlockWithMetadata newBlockToPlace, int i_sideToPlace, List<BlockPos> newCurrentlySelectedBlocks)
   {
     super();
 
@@ -118,7 +118,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
 
       int blockCount = buf.readInt();
       for (int i = 0; i < blockCount; ++i) {
-        ChunkCoordinates newCC = new ChunkCoordinates();
+        BlockPos newCC = new BlockPos();
         newCC.posX = buf.readInt();
         newCC.posY = buf.readInt();
         newCC.posZ = buf.readInt();
@@ -145,7 +145,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
     buf.writeInt(sideToPlace);
     buf.writeInt(currentlySelectedBlocks.size());
 
-    for (ChunkCoordinates cc : currentlySelectedBlocks) {
+    for (BlockPos cc : currentlySelectedBlocks) {
       buf.writeInt(cc.posX);
       buf.writeInt(cc.posY);
       buf.writeInt(cc.posZ);
@@ -167,7 +167,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
   private int button;
   private BlockWithMetadata blockToPlace;
   private int sideToPlace;
-  private List<ChunkCoordinates> currentlySelectedBlocks = new ArrayList<ChunkCoordinates>();
+  private List<BlockPos> currentlySelectedBlocks = new ArrayList<BlockPos>();
 
   private static PacketHandlerMethod serverSideHandler;
 

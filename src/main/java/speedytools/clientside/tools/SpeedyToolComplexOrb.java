@@ -2,9 +2,10 @@ package speedytools.clientside.tools;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -78,7 +79,7 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
   }
 
   @Override
-  protected FillMatcher getFillMatcherForSelectionCreation(World world, ChunkCoordinates blockUnderCursor)
+  protected FillMatcher getFillMatcherForSelectionCreation(World world, BlockPos blockUnderCursor)
   {
     Block block = world.getBlock(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
     int metadata = world.getBlockMetadata(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
@@ -94,7 +95,7 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
   }
 
   @Override
-  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick) {
+  public boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick) {
     // the block to be placed is the one to the right of the tool in the hotbar
     int currentlySelectedHotbarSlot = player.inventory.currentItem;
 
@@ -142,7 +143,7 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
 //    currentHighlighting = SelectionType.NONE;
 //
 //    if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
-//      blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+//      blockUnderCursor = new BlockPos(target.blockX, target.blockY, target.blockZ);
 //      boolean selectedBlockIsInsideBoundaryField = false;
 //
 //      if (boundaryCorner1 != null && boundaryCorner2 != null) {

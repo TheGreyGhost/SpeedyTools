@@ -1,6 +1,6 @@
 package speedytools.serverside.ingametester;
 
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 //import org.objenesis.Objenesis;

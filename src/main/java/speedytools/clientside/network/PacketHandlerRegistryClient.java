@@ -1,6 +1,6 @@
 package speedytools.clientside.network;
 
-import cpw.mods.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import speedytools.common.network.PacketHandlerRegistry;
 
 /**

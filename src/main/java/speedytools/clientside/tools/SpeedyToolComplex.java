@@ -2,6 +2,7 @@ package speedytools.clientside.tools;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -160,7 +161,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    */
 
   @Override
-  public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput) {
+  public boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput) {
     if (!iAmActive) return false;
 
     final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptionsClient.getLongClickMinDurationNS(); // length of time to hold for undo
@@ -419,15 +420,14 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    * So the selection algorithm is:
    * a) if the player is pointing at a block, specify that, and also check if inside a boundary field; else
    * b) check the player is pointing at a side of the boundary field (from outside)
-   *
-   * @param player the player
+   *  @param player the player
    * @param partialTick partial tick time.
    */
 //  @Override
 //  public void highlightBlocks(MovingObjectPosition target, EntityPlayer player, ItemStack currentItem, float partialTick)
 
   @Override
-  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
+  public boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick)
   {
     checkInvariants();
     if (clientVoxelSelection.getReadinessForDisplaying() != ClientVoxelSelection.VoxelSelectionState.NO_SELECTION) return false;
@@ -440,7 +440,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
     MovingObjectPosition target = selectBlockUnderCursor(player, null, partialTick);
     if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
-      blockUnderCursor = new ChunkCoordinates(target.blockX, target.blockY, target.blockZ);
+      blockUnderCursor = new BlockPos(target.blockX, target.blockY, target.blockZ);
       blockUnderCursorSideHit = target.sideHit;
       fillAlgorithmSettings.setStartPosition(blockUnderCursor);
       fillAlgorithmSettings.setNormalDirection(blockUnderCursorSideHit);
@@ -641,7 +641,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     soundEffectComplexSelectionGeneration.startPlaying();
   }
 
-  protected FillMatcher getFillMatcherForSelectionCreation(World world, ChunkCoordinates blockUnderCursor)
+  protected FillMatcher getFillMatcherForSelectionCreation(World world, BlockPos blockUnderCursor)
   {
     FillMatcher fillMatcher = new FillMatcher.AnyNonAir();
     return fillMatcher;
@@ -684,8 +684,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         int dx = commonSelectionState.selectionOrigin.posX - commonSelectionState.initialSelectionOrigin.posX;
         int dy = commonSelectionState.selectionOrigin.posY - commonSelectionState.initialSelectionOrigin.posY;
         int dz = commonSelectionState.selectionOrigin.posZ - commonSelectionState.initialSelectionOrigin.posZ;
-        ChunkCoordinates newOrigin = clientVoxelSelection.getSourceWorldOrigin();
-        commonSelectionState.selectionOrigin = new ChunkCoordinates(newOrigin.posX + dx, newOrigin.posY + dy, newOrigin.posZ + dz);
+        BlockPos newOrigin = clientVoxelSelection.getSourceWorldOrigin();
+        commonSelectionState.selectionOrigin = new BlockPos(newOrigin.posX + dx, newOrigin.posY + dy, newOrigin.posZ + dz);
         QuadOrientation newOrientation = clientVoxelSelection.getSourceQuadOrientation();
         if (commonSelectionState.initialSelectionOrientation.isFlippedX()) newOrientation.flipX();
         newOrientation.rotateClockwise(commonSelectionState.initialSelectionOrientation.getClockwiseRotationCount());
@@ -763,8 +763,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     boundaryCorner2 = null;
 
     if (speedyToolBoundary == null) return false;
-    ChunkCoordinates cnrMin = new ChunkCoordinates();
-    ChunkCoordinates cnrMax = new ChunkCoordinates();
+    BlockPos cnrMin = new BlockPos();
+    BlockPos cnrMax = new BlockPos();
 
     boolean hasABoundaryField = speedyToolBoundary.copyBoundaryCorners(cnrMin, cnrMax);
     if (hasABoundaryField) {
@@ -1180,7 +1180,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   //  3) performing an undo / waiting for server
 
   private SelectionType currentHighlighting = SelectionType.NONE;
-  private List<ChunkCoordinates> highlightedBlocks;
+  private List<BlockPos> highlightedBlocks;
 
 //  private float selectionGenerationPercentComplete;
   private boolean lastActionWasRejected;
@@ -1188,13 +1188,13 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
 //  private BlockVoxelMultiSelector voxelSelectionManager;
 //  private BlockVoxelMultiSelectorRenderer voxelSelectionRenderer;
-//  private ChunkCoordinates selectionOrigin;
+//  private BlockPos selectionOrigin;
 //  private boolean selectionGrabActivated = false;
 //  private Vec3    selectionGrabPoint = null;
 //  private boolean selectionMovedFastYet;
 //  private boolean hasBeenMoved;               // used to change the appearance when freshly created or placed.
 //  private QuadOrientation selectionOrientation;
-//  ChunkCoordinates initialSelectionOrigin;
+//  BlockPos initialSelectionOrigin;
 //  QuadOrientation initialSelectionOrientation;
   protected CommonSelectionState commonSelectionState;
 

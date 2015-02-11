@@ -2,7 +2,7 @@ package speedytools.serverside;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
@@ -121,7 +121,7 @@ public class ServerVoxelSelections
       BlockVoxelMultiSelector blockVoxelMultiSelector = currentCommand.blockVoxelMultiSelector;
       float progress = blockVoxelMultiSelector.continueSelectionGeneration(playerWorld, maximumDurationInNS);
       if (progress < 0) { // finished
-        ChunkCoordinates origin = blockVoxelMultiSelector.getWorldOrigin();
+        BlockPos origin = blockVoxelMultiSelector.getWorldOrigin();
         VoxelSelectionWithOrigin newSelection = new VoxelSelectionWithOrigin(origin.posX, origin.posY, origin.posZ,
                                                                              blockVoxelMultiSelector.getSelection());
         playerSelections.put(entityPlayerMP, newSelection);

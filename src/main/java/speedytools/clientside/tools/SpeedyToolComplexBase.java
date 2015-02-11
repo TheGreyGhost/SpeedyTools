@@ -2,10 +2,11 @@ package speedytools.clientside.tools;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -39,10 +40,10 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
   public abstract boolean deactivateTool();
 
   @Override
-  public abstract boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput);
+  public abstract boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput);
 
   @Override
-  public abstract boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick);
+  public abstract boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick);
 
   @Override
   public void resetTool() {
@@ -112,10 +113,10 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
   }
 
 
-  protected ChunkCoordinates blockUnderCursor = null;   // todo - removed static - still ok?
+  protected BlockPos blockUnderCursor = null;   // todo - removed static - still ok?
   protected int blockUnderCursorSideHit;  // which side of the block under cursor is the cursor on?
-  protected ChunkCoordinates boundaryCorner1 = null;
-  protected ChunkCoordinates boundaryCorner2 = null;
+  protected BlockPos boundaryCorner1 = null;
+  protected BlockPos boundaryCorner2 = null;
 
   protected static final int SELECTION_MAX_XSIZE = VoxelSelection.MAX_X_SIZE;
   protected static final int SELECTION_MAX_YSIZE = VoxelSelection.MAX_Y_SIZE;

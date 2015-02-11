@@ -319,7 +319,7 @@ public class SoundEffectComplexTool
       super(i_resourceLocation);
       repeat = (i_repeat == RepeatType.REPEAT);
       volume = i_volume;
-      field_147666_i = AttenuationType.NONE;
+      attenuationType = AttenuationType.NONE;
       componentSoundSettings = i_soundSettings;
     }
 

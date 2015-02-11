@@ -1,9 +1,9 @@
 package speedytools.clientside.network;
 
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.relauncher.Side;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.relauncher.Side;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.*;
 import speedytools.common.utilities.ErrorLog;
@@ -218,7 +218,7 @@ public class CloneToolsNetworkClient
    * @param player
    * @param packet
    */
-  public void handlePacket(EntityClientPlayerMP player, Packet250CloneToolStatus packet)
+  public void handlePacket(EntityPlayerSP player, Packet250CloneToolStatus packet)
   {
     serverStatus = packet.getServerStatus();
     serverPercentComplete = packet.getCompletionPercentage();
@@ -233,7 +233,7 @@ public class CloneToolsNetworkClient
    * @param player
    * @param packet
    */
-  public void handlePacket(EntityClientPlayerMP player, Packet250CloneToolAcknowledge packet)
+  public void handlePacket(EntityPlayerSP player, Packet250CloneToolAcknowledge packet)
   {
     if (lastActionStatus == ActionStatus.WAITING_FOR_ACKNOWLEDGEMENT || lastActionStatus == ActionStatus.PROCESSING) {
       if (packet.getActionSequenceNumber() == currentActionSequenceNumber) {

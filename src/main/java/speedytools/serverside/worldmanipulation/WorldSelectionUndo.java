@@ -4,7 +4,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.selections.VoxelSelection;
@@ -346,7 +346,7 @@ public class WorldSelectionUndo
    * @param entityPlayerMP
    * @param sideToPlace where the player's cursor is pointing when they placed the blocks
    */
-  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, int sideToPlace, List<ChunkCoordinates> blockSelection)
+  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, int sideToPlace, List<BlockPos> blockSelection)
   {
     /* algorithm is:
        (1) create a border mask for the blocks to be written, i.e. a mask showing all voxels which are adjacent to a block in the selection
@@ -356,7 +356,7 @@ public class WorldSelectionUndo
      */
 
     if (blockSelection == null || blockSelection.isEmpty()) return;
-    ChunkCoordinates firstBlock = blockSelection.get(0);
+    BlockPos firstBlock = blockSelection.get(0);
     int xMin = firstBlock.posX;
     int xMax = firstBlock.posX;
     int yMin = firstBlock.posY;
@@ -364,7 +364,7 @@ public class WorldSelectionUndo
     int zMin = firstBlock.posZ;
     int zMax = firstBlock.posZ;
 
-    for (ChunkCoordinates blockCoords : blockSelection) {
+    for (BlockPos blockCoords : blockSelection) {
       xMin = Math.min(xMin, blockCoords.posX);
       xMax = Math.max(xMax, blockCoords.posX);
       yMin = Math.min(yMin, blockCoords.posY);
@@ -389,7 +389,7 @@ public class WorldSelectionUndo
     int ySize = yMax + 1 - yMin;
     int zSize = zMax + 1 - zMin;
     VoxelSelection expandedSelection = new VoxelSelection(xSize, ySize, zSize);
-    for (ChunkCoordinates blockCoords : blockSelection) {
+    for (BlockPos blockCoords : blockSelection) {
       expandedSelection.setVoxel(blockCoords.posX - wxOfOrigin, blockCoords.posY - wyOfOrigin, blockCoords.posZ - wzOfOrigin);
     }
     VoxelSelection borderMask = expandedSelection.generateBorderMask();
@@ -400,7 +400,7 @@ public class WorldSelectionUndo
 
     Item blockItem = (blockToPlace.block == null) ? null : Item.getItemFromBlock(blockToPlace.block);
     ItemStack dummyPlaceItemStack = new ItemStack(blockItem == null ? Items.diamond : blockItem);
-    for (ChunkCoordinates cc : blockSelection) {
+    for (BlockPos cc : blockSelection) {
       if (blockToPlace.block == null) {
         worldServer.setBlockToAir(cc.posX, cc.posY, cc.posZ);
       } else {
@@ -707,10 +707,10 @@ public class WorldSelectionUndo
 //   * @param blocksToCheck
 //   * @return a list of all blocks that aren't affected by the operation in progress
 //   */
-//  private List<ChunkCoordinates> excludeLockedVoxels(List<ChunkCoordinates> blocksToCheck)
+//  private List<BlockPos> excludeLockedVoxels(List<BlockPos> blocksToCheck)
 //  {
-//    LinkedList<ChunkCoordinates> culledList = new LinkedList<ChunkCoordinates>();
-//    for (ChunkCoordinates coordinate : blocksToCheck) {
+//    LinkedList<BlockPos> culledList = new LinkedList<BlockPos>();
+//    for (BlockPos coordinate : blocksToCheck) {
 //      if (changedBlocksMask.getVoxel(coordinate.posX - wxOfOrigin, coordinate.posY - wyOfOrigin, coordinate.posZ - wzOfOrigin)) {
 //        culledList.add(coordinate);
 //      }

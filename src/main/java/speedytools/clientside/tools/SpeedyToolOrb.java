@@ -3,7 +3,7 @@ package speedytools.clientside.tools;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -44,7 +44,7 @@ public class SpeedyToolOrb extends SpeedyToolSimple
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
+  protected Pair<List<BlockPos>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
     return selectFillBlocks(target, player, maxSelectionSize, partialTick);
   }
@@ -75,29 +75,29 @@ public class SpeedyToolOrb extends SpeedyToolSimple
    * @param partialTick
    * @return   returns the list of blocks in the selection (may be zero length)
    */
-  protected Pair<List<ChunkCoordinates>, Integer> selectFillBlocks(MovingObjectPosition blockUnderCursorMOP,
+  protected Pair<List<BlockPos>, Integer> selectFillBlocks(MovingObjectPosition blockUnderCursorMOP,
                                                                    EntityPlayer player, int maxSelectionSize, float partialTick)
   {
 //    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(blockUnderCursorMOP, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
     if (blockUnderCursorMOP == null || blockUnderCursorMOP.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
-      return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
+      return new Pair<List<BlockPos>, Integer>(new ArrayList<BlockPos>(), UsefulConstants.FACE_YPOS);
     }
-    ChunkCoordinates blockUnderCursor = new ChunkCoordinates(blockUnderCursorMOP.blockX, blockUnderCursorMOP.blockY, blockUnderCursorMOP.blockZ);
+    BlockPos blockUnderCursor = new BlockPos(blockUnderCursorMOP.blockX, blockUnderCursorMOP.blockY, blockUnderCursorMOP.blockZ);
 
     boolean diagonalOK =  controlKeyIsDown;
 
     World world = player.worldObj;
     Block block = world.getBlock(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
     if (block == Blocks.air) {
-      return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
+      return new Pair<List<BlockPos>, Integer>(new ArrayList<BlockPos>(), UsefulConstants.FACE_YPOS);
     }
 
     int metadata = world.getBlockMetadata(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
     BlockWithMetadata blockWithMetadata = new BlockWithMetadata(block, metadata);
     FillMatcher fillMatcher = new FillMatcher.OnlySpecifiedBlock(blockWithMetadata);
 
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectFillUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK, fillMatcher);
-    return new Pair<List<ChunkCoordinates>, Integer> (selection, blockUnderCursorMOP.sideHit);
+    List<BlockPos> selection = BlockMultiSelector.selectFillUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK, fillMatcher);
+    return new Pair<List<BlockPos>, Integer> (selection, blockUnderCursorMOP.sideHit);
   }
 
 }

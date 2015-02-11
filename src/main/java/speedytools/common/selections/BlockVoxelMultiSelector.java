@@ -1,7 +1,7 @@
 package speedytools.common.selections;
 
-import cpw.mods.fml.common.FMLLog;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraftforge.fml.common.FMLLog;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import speedytools.common.utilities.ErrorLog;
@@ -35,7 +35,7 @@ public class BlockVoxelMultiSelector
    * @param corner1 one corner of the box
    * @param corner2 opposite corner of the box
    */
-  public void selectAllInBoxStart(World world, ChunkCoordinates corner1, ChunkCoordinates corner2) {
+  public void selectAllInBoxStart(World world, BlockPos corner1, BlockPos corner2) {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
 //    xpos = 0;
 //    ypos = 0;
@@ -52,11 +52,11 @@ public class BlockVoxelMultiSelector
    *
    * @param world
    */
-//  public void selectUnboundFillStart(World world, ChunkCoordinates blockUnderCursor, Matcher i_matcher) {
+//  public void selectUnboundFillStart(World world, BlockPos blockUnderCursor, Matcher i_matcher) {
   public void selectUnboundFillStart(World world, FillAlgorithmSettings fillAlgorithmSettings) {
-    ChunkCoordinates corner1 = new ChunkCoordinates();
-    ChunkCoordinates corner2 = new ChunkCoordinates();
-    ChunkCoordinates blockUnderCursor = fillAlgorithmSettings.getStartPosition();
+    BlockPos corner1 = new BlockPos();
+    BlockPos corner2 = new BlockPos();
+    BlockPos blockUnderCursor = fillAlgorithmSettings.getStartPosition();
     final int BORDER_ALLOWANCE = 2;
     final int MAXIMUM_Y = 255;
     final int MINIMUM_Y = 0;
@@ -78,10 +78,10 @@ public class BlockVoxelMultiSelector
    *
    * @param world
    */
-//  public void selectBoundFillStart(World world, ChunkCoordinates blockUnderCursor, Matcher i_matcher, ChunkCoordinates corner1, ChunkCoordinates corner2) {
-  public void selectBoundFillStart(World world, FillAlgorithmSettings fillAlgorithmSettings, ChunkCoordinates corner1, ChunkCoordinates corner2) {
+//  public void selectBoundFillStart(World world, BlockPos blockUnderCursor, Matcher i_matcher, BlockPos corner1, BlockPos corner2) {
+  public void selectBoundFillStart(World world, FillAlgorithmSettings fillAlgorithmSettings, BlockPos corner1, BlockPos corner2) {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
-    ChunkCoordinates blockUnderCursor = fillAlgorithmSettings.getStartPosition();
+    BlockPos blockUnderCursor = fillAlgorithmSettings.getStartPosition();
     assert (blockUnderCursor.posX >= wxOrigin && blockUnderCursor.posY >= wyOrigin && blockUnderCursor.posZ >= wzOrigin);
     assert (blockUnderCursor.posX < wxOrigin + xSize && blockUnderCursor.posY < wyOrigin + ySize && blockUnderCursor.posZ < wzOrigin + zSize);
     mode = OperationInProgress.FILL;
@@ -206,7 +206,7 @@ public class BlockVoxelMultiSelector
 //
 //        boolean blockIsAir = world.isAirBlock(checkPosition.posX + wxOrigin, checkPosition.posY + wyOrigin, checkPosition.posZ + wzOrigin);
 //        if (!blockIsAir) {
-//          ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
+//          BlockPos newChunkCoordinate = new BlockPos(checkPosition);
 //          SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
 //          nextDepthSearchPositions.addLast(nextSearchPosition);
 //          selection.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
@@ -289,8 +289,8 @@ public class BlockVoxelMultiSelector
    *
    * @return the origin for the selection in world coordinates
    */
-  public ChunkCoordinates getWorldOrigin() {
-    return new ChunkCoordinates(selection.getWxOrigin(), selection.getWyOrigin(), selection.getWzOrigin());
+  public BlockPos getWorldOrigin() {
+    return new BlockPos(selection.getWxOrigin(), selection.getWyOrigin(), selection.getWzOrigin());
   }
 
 
@@ -386,7 +386,7 @@ public class BlockVoxelMultiSelector
     zSize = newZsize;
   }
 
-  private void initialiseSelectionSizeFromBoundary(ChunkCoordinates corner1, ChunkCoordinates corner2) {
+  private void initialiseSelectionSizeFromBoundary(BlockPos corner1, BlockPos corner2) {
     wxOrigin = Math.min(corner1.posX, corner2.posX);
     wyOrigin = Math.min(corner1.posY, corner2.posY);
     wzOrigin = Math.min(corner1.posZ, corner2.posZ);

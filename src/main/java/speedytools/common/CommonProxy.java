@@ -1,6 +1,6 @@
 package speedytools.common;
 
-import cpw.mods.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.common.MinecraftForge;
 import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.items.RegistryForItems;

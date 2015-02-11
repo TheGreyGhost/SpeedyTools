@@ -9,6 +9,6 @@ public class RenderGameOverlayCrosshairsEvent extends RenderGameOverlayEvent
 {
   public RenderGameOverlayCrosshairsEvent(RenderGameOverlayEvent parent)
     {
-      super(parent.partialTicks, parent.resolution, parent.mouseX, parent.mouseY);
+      super(parent.partialTicks, parent.resolution);
     }
 }

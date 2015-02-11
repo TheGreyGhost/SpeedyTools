@@ -1,6 +1,6 @@
 package speedytools.common.network.multipart;
 
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import speedytools.common.network.PacketSender;
 import speedytools.common.utilities.ErrorLog;
 

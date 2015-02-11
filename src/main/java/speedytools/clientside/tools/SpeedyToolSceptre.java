@@ -2,7 +2,7 @@ package speedytools.clientside.tools;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import speedytools.clientside.UndoManagerClient;
@@ -41,7 +41,7 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize, float partialTick)
+  protected Pair<List<BlockPos>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
 //    BlockWithMetadata blockWithMetadata = getPlacedBlockFromItemStack(itemStackToPlace);
     boolean additiveContour = (currentBlockToPlace.block != Blocks.air);
@@ -83,16 +83,16 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected Pair<List<ChunkCoordinates>, Integer> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, boolean additiveContour, float partialTick)
+  protected Pair<List<BlockPos>, Integer> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, boolean additiveContour, float partialTick)
   {
     if (target == null || target.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
-      return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
+      return new Pair<List<BlockPos>, Integer>(new ArrayList<BlockPos>(), UsefulConstants.FACE_YPOS);
     }
 
     BlockMultiSelector.BlockSelectionBehaviour blockSelectionBehaviour = getBlockSelectionBehaviour();
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, blockSelectionBehaviour, player, partialTick);
-    if (startBlock == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
-    ChunkCoordinates blockUnderCursor = new ChunkCoordinates(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
+    if (startBlock == null) return new Pair<List<BlockPos>, Integer>(new ArrayList<BlockPos>(), UsefulConstants.FACE_YPOS);
+    BlockPos blockUnderCursor = new BlockPos(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
     boolean diagonalOK = controlKeyIsDown;
 
     FillMatcher fillMatcher;
@@ -102,9 +102,9 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
       fillMatcher = new FillMatcher.ContourFollower(false, startBlock.sideHit);
     }
 
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectContourUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK,
+    List<BlockPos> selection = BlockMultiSelector.selectContourUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK,
             fillMatcher, startBlock.sideHit);
-    return new Pair<List<ChunkCoordinates>, Integer> (selection, startBlock.sideHit);
+    return new Pair<List<BlockPos>, Integer> (selection, startBlock.sideHit);
   }
 
 }

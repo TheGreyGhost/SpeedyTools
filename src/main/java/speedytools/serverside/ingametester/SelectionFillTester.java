@@ -1,9 +1,9 @@
 package speedytools.serverside.ingametester;
 
-import cpw.mods.fml.common.FMLLog;
+import net.minecraftforge.fml.common.FMLLog;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import speedytools.common.selections.*;
@@ -52,14 +52,14 @@ public class SelectionFillTester
 
     int testRegionNumber = 0;
     for (InGameTester.TestRegions testRegion : testRegions) {
-      ChunkCoordinates corner1 = new ChunkCoordinates(testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ);
-      ChunkCoordinates corner2 = new ChunkCoordinates(testRegion.sourceRegion.posX + testRegion.xSize,
+      BlockPos corner1 = new BlockPos(testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ);
+      BlockPos corner2 = new BlockPos(testRegion.sourceRegion.posX + testRegion.xSize,
                                                       testRegion.sourceRegion.posY + testRegion.ySize,
               testRegion.sourceRegion.posZ + testRegion.zSize);
-      ChunkCoordinates blockUnderCursor = corner1;
+      BlockPos blockUnderCursor = corner1;
       selectBoundFillStart(worldServer, blockUnderCursor, corner1, corner2);
       selectFillContinue(worldServer, Long.MAX_VALUE);
-      ChunkCoordinates origin = getWorldOrigin();
+      BlockPos origin = getWorldOrigin();
       VoxelSelectionWithOrigin oldSelection = new VoxelSelectionWithOrigin(origin.posX, origin.posY, origin.posZ, getSelection());
       WorldFragment worldFragmentOld = new WorldFragment(oldSelection.getxSize(), oldSelection.getySize(), oldSelection.getzSize());
       worldFragmentOld.readFromWorld(worldServer, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ,
@@ -112,9 +112,9 @@ public class SelectionFillTester
    * @param world
    * @param blockUnderCursor the block being highlighted by the cursor
    */
-  public void selectUnboundFillStart(World world, ChunkCoordinates blockUnderCursor) {
-    ChunkCoordinates corner1 = new ChunkCoordinates();
-    ChunkCoordinates corner2 = new ChunkCoordinates();
+  public void selectUnboundFillStart(World world, BlockPos blockUnderCursor) {
+    BlockPos corner1 = new BlockPos();
+    BlockPos corner2 = new BlockPos();
     final int BORDER_ALLOWANCE = 2;
     corner1.posX = blockUnderCursor.posX - VoxelSelection.MAX_X_SIZE / 2 + BORDER_ALLOWANCE;
     corner2.posX = blockUnderCursor.posX + VoxelSelection.MAX_X_SIZE / 2 - BORDER_ALLOWANCE;
@@ -134,13 +134,13 @@ public class SelectionFillTester
    * @param world
    * @param blockUnderCursor the block being highlighted by the cursor
    */
-  public void selectBoundFillStart(World world, ChunkCoordinates blockUnderCursor, ChunkCoordinates corner1, ChunkCoordinates corner2) {
+  public void selectBoundFillStart(World world, BlockPos blockUnderCursor, BlockPos corner1, BlockPos corner2) {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
     assert (blockUnderCursor.posX >= wxOrigin && blockUnderCursor.posY >= wyOrigin && blockUnderCursor.posZ >= wzOrigin);
     assert (blockUnderCursor.posX < wxOrigin + xSize && blockUnderCursor.posY < wyOrigin + ySize && blockUnderCursor.posZ < wzOrigin + zSize);
     mode = OperationInProgress.FILL;
     initialiseVoxelRange();
-    ChunkCoordinates startingBlockCopy = new ChunkCoordinates(blockUnderCursor.posX - wxOrigin, blockUnderCursor.posY - wyOrigin, blockUnderCursor.posZ - wzOrigin);
+    BlockPos startingBlockCopy = new BlockPos(blockUnderCursor.posX - wxOrigin, blockUnderCursor.posY - wyOrigin, blockUnderCursor.posZ - wzOrigin);
     currentSearchPositions.clear();
     nextDepthSearchPositions.clear();
     currentSearchPositions.add(new SearchPosition(startingBlockCopy));
@@ -172,18 +172,18 @@ public class SelectionFillTester
    *
    * @return the origin for the selection in world coordinates
    */
-  public ChunkCoordinates getWorldOrigin() {
-    return new ChunkCoordinates(selection.getWxOrigin(), selection.getWyOrigin(), selection.getWzOrigin());
+  public BlockPos getWorldOrigin() {
+    return new BlockPos(selection.getWxOrigin(), selection.getWyOrigin(), selection.getWzOrigin());
   }
 
   public static class SearchPosition
   {
-    public SearchPosition(ChunkCoordinates initChunkCoordinates) {
-      chunkCoordinates = initChunkCoordinates;
+    public SearchPosition(BlockPos initBlockPos) {
+      chunkCoordinates = initBlockPos;
       nextSearchDirection = 0;
     }
 
-    public ChunkCoordinates chunkCoordinates;
+    public BlockPos chunkCoordinates;
     public int nextSearchDirection;
   }
 
@@ -219,8 +219,8 @@ public class SelectionFillTester
             +1, -1, -1, +1, +1, -1, -1, +1
     };
 
-    ChunkCoordinates checkPosition = new ChunkCoordinates(0, 0, 0);
-    ChunkCoordinates checkPositionSupport = new ChunkCoordinates(0, 0, 0);
+    BlockPos checkPosition = new BlockPos(0, 0, 0);
+    BlockPos checkPositionSupport = new BlockPos(0, 0, 0);
 
     while (!currentSearchPositions.isEmpty()) {
       SearchPosition currentSearchPosition = currentSearchPositions.getFirst();
@@ -233,7 +233,7 @@ public class SelectionFillTester
               && !selection.getVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ)) {
         boolean blockIsAir = world.isAirBlock(checkPosition.posX + wxOrigin, checkPosition.posY + wyOrigin, checkPosition.posZ + wzOrigin);
         if (!blockIsAir) {
-          ChunkCoordinates newChunkCoordinate = new ChunkCoordinates(checkPosition);
+          BlockPos newChunkCoordinate = new BlockPos(checkPosition);
           SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
           nextDepthSearchPositions.addLast(nextSearchPosition);
           selection.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
@@ -340,7 +340,7 @@ public class SelectionFillTester
     zSize = newZsize;
   }
 
-  private void initialiseSelectionSizeFromBoundary(ChunkCoordinates corner1, ChunkCoordinates corner2) {
+  private void initialiseSelectionSizeFromBoundary(BlockPos corner1, BlockPos corner2) {
     wxOrigin = Math.min(corner1.posX, corner2.posX);
     wyOrigin = Math.min(corner1.posY, corner2.posY);
     wzOrigin = Math.min(corner1.posZ, corner2.posZ);

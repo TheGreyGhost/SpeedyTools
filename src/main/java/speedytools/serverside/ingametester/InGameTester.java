@@ -1,12 +1,12 @@
 package speedytools.serverside.ingametester;
 
-import cpw.mods.fml.common.network.simpleimpl.MessageContext;
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
@@ -299,7 +299,7 @@ public class
 //      worldFragmentInitial.writeToWorld(worldServerReader, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
 //      worldFragmentInitial.writeToWorld(worldServerReader, testRegions3.expectedOutcome.posX, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ, null);
 
-      ChunkCoordinates sourceFragOrigin = new ChunkCoordinates(testRegions2.sourceRegion);
+      BlockPos sourceFragOrigin = new BlockPos(testRegions2.sourceRegion);
       sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
       VoxelSelection voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
       WorldFragment sourceWorldFragment2 = new WorldFragment(testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
@@ -318,13 +318,13 @@ public class
     }
 
     ++whichStep9;
-    ChunkCoordinates sourceFragOrigin = new ChunkCoordinates(testRegions1.sourceRegion);
+    BlockPos sourceFragOrigin = new BlockPos(testRegions1.sourceRegion);
     sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
     VoxelSelection voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions1.xSize-2, testRegions1.ySize, testRegions1.zSize-2);
     WorldFragment sourceWorldFragment1 = new WorldFragment(testRegions1.xSize-2, testRegions1.ySize, testRegions1.zSize-2);
     sourceWorldFragment1.readFromWorld(worldServer, testRegions1.sourceRegion.posX+1, testRegions1.sourceRegion.posY, testRegions1.sourceRegion.posZ+1, voxelSelection);
 
-    sourceFragOrigin = new ChunkCoordinates(testRegions2.sourceRegion);
+    sourceFragOrigin = new BlockPos(testRegions2.sourceRegion);
     sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
     voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
     WorldFragment sourceWorldFragment2 = new WorldFragment(testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
@@ -613,23 +613,23 @@ public class
       }
       return true;
     }
-    ArrayList<ChunkCoordinates> simple1 = new ArrayList<ChunkCoordinates>();
-    ArrayList<ChunkCoordinates> simple2 = new ArrayList<ChunkCoordinates>();
-    ArrayList<ChunkCoordinates> simple3 = new ArrayList<ChunkCoordinates>();
-    ArrayList<ChunkCoordinates> simple4 = new ArrayList<ChunkCoordinates>();
+    ArrayList<BlockPos> simple1 = new ArrayList<BlockPos>();
+    ArrayList<BlockPos> simple2 = new ArrayList<BlockPos>();
+    ArrayList<BlockPos> simple3 = new ArrayList<BlockPos>();
+    ArrayList<BlockPos> simple4 = new ArrayList<BlockPos>();
     int x0 = testRegions.get(0).testOutputRegion.posX;
     int y0 = testRegions.get(0).testOutputRegion.posY;
     int z0 = testRegions.get(0).testOutputRegion.posZ;
 
     for (int i = 0; i < 16; ++i) {
-      if ((i & 1) == 0) simple1.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4));
-      if ((i & 2) == 0) simple2.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4));
-      if ((i & 4) == 0) simple3.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4));
-      if ((i & 8) == 0) simple4.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4));
-      if ((i & 1) == 0) simple1.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4 + 4));
-      if ((i & 2) == 0) simple2.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4 + 4));
-      if ((i & 4) == 0) simple3.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4 + 4));
-      if ((i & 8) == 0) simple4.add(new ChunkCoordinates(x0 + (i & 3), y0, z0 + i/4 + 4));
+      if ((i & 1) == 0) simple1.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4));
+      if ((i & 2) == 0) simple2.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4));
+      if ((i & 4) == 0) simple3.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4));
+      if ((i & 8) == 0) simple4.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4));
+      if ((i & 1) == 0) simple1.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4 + 4));
+      if ((i & 2) == 0) simple2.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4 + 4));
+      if ((i & 4) == 0) simple3.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4 + 4));
+      if ((i & 8) == 0) simple4.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4 + 4));
     }
 
     WorldFragment worldFragment = new WorldFragment(testRegions.get(0).xSize, testRegions.get(0).ySize, testRegions.get(0).zSize);
@@ -938,9 +938,9 @@ public class
       BlockWithMetadata blockToPlace = new BlockWithMetadata();
       blockToPlace.block = performTest ? block : Blocks.air;
       final int LENGTH_OF_TEST_BLOCK_LINE = 4;
-      List<ChunkCoordinates> locations = new ArrayList<ChunkCoordinates>(LENGTH_OF_TEST_BLOCK_LINE);
+      List<BlockPos> locations = new ArrayList<BlockPos>(LENGTH_OF_TEST_BLOCK_LINE);
       for (int i = 0; i < LENGTH_OF_TEST_BLOCK_LINE; ++i) {
-        locations.add(new ChunkCoordinates(xpos, ypos, zpos+i));
+        locations.add(new BlockPos(xpos, ypos, zpos+i));
       }
       worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockToPlace, TOP_SIDE, locations);
       xpos += 2;
@@ -967,7 +967,7 @@ public class
       worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
       return true;
     } else {
-      ChunkCoordinates expectedOutcome = (testRegions.expectedOutcome == null) ? testRegions.sourceRegion : testRegions.expectedOutcome;
+      BlockPos expectedOutcome = (testRegions.expectedOutcome == null) ? testRegions.sourceRegion : testRegions.expectedOutcome;
       WorldFragment worldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
       worldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
       worldFragment.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
@@ -987,7 +987,7 @@ public class
     }
   }
 
-  public static VoxelSelection selectAllNonAir(World world, ChunkCoordinates origin, int xSize, int ySize, int zSize)
+  public static VoxelSelection selectAllNonAir(World world, BlockPos origin, int xSize, int ySize, int zSize)
   {
     VoxelSelection retval = new VoxelSelection(xSize, ySize, zSize);
     for (int zpos = 0; zpos < zSize; ++zpos) {
@@ -1017,10 +1017,10 @@ public class
      */
     public TestRegions(int xOrigin, int yOrigin, int zOrigin, int i_xSize, int i_ySize, int i_zSize, boolean hasExpectedOutcomeRegion)
     {
-      sourceRegion = new ChunkCoordinates(xOrigin, yOrigin, zOrigin);
-      expectedOutcome = !hasExpectedOutcomeRegion ? null : new ChunkCoordinates(xOrigin + 1*(i_xSize + 2), yOrigin, zOrigin);
-      testOutputRegion = new ChunkCoordinates(xOrigin + 2*(i_xSize + 2), yOrigin, zOrigin);
-      testRegionInitialiser = new ChunkCoordinates(xOrigin + 3*(i_xSize + 2), yOrigin, zOrigin);
+      sourceRegion = new BlockPos(xOrigin, yOrigin, zOrigin);
+      expectedOutcome = !hasExpectedOutcomeRegion ? null : new BlockPos(xOrigin + 1*(i_xSize + 2), yOrigin, zOrigin);
+      testOutputRegion = new BlockPos(xOrigin + 2*(i_xSize + 2), yOrigin, zOrigin);
+      testRegionInitialiser = new BlockPos(xOrigin + 3*(i_xSize + 2), yOrigin, zOrigin);
       xSize = i_xSize;
       ySize = i_ySize;
       zSize = i_zSize;
@@ -1046,7 +1046,7 @@ public class
      * @param origin origin of the test region
      */
     public void drawSingleTestRegionBoundaries(Block boundaryBlock, int boundaryMetadata,
-                                               ChunkCoordinates origin)
+                                               BlockPos origin)
     {
       int wOriginX = origin.posX;
       int wOriginY = origin.posY;
@@ -1071,10 +1071,10 @@ public class
       }
     }
 
-    public ChunkCoordinates testRegionInitialiser;
-    public ChunkCoordinates sourceRegion;
-    public ChunkCoordinates expectedOutcome;
-    public ChunkCoordinates testOutputRegion;
+    public BlockPos testRegionInitialiser;
+    public BlockPos sourceRegion;
+    public BlockPos expectedOutcome;
+    public BlockPos testOutputRegion;
     public int xSize;
     public int ySize;
     public int zSize;

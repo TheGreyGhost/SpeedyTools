@@ -1,6 +1,7 @@
 package speedytools.clientside.tools;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
@@ -27,10 +28,12 @@ public class SpeedyToolTester extends SpeedyTool
   /**
    * Process user input
    * no effect if the tool is not active.
+   *
+   * @param player
    * @param userInput
    * @return
    */
-  public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput) {
+  public boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput) {
     if (!iAmActive) return false;
 
     UserInput.InputEvent nextEvent;
@@ -77,7 +80,7 @@ public class SpeedyToolTester extends SpeedyTool
    * @param partialTick
    * @return
    */
-  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
+  public boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick)
   {
     return true;
   }

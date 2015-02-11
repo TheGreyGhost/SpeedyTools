@@ -1,6 +1,6 @@
 package speedytools.common.network;
 
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.network.Packet;
 
 import java.io.FileWriter;

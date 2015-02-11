@@ -1,6 +1,6 @@
 package speedytools.common.selections;
 
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import speedytools.common.utilities.ErrorLog;
 
 import java.util.*;
@@ -38,7 +38,7 @@ public class VoxelChunkwiseContourIterator implements IVoxelIterator
     int czMax = (wzOrigin + zSize - 1) >> 4;
     cxCount = cxMax - cxMin + 1;
     czCount = czMax - czMin + 1;
-    chunkCheckPositions = new ArrayList<LinkedList<ChunkCoordinates>>(cxCount * czCount);
+    chunkCheckPositions = new ArrayList<LinkedList<BlockPos>>(cxCount * czCount);
     chunksVisited = new BitSet(cxCount * czCount);
     chunksToVisitFirst = new BitSet(cxCount * czCount);
     chunksToVisitLater = new BitSet(cxCount * czCount);
@@ -57,7 +57,7 @@ public class VoxelChunkwiseContourIterator implements IVoxelIterator
    */
   public void setStartPositionAndPlane(int wx, int wy, int wz, int normalDirection) {
     if (!isWithinBounds(wx, wy, wz)) return;
-    currentCheckPosition = new ChunkCoordinates(wx, wy, wz);
+    currentCheckPosition = new BlockPos(wx, wy, wz);
     switch (normalDirection) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
       case 0:
       case 1:
@@ -103,7 +103,7 @@ public class VoxelChunkwiseContourIterator implements IVoxelIterator
     blocksAddedCount = 0;
 
     for (int i = 0; i < cxCount * czCount; ++i) {
-      chunkCheckPositions.add(i, new LinkedList<ChunkCoordinates>());
+      chunkCheckPositions.add(i, new LinkedList<BlockPos>());
     }
   }
 
@@ -160,8 +160,8 @@ public class VoxelChunkwiseContourIterator implements IVoxelIterator
         }
         // different chunk, so queue it up
         int chunkIdx = getChunkIndex(wx, wy, wz);
-        LinkedList<ChunkCoordinates> chunkStartSearchPositions = chunkCheckPositions.get(chunkIdx);
-        chunkStartSearchPositions.add(new ChunkCoordinates(wx, wy, wz));
+        LinkedList<BlockPos> chunkStartSearchPositions = chunkCheckPositions.get(chunkIdx);
+        chunkStartSearchPositions.add(new BlockPos(wx, wy, wz));
         if (chunksVisited.get(chunkIdx)) {
           chunksToVisitFirst.set(chunkIdx);
         } else {
@@ -171,7 +171,7 @@ public class VoxelChunkwiseContourIterator implements IVoxelIterator
     }
 
     int chunkIdx = getChunkIndex(currentCheckPosition.posX, currentCheckPosition.posY, currentCheckPosition.posZ);
-    LinkedList<ChunkCoordinates> currentChunkStartSearchPositions = chunkCheckPositions.get(chunkIdx);
+    LinkedList<BlockPos> currentChunkStartSearchPositions = chunkCheckPositions.get(chunkIdx);
 
     if (!currentChunkStartSearchPositions.isEmpty()) {
       currentCheckPosition = currentChunkStartSearchPositions.removeFirst();
@@ -283,12 +283,12 @@ public class VoxelChunkwiseContourIterator implements IVoxelIterator
 
   private static class SearchPosition
   {
-    public SearchPosition(ChunkCoordinates initChunkCoordinates) {
-      chunkCoordinates = new ChunkCoordinates(initChunkCoordinates);
+    public SearchPosition(BlockPos initBlockPos) {
+      chunkCoordinates = new BlockPos(initBlockPos);
       nextSearchDirection = 0;
     }
 
-    public ChunkCoordinates chunkCoordinates;
+    public BlockPos chunkCoordinates;
     public int nextSearchDirection;
   }
 
@@ -329,10 +329,10 @@ public class VoxelChunkwiseContourIterator implements IVoxelIterator
   }
 
   private Deque<SearchPosition> currentSearchStartPositions = new LinkedList<SearchPosition>();   // search positions within the current chunk
-  private ChunkCoordinates currentCheckPosition;
+  private BlockPos currentCheckPosition;
 
   // for each chunk in the boundary, a list of block positions to be checked.  Chunks arranged in idx = cx + cz * cxCount order
-  private ArrayList<LinkedList<ChunkCoordinates>> chunkCheckPositions;
+  private ArrayList<LinkedList<BlockPos>> chunkCheckPositions;
   private BitSet chunksVisited;  // true for each chunk which we have already visited
   private BitSet chunksToVisitFirst;
   private BitSet chunksToVisitLater;

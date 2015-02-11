@@ -1,9 +1,10 @@
 package speedytools.clientside.tools;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -43,10 +44,12 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   /**
    * Process user input
    * no effect if the tool is not active.
+   *
+   * @param player
    * @param userInput
    * @return
    */
-  public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput) {
+  public boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput) {
     if (!iAmActive) return false;
 
     controlKeyIsDown = userInput.isControlKeyDown();
@@ -86,7 +89,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick
    * @return
    */
-  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
+  public boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick)
   {
     if (!iAmActive) return false;
 //    ItemStack currentItem = player.inventory.getCurrentItem();
@@ -104,7 +107,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
 
 //    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
     MovingObjectPosition blockUnderCursor = selectBlockUnderCursor(player, itemStackToPlace, partialTick);
-    Pair<List<ChunkCoordinates>, Integer> retval = selectBlocks(blockUnderCursor, player, maxSelectionSize, partialTick);
+    Pair<List<BlockPos>, Integer> retval = selectBlocks(blockUnderCursor, player, maxSelectionSize, partialTick);
     currentlySelectedBlocks = retval.getFirst();
     currentSideToBePlaced = retval.getSecond();
     return true;
@@ -194,18 +197,18 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected Pair<List<ChunkCoordinates>, Integer>  selectLineOfBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize,
+  protected Pair<List<BlockPos>, Integer>  selectLineOfBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize,
                                                       BlockMultiSelector.CollisionOptions stopWhenCollide, float partialTick)
   {
 
 //    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(blockUnderCursor, BlockMultiSelector.BlockTypeToSelect.NON_SOLID_OK, player, partialTick);
-    if (blockUnderCursor == null) return new Pair<List<ChunkCoordinates>, Integer>(new ArrayList<ChunkCoordinates>(), UsefulConstants.FACE_YPOS);
+    if (blockUnderCursor == null) return new Pair<List<BlockPos>, Integer>(new ArrayList<BlockPos>(), UsefulConstants.FACE_YPOS);
 
-    ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(blockUnderCursor.blockX, blockUnderCursor.blockY, blockUnderCursor.blockZ);
+    BlockPos startBlockCoordinates = new BlockPos(blockUnderCursor.blockX, blockUnderCursor.blockY, blockUnderCursor.blockZ);
     boolean diagonalOK =  controlKeyIsDown;
-    List<ChunkCoordinates> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, blockUnderCursor.hitVec,
+    List<BlockPos> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, blockUnderCursor.hitVec,
             maxSelectionSize, diagonalOK, stopWhenCollide);
-    return new Pair<List<ChunkCoordinates>, Integer> (selection, blockUnderCursor.sideHit);
+    return new Pair<List<BlockPos>, Integer> (selection, blockUnderCursor.sideHit);
   }
 
   protected boolean sendPlaceCommand()
@@ -240,22 +243,22 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected Pair<List<ChunkCoordinates>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player,
+  protected Pair<List<BlockPos>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player,
                                                                int maxSelectionSize, float partialTick)
   {
-    ArrayList<ChunkCoordinates> retval = new ArrayList<ChunkCoordinates>();
+    ArrayList<BlockPos> retval = new ArrayList<BlockPos>();
 //    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
     int sideToPlace = UsefulConstants.FACE_YPOS;
     if (blockUnderCursor != null) {
-      ChunkCoordinates startBlockCoordinates = new ChunkCoordinates(blockUnderCursor.blockX, blockUnderCursor.blockY, blockUnderCursor.blockZ);
+      BlockPos startBlockCoordinates = new BlockPos(blockUnderCursor.blockX, blockUnderCursor.blockY, blockUnderCursor.blockZ);
       retval.add(startBlockCoordinates);
       sideToPlace = blockUnderCursor.sideHit;
     }
 
-    return new Pair<List<ChunkCoordinates>, Integer> (retval, sideToPlace);
+    return new Pair<List<BlockPos>, Integer> (retval, sideToPlace);
   }
 
-  protected List<ChunkCoordinates> currentlySelectedBlocks = new LinkedList<ChunkCoordinates>();
+  protected List<BlockPos> currentlySelectedBlocks = new LinkedList<BlockPos>();
   protected BlockWithMetadata currentBlockToPlace;
   protected int currentSideToBePlaced;
   private RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink hotbarRenderInfoUpdateLink;

@@ -1,7 +1,7 @@
 package speedytools.common.selections;
 
 import io.netty.buffer.ByteBuf;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import speedytools.common.utilities.ErrorLog;
 
 /**
@@ -22,7 +22,7 @@ public class FillAlgorithmSettings
       retval.propagation = Propagation.values()[buf.readInt()];
       retval.diagonalPropagationAllowed = buf.readBoolean();
       retval.automaticLowerBound = buf.readBoolean();
-      retval.startPosition = new ChunkCoordinates(buf.readInt(), buf.readInt(), buf.readInt());
+      retval.startPosition = new BlockPos(buf.readInt(), buf.readInt(), buf.readInt());
       retval.normalDirection = buf.readInt();
       retval.fillMatcher = FillMatcher.createMatcherFromBuffer(buf);
     } catch (IndexOutOfBoundsException ioe) {
@@ -51,7 +51,7 @@ public class FillAlgorithmSettings
     return diagonalPropagationAllowed;
   }
 
-  public ChunkCoordinates getStartPosition() {
+  public BlockPos getStartPosition() {
     return startPosition;
   }
 
@@ -67,7 +67,7 @@ public class FillAlgorithmSettings
     this.diagonalPropagationAllowed = diagonalPropagationAllowed;
   }
 
-  public void setStartPosition(ChunkCoordinates startPosition) {
+  public void setStartPosition(BlockPos startPosition) {
     this.startPosition = startPosition;
   }
 
@@ -93,7 +93,7 @@ public class FillAlgorithmSettings
 
   private Propagation propagation = Propagation.FLOODFILL;
   private boolean diagonalPropagationAllowed = false;
-  private ChunkCoordinates startPosition = new ChunkCoordinates();
+  private BlockPos startPosition = new BlockPos();
   private FillMatcher fillMatcher = new FillMatcher.NullMatcher();
   private boolean automaticLowerBound = true;
   private int normalDirection; // for contour: defines the plane to fill in

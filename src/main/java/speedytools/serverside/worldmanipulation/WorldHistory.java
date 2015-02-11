@@ -1,7 +1,7 @@
 package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
@@ -91,7 +91,7 @@ public class WorldHistory
    * @param worldServer
 
    */
-  public void writeToWorldWithUndo(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, int sideToPlace, List<ChunkCoordinates> blockSelection)
+  public void writeToWorldWithUndo(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, int sideToPlace, List<BlockPos> blockSelection)
   {
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
       blockSelection = currentAsynchronousTask.cullLockedVoxels(worldServer, blockSelection);
@@ -270,7 +270,7 @@ public class WorldHistory
 
   /** for debugging purposes
    */
-  public void printUndoStackYSlice(WorldServer worldServer, ChunkCoordinates origin, int xSize, int y, int zSize)
+  public void printUndoStackYSlice(WorldServer worldServer, BlockPos origin, int xSize, int y, int zSize)
   {
     for (int x = 0; x < xSize; ++x) {
       for (UndoLayerInfo undoLayerInfo : undoLayersComplex) {
@@ -533,7 +533,7 @@ public class WorldHistory
      * @param blocksToCheck
      * @return
      */
-    public List<ChunkCoordinates> cullLockedVoxels(WorldServer worldServer, List<ChunkCoordinates> blocksToCheck)
+    public List<BlockPos> cullLockedVoxels(WorldServer worldServer, List<BlockPos> blocksToCheck)
     {
       if (undoLayerInfo == null) return blocksToCheck;
       VoxelSelectionWithOrigin lockedRegion = getLockedRegion();
@@ -542,8 +542,8 @@ public class WorldHistory
       WorldServer taskWorldServer = undoLayerInfo.worldServer.get();
       if (taskWorldServer == null || taskWorldServer != worldServer) return blocksToCheck;
 
-      LinkedList<ChunkCoordinates> culledList = new LinkedList<ChunkCoordinates>();
-      for (ChunkCoordinates coordinate : blocksToCheck) {
+      LinkedList<BlockPos> culledList = new LinkedList<BlockPos>();
+      for (BlockPos coordinate : blocksToCheck) {
         if (!lockedRegion.getVoxelWXYZ(coordinate.posX, coordinate.posY, coordinate.posZ)) {
           culledList.add(coordinate);
         }

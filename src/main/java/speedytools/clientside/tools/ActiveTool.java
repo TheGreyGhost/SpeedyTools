@@ -1,6 +1,7 @@
 package speedytools.clientside.tools;
 
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
@@ -63,7 +64,7 @@ public class ActiveTool
    * @param partialTick
    * @return
    */
-  public boolean updateForThisFrame(World world, EntityClientPlayerMP player, float partialTick)
+  public boolean updateForThisFrame(World world, EntityPlayerSP player, float partialTick)
   {
     if (activeTool != null) {
       activeTool.updateForThisFrame(world, player, partialTick);

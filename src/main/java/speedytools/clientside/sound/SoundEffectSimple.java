@@ -60,7 +60,7 @@ public class SoundEffectSimple
       super(i_resourceLocation);
       repeat = i_repeat;
       volume = i_volume;
-      field_147666_i = AttenuationType.NONE;
+      attenuationType = AttenuationType.NONE;
     }
   }
 
