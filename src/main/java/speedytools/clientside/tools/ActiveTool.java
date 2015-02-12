@@ -1,6 +1,5 @@
 package speedytools.clientside.tools;
 
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -91,7 +90,7 @@ public class ActiveTool
   }
 
 
-  public boolean processUserInput(EntityClientPlayerMP player, float partialTick, UserInput userInput)
+  public boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput)
   {
     boolean inputProcessed = false;
     if (activeTool != null) {

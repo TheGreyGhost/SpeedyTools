@@ -26,8 +26,6 @@ import java.io.ByteArrayOutputStream;
  */
 public class BlockVoxelMultiSelector
 {
-//  public enum Matcher {ALL_NON_AIR, STARTING_BLOCK_ONLY}
-
   /**
    * initialise conversion of the selected box to a VoxelSelection
    *
@@ -37,9 +35,6 @@ public class BlockVoxelMultiSelector
    */
   public void selectAllInBoxStart(World world, BlockPos corner1, BlockPos corner2) {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
-//    xpos = 0;
-//    ypos = 0;
-//    zpos = 0;
     voxelIterator = new VoxelChunkwiseIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
     matcher = new FillMatcher.AnyNonAir();
     mode = OperationInProgress.ALL_IN_BOX;
@@ -52,21 +47,20 @@ public class BlockVoxelMultiSelector
    *
    * @param world
    */
-//  public void selectUnboundFillStart(World world, BlockPos blockUnderCursor, Matcher i_matcher) {
   public void selectUnboundFillStart(World world, FillAlgorithmSettings fillAlgorithmSettings) {
-    BlockPos corner1 = new BlockPos();
-    BlockPos corner2 = new BlockPos();
     BlockPos blockUnderCursor = fillAlgorithmSettings.getStartPosition();
     final int BORDER_ALLOWANCE = 2;
     final int MAXIMUM_Y = 255;
     final int MINIMUM_Y = 0;
-    corner1.posX = blockUnderCursor.posX - VoxelSelection.MAX_X_SIZE / 2 + BORDER_ALLOWANCE;
-    corner2.posX = blockUnderCursor.posX + VoxelSelection.MAX_X_SIZE / 2 - BORDER_ALLOWANCE;
-    corner1.posY = fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.posY : MINIMUM_Y;
-    corner1.posY = Math.max(MINIMUM_Y, corner1.posY);
-    corner2.posY = Math.min(MAXIMUM_Y, corner1.posY + VoxelSelection.MAX_Y_SIZE - 2 * BORDER_ALLOWANCE);
-    corner1.posZ = blockUnderCursor.posZ - VoxelSelection.MAX_Z_SIZE / 2 + BORDER_ALLOWANCE;
-    corner2.posZ = blockUnderCursor.posZ + VoxelSelection.MAX_Z_SIZE / 2 - BORDER_ALLOWANCE;
+    int c1x = blockUnderCursor.getX() - VoxelSelection.MAX_X_SIZE / 2 + BORDER_ALLOWANCE;
+    int c2x = blockUnderCursor.getX() + VoxelSelection.MAX_X_SIZE / 2 - BORDER_ALLOWANCE;
+    int c1y = fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.getY() : MINIMUM_Y;
+    c1y = Math.max(MINIMUM_Y, c1y);
+    int c2y = Math.min(MAXIMUM_Y, c1y + VoxelSelection.MAX_Y_SIZE - 2 * BORDER_ALLOWANCE);
+    int c1z = blockUnderCursor.getZ() - VoxelSelection.MAX_Z_SIZE / 2 + BORDER_ALLOWANCE;
+    int c2z = blockUnderCursor.getZ() + VoxelSelection.MAX_Z_SIZE / 2 - BORDER_ALLOWANCE;
+    BlockPos corner1 = new BlockPos(c1x, c1y, c1z);
+    BlockPos corner2 = new BlockPos(c2x, c2y, c2z);
 
     selectBoundFillStart(world, fillAlgorithmSettings, corner1, corner2);
   }
@@ -82,22 +76,22 @@ public class BlockVoxelMultiSelector
   public void selectBoundFillStart(World world, FillAlgorithmSettings fillAlgorithmSettings, BlockPos corner1, BlockPos corner2) {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
     BlockPos blockUnderCursor = fillAlgorithmSettings.getStartPosition();
-    assert (blockUnderCursor.posX >= wxOrigin && blockUnderCursor.posY >= wyOrigin && blockUnderCursor.posZ >= wzOrigin);
-    assert (blockUnderCursor.posX < wxOrigin + xSize && blockUnderCursor.posY < wyOrigin + ySize && blockUnderCursor.posZ < wzOrigin + zSize);
+    assert (blockUnderCursor.getX() >= wxOrigin && blockUnderCursor.getY() >= wyOrigin && blockUnderCursor.getZ() >= wzOrigin);
+    assert (blockUnderCursor.getX() < wxOrigin + xSize && blockUnderCursor.getY() < wyOrigin + ySize && blockUnderCursor.getZ() < wzOrigin + zSize);
     mode = OperationInProgress.FILL;
     initialiseVoxelRange();
     IVoxelIterator newIterator = null;
     switch(fillAlgorithmSettings.getPropagation()) {
       case FLOODFILL: {
         VoxelChunkwiseFillIterator newVCFIterator = new VoxelChunkwiseFillIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
-        newVCFIterator.setStartPosition(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ);
+        newVCFIterator.setStartPosition(blockUnderCursor.getX(), blockUnderCursor.getY(), blockUnderCursor.getZ());
         newVCFIterator.setDiagonalAllowed(fillAlgorithmSettings.isDiagonalPropagationAllowed());
         newIterator = newVCFIterator;
         break;
       }
       case CONTOUR: {
         VoxelChunkwiseContourIterator newVCCIterator = new VoxelChunkwiseContourIterator(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
-        newVCCIterator.setStartPositionAndPlane(blockUnderCursor.posX, blockUnderCursor.posY, blockUnderCursor.posZ, fillAlgorithmSettings.getNormalDirection());
+        newVCCIterator.setStartPositionAndPlane(blockUnderCursor.getX(), blockUnderCursor.getY(), blockUnderCursor.getZ(), fillAlgorithmSettings.getNormalDirection());
         newVCCIterator.setDiagonalAllowed(fillAlgorithmSettings.isDiagonalPropagationAllowed());
         newIterator = newVCCIterator;
         break;
@@ -166,23 +160,6 @@ public class BlockVoxelMultiSelector
               ErrorLog.defaultLog().debug("Illegal matchResult:" + matchResult);
             }
           }
-//          Block block = currentChunk.getBlock(voxelIterator.getWX() & 0x0f, voxelIterator.getWY(), voxelIterator.getWZ() & 0x0f);
-//          boolean matches = false;
-//          switch (matcher) {
-//            case ALL_NON_AIR: {
-//              matches = (block != Blocks.air);
-//              break;
-//            }
-//            case STARTING_BLOCK_ONLY: {
-//              int metadata = currentChunk.getBlockMetadata(voxelIterator.getWX() & 0x0f, voxelIterator.getWY(), voxelIterator.getWZ() & 0x0f);
-//              matches = (block == blockToMatch.block) && (metadata == blockToMatch.metaData);
-//              break;
-//            }
-//            default: {
-//              ErrorLog.defaultLog().severe("Illegal matcher:" + matcher);
-//              break;
-//            }
-//          }
         }
       }
       if (voxelIsUnloaded) {
@@ -202,65 +179,11 @@ public class BlockVoxelMultiSelector
     mode = OperationInProgress.COMPLETE;
     shrinkToSmallestEnclosingCuboid();
     return -1;
-//
-//
-//        boolean blockIsAir = world.isAirBlock(checkPosition.posX + wxOrigin, checkPosition.posY + wyOrigin, checkPosition.posZ + wzOrigin);
-//        if (!blockIsAir) {
-//          BlockPos newChunkCoordinate = new BlockPos(checkPosition);
-//          SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
-//          nextDepthSearchPositions.addLast(nextSearchPosition);
-//          selection.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
-//          expandVoxelRange(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
-//          ++blocksAddedCount;
-//        }
-//      }
-//
-//
-//      }
-//    }
-//
-//    mode = OperationInProgress.COMPLETE;
-//    shrinkToSmallestEnclosingCuboid();
-//    return -1;
   }
 
   public VoxelSelectionWithOrigin getSelection() {
     return selection;
   }
-
-//  public float continueSelectionGeneration(World world, long maxTimeInNS)
-//  {
-//    switch (mode) {
-//      case ALL_IN_BOX: {
-//        return selectAllInBoxContinue(world, maxTimeInNS);
-//      }
-//      case FILL: {
-//        return selectFillContinue(world, maxTimeInNS);
-//      }
-//      case COMPLETE: {
-//        return -1;
-//      }
-//      default: assert false : "invalid mode " + mode + " in continueSelectionGeneration";
-//    }
-//    return 0;
-//  }
-
-//  public float continueSelectionGeneration(World world, long maxTimeInNS)
-//  {
-//    switch (mode) {
-//      case ALL_IN_BOX: {
-//        return selectAllInBoxContinue(world, maxTimeInNS);
-//      }
-//      case FILL: {
-//        return selectFillContinueNEW(world, maxTimeInNS);
-//      }
-//      case COMPLETE: {
-//        return -1;
-//      }
-//      default: assert false : "invalid mode " + mode + " in continueSelectionGeneration";
-//    }
-//    return 0;
-//  }
 
   public VoxelSelectionWithOrigin getUnavailableVoxels() {
     return unavailableVoxels;
@@ -292,7 +215,6 @@ public class BlockVoxelMultiSelector
   public BlockPos getWorldOrigin() {
     return new BlockPos(selection.getWxOrigin(), selection.getWyOrigin(), selection.getWzOrigin());
   }
-
 
   /**
    * write the current selection in serialised form to a ByteArray
@@ -387,12 +309,12 @@ public class BlockVoxelMultiSelector
   }
 
   private void initialiseSelectionSizeFromBoundary(BlockPos corner1, BlockPos corner2) {
-    wxOrigin = Math.min(corner1.posX, corner2.posX);
-    wyOrigin = Math.min(corner1.posY, corner2.posY);
-    wzOrigin = Math.min(corner1.posZ, corner2.posZ);
-    xSize = 1 + Math.max(corner1.posX, corner2.posX) - wxOrigin;
-    ySize = 1 + Math.max(corner1.posY, corner2.posY) - wyOrigin;
-    zSize = 1 + Math.max(corner1.posZ, corner2.posZ) - wzOrigin;
+    wxOrigin = Math.min(corner1.getX(), corner2.getX());
+    wyOrigin = Math.min(corner1.getY(), corner2.getY());
+    wzOrigin = Math.min(corner1.getZ(), corner2.getZ());
+    xSize = 1 + Math.max(corner1.getX(), corner2.getX()) - wxOrigin;
+    ySize = 1 + Math.max(corner1.getY(), corner2.getY()) - wyOrigin;
+    zSize = 1 + Math.max(corner1.getZ(), corner2.getZ()) - wzOrigin;
     if (selection == null) {
       selection = new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
       unavailableVoxels = new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);

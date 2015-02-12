@@ -78,15 +78,15 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     updateGrabRenderTick(boundaryGrabActivated);
   }
 
-  /**
-   * when selecting the first block in a selection, how should it be done?
-   *
-   * @return
-   */
-  @Override
-  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
-    return BlockMultiSelector.BlockSelectionBehaviour.BOUNDARY_STYLE;
-  }
+//  /**
+//   * when selecting the first block in a selection, how should it be done?
+//   *
+//   * @return
+//   */
+//  @Override
+//  protected BlockMultiSelector.BlockSelectionBehaviour getBlockSelectionBehaviour() {
+//    return BlockMultiSelector.BlockSelectionBehaviour.BOUNDARY_STYLE;
+//  } todo uncomment
 
   @Override
   public boolean processUserInput(EntityPlayerSP player, float partialTick, UserInput userInput) {
@@ -134,7 +134,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
       if (boundaryGrabActivated) {  // ungrab
         Vec3 playerPosition = player.getPosition(partialTick);
         AxisAlignedBB newBoundaryField = getGrabDraggedBoundaryField(playerPosition);
-        boundaryCorner1.posX = (int)Math.round(newBoundaryField.minX);
+        boundaryCorner1.setY .posX = (int)Math.round(newBoundaryField.minX);
         boundaryCorner1.posY = (int)Math.round(newBoundaryField.minY);
         boundaryCorner1.posZ = (int)Math.round(newBoundaryField.minZ);
         boundaryCorner2.posX = (int)Math.round(newBoundaryField.maxX - 1);

@@ -14,7 +14,7 @@ public class BlockSelectionSolidFog extends Block
   public static final String NAME = "selectionsolidfog";
   public BlockSelectionSolidFog(Material par2Material) {
     super(par2Material);
-    setBlockName(NAME);
-    setBlockTextureName(SpeedyToolsMod.prependModID("selectionsolidfog"));
+    setUnlocalizedName(NAME);
+//    setBlockTextureName(SpeedyToolsMod.prependModID("selectionsolidfog"));
   }
 }

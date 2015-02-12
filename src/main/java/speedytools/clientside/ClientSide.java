@@ -7,10 +7,7 @@ import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
-import speedytools.clientside.selections.ClientVoxelSelection;
 import speedytools.clientside.sound.SoundController;
-import speedytools.clientside.tools.ActiveTool;
-import speedytools.clientside.tools.SelectionPacketSender;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.RegistryForItems;
 
@@ -36,7 +33,7 @@ public class ClientSide
       @Override
       public Item getTabIconItem() {return RegistryForItems.itemSpeedySceptre;}
     };
-    activeTool = new ActiveTool();
+//    activeTool = new ActiveTool();   todo uncomment
   }
 
   public static void load()
@@ -89,15 +86,15 @@ public class ClientSide
 
   public static CloneToolsNetworkClient cloneToolsNetworkClient;
   public static SpeedyToolRenderers speedyToolRenderers;
-  public static ActiveTool activeTool;
+//  public static ActiveTool activeTool;                                    todo uncomment
   public static UserInput userInput;
   public static UndoManagerClient undoManagerSimple;
   public static UndoManagerClient undoManagerComplex;
   public static SoundController speedyToolSounds;
   public static PacketSenderClient packetSenderClient;
   public static PacketHandlerRegistryClient packetHandlerRegistry;
-  public static SelectionPacketSender selectionPacketSenderComplex;
-  public static ClientVoxelSelection clientVoxelSelection;
+//  public static SelectionPacketSender selectionPacketSenderComplex;
+//  public static ClientVoxelSelection clientVoxelSelection;               todo uncomment
 
   public static CreativeTabs tabSpeedyTools;
 

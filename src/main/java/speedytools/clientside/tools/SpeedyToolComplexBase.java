@@ -61,7 +61,7 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
   {
     final float GRAB_SWING_POSITION = 0.7F;
     if (grabbing) {
-      EntityClientPlayerMP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
+      EntityPlayerSP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
       entityClientPlayerMP.swingProgress = GRAB_SWING_POSITION;
       entityClientPlayerMP.prevSwingProgress = GRAB_SWING_POSITION;
     }

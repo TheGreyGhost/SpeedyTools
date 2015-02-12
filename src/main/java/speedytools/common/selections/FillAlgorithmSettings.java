@@ -36,9 +36,9 @@ public class FillAlgorithmSettings
     buf.writeInt(propagation.ordinal());
     buf.writeBoolean(diagonalPropagationAllowed);
     buf.writeBoolean(automaticLowerBound);
-    buf.writeInt(startPosition.posX);
-    buf.writeInt(startPosition.posY);
-    buf.writeInt(startPosition.posZ);
+    buf.writeInt(startPosition.getX());
+    buf.writeInt(startPosition.getY());
+    buf.writeInt(startPosition.getZ());
     buf.writeInt(normalDirection);
     fillMatcher.writeToBuffer(buf);
   }
@@ -93,7 +93,7 @@ public class FillAlgorithmSettings
 
   private Propagation propagation = Propagation.FLOODFILL;
   private boolean diagonalPropagationAllowed = false;
-  private BlockPos startPosition = new BlockPos();
+  private BlockPos startPosition = new BlockPos(BlockPos.ORIGIN);    // default
   private FillMatcher fillMatcher = new FillMatcher.NullMatcher();
   private boolean automaticLowerBound = true;
   private int normalDirection; // for contour: defines the plane to fill in

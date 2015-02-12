@@ -3,6 +3,7 @@ package speedytools.serverside.backup;
 //import net.minecraft.client.Minecraft;
 //import net.minecraft.command.CommandServerSay;
 
+import net.minecraft.command.CommandException;
 import net.minecraft.command.server.CommandBroadcast;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.IProgressUpdate;
@@ -113,7 +114,11 @@ public class MinecraftSaveFolderBackups
 
     MinecraftServer minecraftServer = MinecraftServer.getServer();
     CommandBroadcast commandBroadcast = new CommandBroadcast();
-    commandBroadcast.processCommand(minecraftServer, allMessages);
+    try {
+      commandBroadcast.processCommand(minecraftServer, allMessages);
+    } catch (CommandException ce) {
+      // just ignore
+    }
   }
 
   /** Stop saving the world to disk

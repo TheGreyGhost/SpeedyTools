@@ -31,7 +31,5 @@ public class ItemComplexCopy extends ItemComplexBase
     textList.add("Mouse wheel: rotate selection");
     textList.add("CTRL+right: flip selection");
   }
-
-  private boolean renderHorizontal;
 }
 

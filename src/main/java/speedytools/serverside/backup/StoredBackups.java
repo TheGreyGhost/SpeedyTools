@@ -54,10 +54,6 @@ public class StoredBackups
     }
     try {
       NBTTagCompound backupListingNBT = CompressedStreamTools.read(backupListingPath.toFile());
-//      if (!backupListingNBT.getName().equals(BACKUP_LISTING_NAME_VALUE) ) {
-//        ErrorLog.defaultLog().warning("Invalid backuplisting file (root name wrong): " + backupListingPath.toString());
-//        return false;
-//      }
       if (!backupListingNBT.hasKey(BACKUP_LISTING_VERSION_TAG) || !backupListingNBT.hasKey(BACKUP_LISTING_PATHS_TAG)) {
         ErrorLog.defaultLog().info("Invalid backuplisting file (missing tag): " + backupListingPath.toString());
         return false;
@@ -68,7 +64,7 @@ public class StoredBackups
       }
       backupListingNBT = backupListingNBT.getCompoundTag(BACKUP_LISTING_PATHS_TAG);
 
-      Set<String> tagKeys = backupListingNBT.func_150296_c();
+      Set<String> tagKeys = backupListingNBT.getKeySet();
 
       Iterator<String> iterator = tagKeys.iterator();       // backupListingNBT.getTags().iterator();
 
@@ -76,8 +72,6 @@ public class StoredBackups
       {
         String key =  iterator.next();
         String value = backupListingNBT.getString(key);
-//        if (nbtbase instanceof NBTTagString)
-//        {
           Integer backupNumber;
           try {
             backupNumber = new Integer(Integer.parseInt(key));
@@ -90,10 +84,6 @@ public class StoredBackups
             return false;
           }
           backupListing.put(backupNumber, Paths.get(value));
-//        } else {
-//          ErrorLog.defaultLog().info("Invalid backupNumber entry in backuplisting file: " + backupListingPath.toString());
-//          return false;
-//        }
       }
     } catch (IOException ioe) {
       ErrorLog.defaultLog().info("Failure while reading backuplisting file (" + backupListingPath.toString() + ") :" + ioe.toString());
@@ -264,6 +254,5 @@ public class StoredBackups
   }
 
   private HashMap<Integer, Path> backupListing;
-
 }
 

@@ -1,8 +1,12 @@
 package speedytools.common.blocks;
 
+import net.minecraft.block.Block;
+import net.minecraft.item.Item;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.common.registry.LanguageRegistry;
 import net.minecraft.block.material.Material;
+
+import java.util.ArrayList;
 
 /**
 * creates and contains the instances of all of this mod's custom Blocks
@@ -21,4 +25,11 @@ public class RegistryForBlocks
     blockSelectionSolidFog = new BlockSelectionSolidFog(Material.rock);  // material is arbitrary; can't be air because air has no icon
     GameRegistry.registerBlock(blockSelectionSolidFog, blockSelectionSolidFog.NAME);
   }
+
+  // get a list of all the blocks which have a corresponding item
+  public static String [] getAllItemBlockNames()
+  {
+    return new String[] {blockSelectionFog.NAME, blockSelectionSolidFog.NAME};
+  }
+
 }
