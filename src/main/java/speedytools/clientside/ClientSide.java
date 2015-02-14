@@ -3,9 +3,6 @@ package speedytools.clientside;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import speedytools.clientside.network.CloneToolsNetworkClient;
-import speedytools.clientside.network.PacketHandlerRegistryClient;
-import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.userinput.UserInput;
@@ -77,22 +74,22 @@ public class ClientSide
   }
 */
 
-  public static CloneToolsNetworkClient getCloneToolsNetworkClient() {
-    return cloneToolsNetworkClient;
-  }
+//  public static CloneToolsNetworkClient getCloneToolsNetworkClient() {  todo uncomment
+//    return cloneToolsNetworkClient;
+//  }
 //  public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
 //    return networkTrafficMonitor;
 //  }
 
-  public static CloneToolsNetworkClient cloneToolsNetworkClient;
+//  public static CloneToolsNetworkClient cloneToolsNetworkClient;
   public static SpeedyToolRenderers speedyToolRenderers;
 //  public static ActiveTool activeTool;                                    todo uncomment
   public static UserInput userInput;
   public static UndoManagerClient undoManagerSimple;
   public static UndoManagerClient undoManagerComplex;
   public static SoundController speedyToolSounds;
-  public static PacketSenderClient packetSenderClient;
-  public static PacketHandlerRegistryClient packetHandlerRegistry;
+//  public static PacketSenderClient packetSenderClient;
+//  public static PacketHandlerRegistryClient packetHandlerRegistry;
 //  public static SelectionPacketSender selectionPacketSenderComplex;
 //  public static ClientVoxelSelection clientVoxelSelection;               todo uncomment
 

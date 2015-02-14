@@ -1,5 +1,6 @@
 package speedytools.clientside;
 
+import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.item.Item;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -14,6 +15,7 @@ import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.blocks.RegistryForBlocks;
+import speedytools.common.items.ItemBoundaryModels;
 import speedytools.common.items.RegistryForItems;
 
 import java.io.File;
@@ -35,6 +37,8 @@ public class CombinedClientProxy extends CommonProxy {
   {
     ClientSide.preInitialise();
     super.preInit();
+
+    RegistryForItems.itemSpeedyBoundary.registerVariants();
   }
 
   /**

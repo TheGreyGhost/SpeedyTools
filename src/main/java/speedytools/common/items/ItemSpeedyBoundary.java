@@ -1,17 +1,28 @@
 package speedytools.common.items;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.*;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.util.HashMap;
 import java.util.List;
 
 public class ItemSpeedyBoundary extends ItemComplexBase
 {
+  public enum IconNames
+  {
+    BLANK("blankicon"),
+    GRABBING("cloneboundarygrab"),
+    NONE_PLACED("cloneboundarynone"),
+    ONE_PLACED("cloneboundaryone"),
+    TWO_PLACED("cloneboundarytwo");
+
+    private IconNames(String i_filename) {filename = i_filename;}
+
+    public final String filename;
+  }
+
   public static final String NAME = "complexboundary";
 
   public ItemSpeedyBoundary() {
@@ -24,39 +35,27 @@ public class ItemSpeedyBoundary extends ItemComplexBase
 
   @Override
   @SideOnly(Side.CLIENT)
-  public void registerIcons(IIconRegister iconRegister)
+  public ModelResourceLocation getModel(ItemStack stack, EntityPlayer player, int useRemaining)
   {
-    icons.clear();
-    for (IconNames entry : IconNames.values()) {
-      IIcon newIcon = iconRegister.registerIcon(entry.filename);
-      icons.put(entry, newIcon);
+    if (itemBoundaryModels == null) {
+      itemBoundaryModels = new ItemBoundaryModels();  // lazy initialisation to prevent crash in dedicated server
     }
-    itemIcon = icons.get(IconNames.NONE_PLACED);
-  }
-
-  @Override
-  public IIcon getIcon(ItemStack stack, int pass)
-  {
-    return icons.get(whichIcon);
-  }
-
-  public enum IconNames
-  {
-    BLANK("speedytoolsmod:blankicon"),
-    GRABBING("speedytoolsmod:cloneboundarygrab"),
-    NONE_PLACED("speedytoolsmod:cloneboundarynone"),
-    ONE_PLACED("speedytoolsmod:cloneboundaryone"),
-    TWO_PLACED("speedytoolsmod:cloneboundarytwo");
-
-    private IconNames(String i_filename) {filename = i_filename;}
-
-    private final String filename;
+    return itemBoundaryModels.getModel(whichIcon);
   }
 
   public void setCurrentIcon(IconNames newIcon)
   {
     whichIcon = newIcon;
   }
+
+  public void registerVariants()
+  {
+    if (itemBoundaryModels == null) {
+      itemBoundaryModels = new ItemBoundaryModels();  // lazy initialisation to prevent crash in dedicated server
+    }
+    itemBoundaryModels.registerVariants(this);
+  }
+
 
   /**
    * allows items to add custom lines of information to the mouseover description
@@ -71,5 +70,5 @@ public class ItemSpeedyBoundary extends ItemComplexBase
   }
 
   private IconNames whichIcon;
-  private HashMap<IconNames, IIcon> icons = new HashMap<IconNames, IIcon>();
+  ItemBoundaryModels itemBoundaryModels;
 }

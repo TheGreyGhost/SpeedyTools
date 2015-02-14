@@ -2,7 +2,6 @@ package speedytools.common.items;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import speedytools.SpeedyToolsMod;
 
 import java.util.List;
 
@@ -13,7 +12,6 @@ public class ItemSpeedySceptre extends ItemSpeedyTool {
     setMaxStackSize(64);
     setUnlocalizedName(NAME);
     setFull3D();                              // setting this flag causes the sceptre to render vertically in 3rd person view, like a pickaxe
-    setTextureName(SpeedyToolsMod.prependModID("sceptreicon"));
   }
 
   /**

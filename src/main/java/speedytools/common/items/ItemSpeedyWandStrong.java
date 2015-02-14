@@ -2,7 +2,6 @@ package speedytools.common.items;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import speedytools.SpeedyToolsMod;
 
 import java.util.List;
 
@@ -13,7 +12,6 @@ public class ItemSpeedyWandStrong extends ItemSpeedyTool {
     setMaxStackSize(64);
     setUnlocalizedName(NAME);
     setFull3D();
-    setTextureName(SpeedyToolsMod.prependModID("wandstrongicon"));
   }
   /**
    * allows items to add custom lines of information to the mouseover description

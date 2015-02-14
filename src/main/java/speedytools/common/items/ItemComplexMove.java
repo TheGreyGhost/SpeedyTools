@@ -2,7 +2,6 @@ package speedytools.common.items;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import speedytools.SpeedyToolsMod;
 
 import java.util.List;
 
@@ -14,7 +13,6 @@ public class ItemComplexMove extends ItemComplexBase
     setMaxStackSize(1);
     setUnlocalizedName(NAME);
     setFull3D();                              // setting this flag causes the staff to render vertically in 3rd person view, like a pickaxe
-    setTextureName(SpeedyToolsMod.prependModID("movestafficon"));
   }
 
   /**
