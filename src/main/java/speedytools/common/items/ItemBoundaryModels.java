@@ -18,7 +18,7 @@ public class ItemBoundaryModels
   public ItemBoundaryModels()
   {
     for (ItemSpeedyBoundary.IconNames entry : ItemSpeedyBoundary.IconNames.values()) {
-      ModelResourceLocation newIcon = new ModelResourceLocation("speedytoolsmod", entry.filename);
+      ModelResourceLocation newIcon = new ModelResourceLocation("speedytoolsmod:" + entry.filename, "inventory");
       models.put(entry, newIcon);
     }
   }

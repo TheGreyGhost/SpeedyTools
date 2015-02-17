@@ -12,7 +12,7 @@ public class ItemSpeedyBoundary extends ItemComplexBase
 {
   public enum IconNames
   {
-    BLANK("blankicon"),
+    BLANK("cloneboundaryblank"),
     GRABBING("cloneboundarygrab"),
     NONE_PLACED("cloneboundarynone"),
     ONE_PLACED("cloneboundaryone"),

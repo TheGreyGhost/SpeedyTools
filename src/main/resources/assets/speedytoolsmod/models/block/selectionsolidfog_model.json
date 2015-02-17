@@ -2,6 +2,6 @@
   "parent": "block/cube_all",
   "textures": {
     "all": "speedytoolsmod:blocks/selectionsolidfog",
-    "particle": "blocks/selectionsolidfog"
+    "particle": "speedytoolsmod:blocks/selectionsolidfog"
   }
 }
