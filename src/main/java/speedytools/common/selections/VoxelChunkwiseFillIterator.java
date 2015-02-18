@@ -136,9 +136,9 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
 
     while (!currentSearchStartPositions.isEmpty()) {
       SearchPosition currentPosition = currentSearchStartPositions.peekFirst();
-      int wx = currentPosition.chunkCoordinates.posX + searchDirectionsX[currentPosition.nextSearchDirection];
-      int wy = currentPosition.chunkCoordinates.posY + searchDirectionsY[currentPosition.nextSearchDirection];
-      int wz = currentPosition.chunkCoordinates.posZ + searchDirectionsZ[currentPosition.nextSearchDirection];
+      int wx = currentPosition.chunkCoordinates.getX() + searchDirectionsX[currentPosition.nextSearchDirection];
+      int wy = currentPosition.chunkCoordinates.getY() + searchDirectionsY[currentPosition.nextSearchDirection];
+      int wz = currentPosition.chunkCoordinates.getZ() + searchDirectionsZ[currentPosition.nextSearchDirection];
       ++(currentPosition.nextSearchDirection);
       if (   !diagonalAllowed && currentPosition.nextSearchDirection >= NON_DIAGONAL_DIRECTIONS
           ||  diagonalAllowed && currentPosition.nextSearchDirection >= ALL_DIRECTIONS) {
@@ -146,10 +146,10 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
       }
       if (isWithinBounds(wx, wy, wz) && !blocksChecked.get(getBlockIndex(wx, wy, wz))) {
         blocksChecked.set(getBlockIndex(wx, wy, wz));
-        if (getChunkIndex(wx, wy, wz) == getChunkIndex(currentPosition.chunkCoordinates.posX,
-                currentPosition.chunkCoordinates.posY,
-                currentPosition.chunkCoordinates.posZ)) {
-          currentCheckPosition.set(wx, wy, wz);
+        if (getChunkIndex(wx, wy, wz) == getChunkIndex(currentPosition.chunkCoordinates.getX(),
+                currentPosition.chunkCoordinates.getY(),
+                currentPosition.chunkCoordinates.getZ())) {
+          currentCheckPosition = new BlockPos(wx, wy, wz);
           return true;
         }
         // different chunk, so queue it up
@@ -164,7 +164,7 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
       }
     }
 
-    int chunkIdx = getChunkIndex(currentCheckPosition.posX, currentCheckPosition.posY, currentCheckPosition.posZ);
+    int chunkIdx = getChunkIndex(currentCheckPosition.getX(), currentCheckPosition.getY(), currentCheckPosition.getZ());
     LinkedList<BlockPos> currentChunkStartSearchPositions = chunkCheckPositions.get(chunkIdx);
 
     if (!currentChunkStartSearchPositions.isEmpty()) {
@@ -218,11 +218,11 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
    * @return
    */
   public int getChunkX() {
-    return currentCheckPosition.posX >> 4;
+    return currentCheckPosition.getX() >> 4;
   }
 
   public int getChunkZ() {
-    return currentCheckPosition.posZ >> 4;
+    return currentCheckPosition.getZ() >> 4;
   }
 
   /**
@@ -231,15 +231,15 @@ public class VoxelChunkwiseFillIterator implements IVoxelIterator
    * @return
    */
   public int getWX() {
-    return currentCheckPosition.posX;
+    return currentCheckPosition.getX();
   }
 
   public int getWY() {
-    return currentCheckPosition.posY;
+    return currentCheckPosition.getY();
   }
 
   public int getWZ() {
-    return currentCheckPosition.posZ;
+    return currentCheckPosition.getZ();
   }
 
   /**

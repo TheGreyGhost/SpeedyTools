@@ -4,6 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -44,7 +45,7 @@ public class SpeedyToolOrb extends SpeedyToolSimple
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected Pair<List<BlockPos>, Integer> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
+  protected Pair<List<BlockPos>, EnumFacing> selectBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
     return selectFillBlocks(target, player, maxSelectionSize, partialTick);
   }

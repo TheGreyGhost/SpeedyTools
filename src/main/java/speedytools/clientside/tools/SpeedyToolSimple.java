@@ -5,6 +5,7 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -37,7 +38,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
                           UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient)
   {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
-    wireframeRendererUpdateLink = this.new SimpleWireframeRendererLink();
+//    wireframeRendererUpdateLink = this.new SimpleWireframeRendererLink();    todo uncomment
     hotbarRenderInfoUpdateLink = this.new HotbarRenderInfoUpdateLink();
   }
 
@@ -58,7 +59,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     while (null != (nextEvent = userInput.poll())) {
       switch (nextEvent.eventType) {
         case LEFT_CLICK_DOWN: {
-          undoManagerClient.performUndo(player.getPosition(partialTick));
+          undoManagerClient.performUndo(player.getPosition());
           break;
         }
         case RIGHT_CLICK_DOWN: {
@@ -243,19 +244,19 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected Pair<List<BlockPos>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player,
-                                                               int maxSelectionSize, float partialTick)
+  protected Pair<List<BlockPos>, EnumFacing> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player,
+                                                          int maxSelectionSize, float partialTick)
   {
     ArrayList<BlockPos> retval = new ArrayList<BlockPos>();
 //    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
-    int sideToPlace = UsefulConstants.FACE_YPOS;
+    EnumFacing sideToPlace = EnumFacing.UP;
     if (blockUnderCursor != null) {
-      BlockPos startBlockCoordinates = new BlockPos(blockUnderCursor.blockX, blockUnderCursor.blockY, blockUnderCursor.blockZ);
+      BlockPos startBlockCoordinates = new BlockPos(blockUnderCursor.func_178782_a());
       retval.add(startBlockCoordinates);
-      sideToPlace = blockUnderCursor.sideHit;
+      sideToPlace = blockUnderCursor.field_178784_b;
     }
 
-    return new Pair<List<BlockPos>, Integer> (retval, sideToPlace);
+    return new Pair<List<BlockPos>, EnumFacing> (retval, sideToPlace);
   }
 
   protected List<BlockPos> currentlySelectedBlocks = new LinkedList<BlockPos>();

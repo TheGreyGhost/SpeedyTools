@@ -4,6 +4,8 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.Facing;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -54,7 +56,8 @@ public abstract class FillMatcher
         }
         case CONTOUR_FOLLOWER: {
           boolean additiveMode = buf.readBoolean();
-          int contourDirection = buf.readInt();
+          int contourDirectionIndex = buf.readInt();
+          EnumFacing contourDirection = EnumFacing.getFront(contourDirectionIndex);
           retval = new ContourFollower(additiveMode, contourDirection);
           break;
         }
@@ -97,7 +100,7 @@ public abstract class FillMatcher
    * @return NOT_LOADED if the matcher can't tell because one of the chunks isn't loaded
    */
   public MatchResult matches(World world, int wx, int wy, int wz) {
-    Block block = world.getBlock(wx, wy, wz);
+//    Block block = world.getBlock(wx, wy, wz);
     Chunk chunk = world.getChunkFromChunkCoords(wx >> 4, wz >> 4);
     if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
     return matches(chunk, wx & 0x0f, wy, wz & 0x0f);
@@ -154,7 +157,8 @@ public abstract class FillMatcher
       Block block = chunk.getBlock(wcx, wcy, wcz);
       if (block != blockToMatch.block) return MatchResult.NO_MATCH;
 
-      int metadata = chunk.getBlockMetadata(wcx, wcy, wcz);
+      int metadata = chunk.getBlockMetadata(new BlockPos(wcx, wcy, wcz));
+
       if (metadata == blockToMatch.metaData) return MatchResult.MATCH;
       if (block.getMaterial() == Material.lava || block.getMaterial() == Material.water) return MatchResult.MATCH;
       return MatchResult.NO_MATCH;
@@ -181,7 +185,7 @@ public abstract class FillMatcher
   // additive mode: if true, follows an adjacent contour of solid blocks, stops when the block itself is solid
   //                if false, follows an adjacent "contour" of air blocks, stops when the block itself is air
   public static class ContourFollower extends FillMatcher {
-    public ContourFollower(boolean i_additiveMode, int i_directionToContour) {
+    public ContourFollower(boolean i_additiveMode, EnumFacing i_directionToContour) {
       additiveMode = i_additiveMode;
       directionToContour = i_directionToContour;
     }
@@ -196,9 +200,13 @@ public abstract class FillMatcher
       if (thisBlockIsSolid == additiveMode) return MatchResult.NO_MATCH;
 
        // next check if the contour is suitable based on the additive mode
-      wcx += Facing.offsetsXForSide[directionToContour];
-      wcy += Facing.offsetsYForSide[directionToContour];
-      wcz += Facing.offsetsZForSide[directionToContour];
+//      wcx += Facing.offsetsXForSide[directionToContour];
+//      wcy += Facing.offsetsYForSide[directionToContour];
+//      wcz += Facing.offsetsZForSide[directionToContour];
+      wcx += directionToContour.getFrontOffsetX();
+      wcy += directionToContour.getFrontOffsetY();
+      wcz += directionToContour.getFrontOffsetZ();
+
       if (wcx < 0 || wcx > 15 || wcz < 0 || wcz > 15) return MatchResult.OUT_OF_BOUNDS;
       final int MINIMUM_Y = 0;
       final int MAXIMUM_Y = 255;
@@ -245,11 +253,11 @@ public abstract class FillMatcher
     public void writeToBuffer(ByteBuf buf) {
       super.writeToBuffer(buf);
       buf.writeBoolean(additiveMode);
-      buf.writeInt(directionToContour);
+      buf.writeInt(directionToContour.getIndex());
     }
 
     protected byte getUniqueID() {return ONLY_SPECIFIED_BLOCK;}
-    private int directionToContour;
+    private EnumFacing directionToContour;
     private boolean additiveMode;
   }
 

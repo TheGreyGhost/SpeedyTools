@@ -3,6 +3,7 @@ package speedytools.clientside.tools;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import speedytools.clientside.UndoManagerClient;
@@ -15,7 +16,6 @@ import speedytools.clientside.sound.SoundEffectSimple;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.selections.FillMatcher;
 import speedytools.common.utilities.Pair;
-import speedytools.common.utilities.UsefulConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +41,7 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
    * @return returns the list of blocks in the selection (may be zero length)
    */
   @Override
-  protected Pair<List<BlockPos>, Integer> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize, float partialTick)
+  protected Pair<List<BlockPos>, EnumFacing> selectBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize, float partialTick)
   {
 //    BlockWithMetadata blockWithMetadata = getPlacedBlockFromItemStack(itemStackToPlace);
     boolean additiveContour = (currentBlockToPlace.block != Blocks.air);
@@ -83,28 +83,28 @@ public class SpeedyToolSceptre extends SpeedyToolSimple
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected Pair<List<BlockPos>, Integer> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, boolean additiveContour, float partialTick)
+  protected Pair<List<BlockPos>, EnumFacing> selectContourBlocks(MovingObjectPosition target, EntityPlayer player, int maxSelectionSize, boolean additiveContour, float partialTick)
   {
     if (target == null || target.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
-      return new Pair<List<BlockPos>, Integer>(new ArrayList<BlockPos>(), UsefulConstants.FACE_YPOS);
+      return new Pair<List<BlockPos>, EnumFacing>(new ArrayList<BlockPos>(), EnumFacing.UP);
     }
 
     BlockMultiSelector.BlockSelectionBehaviour blockSelectionBehaviour = getBlockSelectionBehaviour();
     MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, blockSelectionBehaviour, player, partialTick);
-    if (startBlock == null) return new Pair<List<BlockPos>, Integer>(new ArrayList<BlockPos>(), UsefulConstants.FACE_YPOS);
-    BlockPos blockUnderCursor = new BlockPos(startBlock.blockX, startBlock.blockY, startBlock.blockZ);
+    if (startBlock == null) return new Pair<List<BlockPos>, EnumFacing>(new ArrayList<BlockPos>(), EnumFacing.UP);
+    BlockPos blockUnderCursor = new BlockPos(startBlock.func_178782_a());  // func_178782_a = get block hit
     boolean diagonalOK = controlKeyIsDown;
 
     FillMatcher fillMatcher;
     if (additiveContour) {
-      fillMatcher = new FillMatcher.ContourFollower(true, startBlock.sideHit);
+      fillMatcher = new FillMatcher.ContourFollower(true, startBlock.field_178784_b);      // face hit
     } else {
-      fillMatcher = new FillMatcher.ContourFollower(false, startBlock.sideHit);
+      fillMatcher = new FillMatcher.ContourFollower(false, startBlock.field_178784_b);
     }
 
     List<BlockPos> selection = BlockMultiSelector.selectContourUnbounded(blockUnderCursor, player.worldObj, maxSelectionSize, diagonalOK,
-            fillMatcher, startBlock.sideHit);
-    return new Pair<List<BlockPos>, Integer> (selection, startBlock.sideHit);
+            fillMatcher, startBlock.field_178784_b); //  field_178784_b = face hit
+    return new Pair<List<BlockPos>, EnumFacing> (selection, startBlock.field_178784_b);
   }
 
 }

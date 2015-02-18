@@ -30,7 +30,7 @@ public class ClientSide
       @Override
       public Item getTabIconItem() {return RegistryForItems.itemSpeedySceptre;}
     };
-//    activeTool = new ActiveTool();   todo uncomment
+    activeTool = new ActiveTool();
   }
 
   public static void load()
@@ -83,7 +83,7 @@ public class ClientSide
 
 //  public static CloneToolsNetworkClient cloneToolsNetworkClient;
   public static SpeedyToolRenderers speedyToolRenderers;
-//  public static ActiveTool activeTool;                                    todo uncomment
+  public static ActiveTool activeTool;
   public static UserInput userInput;
   public static UndoManagerClient undoManagerSimple;
   public static UndoManagerClient undoManagerComplex;
