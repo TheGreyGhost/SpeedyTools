@@ -33,6 +33,8 @@ public class ItemBoundaryModels
     for (ItemSpeedyBoundary.IconNames name : ItemSpeedyBoundary.IconNames.values()) {
       ModelBakery.addVariantName(item, "speedytoolsmod:" + name.filename);
     }
+
+    ModelBakery.addVariantName(item, "speedytoolsmod:" + ItemSpeedyBoundary.NAME);
   }
 
 }
