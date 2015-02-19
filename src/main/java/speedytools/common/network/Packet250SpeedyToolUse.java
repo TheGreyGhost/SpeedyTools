@@ -118,10 +118,10 @@ public class Packet250SpeedyToolUse extends Packet250Base
 
       int blockCount = buf.readInt();
       for (int i = 0; i < blockCount; ++i) {
-        BlockPos newCC = new BlockPos();
-        newCC.posX = buf.readInt();
-        newCC.posY = buf.readInt();
-        newCC.posZ = buf.readInt();
+        int x = buf.readInt();
+        int y = buf.readInt();
+        int z = buf.readInt();
+        BlockPos newCC = new BlockPos(x, y, z);
         currentlySelectedBlocks.add(newCC);
       }
     } catch (IndexOutOfBoundsException ioe) {
@@ -146,9 +146,9 @@ public class Packet250SpeedyToolUse extends Packet250Base
     buf.writeInt(currentlySelectedBlocks.size());
 
     for (BlockPos cc : currentlySelectedBlocks) {
-      buf.writeInt(cc.posX);
-      buf.writeInt(cc.posY);
-      buf.writeInt(cc.posZ);
+      buf.writeInt(cc.getX());
+      buf.writeInt(cc.getY());
+      buf.writeInt(cc.getZ());
     }
   }
 
