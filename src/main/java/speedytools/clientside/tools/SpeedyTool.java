@@ -1,20 +1,20 @@
 package speedytools.clientside.tools;
 
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.*;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
-import speedytools.clientside.rendering.RendererWireframeSelection;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
@@ -80,7 +80,7 @@ public abstract class SpeedyTool
   protected ItemSpeedyTool parentItem;
   protected ItemStack currentToolItemStack;
   protected boolean controlKeyIsDown;
-  protected RendererWireframeSelection.WireframeRenderInfoUpdateLink wireframeRendererUpdateLink;
+//  protected RendererWireframeSelection.WireframeRenderInfoUpdateLink wireframeRendererUpdateLink;  todo uncomment
 
   /**
    * when selecting the first block in a selection, how should it be done?
@@ -146,8 +146,8 @@ public abstract class SpeedyTool
     } else if (item instanceof ItemSeeds) {
       ItemSeeds itemSeeds = (ItemSeeds)item;
       World world = Minecraft.getMinecraft().theWorld;
-      retval.block = itemSeeds.getPlant(world, 0, 0, 0);      // method doesn't actually use x,y,z
-      retval.metaData = itemSeeds.getPlantMetadata(world, 0, 0, 0);
+      IBlockState blockState = itemSeeds.getPlant(world, BlockPos.ORIGIN);      // method doesn't actually use x,y,z
+      retval = new BlockWithMetadata(blockState);
     } else if (item instanceof ItemRedstone) {
       retval.block = Blocks.redstone_wire;
       retval.metaData = 0;

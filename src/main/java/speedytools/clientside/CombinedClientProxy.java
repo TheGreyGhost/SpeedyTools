@@ -1,21 +1,20 @@
 package speedytools.clientside;
 
-import net.minecraft.client.resources.model.ModelBakery;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.item.Item;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraft.client.Minecraft;
-import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import speedytools.SpeedyToolsMod;
 import speedytools.clientside.rendering.ItemEventHandler;
+import speedytools.clientside.tools.SpeedyToolTester;
+import speedytools.clientside.tools.SpeedyToolWandWeak;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.blocks.RegistryForBlocks;
-import speedytools.common.items.ItemBoundaryModels;
 import speedytools.common.items.RegistryForItems;
 
 import java.io.File;
@@ -58,13 +57,13 @@ public class CombinedClientProxy extends CommonProxy {
 //                    ClientSide.undoManagerSimple,
 //                    ClientSide.packetSenderClient
 //            ));
-//    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandWeak,
-//            new SpeedyToolWandWeak(RegistryForItems.itemSpeedyWandWeak,
-//                    ClientSide.speedyToolRenderers,
-//                    ClientSide.speedyToolSounds,
-//                    ClientSide.undoManagerSimple,
-//                    ClientSide.packetSenderClient
-//            ));
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandWeak,
+            new SpeedyToolWandWeak(RegistryForItems.itemSpeedyWandWeak,
+                    ClientSide.speedyToolRenderers,
+                    ClientSide.speedyToolSounds,
+                    ClientSide.undoManagerSimple,
+                    ClientSide.packetSenderClient
+            ));
 //
 //    CommonSelectionState commonSelectionState = new CommonSelectionState();
 //    SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
@@ -155,16 +154,16 @@ public class CombinedClientProxy extends CommonProxy {
 //            )
 //    );
 //
-//    if (SpeedyToolsOptions.getTesterToolsEnabled()) {
-//      ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyTester,
-//              new SpeedyToolTester(RegistryForItems.itemSpeedyTester,
-//                      ClientSide.speedyToolRenderers,
-//                      ClientSide.speedyToolSounds,
-//                      ClientSide.undoManagerSimple,
-//                      ClientSide.packetSenderClient
-//              ));
-//
-//    }
+    if (SpeedyToolsOptions.getTesterToolsEnabled()) {
+      ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyTester,
+              new SpeedyToolTester(RegistryForItems.itemSpeedyTester,
+                      ClientSide.speedyToolRenderers,
+                      ClientSide.speedyToolSounds,
+                      ClientSide.undoManagerSimple,
+                      ClientSide.packetSenderClient
+              ));
+
+    }
 
 //    MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedyOrb, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedyOrb));  todo uncomment
 //    MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedySceptre, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedySceptre));
@@ -197,9 +196,9 @@ public class CombinedClientProxy extends CommonProxy {
     }
 
     MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
-//    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());
-//    MinecraftForge.EVENT_BUS.register(new InputEventHandler());         todo uncomment
-//    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());
+//    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());          todo uncomment
+    MinecraftForge.EVENT_BUS.register(new InputEventHandler());
+//    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());               todo uncomment
     FMLCommonHandler.instance().bus().register(new ClientTickHandler());
 
     MinecraftForge.EVENT_BUS.register(new ClientEventHandler());

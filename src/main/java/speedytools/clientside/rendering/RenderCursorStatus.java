@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import org.lwjgl.opengl.GL11;
@@ -455,12 +456,13 @@ public class RenderCursorStatus implements RendererElement
     double ICON_MAX_U = 1.0;
     double ICON_MIN_V = 0.0;
     double ICON_MAX_V = 1.0;
-    Tessellator tessellator = Tessellator.instance;
-    tessellator.startDrawingQuads();
-    tessellator.addVertexWithUV(    x + 0, y + height, z,  ICON_MIN_U, ICON_MAX_V);
-    tessellator.addVertexWithUV(x + width, y + height, z,  ICON_MAX_U, ICON_MAX_V);
-    tessellator.addVertexWithUV(x + width,      y + 0, z,  ICON_MAX_U, ICON_MIN_V);
-    tessellator.addVertexWithUV(    x + 0,      y + 0, z,  ICON_MIN_U, ICON_MIN_V);
+    Tessellator tessellator = Tessellator.getInstance();
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+    worldRenderer.startDrawingQuads();
+    worldRenderer.addVertexWithUV(    x + 0, y + height, z,  ICON_MIN_U, ICON_MAX_V);
+    worldRenderer.addVertexWithUV(x + width, y + height, z,  ICON_MAX_U, ICON_MAX_V);
+    worldRenderer.addVertexWithUV(x + width,      y + 0, z,  ICON_MAX_U, ICON_MIN_V);
+    worldRenderer.addVertexWithUV(    x + 0,      y + 0, z,  ICON_MIN_U, ICON_MIN_V);
     tessellator.draw();
   }
 
@@ -552,12 +554,13 @@ public class RenderCursorStatus implements RendererElement
   {
     double ICON_SCALE_FACTOR_X = 1/256.0F;
     double ICON_SCALE_FACTOR_Y =  1/256.0F;
-    Tessellator tessellator = Tessellator.instance;
-    tessellator.startDrawingQuads();
-    tessellator.addVertexWithUV(    x + 0, y + height, z,           u * ICON_SCALE_FACTOR_X, (v + height) * ICON_SCALE_FACTOR_Y);
-    tessellator.addVertexWithUV(x + width, y + height, z, (u + width) * ICON_SCALE_FACTOR_X, (v + height) * ICON_SCALE_FACTOR_Y);
-    tessellator.addVertexWithUV(x + width,      y + 0, z, (u + width) * ICON_SCALE_FACTOR_X,            v * ICON_SCALE_FACTOR_Y);
-    tessellator.addVertexWithUV(    x + 0,      y + 0, z,           u * ICON_SCALE_FACTOR_X,            v * ICON_SCALE_FACTOR_Y);
+    Tessellator tessellator = Tessellator.getInstance();
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+    worldRenderer.startDrawingQuads();
+    worldRenderer.addVertexWithUV(    x + 0, y + height, z,           u * ICON_SCALE_FACTOR_X, (v + height) * ICON_SCALE_FACTOR_Y);
+    worldRenderer.addVertexWithUV(x + width, y + height, z, (u + width) * ICON_SCALE_FACTOR_X, (v + height) * ICON_SCALE_FACTOR_Y);
+    worldRenderer.addVertexWithUV(x + width,      y + 0, z, (u + width) * ICON_SCALE_FACTOR_X,            v * ICON_SCALE_FACTOR_Y);
+    worldRenderer.addVertexWithUV(    x + 0,      y + 0, z,           u * ICON_SCALE_FACTOR_X,            v * ICON_SCALE_FACTOR_Y);
     tessellator.draw();
   }
 

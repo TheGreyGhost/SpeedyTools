@@ -49,7 +49,7 @@ public class RegistryForItems
   // get a list of all the items
   public static String [] getAllItemNames()
   {
-    return new String[] {
+    String[] baseItems = {
             itemSpeedyWandStrong.NAME,
             itemSpeedyWandWeak.NAME,
             itemSpeedySceptre.NAME,
@@ -58,7 +58,22 @@ public class RegistryForItems
             itemComplexCopy.NAME,
             itemComplexDelete.NAME,
             itemComplexMove.NAME};
+    if (!SpeedyToolsOptions.getTesterToolsEnabled()) {
+      return baseItems;
+    }
+
+    // kludge because I can't remember how to initialise ArrayList from String[] and my internet is down...
+    String[] debugItems = {
+            itemSpeedyWandStrong.NAME,
+            itemSpeedyWandWeak.NAME,
+            itemSpeedySceptre.NAME,
+            itemSpeedyOrb.NAME,
+            itemSpeedyBoundary.NAME,
+            itemComplexCopy.NAME,
+            itemComplexDelete.NAME,
+            itemComplexMove.NAME,
+            itemSpeedyTester.NAME
+    };
+    return debugItems;
   }
-
-
 }

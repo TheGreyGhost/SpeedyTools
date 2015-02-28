@@ -11,19 +11,19 @@ import speedytools.common.utilities.ErrorLog;
 
 /**
 * This class is used to communicate from the client to the server when it's necessary to generate a selection on the server
- * (if the selection is large, the client may have empty chunks in it.  See notes/SelectionGeneration.txt)
- * Typical usage:
- * Client to Server:
- * (1) FILL command to perform a flood fill from the cursor
- * (2) ALL_IN_BOX command to select all in the given box region
- * (3) ABORT to stop the selection generation
- * (4) STATUS_REQUEST to ask the server to return an estimate of the fraction completed [0..1].
- *
+* (if the selection is large, the client may have empty chunks in it.  See notes/SelectionGeneration.txt)
+* Typical usage:
+* Client to Server:
+* (1) FILL command to perform a flood fill from the cursor
+* (2) ALL_IN_BOX command to select all in the given box region
+* (3) ABORT to stop the selection generation
+* (4) STATUS_REQUEST to ask the server to return an estimate of the fraction completed [0..1].
+*
 * Server to Client:
 * (1) STATUS command in response to the STATUS_REQUEST message or a command.
- *
- * The commands contain a uniqueID, which is returned in the status messages.
- *
+*
+* The commands contain a uniqueID, which is returned in the status messages.
+*
 */
 public class Packet250ServerSelectionGeneration extends Packet250Base
 {
@@ -182,18 +182,18 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
 
   private BlockPos readBlockPos(ByteBuf buf)
   {
-    BlockPos chunkCoordinates = new BlockPos();
-    chunkCoordinates.posX = buf.readInt();
-    chunkCoordinates.posY = buf.readInt();
-    chunkCoordinates.posZ = buf.readInt();
+    int x = buf.readInt();
+    int y = buf.readInt();
+    int z = buf.readInt();
+    BlockPos chunkCoordinates = new BlockPos(x, y, z);
     return chunkCoordinates;
   }
 
   private void writeBlockPos(ByteBuf buf, BlockPos chunkCoordinates)
   {
-    buf.writeInt(chunkCoordinates.posX);
-    buf.writeInt(chunkCoordinates.posY);
-    buf.writeInt(chunkCoordinates.posZ);
+    buf.writeInt(chunkCoordinates.getX());
+    buf.writeInt(chunkCoordinates.getY());
+    buf.writeInt(chunkCoordinates.getZ());
   }
 
   public static enum Command {

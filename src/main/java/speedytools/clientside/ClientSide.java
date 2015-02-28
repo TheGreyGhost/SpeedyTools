@@ -3,13 +3,15 @@ package speedytools.clientside;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import speedytools.clientside.network.PacketHandlerRegistryClient;
+import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.sound.SoundController;
+import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.RegistryForItems;
 
 //import speedytools.clientside.network.CloneToolsNetworkClient;
-//import speedytools.clientside.network.PacketSenderClient;
 //import speedytools.clientside.rendering.SpeedyToolRenderers;
 //import speedytools.clientside.sound.SpeedyToolSounds;
 
@@ -35,17 +37,17 @@ public class ClientSide
 
   public static void load()
   {
-/*  todo uncomment
+//  todo uncomment
     packetHandlerRegistry = new PacketHandlerRegistryClient();
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
-    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
-    speedyToolRenderers = new SpeedyToolRenderers();
-    speedyToolSounds = new SoundController();
-    undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
-    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
-    selectionPacketSenderComplex = new SelectionPacketSender(packetHandlerRegistry, packetSenderClient);
-    clientVoxelSelection = new ClientVoxelSelection(packetHandlerRegistry, selectionPacketSenderComplex, packetSenderClient);
-*/
+//    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
+//    speedyToolRenderers = new SpeedyToolRenderers();
+//    speedyToolSounds = new SoundController();
+//    undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
+//    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+//    selectionPacketSenderComplex = new SelectionPacketSender(packetHandlerRegistry, packetSenderClient);
+//    clientVoxelSelection = new ClientVoxelSelection(packetHandlerRegistry, selectionPacketSenderComplex, packetSenderClient);
+
   }
 
   public static void postInitialise()
@@ -88,8 +90,8 @@ public class ClientSide
   public static UndoManagerClient undoManagerSimple;
   public static UndoManagerClient undoManagerComplex;
   public static SoundController speedyToolSounds;
-//  public static PacketSenderClient packetSenderClient;
-//  public static PacketHandlerRegistryClient packetHandlerRegistry;
+  public static PacketSenderClient packetSenderClient;
+  public static PacketHandlerRegistryClient packetHandlerRegistry;
 //  public static SelectionPacketSender selectionPacketSenderComplex;
 //  public static ClientVoxelSelection clientVoxelSelection;               todo uncomment
 

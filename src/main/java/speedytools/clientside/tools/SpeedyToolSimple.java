@@ -198,18 +198,18 @@ public abstract class SpeedyToolSimple extends SpeedyTool
    * @param partialTick partial tick time.
    * @return returns the list of blocks in the selection (may be zero length)
    */
-  protected Pair<List<BlockPos>, Integer>  selectLineOfBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize,
-                                                      BlockMultiSelector.CollisionOptions stopWhenCollide, float partialTick)
+  protected Pair<List<BlockPos>, EnumFacing> selectLineOfBlocks(MovingObjectPosition blockUnderCursor, EntityPlayer player, int maxSelectionSize,
+                                                                BlockMultiSelector.CollisionOptions stopWhenCollide, float partialTick)
   {
 
 //    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(blockUnderCursor, BlockMultiSelector.BlockTypeToSelect.NON_SOLID_OK, player, partialTick);
-    if (blockUnderCursor == null) return new Pair<List<BlockPos>, Integer>(new ArrayList<BlockPos>(), UsefulConstants.FACE_YPOS);
+    if (blockUnderCursor == null) return new Pair<List<BlockPos>, EnumFacing>(new ArrayList<BlockPos>(), EnumFacing.UP);
 
-    BlockPos startBlockCoordinates = new BlockPos(blockUnderCursor.blockX, blockUnderCursor.blockY, blockUnderCursor.blockZ);
+    BlockPos startBlockCoordinates = blockUnderCursor.func_178782_a();
     boolean diagonalOK =  controlKeyIsDown;
     List<BlockPos> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, blockUnderCursor.hitVec,
             maxSelectionSize, diagonalOK, stopWhenCollide);
-    return new Pair<List<BlockPos>, Integer> (selection, blockUnderCursor.sideHit);
+    return new Pair<List<BlockPos>, EnumFacing> (selection, blockUnderCursor.field_178784_b);
   }
 
   protected boolean sendPlaceCommand()

@@ -271,7 +271,7 @@
 //    GL11.glDisable(GL11.GL_CULL_FACE);
 //    GL11.glDisable(GL11.GL_LIGHTING);
 //    GL11.glEnable(GL11.GL_TEXTURE_2D);
-//    Tessellator tessellator = Tessellator.instance;
+//    Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
 //    tessellateSurfaceWithTexture(world, textureOverride, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin,
 //            cx * DISPLAY_LIST_XSIZE - xOffset, cy * DISPLAY_LIST_YSIZE - yOffset, cz * DISPLAY_LIST_ZSIZE - zOffset,
 //            tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
@@ -440,7 +440,7 @@
 ////          GL11.glDisable(GL11.GL_CULL_FACE);
 ////          GL11.glDisable(GL11.GL_LIGHTING);
 ////          GL11.glEnable(GL11.GL_TEXTURE_2D);
-////          Tessellator tessellator = Tessellator.instance;
+////          Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
 ////          tessellateSurfaceWithTexture(world, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin,
 ////                                        cxCurrent * DISPLAY_LIST_XSIZE - xOffset, cyCurrent * DISPLAY_LIST_YSIZE - yOffset, czCurrent * DISPLAY_LIST_ZSIZE - zOffset,
 ////                                        tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
@@ -607,7 +607,7 @@
 //    int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
 //
 //    if (whatToDraw == WhatToDraw.FACES) {
-//      tessellator.startDrawingQuads();
+//      worldRenderer.startDrawingQuads();
 //    }
 //
 //    // goes outside the VoxelSelection size, which always returns zero when out of bounds
@@ -738,7 +738,7 @@
 //    int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
 //
 //    if (whatToDraw == WhatToDraw.FACES) {
-//      tessellator.startDrawingQuads();
+//      worldRenderer.startDrawingQuads();
 //    }
 //
 //    // goes outside the VoxelSelection size, which always returns zero when out of bounds
@@ -783,10 +783,10 @@
 //              IIcon icon = block.getIcon(UsefulConstants.FACE_XNEG, metaData);
 //
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-//              tessellator.addVertexWithUV(x - nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
-//              tessellator.addVertexWithUV(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
-//              tessellator.addVertexWithUV(x - nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x - nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
 //            }
 //            // xpos face
@@ -798,10 +798,10 @@
 //              IIcon icon = block.getIcon(UsefulConstants.FACE_XPOS, metaData);
 //
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-//              tessellator.addVertexWithUV(x + 1 + nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
-//              tessellator.addVertexWithUV(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
-//              tessellator.addVertexWithUV(x + 1 + nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x + 1 + nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
 //            }
 //            // yneg face
@@ -813,10 +813,10 @@
 //              IIcon icon = block.getIcon(UsefulConstants.FACE_YNEG, metaData);
 //              // NB yneg face is flipped left-right in vanilla
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-//              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
-//              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
 //            }
 //            // ypos face
@@ -828,10 +828,10 @@
 //              IIcon icon = block.getIcon(UsefulConstants.FACE_YPOS, metaData);
 //
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-//              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
-//              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
 //            }
 //            // zneg face
@@ -843,10 +843,10 @@
 //              IIcon icon = block.getIcon(UsefulConstants.FACE_ZNEG, metaData);
 //
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-//              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMaxU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMinU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance, icon.getMinU(), icon.getMinV());
-//              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance, icon.getMaxU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMaxU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMinU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance, icon.getMinU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance, icon.getMaxU(), icon.getMinV());
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
 //            }
 //            // zpos face
@@ -858,10 +858,10 @@
 //              IIcon icon = block.getIcon(UsefulConstants.FACE_ZPOS, metaData);
 //
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-//              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMinU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMaxU(), icon.getMaxV());
-//              tessellator.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMaxU(), icon.getMinV());
-//              tessellator.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMinU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMinU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMaxU(), icon.getMaxV());
+//              worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMaxU(), icon.getMinV());
+//              worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMinU(), icon.getMinV());
 //              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
 //            }
 //          }
@@ -900,7 +900,7 @@
 //    assert (xcount >= 0 && ycount >= 0 && zcount >= 0);
 //    assert (xcount == 0 || ycount == 0 || zcount == 0);
 //
-//    Tessellator tessellator = Tessellator.instance;
+//    Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
 //    GL11.glNewList(displayListNumber, GL11.GL_COMPILE);
 //    GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
 //    GL11.glEnable(GL11.GL_BLEND);

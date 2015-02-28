@@ -1,6 +1,5 @@
 package speedytools.clientside.tools;
 
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;

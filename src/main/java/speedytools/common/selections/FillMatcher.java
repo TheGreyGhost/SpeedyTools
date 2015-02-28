@@ -6,7 +6,6 @@ import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.Facing;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import speedytools.common.blocks.BlockWithMetadata;
@@ -222,7 +221,7 @@ public abstract class FillMatcher
 
     @Override
     public MatchResult matches(World world, int wx, int wy, int wz) {
-      Chunk chunk = world.getChunkFromBlockCoords(wx, wz);
+      Chunk chunk = world.getChunkFromBlockCoords(new BlockPos(wx, wy, wz));
       if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
 
       final int NO_INTERACTION = 1;
@@ -232,16 +231,16 @@ public abstract class FillMatcher
       if (thisBlockIsSolid == additiveMode) return MatchResult.NO_MATCH;
 
       // next check if the contour is suitable based on the additive mode
-      wx += Facing.offsetsXForSide[directionToContour];
-      wy += Facing.offsetsYForSide[directionToContour];
-      wz += Facing.offsetsZForSide[directionToContour];
+      wx += directionToContour.getFrontOffsetX();
+      wy += directionToContour.getFrontOffsetY();
+      wz += directionToContour.getFrontOffsetZ();
       final int MINIMUM_Y = 0;
       final int MAXIMUM_Y = 255;
       boolean contourBlockIsSolid;
       if (wy < MINIMUM_Y || wy > MAXIMUM_Y) {
         contourBlockIsSolid = false;
       } else {
-        chunk = world.getChunkFromBlockCoords(wx, wz);
+        chunk = world.getChunkFromBlockCoords(new BlockPos(wx, wy, wz));
         if (chunk.isEmpty()) return MatchResult.NOT_LOADED;
         block = chunk.getBlock(wx & 0x0f, wy, wz & 0x0f);
         contourBlockIsSolid = (block != Blocks.air && (block.getMaterial() == Material.water || block.getMobilityFlag() != NO_INTERACTION));
