@@ -1,6 +1,7 @@
 package speedytools.common.network;
 
 
+import net.minecraft.util.EnumFacing;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -32,7 +33,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
     return blockToPlace;
   }
 
-  public int getSideToPlace() {return sideToPlace;}
+  public EnumFacing getSideToPlace() {return sideToPlace;}
 
   public List<BlockPos> getCurrentlySelectedBlocks() {
     return currentlySelectedBlocks;
@@ -44,7 +45,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
    * @param i_sideToPlace - the side on which the block is being placed (top, east, etc)
    * @param newCurrentlySelectedBlocks - a list of the blocks selected by the tool when the button was clicked
    */
-  public Packet250SpeedyToolUse(int newButton, BlockWithMetadata newBlockToPlace, int i_sideToPlace, List<BlockPos> newCurrentlySelectedBlocks)
+  public Packet250SpeedyToolUse(int newButton, BlockWithMetadata newBlockToPlace, EnumFacing i_sideToPlace, List<BlockPos> newCurrentlySelectedBlocks)
   {
     super();
 
@@ -114,7 +115,8 @@ public class Packet250SpeedyToolUse extends Packet250Base
       blockToPlace = new BlockWithMetadata();
       blockToPlace.block = Block.getBlockById(blockID);
       blockToPlace.metaData = buf.readInt();
-      sideToPlace = buf.readInt();
+      int sideToPlaceIndex = buf.readInt();
+      sideToPlace = EnumFacing.getFront(sideToPlaceIndex);
 
       int blockCount = buf.readInt();
       for (int i = 0; i < blockCount; ++i) {
@@ -142,7 +144,7 @@ public class Packet250SpeedyToolUse extends Packet250Base
     buf.writeInt(button);
     buf.writeInt(blockID);
     buf.writeInt(metaData);
-    buf.writeInt(sideToPlace);
+    buf.writeInt(sideToPlace.getIndex());
     buf.writeInt(currentlySelectedBlocks.size());
 
     for (BlockPos cc : currentlySelectedBlocks) {
@@ -159,14 +161,14 @@ public class Packet250SpeedyToolUse extends Packet250Base
   private boolean checkInvariants()
   {
     if (button != 0 && button != 1) return false;
-    if (sideToPlace < 0 || sideToPlace >= 6) return false;
+    if (sideToPlace == null) return false;
     return true;
   }
 
   private int toolItemID;
   private int button;
   private BlockWithMetadata blockToPlace;
-  private int sideToPlace;
+  private EnumFacing sideToPlace;
   private List<BlockPos> currentlySelectedBlocks = new ArrayList<BlockPos>();
 
   private static PacketHandlerMethod serverSideHandler;

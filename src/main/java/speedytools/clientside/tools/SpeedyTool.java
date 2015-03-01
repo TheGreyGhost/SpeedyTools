@@ -15,6 +15,7 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
+import speedytools.clientside.rendering.RendererWireframeSelection;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.selections.BlockMultiSelector;
 import speedytools.clientside.sound.SoundController;
@@ -80,7 +81,7 @@ public abstract class SpeedyTool
   protected ItemSpeedyTool parentItem;
   protected ItemStack currentToolItemStack;
   protected boolean controlKeyIsDown;
-//  protected RendererWireframeSelection.WireframeRenderInfoUpdateLink wireframeRendererUpdateLink;  todo uncomment
+  protected RendererWireframeSelection.WireframeRenderInfoUpdateLink wireframeRendererUpdateLink;
 
   /**
    * when selecting the first block in a selection, how should it be done?

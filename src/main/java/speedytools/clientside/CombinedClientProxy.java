@@ -8,6 +8,7 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import speedytools.SpeedyToolsMod;
 import speedytools.clientside.rendering.ItemEventHandler;
+import speedytools.clientside.rendering.RenderEventHandlers;
 import speedytools.clientside.tools.SpeedyToolTester;
 import speedytools.clientside.tools.SpeedyToolWandWeak;
 import speedytools.clientside.userinput.InputEventHandler;
@@ -198,7 +199,7 @@ public class CombinedClientProxy extends CommonProxy {
     MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
 //    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());          todo uncomment
     MinecraftForge.EVENT_BUS.register(new InputEventHandler());
-//    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());               todo uncomment
+    MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());
     FMLCommonHandler.instance().bus().register(new ClientTickHandler());
 
     MinecraftForge.EVENT_BUS.register(new ClientEventHandler());

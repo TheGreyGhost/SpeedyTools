@@ -1,5 +1,6 @@
 package speedytools.clientside;
 
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
@@ -11,7 +12,7 @@ public class ClientEventHandler
   @SubscribeEvent
   public void worldLoad(WorldEvent.Load event)
   {
-//    if (!(event.world instanceof WorldClient)) return;
-//    ClientSide.activeTool.resetAllTools();                  todo uncomment
+    if (!(event.world instanceof WorldClient)) return;
+    ClientSide.activeTool.resetAllTools();
   }
 }

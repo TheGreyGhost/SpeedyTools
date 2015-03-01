@@ -115,7 +115,7 @@ public class BlockMultiSelector
       // (2) find the intersection of the look vector with this AABB
       // (3) the selected block is the one just beyond the intersection point
 
-      AxisAlignedBB playerAABB = player.getBoundingBox();
+      AxisAlignedBB playerAABB = player.getEntityBoundingBox();
       double AABBminX = Math.floor(Math.min(playerAABB.minX, playerOriginX - MINIMUMHITDISTANCE));
       double AABBminY = Math.floor(Math.min(playerAABB.minY, playerOriginY - MINIMUMHITDISTANCE));
       double AABBminZ = Math.floor(Math.min(playerAABB.minZ, playerOriginZ - MINIMUMHITDISTANCE));

@@ -12,7 +12,6 @@ import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.RegistryForItems;
 
 //import speedytools.clientside.network.CloneToolsNetworkClient;
-//import speedytools.clientside.rendering.SpeedyToolRenderers;
 //import speedytools.clientside.sound.SpeedyToolSounds;
 
 /**
@@ -41,7 +40,7 @@ public class ClientSide
     packetHandlerRegistry = new PacketHandlerRegistryClient();
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
 //    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
-//    speedyToolRenderers = new SpeedyToolRenderers();
+    speedyToolRenderers = new SpeedyToolRenderers();
 //    speedyToolSounds = new SoundController();
 //    undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
 //    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());

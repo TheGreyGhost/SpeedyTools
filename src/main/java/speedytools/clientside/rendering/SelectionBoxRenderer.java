@@ -2,6 +2,7 @@ package speedytools.clientside.rendering;
 
 
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.util.AxisAlignedBB;
 import org.lwjgl.opengl.GL11;
 import speedytools.common.utilities.Colour;
@@ -11,10 +12,11 @@ public class SelectionBoxRenderer {
 
   public static void drawConnectingLine(double x1, double y1, double z1, double x2, double y2, double z2)
   {
-    Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
-    tessellator.startDrawing(GL11.GL_LINES);
-    tessellator.addVertex(x1, y1, z1);
-    tessellator.addVertex(x2, y2, z2);
+    Tessellator tessellator = Tessellator.getInstance();
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+    worldRenderer.startDrawing(GL11.GL_LINES);
+    worldRenderer.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x2, y2, z2);
     tessellator.draw();
   }
 
@@ -28,33 +30,34 @@ public class SelectionBoxRenderer {
 
 //    OpenGLdebugging.dumpAllIsEnabled();
 
-    Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
-    tessellator.startDrawing(GL11.GL_LINE_STRIP);
-    tessellator.addVertex(xa, ya, za);
-    tessellator.addVertex(xa, yb, za);
-    tessellator.addVertex(xb, yb, za);
-    tessellator.addVertex(xb, ya, za);
-    tessellator.addVertex(xa, ya, za);
+    Tessellator tessellator = Tessellator.getInstance();
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+    worldRenderer.startDrawing(GL11.GL_LINE_STRIP);
+    worldRenderer.addVertex(xa, ya, za);
+    worldRenderer.addVertex(xa, yb, za);
+    worldRenderer.addVertex(xb, yb, za);
+    worldRenderer.addVertex(xb, ya, za);
+    worldRenderer.addVertex(xa, ya, za);
 
-    tessellator.addVertex(xa, ya, zb);
-    tessellator.addVertex(xa, yb, zb);
-    tessellator.addVertex(xb, yb, zb);
-    tessellator.addVertex(xb, ya, zb);
-    tessellator.addVertex(xa, ya, zb);
+    worldRenderer.addVertex(xa, ya, zb);
+    worldRenderer.addVertex(xa, yb, zb);
+    worldRenderer.addVertex(xb, yb, zb);
+    worldRenderer.addVertex(xb, ya, zb);
+    worldRenderer.addVertex(xa, ya, zb);
     tessellator.draw();
 
-    tessellator.startDrawing(GL11.GL_LINES);
-    tessellator.addVertex(xa, ya, za);
-    tessellator.addVertex(xa, ya, zb);
+    worldRenderer.startDrawing(GL11.GL_LINES);
+    worldRenderer.addVertex(xa, ya, za);
+    worldRenderer.addVertex(xa, ya, zb);
 
-    tessellator.addVertex(xa, yb, za);
-    tessellator.addVertex(xa, yb, zb);
+    worldRenderer.addVertex(xa, yb, za);
+    worldRenderer.addVertex(xa, yb, zb);
 
-    tessellator.addVertex(xb, ya, za);
-    tessellator.addVertex(xb, ya, zb);
+    worldRenderer.addVertex(xb, ya, za);
+    worldRenderer.addVertex(xb, ya, zb);
 
-    tessellator.addVertex(xb, yb, za);
-    tessellator.addVertex(xb, yb, zb);
+    worldRenderer.addVertex(xb, yb, za);
+    worldRenderer.addVertex(xb, yb, zb);
     tessellator.draw();
   }
 
@@ -62,20 +65,21 @@ public class SelectionBoxRenderer {
                                       double y1, double y2, double y3, double y4,
                                       double z1, double z2, double z3, double z4)
   {
-    Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
-    tessellator.startDrawing(GL11.GL_LINE_STRIP);
-    tessellator.addVertex(x1, y1, z1);
-    tessellator.addVertex(x2, y2, z2);
-    tessellator.addVertex(x3, y3, z3);
-    tessellator.addVertex(x4, y4, z4);
-    tessellator.addVertex(x1, y1, z1);
+    Tessellator tessellator = Tessellator.getInstance();
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+    worldRenderer.startDrawing(GL11.GL_LINE_STRIP);
+    worldRenderer.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x2, y2, z2);
+    worldRenderer.addVertex(x3, y3, z3);
+    worldRenderer.addVertex(x4, y4, z4);
+    worldRenderer.addVertex(x1, y1, z1);
     tessellator.draw();
 
-    tessellator.startDrawing(GL11.GL_LINES);
-    tessellator.addVertex(x1, y1, z1);
-    tessellator.addVertex(x3, y3, z3);
-    tessellator.addVertex(x2, y2, z2);
-    tessellator.addVertex(x4, y4, z4);
+    worldRenderer.startDrawing(GL11.GL_LINES);
+    worldRenderer.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x3, y3, z3);
+    worldRenderer.addVertex(x2, y2, z2);
+    worldRenderer.addVertex(x4, y4, z4);
     tessellator.draw();
   }
 
@@ -88,7 +92,8 @@ public class SelectionBoxRenderer {
                                                            double z1, double z2, double z3, double z4,
                                                            int highlightedSide)
   {
-    Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+    Tessellator tessellator = Tessellator.getInstance();
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
 
     GL11.glDisable(GL11.GL_LIGHTING);
     GL11.glDisable(GL11.GL_CULL_FACE);
@@ -99,7 +104,7 @@ public class SelectionBoxRenderer {
 
     worldRenderer.startDrawingQuads();
 
-    tessellator.setColorRGBA_F(0.0F, 1.0F, 0.0F, 0.2F);
+    worldRenderer.func_178960_a(0.0F, 1.0F, 0.0F, 0.2F);  // setColorRGBA_F
 
 //    tessellator.setBrightness(this.brightnessTopLeft);
     float u1 = 1.0F;
@@ -146,11 +151,11 @@ public class SelectionBoxRenderer {
       setDrawColour(Colour.GREEN_20);
     }
     worldRenderer.startDrawingQuads();
-    tessellator.addVertex(x1, y1, z1);
-    tessellator.addVertex(x2, y2, z2);
-    tessellator.addVertex(x3, y3, z3);
-    tessellator.addVertex(x4, y4, z4);
-    tessellator.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x2, y2, z2);
+    worldRenderer.addVertex(x3, y3, z3);
+    worldRenderer.addVertex(x4, y4, z4);
+    worldRenderer.addVertex(x1, y1, z1);
     tessellator.draw();
 
     if (highlight) {
@@ -160,19 +165,19 @@ public class SelectionBoxRenderer {
       setDrawColour(Colour.BLACK_40);
       GL11.glLineWidth(2.0F);
     }
-    tessellator.startDrawing(GL11.GL_LINE_STRIP);
-    tessellator.addVertex(x1, y1, z1);
-    tessellator.addVertex(x2, y2, z2);
-    tessellator.addVertex(x3, y3, z3);
-    tessellator.addVertex(x4, y4, z4);
-    tessellator.addVertex(x1, y1, z1);
+    worldRenderer.startDrawing(GL11.GL_LINE_STRIP);
+    worldRenderer.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x2, y2, z2);
+    worldRenderer.addVertex(x3, y3, z3);
+    worldRenderer.addVertex(x4, y4, z4);
+    worldRenderer.addVertex(x1, y1, z1);
     tessellator.draw();
 
-    tessellator.startDrawing(GL11.GL_LINES);
-    tessellator.addVertex(x1, y1, z1);
-    tessellator.addVertex(x3, y3, z3);
-    tessellator.addVertex(x2, y2, z2);
-    tessellator.addVertex(x4, y4, z4);
+    worldRenderer.startDrawing(GL11.GL_LINES);
+    worldRenderer.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x3, y3, z3);
+    worldRenderer.addVertex(x2, y2, z2);
+    worldRenderer.addVertex(x4, y4, z4);
     tessellator.draw();
 
   }
@@ -188,7 +193,8 @@ public class SelectionBoxRenderer {
                                          double z1, double z2, double z3, double z4,
                                          boolean highlight, boolean alternateHighlightColour, boolean cross)
   {
-    Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+    Tessellator tessellator = Tessellator.getInstance();
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
 
     if (highlight) {
       if (alternateHighlightColour) {
@@ -200,11 +206,11 @@ public class SelectionBoxRenderer {
       setDrawColour(Colour.GREEN_20);
     }
     worldRenderer.startDrawingQuads();
-    tessellator.addVertex(x1, y1, z1);
-    tessellator.addVertex(x2, y2, z2);
-    tessellator.addVertex(x3, y3, z3);
-    tessellator.addVertex(x4, y4, z4);
-    tessellator.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x2, y2, z2);
+    worldRenderer.addVertex(x3, y3, z3);
+    worldRenderer.addVertex(x4, y4, z4);
+    worldRenderer.addVertex(x1, y1, z1);
     tessellator.draw();
 
     if (highlight) {
@@ -214,20 +220,20 @@ public class SelectionBoxRenderer {
       setDrawColour(Colour.BLACK_40);
       GL11.glLineWidth(2.0F);
     }
-    tessellator.startDrawing(GL11.GL_LINE_STRIP);
-    tessellator.addVertex(x1, y1, z1);
-    tessellator.addVertex(x2, y2, z2);
-    tessellator.addVertex(x3, y3, z3);
-    tessellator.addVertex(x4, y4, z4);
-    tessellator.addVertex(x1, y1, z1);
+    worldRenderer.startDrawing(GL11.GL_LINE_STRIP);
+    worldRenderer.addVertex(x1, y1, z1);
+    worldRenderer.addVertex(x2, y2, z2);
+    worldRenderer.addVertex(x3, y3, z3);
+    worldRenderer.addVertex(x4, y4, z4);
+    worldRenderer.addVertex(x1, y1, z1);
     tessellator.draw();
 
     if (cross) {
-      tessellator.startDrawing(GL11.GL_LINES);
-      tessellator.addVertex(x1, y1, z1);
-      tessellator.addVertex(x3, y3, z3);
-      tessellator.addVertex(x2, y2, z2);
-      tessellator.addVertex(x4, y4, z4);
+      worldRenderer.startDrawing(GL11.GL_LINES);
+      worldRenderer.addVertex(x1, y1, z1);
+      worldRenderer.addVertex(x3, y3, z3);
+      worldRenderer.addVertex(x2, y2, z2);
+      worldRenderer.addVertex(x4, y4, z4);
       tessellator.draw();
     }
   }

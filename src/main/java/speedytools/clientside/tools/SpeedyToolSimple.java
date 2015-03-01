@@ -1,6 +1,5 @@
 package speedytools.clientside.tools;
 
-import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.*;
@@ -38,7 +37,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
                           UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient)
   {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
-//    wireframeRendererUpdateLink = this.new SimpleWireframeRendererLink();    todo uncomment
+    wireframeRendererUpdateLink = this.new SimpleWireframeRendererLink();
     hotbarRenderInfoUpdateLink = this.new HotbarRenderInfoUpdateLink();
   }
 
@@ -59,14 +58,14 @@ public abstract class SpeedyToolSimple extends SpeedyTool
     while (null != (nextEvent = userInput.poll())) {
       switch (nextEvent.eventType) {
         case LEFT_CLICK_DOWN: {
-          undoManagerClient.performUndo(player.getPosition());
+          undoManagerClient.performUndo(player.getPositionEyes(partialTick));
           break;
         }
         case RIGHT_CLICK_DOWN: {
           boolean successfulSend = sendPlaceCommand();
           if (successfulSend) {
             undoManagerClient.addUndoableAction(new SpeedyToolUndoCallback());
-            playPlacementSound(player.getPosition(partialTick));
+            playPlacementSound(player.getPositionEyes(partialTick));
           }
           break;
         }
@@ -108,7 +107,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
 
 //    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
     MovingObjectPosition blockUnderCursor = selectBlockUnderCursor(player, itemStackToPlace, partialTick);
-    Pair<List<BlockPos>, Integer> retval = selectBlocks(blockUnderCursor, player, maxSelectionSize, partialTick);
+    Pair<List<BlockPos>, EnumFacing> retval = selectBlocks(blockUnderCursor, player, maxSelectionSize, partialTick);
     currentlySelectedBlocks = retval.getFirst();
     currentSideToBePlaced = retval.getSecond();
     return true;
@@ -225,7 +224,7 @@ public abstract class SpeedyToolSimple extends SpeedyTool
   protected boolean sendUndoCommand()
   {
     final int LEFT_BUTTON = 0;
-    final int DUMMY_SIDE = 0;
+    final EnumFacing DUMMY_SIDE = EnumFacing.DOWN;
     Packet250SpeedyToolUse packet = new Packet250SpeedyToolUse(LEFT_BUTTON, currentBlockToPlace, DUMMY_SIDE, currentlySelectedBlocks);
     packetSenderClient.sendPacket(packet);
     return true;
@@ -261,6 +260,6 @@ public abstract class SpeedyToolSimple extends SpeedyTool
 
   protected List<BlockPos> currentlySelectedBlocks = new LinkedList<BlockPos>();
   protected BlockWithMetadata currentBlockToPlace;
-  protected int currentSideToBePlaced;
+  protected EnumFacing currentSideToBePlaced;
   private RendererHotbarCurrentItem.HotbarRenderInfoUpdateLink hotbarRenderInfoUpdateLink;
 }
