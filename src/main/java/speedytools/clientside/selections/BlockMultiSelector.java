@@ -101,7 +101,7 @@ public class BlockMultiSelector
     double playerOriginZ = player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * (double)partialTick;
 
     Vec3 playerLook = player.getLook(partialTick);
-    Vec3 playerEyesPos = new Vec3(playerOriginX, playerOriginY, playerOriginZ);
+    Vec3 playerEyesPos = player.getPositionEyes(partialTick); // new Vec3(playerOriginX, playerOriginY, playerOriginZ);
 
     if (mouseTarget == null) {   // no hit
       if (!blockSelectionBehaviour.isSelectAirIfNoCollision()) {
@@ -530,7 +530,8 @@ public class BlockMultiSelector
                            blockPos.getY() + Y_FACE_OFFSET[sideHit],
                            blockPos.getZ() + Z_FACE_OFFSET[sideHit]);
 
-    return startPos.subtract(endPos);
+//    return startPos.subtract(endPos);
+    return endPos.subtract(startPos);
   }
 
   /**
@@ -579,7 +580,7 @@ public class BlockMultiSelector
 
     if (highestDotProduct < 0) {
       Vec3 nullVector = new Vec3(0, 0, 0);
-      closestVector = closestVector.subtract(nullVector);
+      closestVector = nullVector.subtract(closestVector);
     }
 
     return closestVector;

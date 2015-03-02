@@ -16,6 +16,8 @@ import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.blocks.RegistryForBlocks;
+import speedytools.common.items.ItemSpeedyOrb;
+import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.items.RegistryForItems;
 
 import java.io.File;
@@ -192,8 +194,15 @@ public class CombinedClientProxy extends CommonProxy {
     for (String itemName : RegistryForItems.getAllItemNames()) {
       Item itemBlockSimple = GameRegistry.findItem("speedytoolsmod", itemName);
       ModelResourceLocation itemModelResourceLocation = new ModelResourceLocation(SpeedyToolsMod.prependModID(itemName), "inventory");
-      final int DEFAULT_ITEM_SUBTYPE = 0;
-      Minecraft.getMinecraft().getRenderItem().getItemModelMesher().register(itemBlockSimple, DEFAULT_ITEM_SUBTYPE, itemModelResourceLocation);
+      if (itemBlockSimple instanceof ItemSpeedyTool) {
+        ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)itemBlockSimple;
+        for (int metadata : itemSpeedyTool.validMetadataValues()) {
+          Minecraft.getMinecraft().getRenderItem().getItemModelMesher().register(itemBlockSimple, metadata, itemModelResourceLocation);
+        }
+      } else {
+        final int DEFAULT_ITEM_SUBTYPE = 0;
+        Minecraft.getMinecraft().getRenderItem().getItemModelMesher().register(itemBlockSimple, DEFAULT_ITEM_SUBTYPE, itemModelResourceLocation);
+      }
     }
 
     MinecraftForge.EVENT_BUS.register(new ItemEventHandler());

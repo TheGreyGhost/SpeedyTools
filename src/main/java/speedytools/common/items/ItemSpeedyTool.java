@@ -48,6 +48,12 @@ public abstract class ItemSpeedyTool extends Item
   private final int FINITE_MODE_DAMAGE = 2;
   private final int INFINITE_MODE_STACKSIZE_CHANGE_TRIGGER = 64;
 
+  // returns an array of all the metadata values that are valid for this item.  Intended for use when registering item models
+  public int [] validMetadataValues()
+  {
+    return new int[] {0, INFINITE_MODE_DAMAGE, FINITE_MODE_DAMAGE, INFINITE_MODE_STACKSIZE_CHANGE_TRIGGER};
+  }
+
   /**
    * sets the number of blocks to be placed
    * if invalid, wraps around to a valid number

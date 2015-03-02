@@ -160,7 +160,7 @@ public class RendererHotbarCurrentItem implements RendererElement
       float f1 = (float)itemstack.animationsToGo - partialTick;
 
       if (f1 > 0.0F) {
-        GL11.glPushMatrix();
+        GlStateManager.pushMatrix();
         float f2 = 1.0F + f1 / 5.0F;
         GL11.glTranslatef((float)(x + 8), (float)(y + 12), 0.0F);
         GL11.glScalef(1.0F / f2, (f2 + 1.0F) / 2.0F, 1.0F);
@@ -170,7 +170,7 @@ public class RendererHotbarCurrentItem implements RendererElement
       renderItem.func_180450_b(itemstack, x, y);
 
       if (f1 > 0.0F) {
-        GL11.glPopMatrix();
+        GlStateManager.popMatrix();
       }
 
       renderItem.func_175030_a(minecraft.fontRendererObj, itemstack, x, y);

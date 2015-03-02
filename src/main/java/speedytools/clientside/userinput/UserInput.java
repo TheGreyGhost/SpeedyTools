@@ -77,9 +77,10 @@ public class UserInput
     boolean controlKeyDown = readControlKeyIsDown();
     if (!controlKeyDown) return false;
 
-    final int MOUSE_DELTA_PER_STEP = 120;
-    int stepCount = event.dwheel / MOUSE_DELTA_PER_STEP;
-    if (stepCount == 0) return false;
+//    final int MOUSE_DELTA_PER_STEP = 120;                           // appears to be mouse-dependent.
+//    int stepCount = event.dwheel / MOUSE_DELTA_PER_STEP;
+//    if (stepCount == 0) return false;
+    int stepCount = (event.dwheel > 0) ? 1 : -1;
 
     inputEvents.add(new InputEvent(InputEventType.WHEEL_MOVE, event.nanoseconds, controlKeyDown, stepCount, 1));
     return true;

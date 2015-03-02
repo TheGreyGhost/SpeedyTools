@@ -77,7 +77,7 @@ public class RendererWireframeSelection implements RendererElement
 
       for (BlockPos block : renderInfo.currentlySelectedBlocks) {
         AxisAlignedBB boundingBox = new AxisAlignedBB(block, block.add(1, 1, 1));
-        boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).addCoord(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
+        boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).offset(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
         switch (SELECTION_BOX_STYLE) {
           case 0: {
             SelectionBoxRenderer.drawCube(boundingBox);
