@@ -3,16 +3,16 @@ package speedytools.clientside;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import speedytools.clientside.network.CloneToolsNetworkClient;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
 import speedytools.clientside.rendering.SpeedyToolRenderers;
 import speedytools.clientside.sound.SoundController;
 import speedytools.clientside.tools.ActiveTool;
 import speedytools.clientside.userinput.UserInput;
+import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.items.RegistryForItems;
-
-//import speedytools.clientside.network.CloneToolsNetworkClient;
-//import speedytools.clientside.sound.SpeedyToolSounds;
+import speedytools.common.network.NetworkTrafficMonitor;
 
 /**
  * User: The Grey Ghost
@@ -39,10 +39,10 @@ public class ClientSide
 //  todo uncomment
     packetHandlerRegistry = new PacketHandlerRegistryClient();
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
-//    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
+    cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
     speedyToolRenderers = new SpeedyToolRenderers();
 //    speedyToolSounds = new SoundController();
-//    undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
+    undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
 //    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
 //    selectionPacketSenderComplex = new SelectionPacketSender(packetHandlerRegistry, packetSenderClient);
 //    clientVoxelSelection = new ClientVoxelSelection(packetHandlerRegistry, selectionPacketSenderComplex, packetSenderClient);
@@ -75,14 +75,14 @@ public class ClientSide
   }
 */
 
-//  public static CloneToolsNetworkClient getCloneToolsNetworkClient() {  todo uncomment
-//    return cloneToolsNetworkClient;
-//  }
+  public static CloneToolsNetworkClient getCloneToolsNetworkClient() {
+    return cloneToolsNetworkClient;
+  }
 //  public static NetworkTrafficMonitor getNetworkTrafficMonitor() {
 //    return networkTrafficMonitor;
 //  }
 
-//  public static CloneToolsNetworkClient cloneToolsNetworkClient;
+  public static CloneToolsNetworkClient cloneToolsNetworkClient;
   public static SpeedyToolRenderers speedyToolRenderers;
   public static ActiveTool activeTool;
   public static UserInput userInput;

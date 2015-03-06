@@ -25,12 +25,12 @@
 //  public static void load()
 //  {
 //    packetHandlerRegistryServer = new PacketHandlerRegistryServer() ;
-//    serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistryServer, playerTrackerRegistry);
-//    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount(), SpeedyToolsOptions.getMaxSimpleToolUndoCount());
-//    speedyToolServerActions = new SpeedyToolServerActions(serverVoxelSelections, worldHistory);
-//    speedyToolsNetworkServer = new SpeedyToolsNetworkServer(packetHandlerRegistryServer, speedyToolServerActions, playerTrackerRegistry);
-//    inGameTester = new InGameTester(packetHandlerRegistryServer);
-//    inGameStatusSimulator = new InGameStatusSimulator();
+////    serverVoxelSelections = new ServerVoxelSelections(packetHandlerRegistryServer, playerTrackerRegistry);  todo uncomment
+////    worldHistory = new WorldHistory(SpeedyToolsOptions.getMaxComplexToolUndoCount(), SpeedyToolsOptions.getMaxSimpleToolUndoCount());
+////    speedyToolServerActions = new SpeedyToolServerActions(serverVoxelSelections, worldHistory);
+////    speedyToolsNetworkServer = new SpeedyToolsNetworkServer(packetHandlerRegistryServer, speedyToolServerActions, playerTrackerRegistry);
+////    inGameTester = new InGameTester(packetHandlerRegistryServer);
+////    inGameStatusSimulator = new InGameStatusSimulator();
 //
 //    String NETWORK_LOG_FILENAME_STEM = "NetworkMonitor";
 //    if (SpeedyToolsOptions.getNetworkLoggingActive()) {
@@ -49,7 +49,7 @@
 //
 //  public static void initialiseForJTest()
 //  {
-//    inGameStatusSimulator = new InGameStatusSimulator();
+////    inGameStatusSimulator = new InGameStatusSimulator();  todo comment
 //  }
 //
 //  public static void shutdown()
@@ -69,27 +69,27 @@
 //    return globalTickCount;
 //  }
 //
-//  public static void tick()
-//  {
-//    ++globalTickCount;
-//
-//    getSpeedyToolServerActions().tick();
-//    getSpeedyToolsNetworkServer().tick();
-//    long maxTimeForSelectionGeneration = SpeedyToolsOptions.getMaxServerSelGenTimeMS();
-//    if (getSpeedyToolServerActions().isAsynchronousActionInProgress()) {  // no selection generation if asynch task underway
-//      maxTimeForSelectionGeneration = 0;
-//    }
-//    final long NS_PER_MS = 1000 * 1000;
-//    getServerVoxelSelections().tick(maxTimeForSelectionGeneration * NS_PER_MS);
-//
-//    if (globalTickCount % SpeedyToolsOptions.getNetworkLoggingPeriodInTicks() == 0) {
-//      try {
-//        ServerSide.getNetworkTrafficMonitor().log();
-//      } catch (IOException ioe) {
-//        ErrorLog.defaultLog().info("Failed to log network traffic due to:" + ioe);
-//      }
-//    }
-//  }
+////  public static void tick() todo uncomment
+////  {
+////    ++globalTickCount;
+////
+////    getSpeedyToolServerActions().tick();
+////    getSpeedyToolsNetworkServer().tick();
+////    long maxTimeForSelectionGeneration = SpeedyToolsOptions.getMaxServerSelGenTimeMS();
+////    if (getSpeedyToolServerActions().isAsynchronousActionInProgress()) {  // no selection generation if asynch task underway
+////      maxTimeForSelectionGeneration = 0;
+////    }
+////    final long NS_PER_MS = 1000 * 1000;
+////    getServerVoxelSelections().tick(maxTimeForSelectionGeneration * NS_PER_MS);
+////
+////    if (globalTickCount % SpeedyToolsOptions.getNetworkLoggingPeriodInTicks() == 0) {
+////      try {
+////        ServerSide.getNetworkTrafficMonitor().log();
+////      } catch (IOException ioe) {
+////        ErrorLog.defaultLog().info("Failed to log network traffic due to:" + ioe);
+////      }
+////    }
+////  }
 //
 //  private static int globalTickCount = 0;
 //

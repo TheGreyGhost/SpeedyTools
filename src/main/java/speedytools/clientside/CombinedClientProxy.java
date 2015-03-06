@@ -9,7 +9,9 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import speedytools.SpeedyToolsMod;
 import speedytools.clientside.rendering.ItemEventHandler;
 import speedytools.clientside.rendering.RenderEventHandlers;
+import speedytools.clientside.tools.SpeedyToolBoundary;
 import speedytools.clientside.tools.SpeedyToolTester;
+import speedytools.clientside.tools.SpeedyToolWandStrong;
 import speedytools.clientside.tools.SpeedyToolWandWeak;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
@@ -53,13 +55,13 @@ public class CombinedClientProxy extends CommonProxy {
     ClientSide.load();
     super.load();
 
-//    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong,          todo uncomment
-//            new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
-//                    ClientSide.speedyToolRenderers,
-//                    ClientSide.speedyToolSounds,
-//                    ClientSide.undoManagerSimple,
-//                    ClientSide.packetSenderClient
-//            ));
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandStrong,
+            new SpeedyToolWandStrong(RegistryForItems.itemSpeedyWandStrong,
+                    ClientSide.speedyToolRenderers,
+                    ClientSide.speedyToolSounds,
+                    ClientSide.undoManagerSimple,
+                    ClientSide.packetSenderClient
+            ));
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyWandWeak,
             new SpeedyToolWandWeak(RegistryForItems.itemSpeedyWandWeak,
                     ClientSide.speedyToolRenderers,
@@ -67,13 +69,13 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.undoManagerSimple,
                     ClientSide.packetSenderClient
             ));
-//
+//      todo uncomment
 //    CommonSelectionState commonSelectionState = new CommonSelectionState();
-//    SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
-//            ClientSide.speedyToolRenderers,
-//            ClientSide.speedyToolSounds,
-//            ClientSide.undoManagerSimple,
-//            ClientSide.packetSenderClient);
+    SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
+            ClientSide.speedyToolRenderers,
+            ClientSide.speedyToolSounds,
+            ClientSide.undoManagerSimple,
+            ClientSide.packetSenderClient);
 //
 //    SpeedyToolOrb speedyToolOrb = new SpeedyToolOrb(RegistryForItems.itemSpeedyOrb,
 //            ClientSide.speedyToolRenderers,
