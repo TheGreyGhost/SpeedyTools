@@ -61,8 +61,8 @@ public class RendererBoundaryField implements RendererElement
    */
   public void renderWorld(EntityPlayer player, int animationTickCount, float partialTick)
   {
-    Vec3 playerPosition = player.getPositionEyes(partialTick);
-    boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, playerPosition);
+    Vec3 playerPositionEyes = player.getPositionEyes(partialTick);
+    boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, playerPositionEyes);
     if (!shouldIRender) return;
 
     GL11.glEnable(GL11.GL_BLEND);
@@ -74,8 +74,9 @@ public class RendererBoundaryField implements RendererElement
     double EXPAND_BOX_DISTANCE = 0.002F;
 
     AxisAlignedBB boundingBox = renderInfo.boundaryFieldAABB;
+    Vec3 playerPositionFeet = playerPositionEyes.subtract(0, player.getEyeHeight(), 0);
     boundingBox = boundingBox.expand(EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE)
-                             .offset(-playerPosition.xCoord, -playerPosition.yCoord, -playerPosition.zCoord);
+                             .offset(-playerPositionFeet.xCoord, -playerPositionFeet.yCoord, -playerPositionFeet.zCoord);
     int faceToHighlight = -1;
     if (renderInfo.boundaryGrabActivated) {
       faceToHighlight = renderInfo.boundaryGrabSide;

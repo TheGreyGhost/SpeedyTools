@@ -121,7 +121,7 @@ public class CombinedClientProxy extends CommonProxy {
 //            ClientSide.packetSenderClient);
 //    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre, simpleComplexSceptre);
 //
-//    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
 //
 //    ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexCopy,
 //            new SpeedyToolComplexCopy(RegistryForItems.itemComplexCopy,

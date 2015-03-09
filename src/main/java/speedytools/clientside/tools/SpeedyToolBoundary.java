@@ -33,8 +33,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
                             UndoManagerClient i_undoManagerClient, PacketSenderClient i_packetSenderClient) {
     super(i_parentItem, i_renderers, i_speedyToolSounds, i_undoManagerClient, i_packetSenderClient);
     itemSpeedyBoundary = i_parentItem;
-//    wireframeRendererUpdateLink = this.new BoundaryToolWireframeRendererLink();  todo uncomment
-//    boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
+    wireframeRendererUpdateLink = this.new BoundaryToolWireframeRendererLink();
+    boundaryFieldRendererUpdateLink = this.new BoundaryFieldRendererUpdateLink();
   }
 
   @Override
@@ -46,8 +46,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     }
     soundEffectBoundaryHum.startPlayingLoop();
     LinkedList<RendererElement> rendererElements = new LinkedList<RendererElement>();
-//    rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));    todo uncomment
-//    rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
+    rendererElements.add(new RendererWireframeSelection(wireframeRendererUpdateLink));
+    rendererElements.add(new RendererBoundaryField(boundaryFieldRendererUpdateLink));
     speedyToolRenderers.setRenderers(rendererElements);
     iAmActive = true;
     return true;
@@ -131,8 +131,8 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
       soundEffectSimple.startPlaying();
     } else {
       if (boundaryGrabActivated) {  // ungrab
-        Vec3 playerPosition = player.getPositionEyes(partialTick);
-        AxisAlignedBB newBoundaryField = getGrabDraggedBoundaryField(playerPosition);
+        Vec3 playerPositionEyes = player.getPositionEyes(partialTick);
+        AxisAlignedBB newBoundaryField = getGrabDraggedBoundaryField(playerPositionEyes);
         boundaryCorner1 = new BlockPos((int)Math.round(newBoundaryField.minX),
                 (int)Math.round(newBoundaryField.minY),
                 (int)Math.round(newBoundaryField.minZ));
@@ -221,13 +221,13 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
   public class BoundaryFieldRendererUpdateLink implements RendererBoundaryField.BoundaryFieldRenderInfoUpdateLink
   {
     @Override
-    public boolean refreshRenderInfo(RendererBoundaryField.BoundaryFieldRenderInfo infoToUpdate, Vec3 playerPosition)
+    public boolean refreshRenderInfo(RendererBoundaryField.BoundaryFieldRenderInfo infoToUpdate, Vec3 playerPositionEyes)
     {
       if (boundaryCorner1 == null && boundaryCorner2 == null) return false;
       infoToUpdate.boundaryCursorSide = boundaryCursorSide;
       infoToUpdate.boundaryGrabActivated = boundaryGrabActivated;
       infoToUpdate.boundaryGrabSide = boundaryGrabSide;
-      infoToUpdate.boundaryFieldAABB = getGrabDraggedBoundaryField(playerPosition);
+      infoToUpdate.boundaryFieldAABB = getGrabDraggedBoundaryField(playerPositionEyes);
       return true;
     }
   }
@@ -332,10 +332,10 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
    * Calculate the new boundary field after being dragged to the current player position
    *   Drags one side depending on which one the player grabbed, and how far they have moved
    *   Won't drag the boundary field smaller than one block
-   * @param playerPosition
+   * @param playerPositionEyes
    * @return the new boundary field, null if a problem occurred
    */
-  private AxisAlignedBB getGrabDraggedBoundaryField(Vec3 playerPosition)
+  private AxisAlignedBB getGrabDraggedBoundaryField(Vec3 playerPositionEyes)
   {
     sortBoundaryFieldCorners();
 
@@ -352,32 +352,32 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     if (boundaryGrabActivated) {
       switch (boundaryGrabSide) {
         case UsefulConstants.FACE_YNEG: {
-          wYmin += playerPosition.yCoord - boundaryGrabPoint.yCoord;
+          wYmin += playerPositionEyes.yCoord - boundaryGrabPoint.yCoord;
           wYmin = UsefulFunctions.clipToRange(wYmin, wYmax - SELECTION_MAX_YSIZE, wYmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_YPOS: {
-          wYmax += playerPosition.yCoord - boundaryGrabPoint.yCoord;
+          wYmax += playerPositionEyes.yCoord - boundaryGrabPoint.yCoord;
           wYmax = UsefulFunctions.clipToRange(wYmax, wYmin + SELECTION_MAX_YSIZE, wYmin + 1.0);
           break;
         }
         case UsefulConstants.FACE_ZNEG: {
-          wZmin += playerPosition.zCoord - boundaryGrabPoint.zCoord;
+          wZmin += playerPositionEyes.zCoord - boundaryGrabPoint.zCoord;
           wZmin = UsefulFunctions.clipToRange(wZmin, wZmax - SELECTION_MAX_ZSIZE, wZmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_ZPOS: {
-          wZmax += playerPosition.zCoord - boundaryGrabPoint.zCoord;
+          wZmax += playerPositionEyes.zCoord - boundaryGrabPoint.zCoord;
           wZmax = UsefulFunctions.clipToRange(wZmax, wZmin + SELECTION_MAX_ZSIZE, wZmin + 1.0);
           break;
         }
         case UsefulConstants.FACE_XNEG: {
-          wXmin += playerPosition.xCoord - boundaryGrabPoint.xCoord;
+          wXmin += playerPositionEyes.xCoord - boundaryGrabPoint.xCoord;
           wXmin = UsefulFunctions.clipToRange(wXmin, wXmax - SELECTION_MAX_XSIZE, wXmax - 1.0);
           break;
         }
         case UsefulConstants.FACE_XPOS: {
-          wXmax += playerPosition.xCoord - boundaryGrabPoint.xCoord;
+          wXmax += playerPositionEyes.xCoord - boundaryGrabPoint.xCoord;
           wXmax = UsefulFunctions.clipToRange(wXmax, wXmin + SELECTION_MAX_XSIZE, wXmin + 1.0);
           break;
         }

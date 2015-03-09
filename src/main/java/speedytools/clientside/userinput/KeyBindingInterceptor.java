@@ -26,8 +26,7 @@ package speedytools.clientside.userinput;
 *    (b) In the current vanilla code, if the bindings are changed it will affect the original keybinding.  The new binding will
 *        be copied to the interceptor at the first call to .retrieveClick(), .isKeyDown(), or .isPressed().
 *    (c) Will not work in GUI
- *   (d) Uses AccessTransformer to make the KeyBinding fields public
-*/
+ */
 
 import com.google.common.base.Throwables;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;

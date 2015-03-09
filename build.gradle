@@ -22,7 +22,7 @@ group= "com.thegreyghost.speedytoolsmod" // http://maven.apache.org/guides/mini/
 archivesBaseName = "speedytoolsmod"
 
 minecraft {
-    version = "1.8-11.14.0.1295-1.8"
+    version = "1.8-11.14.1.1334" // "1.8-11.14.0.1295-1.8"
     assetDir = "eclipse/assets"
 }
 

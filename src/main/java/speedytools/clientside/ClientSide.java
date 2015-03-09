@@ -41,7 +41,7 @@ public class ClientSide
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
     cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
     speedyToolRenderers = new SpeedyToolRenderers();
-//    speedyToolSounds = new SoundController();
+    speedyToolSounds = new SoundController();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
 //    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
 //    selectionPacketSenderComplex = new SelectionPacketSender(packetHandlerRegistry, packetSenderClient);
