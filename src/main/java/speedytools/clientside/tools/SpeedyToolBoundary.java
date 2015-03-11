@@ -147,7 +147,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
         if (highlightedFace == null) return;
 
         boundaryGrabActivated = true;
-        boundaryGrabSide = highlightedFace.field_178784_b.getIndex();
+        boundaryGrabSide = highlightedFace.sideHit.getIndex();
         Vec3 playerPosition = player.getPositionEyes(1.0F);
         boundaryGrabPoint = new Vec3(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
         SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_GRAB, soundController);
@@ -188,7 +188,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     // if boundary field active: calculate the face where the cursor is
     if (boundaryCorner1 != null  && boundaryCorner2 != null) {
       MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
-      boundaryCursorSide = (highlightedFace != null) ? highlightedFace.field_178784_b.getIndex() : UsefulConstants.FACE_NONE;
+      boundaryCursorSide = (highlightedFace != null) ? highlightedFace.sideHit.getIndex() : UsefulConstants.FACE_NONE;
       return true;
     }
 
@@ -210,7 +210,7 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
       }
     }
 
-    blockUnderCursor = target.func_178782_a(); // getBlockPos
+    blockUnderCursor = target.getBlockPos();
     return true;
   }
 

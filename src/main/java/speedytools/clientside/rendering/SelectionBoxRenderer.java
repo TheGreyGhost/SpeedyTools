@@ -104,7 +104,7 @@ public class SelectionBoxRenderer {
 
     worldRenderer.startDrawingQuads();
 
-    worldRenderer.func_178960_a(0.0F, 1.0F, 0.0F, 0.2F);  // setColorRGBA_F
+    worldRenderer.setColorRGBA_F(0.0F, 1.0F, 0.0F, 0.2F);
 
 //    tessellator.setBrightness(this.brightnessTopLeft);
     float u1 = 1.0F;

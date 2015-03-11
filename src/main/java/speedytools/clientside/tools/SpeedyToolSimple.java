@@ -204,11 +204,11 @@ public abstract class SpeedyToolSimple extends SpeedyTool
 //    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(blockUnderCursor, BlockMultiSelector.BlockTypeToSelect.NON_SOLID_OK, player, partialTick);
     if (blockUnderCursor == null) return new Pair<List<BlockPos>, EnumFacing>(new ArrayList<BlockPos>(), EnumFacing.UP);
 
-    BlockPos startBlockCoordinates = blockUnderCursor.func_178782_a();
+    BlockPos startBlockCoordinates = blockUnderCursor.getBlockPos();
     boolean diagonalOK =  controlKeyIsDown;
     List<BlockPos> selection = BlockMultiSelector.selectLine(startBlockCoordinates, player.worldObj, blockUnderCursor.hitVec,
             maxSelectionSize, diagonalOK, stopWhenCollide);
-    return new Pair<List<BlockPos>, EnumFacing> (selection, blockUnderCursor.field_178784_b);
+    return new Pair<List<BlockPos>, EnumFacing> (selection, blockUnderCursor.sideHit);
   }
 
   protected boolean sendPlaceCommand()
@@ -250,9 +250,9 @@ public abstract class SpeedyToolSimple extends SpeedyTool
 //    MovingObjectPosition startBlock = BlockMultiSelector.selectStartingBlock(target, BlockMultiSelector.BlockTypeToSelect.SOLID_OK, player, partialTick);
     EnumFacing sideToPlace = EnumFacing.UP;
     if (blockUnderCursor != null) {
-      BlockPos startBlockCoordinates = new BlockPos(blockUnderCursor.func_178782_a());
+      BlockPos startBlockCoordinates = new BlockPos(blockUnderCursor.getBlockPos());
       retval.add(startBlockCoordinates);
-      sideToPlace = blockUnderCursor.field_178784_b;
+      sideToPlace = blockUnderCursor.sideHit;
     }
 
     return new Pair<List<BlockPos>, EnumFacing> (retval, sideToPlace);

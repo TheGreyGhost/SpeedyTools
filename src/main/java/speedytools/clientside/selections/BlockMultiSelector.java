@@ -136,7 +136,7 @@ public class BlockMultiSelector
       blockx = MathHelper.floor_double(traceResult.hitVec.xCoord + playerLook.xCoord * 0.001);
       blocky = MathHelper.floor_double(traceResult.hitVec.yCoord + playerLook.yCoord * 0.001);
       blockz = MathHelper.floor_double(traceResult.hitVec.zCoord + playerLook.zCoord * 0.001);
-      traceResult = new MovingObjectPosition(traceResult.hitVec, traceResult.field_178784_b.getOpposite(),  new BlockPos(blockx, blocky, blockz));     // field_178784_b = sidehit
+      traceResult = new MovingObjectPosition(traceResult.hitVec, traceResult.sideHit.getOpposite(),  new BlockPos(blockx, blocky, blockz));
                                                     // todo should that getOpposite be there?
       traceResult.hitVec = playerLook;
 //      traceResult.hitVec = snapLookToBlockFace(traceResult, playerEyesPos);
@@ -146,7 +146,7 @@ public class BlockMultiSelector
     } else if (mouseTarget.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
       World world = player.getEntityWorld();
       boolean pullback = false;
-      BlockPos blockUnderCursor = mouseTarget.func_178782_a();  // get BlockPos
+      BlockPos blockUnderCursor = mouseTarget.getBlockPos();  // get BlockPos
       switch (BlockMultiSelector.checkBlockSolidity(world, blockUnderCursor.getX(), blockUnderCursor.getY(), blockUnderCursor.getZ())) {
         case AIR: {
           pullback = false;
@@ -171,18 +171,18 @@ public class BlockMultiSelector
       }
 
       if (pullback) {
-        EnumFacing blockInFront = mouseTarget.field_178784_b;
+        EnumFacing blockInFront = mouseTarget.sideHit;
         blockx = blockUnderCursor.getX() + blockInFront.getFrontOffsetX();
         blocky = blockUnderCursor.getY() + blockInFront.getFrontOffsetY();
         blockz = blockUnderCursor.getZ() + blockInFront.getFrontOffsetZ();
-        mouseTarget.field_178784_b = mouseTarget.field_178784_b.getOpposite();   // if pullback, swap the sidehit to point to the solid block
+        mouseTarget.sideHit = mouseTarget.sideHit.getOpposite();   // if pullback, swap the sidehit to point to the solid block
       } else {
         blockx = blockUnderCursor.getX();
         blocky = blockUnderCursor.getY();
         blockz = blockUnderCursor.getZ();
       }
 
-      mouseTarget = new MovingObjectPosition(mouseTarget.hitVec, mouseTarget.field_178784_b, new BlockPos(blockx, blocky, blockz));
+      mouseTarget = new MovingObjectPosition(mouseTarget.hitVec, mouseTarget.sideHit, new BlockPos(blockx, blocky, blockz));
       mouseTarget.hitVec = snapLookToBlockFace(mouseTarget, playerEyesPos);
       return mouseTarget;
 
@@ -524,8 +524,8 @@ public class BlockMultiSelector
     final double[] Y_FACE_OFFSET = {0.0, 1.0, 0.5, 0.5, 0.5, 0.5};
     final double[] Z_FACE_OFFSET = {0.5, 0.5, 0.0, 1.0, 0.5, 0.5};
 
-    int sideHit = movingObjectPosition.field_178784_b.getIndex();
-    BlockPos blockPos = movingObjectPosition.func_178782_a();
+    int sideHit = movingObjectPosition.sideHit.getIndex();
+    BlockPos blockPos = movingObjectPosition.getBlockPos();
     Vec3 endPos = new Vec3(blockPos.getX() + X_FACE_OFFSET[sideHit],
                            blockPos.getY() + Y_FACE_OFFSET[sideHit],
                            blockPos.getZ() + Z_FACE_OFFSET[sideHit]);

@@ -167,13 +167,13 @@ public class RendererHotbarCurrentItem implements RendererElement
         GL11.glTranslatef((float)(-(x + 8)), (float)(-(y + 12)), 0.0F);
       }
 
-      renderItem.func_180450_b(itemstack, x, y);
+      renderItem.renderItemAndEffectIntoGUI(itemstack, x, y);
 
       if (f1 > 0.0F) {
         GlStateManager.popMatrix();
       }
 
-      renderItem.func_175030_a(minecraft.fontRendererObj, itemstack, x, y);
+      renderItem.renderItemOverlays(minecraft.fontRendererObj, itemstack, x, y);
     }
   }
 
