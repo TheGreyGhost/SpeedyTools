@@ -2,6 +2,7 @@ package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
@@ -91,7 +92,7 @@ public class WorldHistory
    * @param worldServer
 
    */
-  public void writeToWorldWithUndo(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, int sideToPlace, List<BlockPos> blockSelection)
+  public void writeToWorldWithUndo(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, EnumFacing sideToPlace, List<BlockPos> blockSelection)
   {
     if (currentAsynchronousTask != null && !currentAsynchronousTask.isTaskComplete()) {
       blockSelection = currentAsynchronousTask.cullLockedVoxels(worldServer, blockSelection);
@@ -276,7 +277,7 @@ public class WorldHistory
       for (UndoLayerInfo undoLayerInfo : undoLayersComplex) {
         if (undoLayerInfo.worldServer.get() == worldServer) {
           for (int z = 0; z < zSize; ++z) {
-            Integer metadata = undoLayerInfo.worldSelectionUndo.getStoredMetadata(x + origin.posX, y + origin.posY, z + origin.posZ);
+            Integer metadata = undoLayerInfo.worldSelectionUndo.getStoredMetadata(x + origin.getX(), y + origin.getY(), z + origin.getZ());
             System.out.print((metadata == null) ? "-" : metadata);
             System.out.print(" ");
           }
@@ -544,7 +545,7 @@ public class WorldHistory
 
       LinkedList<BlockPos> culledList = new LinkedList<BlockPos>();
       for (BlockPos coordinate : blocksToCheck) {
-        if (!lockedRegion.getVoxelWXYZ(coordinate.posX, coordinate.posY, coordinate.posZ)) {
+        if (!lockedRegion.getVoxelWXYZ(coordinate.getX(), coordinate.getY(), coordinate.getZ())) {
           culledList.add(coordinate);
         }
       }

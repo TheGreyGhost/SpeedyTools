@@ -1,5 +1,7 @@
 package speedytools.serverside.network;
 
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayer;
@@ -142,7 +144,7 @@ public class SpeedyToolsNetworkServer
   private void sendUpdateToClient(EntityPlayerMP player)
   {
     ServerStatus serverStatusForThisPlayer = serverStatus;
-    String nameOfOtherPlayerBeingServiced = "";
+    IChatComponent nameOfOtherPlayerBeingServiced = new ChatComponentText("");
     if (player != playerBeingServiced) {
       switch (serverStatus) {
         case IDLE:
@@ -152,7 +154,7 @@ public class SpeedyToolsNetworkServer
         case PERFORMING_YOUR_ACTION:
         case UNDOING_YOUR_ACTION: {
           serverStatusForThisPlayer = ServerStatus.BUSY_WITH_OTHER_PLAYER;
-          nameOfOtherPlayerBeingServiced = (playerBeingServiced == null) ? "someone" : playerBeingServiced.getDisplayName();
+          nameOfOtherPlayerBeingServiced = (playerBeingServiced == null) ? new ChatComponentText("someone") : playerBeingServiced.getDisplayName();
           break;
         }
         default:
@@ -287,7 +289,7 @@ public class SpeedyToolsNetworkServer
                     result = ResultWithReason.failure("Must wait for your earlier spell to undo");
                   }
                 } else {
-                  String playerName = "someone";
+                  IChatComponent playerName = new ChatComponentText("someone");
                   if (playerBeingServiced != null) {
                     playerName = playerBeingServiced.getDisplayName();
                   }
@@ -337,7 +339,7 @@ public class SpeedyToolsNetworkServer
                       result = ResultWithReason.failure("Must wait for your earlier spell to undo");
                     }
                   } else {
-                    String playerName = "someone";
+                    IChatComponent playerName = new ChatComponentText("someone");
                     if (playerBeingServiced != null) {
                       playerName = playerBeingServiced.getDisplayName();
                     }

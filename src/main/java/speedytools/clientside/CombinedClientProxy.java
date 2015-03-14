@@ -1,10 +1,16 @@
 package speedytools.clientside;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
+import net.minecraft.network.NetHandlerPlayServer;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import speedytools.SpeedyToolsMod;
 import speedytools.clientside.rendering.ItemEventHandler;
@@ -18,6 +24,7 @@ import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.items.ItemSpeedyOrb;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.items.RegistryForItems;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.File;
 import java.io.IOException;
@@ -227,7 +234,26 @@ public class CombinedClientProxy extends CommonProxy {
     return new File(Minecraft.getMinecraft().mcDataDir, "saves").toPath();
   }
 
-
+  @Override
+  public boolean enqueueMessageOnCorrectThread(MessageContext ctx, Runnable messageProcessor) {
+    switch (ctx.side) {
+      case CLIENT: {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        minecraft.addScheduledTask(messageProcessor);
+        break;
+      }
+      case SERVER: {
+        NetHandlerPlayServer netHandlerPlayServer = ctx.getServerHandler();
+        EntityPlayerMP entityPlayerMP = netHandlerPlayServer.playerEntity;
+        final WorldServer playerWorldServer = entityPlayerMP.getServerForPlayer();
+        playerWorldServer.addScheduledTask(messageProcessor);
+        break;
+      }
+      default:
+        ErrorLog.defaultLog().debug("Invalid side:" + ctx.side + " in enqueueMessageOnCorrectThread");
+    }
+    return true;
+  }
 
 
 }

@@ -1,9 +1,15 @@
 package speedytools.serverside;
 
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.NetHandlerPlayServer;
+import net.minecraft.world.WorldServer;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.server.FMLServerHandler;
 import speedytools.common.CommonProxy;
 import speedytools.common.SpeedyToolsOptions;
+import speedytools.common.utilities.ErrorLog;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,6 +65,22 @@ public class DedicatedServerProxy extends CommonProxy
       Files.createDirectory(backupsFolder);
     }
     return backupsFolder;
+  }
+
+  @Override
+  public boolean enqueueMessageOnCorrectThread(MessageContext ctx, Runnable messageProcessor) {
+    switch (ctx.side) {
+      case SERVER: {
+        NetHandlerPlayServer netHandlerPlayServer = ctx.getServerHandler();
+        EntityPlayerMP entityPlayerMP = netHandlerPlayServer.playerEntity;
+        final WorldServer playerWorldServer = entityPlayerMP.getServerForPlayer();
+        playerWorldServer.addScheduledTask(messageProcessor);
+        break;
+      }
+      default:
+        ErrorLog.defaultLog().debug("Invalid side:" + ctx.side + " in enqueueMessageOnCorrectThread");
+    }
+    return true;
   }
 
 }

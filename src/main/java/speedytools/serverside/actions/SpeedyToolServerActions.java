@@ -4,6 +4,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
@@ -70,7 +71,7 @@ public class SpeedyToolServerActions
    * @param sideToPlace
    * @param blockSelection the blocks in the selection to be filled (buttonClicked = 1 only)
    */
-  public void performSimpleAction(EntityPlayerMP entityPlayerMP, int buttonClicked, BlockWithMetadata blockToPlace, int sideToPlace, List<BlockPos> blockSelection)
+  public void performSimpleAction(EntityPlayerMP entityPlayerMP, int buttonClicked, BlockWithMetadata blockToPlace, EnumFacing sideToPlace, List<BlockPos> blockSelection)
   {
     WorldServer worldServer = entityPlayerMP.getServerForPlayer();
     switch (buttonClicked) {

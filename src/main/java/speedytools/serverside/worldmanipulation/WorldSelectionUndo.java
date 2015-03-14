@@ -1,10 +1,12 @@
 package speedytools.serverside.worldmanipulation;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.WorldServer;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.selections.VoxelSelection;
@@ -346,7 +348,7 @@ public class WorldSelectionUndo
    * @param entityPlayerMP
    * @param sideToPlace where the player's cursor is pointing when they placed the blocks
    */
-  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, int sideToPlace, List<BlockPos> blockSelection)
+  public void writeToWorld(WorldServer worldServer, EntityPlayerMP entityPlayerMP, BlockWithMetadata blockToPlace, EnumFacing sideToPlace, List<BlockPos> blockSelection)
   {
     /* algorithm is:
        (1) create a border mask for the blocks to be written, i.e. a mask showing all voxels which are adjacent to a block in the selection
@@ -357,20 +359,20 @@ public class WorldSelectionUndo
 
     if (blockSelection == null || blockSelection.isEmpty()) return;
     BlockPos firstBlock = blockSelection.get(0);
-    int xMin = firstBlock.posX;
-    int xMax = firstBlock.posX;
-    int yMin = firstBlock.posY;
-    int yMax = firstBlock.posY;
-    int zMin = firstBlock.posZ;
-    int zMax = firstBlock.posZ;
+    int xMin = firstBlock.getX();
+    int xMax = firstBlock.getX();
+    int yMin = firstBlock.getY();
+    int yMax = firstBlock.getY();
+    int zMin = firstBlock.getZ();
+    int zMax = firstBlock.getZ();
 
     for (BlockPos blockCoords : blockSelection) {
-      xMin = Math.min(xMin, blockCoords.posX);
-      xMax = Math.max(xMax, blockCoords.posX);
-      yMin = Math.min(yMin, blockCoords.posY);
-      yMax = Math.max(yMax, blockCoords.posY);
-      zMin = Math.min(zMin, blockCoords.posZ);
-      zMax = Math.max(zMax, blockCoords.posZ);
+      xMin = Math.min(xMin, blockCoords.getX());
+      xMax = Math.max(xMax, blockCoords.getX());
+      yMin = Math.min(yMin, blockCoords.getY());
+      yMax = Math.max(yMax, blockCoords.getY());
+      zMin = Math.min(zMin, blockCoords.getZ());
+      zMax = Math.max(zMax, blockCoords.getZ());
     }
     final int Y_MIN_VALID = 0;
     final int Y_MAX_VALID = 255;
@@ -390,7 +392,7 @@ public class WorldSelectionUndo
     int zSize = zMax + 1 - zMin;
     VoxelSelection expandedSelection = new VoxelSelection(xSize, ySize, zSize);
     for (BlockPos blockCoords : blockSelection) {
-      expandedSelection.setVoxel(blockCoords.posX - wxOfOrigin, blockCoords.posY - wyOfOrigin, blockCoords.posZ - wzOfOrigin);
+      expandedSelection.setVoxel(blockCoords.getX() - wxOfOrigin, blockCoords.getY() - wyOfOrigin, blockCoords.getZ() - wzOfOrigin);
     }
     VoxelSelection borderMask = expandedSelection.generateBorderMask();
     expandedSelection.union(borderMask);
@@ -402,13 +404,13 @@ public class WorldSelectionUndo
     ItemStack dummyPlaceItemStack = new ItemStack(blockItem == null ? Items.diamond : blockItem);
     for (BlockPos cc : blockSelection) {
       if (blockToPlace.block == null) {
-        worldServer.setBlockToAir(cc.posX, cc.posY, cc.posZ);
+        worldServer.setBlockToAir(cc);
       } else {
         final float DUMMY_HIT_XYZ = 0.5F;
-        blockToPlace.metaData = blockToPlace.block.onBlockPlaced(worldServer, cc.posX, cc.posY, cc.posZ,
-                                                                 sideToPlace, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ, blockToPlace.metaData);
-        worldServer.setBlock(cc.posX, cc.posY, cc.posZ, blockToPlace.block, blockToPlace.metaData, 1+2);
-        blockToPlace.block.onBlockPlacedBy(worldServer, cc.posX, cc.posY, cc.posZ, entityPlayerMP, dummyPlaceItemStack);
+        IBlockState iBlockState = blockToPlace.block.onBlockPlaced(worldServer, cc,
+                                                                   sideToPlace, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ, blockToPlace.metaData, entityPlayerMP);
+        worldServer.setBlockState(cc, iBlockState, 1+2);
+        blockToPlace.block.onBlockPlacedBy(worldServer, cc, iBlockState, entityPlayerMP, dummyPlaceItemStack);
       }
     }
 

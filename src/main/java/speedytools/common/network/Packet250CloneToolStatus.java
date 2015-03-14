@@ -1,12 +1,15 @@
 package speedytools.common.network;
 
 
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
+import speedytools.SpeedyToolsMod;
 import speedytools.common.utilities.ErrorLog;
 
 /**
@@ -14,18 +17,18 @@ import speedytools.common.utilities.ErrorLog;
 */
 public class Packet250CloneToolStatus  extends Packet250Base
 {
-  public static Packet250CloneToolStatus serverStatusChange(ServerStatus newStatus, byte newPercentage, String newNameOfPlayerBeingServiced)
+  public static Packet250CloneToolStatus serverStatusChange(ServerStatus newStatus, byte newPercentage, IChatComponent newNameOfPlayerBeingServiced)
   {
     return new Packet250CloneToolStatus(ClientStatus.UNUSED, newStatus, newPercentage, newNameOfPlayerBeingServiced);
   }
 
   public static Packet250CloneToolStatus clientStatusChange(ClientStatus newStatus)
   {
-    return new Packet250CloneToolStatus(newStatus, ServerStatus.UNUSED, (byte)100, "");
+    return new Packet250CloneToolStatus(newStatus, ServerStatus.UNUSED, (byte)100, new ChatComponentText(""));
   }
 
   private Packet250CloneToolStatus(ClientStatus newClientStatus, ServerStatus newServerStatus,
-                                   byte newPercentage, String newNameOfPlayerBeingServiced
+                                   byte newPercentage, IChatComponent newNameOfPlayerBeingServiced
   )
   {
     super();
@@ -65,7 +68,7 @@ public class Packet250CloneToolStatus  extends Packet250Base
     assert (serverStatus != null);
     return completionPercentage;
   }
-  public String getNameOfPlayerBeingServiced() {
+  public IChatComponent getNameOfPlayerBeingServiced() {
     assert (serverStatus != null);
     return nameOfPlayerBeingServiced;
   }
@@ -93,7 +96,7 @@ public class Packet250CloneToolStatus  extends Packet250Base
       clientStatus = ClientStatus.byteToCommand(buf.readByte());
       serverStatus = ServerStatus.byteToCommand(buf.readByte());
       completionPercentage = buf.readByte();
-      nameOfPlayerBeingServiced = ByteBufUtils.readUTF8String(buf);
+      nameOfPlayerBeingServiced = new ChatComponentText(ByteBufUtils.readUTF8String(buf));
     } catch (IndexOutOfBoundsException ioe) {
       ErrorLog.defaultLog().info("Exception while reading Packet250CloneToolStatus: " + ioe);
       return;
@@ -108,7 +111,7 @@ public class Packet250CloneToolStatus  extends Packet250Base
     buf.writeByte(clientStatus.getStatusID());
     buf.writeByte(serverStatus.getStatusID());
     buf.writeByte(completionPercentage);
-    ByteBufUtils.writeUTF8String(buf, nameOfPlayerBeingServiced == null ? "" : nameOfPlayerBeingServiced);
+    ByteBufUtils.writeUTF8String(buf, nameOfPlayerBeingServiced == null ? "" : nameOfPlayerBeingServiced.getUnformattedText());
   }
 
   /**
@@ -149,15 +152,22 @@ public class Packet250CloneToolStatus  extends Packet250Base
      * @param message The message
      * @return an optional return message
      */
-    public IMessage onMessage(Packet250CloneToolStatus message, MessageContext ctx)
+    public IMessage onMessage(final Packet250CloneToolStatus message, final MessageContext ctx)
     {
+      Runnable messageProcessor = null;
+
       switch (ctx.side) {
         case CLIENT: {
           if (clientSideHandler == null) {
             ErrorLog.defaultLog().severe("Packet250CloneToolStatus received but not registered on side " + ctx.side);
           } else {
 //            System.out.println("Status received:" + message.getServerStatus() );
-            clientSideHandler.handlePacket(message, ctx);
+            messageProcessor = new Runnable() {
+              @Override
+              public void run() {
+                clientSideHandler.handlePacket(message, ctx);
+              }
+            };
           }
           break;
         }
@@ -165,12 +175,24 @@ public class Packet250CloneToolStatus  extends Packet250Base
           if (serverSideHandler == null) {
             ErrorLog.defaultLog().severe("Packet250CloneToolStatus received but not registered on side " + ctx.side);
           } else {
-            serverSideHandler.handlePacket(message, ctx);
+            messageProcessor = new Runnable() {
+              @Override
+              public void run() {
+                serverSideHandler.handlePacket(message, ctx);
+              }
+            };
           }
           break;
         }
         default: assert false : "Received message on invalid side: " + ctx.side;
       }
+      if (messageProcessor != null) {
+        boolean success = SpeedyToolsMod.proxy.enqueueMessageOnCorrectThread(ctx, messageProcessor);
+        if (!success) {
+          ErrorLog.defaultLog().severe("Packet250CloneToolStatus failed to handle Packet");
+        }
+      }
+
       return null;
     }
   }
@@ -178,7 +200,7 @@ public class Packet250CloneToolStatus  extends Packet250Base
   private ClientStatus clientStatus;
   private ServerStatus serverStatus;
   private byte completionPercentage = 100;
-  private String nameOfPlayerBeingServiced;
+  private IChatComponent nameOfPlayerBeingServiced;
 
   private static PacketHandlerMethod serverSideHandler;
   private static PacketHandlerMethod clientSideHandler;

@@ -42,9 +42,9 @@ public class SelectionFillTester
       if (!performTest) {
         newRegion.drawAllTestRegionBoundaries();
         WorldFragment worldFragmentBlank = new WorldFragment(newRegion.xSize, newRegion.ySize, newRegion.zSize);
-        worldFragmentBlank.readFromWorld(worldServer, newRegion.testRegionInitialiser.posX, newRegion.testRegionInitialiser.posY, newRegion.testRegionInitialiser.posZ, null);
-        worldFragmentBlank.writeToWorld(worldServer, newRegion.testOutputRegion.posX, newRegion.testOutputRegion.posY, newRegion.testOutputRegion.posZ, null);
-        worldFragmentBlank.writeToWorld(worldServer, newRegion.expectedOutcome.posX, newRegion.expectedOutcome.posY, newRegion.expectedOutcome.posZ, null);
+        worldFragmentBlank.readFromWorld(worldServer, newRegion.testRegionInitialiser.getX(), newRegion.testRegionInitialiser.getY(), newRegion.testRegionInitialiser.getZ(), null);
+        worldFragmentBlank.writeToWorld(worldServer, newRegion.testOutputRegion.getX(), newRegion.testOutputRegion.getY(), newRegion.testOutputRegion.getZ(), null);
+        worldFragmentBlank.writeToWorld(worldServer, newRegion.expectedOutcome.getX(), newRegion.expectedOutcome.getY(), newRegion.expectedOutcome.getZ(), null);
       }
       testRegions.add(newRegion);
     }
@@ -52,19 +52,19 @@ public class SelectionFillTester
 
     int testRegionNumber = 0;
     for (InGameTester.TestRegions testRegion : testRegions) {
-      BlockPos corner1 = new BlockPos(testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ);
-      BlockPos corner2 = new BlockPos(testRegion.sourceRegion.posX + testRegion.xSize,
-                                                      testRegion.sourceRegion.posY + testRegion.ySize,
-              testRegion.sourceRegion.posZ + testRegion.zSize);
+      BlockPos corner1 = new BlockPos(testRegion.sourceRegion.getX(), testRegion.sourceRegion.getY(), testRegion.sourceRegion.getZ());
+      BlockPos corner2 = new BlockPos(testRegion.sourceRegion.getX() + testRegion.xSize,
+                                                      testRegion.sourceRegion.getY() + testRegion.ySize,
+              testRegion.sourceRegion.getZ() + testRegion.zSize);
       BlockPos blockUnderCursor = corner1;
       selectBoundFillStart(worldServer, blockUnderCursor, corner1, corner2);
       selectFillContinue(worldServer, Long.MAX_VALUE);
       BlockPos origin = getWorldOrigin();
-      VoxelSelectionWithOrigin oldSelection = new VoxelSelectionWithOrigin(origin.posX, origin.posY, origin.posZ, getSelection());
+      VoxelSelectionWithOrigin oldSelection = new VoxelSelectionWithOrigin(origin.getX(), origin.getY(), origin.getZ(), getSelection());
       WorldFragment worldFragmentOld = new WorldFragment(oldSelection.getxSize(), oldSelection.getySize(), oldSelection.getzSize());
-      worldFragmentOld.readFromWorld(worldServer, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ,
+      worldFragmentOld.readFromWorld(worldServer, testRegion.sourceRegion.getX(), testRegion.sourceRegion.getY(), testRegion.sourceRegion.getZ(),
               oldSelection);
-      worldFragmentOld.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ,
+      worldFragmentOld.writeToWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(),
               null);
 
       FillAlgorithmSettings fillAlgorithmSettings = new FillAlgorithmSettings();
@@ -113,15 +113,17 @@ public class SelectionFillTester
    * @param blockUnderCursor the block being highlighted by the cursor
    */
   public void selectUnboundFillStart(World world, BlockPos blockUnderCursor) {
-    BlockPos corner1 = new BlockPos();
-    BlockPos corner2 = new BlockPos();
     final int BORDER_ALLOWANCE = 2;
-    corner1.posX = blockUnderCursor.posX - VoxelSelection.MAX_X_SIZE / 2 + BORDER_ALLOWANCE;
-    corner2.posX = blockUnderCursor.posX + VoxelSelection.MAX_X_SIZE / 2 - BORDER_ALLOWANCE;
-    corner1.posY = blockUnderCursor.posY;
-    corner2.posY = Math.min(255, blockUnderCursor.posY + VoxelSelection.MAX_Y_SIZE - 2 * BORDER_ALLOWANCE);
-    corner1.posZ = blockUnderCursor.posZ - VoxelSelection.MAX_Z_SIZE / 2 + BORDER_ALLOWANCE;
-    corner2.posZ = blockUnderCursor.posZ + VoxelSelection.MAX_Z_SIZE / 2 - BORDER_ALLOWANCE;
+    BlockPos corner1 = new BlockPos(
+      blockUnderCursor.getX() - VoxelSelection.MAX_X_SIZE / 2 + BORDER_ALLOWANCE,
+      blockUnderCursor.getY(),
+      blockUnderCursor.getZ() - VoxelSelection.MAX_Z_SIZE / 2 + BORDER_ALLOWANCE);
+
+    BlockPos corner2 = new BlockPos(
+      blockUnderCursor.getX() + VoxelSelection.MAX_X_SIZE / 2 - BORDER_ALLOWANCE,
+      Math.min(255, blockUnderCursor.getY() + VoxelSelection.MAX_Y_SIZE - 2 * BORDER_ALLOWANCE),
+      blockUnderCursor.getZ() + VoxelSelection.MAX_Z_SIZE / 2 - BORDER_ALLOWANCE);
+
 
     selectBoundFillStart(world, blockUnderCursor, corner1, corner2);
   }
@@ -136,16 +138,16 @@ public class SelectionFillTester
    */
   public void selectBoundFillStart(World world, BlockPos blockUnderCursor, BlockPos corner1, BlockPos corner2) {
     initialiseSelectionSizeFromBoundary(corner1, corner2);
-    assert (blockUnderCursor.posX >= wxOrigin && blockUnderCursor.posY >= wyOrigin && blockUnderCursor.posZ >= wzOrigin);
-    assert (blockUnderCursor.posX < wxOrigin + xSize && blockUnderCursor.posY < wyOrigin + ySize && blockUnderCursor.posZ < wzOrigin + zSize);
+    assert (blockUnderCursor.getX() >= wxOrigin && blockUnderCursor.getY() >= wyOrigin && blockUnderCursor.getZ() >= wzOrigin);
+    assert (blockUnderCursor.getX() < wxOrigin + xSize && blockUnderCursor.getY() < wyOrigin + ySize && blockUnderCursor.getZ() < wzOrigin + zSize);
     mode = OperationInProgress.FILL;
     initialiseVoxelRange();
-    BlockPos startingBlockCopy = new BlockPos(blockUnderCursor.posX - wxOrigin, blockUnderCursor.posY - wyOrigin, blockUnderCursor.posZ - wzOrigin);
+    BlockPos startingBlockCopy = new BlockPos(blockUnderCursor.getX() - wxOrigin, blockUnderCursor.getY() - wyOrigin, blockUnderCursor.getZ() - wzOrigin);
     currentSearchPositions.clear();
     nextDepthSearchPositions.clear();
     currentSearchPositions.add(new SearchPosition(startingBlockCopy));
-    selection.setVoxel(startingBlockCopy.posX, startingBlockCopy.posY, startingBlockCopy.posZ);
-    expandVoxelRange(startingBlockCopy.posX, startingBlockCopy.posY, startingBlockCopy.posZ);
+    selection.setVoxel(startingBlockCopy.getX(), startingBlockCopy.getY(), startingBlockCopy.getZ());
+    expandVoxelRange(startingBlockCopy.getX(), startingBlockCopy.getY(), startingBlockCopy.getZ());
     blocksAddedCount = 0;
   }
 
@@ -224,20 +226,20 @@ public class SelectionFillTester
 
     while (!currentSearchPositions.isEmpty()) {
       SearchPosition currentSearchPosition = currentSearchPositions.getFirst();
-      checkPosition.set(currentSearchPosition.chunkCoordinates.posX + searchDirectionsX[currentSearchPosition.nextSearchDirection],
-              currentSearchPosition.chunkCoordinates.posY + searchDirectionsY[currentSearchPosition.nextSearchDirection],
-              currentSearchPosition.chunkCoordinates.posZ + searchDirectionsZ[currentSearchPosition.nextSearchDirection]);
-      if (checkPosition.posX >= 0 && checkPosition.posX < xSize
-              && checkPosition.posY >= 0 && checkPosition.posY < ySize
-              && checkPosition.posZ >= 0 && checkPosition.posZ < zSize
-              && !selection.getVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ)) {
-        boolean blockIsAir = world.isAirBlock(checkPosition.posX + wxOrigin, checkPosition.posY + wyOrigin, checkPosition.posZ + wzOrigin);
+      checkPosition = new BlockPos(currentSearchPosition.chunkCoordinates.getX() + searchDirectionsX[currentSearchPosition.nextSearchDirection],
+              currentSearchPosition.chunkCoordinates.getY() + searchDirectionsY[currentSearchPosition.nextSearchDirection],
+              currentSearchPosition.chunkCoordinates.getZ() + searchDirectionsZ[currentSearchPosition.nextSearchDirection]);
+      if (checkPosition.getX() >= 0 && checkPosition.getX() < xSize
+              && checkPosition.getY() >= 0 && checkPosition.getY() < ySize
+              && checkPosition.getZ() >= 0 && checkPosition.getZ() < zSize
+              && !selection.getVoxel(checkPosition.getX(), checkPosition.getY(), checkPosition.getZ())) {
+        boolean blockIsAir = world.isAirBlock(checkPosition.add(wxOrigin, wyOrigin, wzOrigin));
         if (!blockIsAir) {
           BlockPos newChunkCoordinate = new BlockPos(checkPosition);
           SearchPosition nextSearchPosition = new SearchPosition(newChunkCoordinate);
           nextDepthSearchPositions.addLast(nextSearchPosition);
-          selection.setVoxel(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
-          expandVoxelRange(checkPosition.posX, checkPosition.posY, checkPosition.posZ);
+          selection.setVoxel(checkPosition.getX(), checkPosition.getY(), checkPosition.getZ());
+          expandVoxelRange(checkPosition.getX(), checkPosition.getY(), checkPosition.getZ());
           ++blocksAddedCount;
         }
       }
@@ -341,12 +343,12 @@ public class SelectionFillTester
   }
 
   private void initialiseSelectionSizeFromBoundary(BlockPos corner1, BlockPos corner2) {
-    wxOrigin = Math.min(corner1.posX, corner2.posX);
-    wyOrigin = Math.min(corner1.posY, corner2.posY);
-    wzOrigin = Math.min(corner1.posZ, corner2.posZ);
-    xSize = 1 + Math.max(corner1.posX, corner2.posX) - wxOrigin;
-    ySize = 1 + Math.max(corner1.posY, corner2.posY) - wyOrigin;
-    zSize = 1 + Math.max(corner1.posZ, corner2.posZ) - wzOrigin;
+    wxOrigin = Math.min(corner1.getX(), corner2.getX());
+    wyOrigin = Math.min(corner1.getY(), corner2.getY());
+    wzOrigin = Math.min(corner1.getZ(), corner2.getZ());
+    xSize = 1 + Math.max(corner1.getX(), corner2.getX()) - wxOrigin;
+    ySize = 1 + Math.max(corner1.getY(), corner2.getY()) - wyOrigin;
+    zSize = 1 + Math.max(corner1.getZ(), corner2.getZ()) - wzOrigin;
     if (selection == null) {
       selection = new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);
       unavailableVoxels = new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, xSize, ySize, zSize);

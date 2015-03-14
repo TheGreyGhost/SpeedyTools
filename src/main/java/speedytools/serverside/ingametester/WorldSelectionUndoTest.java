@@ -63,21 +63,21 @@ public class WorldSelectionUndoTest
     InGameTester.TestRegions allRegions = new InGameTester.TestRegions(XORIGIN, YORIGIN, ZORIGIN + ACTION_COUNT * ZSIZE, XSIZE, YSIZE, ZSIZE, true);
 
     WorldFragment worldFragmentBlank = new WorldFragment(allRegions.xSize, allRegions.ySize, allRegions.zSize);
-    worldFragmentBlank.readFromWorld(worldServer1, allRegions.testRegionInitialiser.posX, allRegions.testRegionInitialiser.posY, allRegions.testRegionInitialiser.posZ, null);
+    worldFragmentBlank.readFromWorld(worldServer1, allRegions.testRegionInitialiser.getX(), allRegions.testRegionInitialiser.getY(), allRegions.testRegionInitialiser.getZ(), null);
     ArrayList<WorldFragment> sourceFragments = new ArrayList<WorldFragment>();
     for (int i = 0; i < ACTION_COUNT; ++i) {
       InGameTester.TestRegions testRegion = testRegions.get(i);
       WorldFragment worldFragment = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
       for (int j = 0; j < (2 << ACTION_COUNT); ++j) {                                                          // make binary pattern for all combinations of actions
-        int wx = testRegion.sourceRegion.posX + j / testRegion.zSize;
-        int wy = testRegion.sourceRegion.posY;
-        int wz = testRegion.sourceRegion.posZ + j % testRegion.zSize;
+        int wx = testRegion.sourceRegion.getX() + j / testRegion.zSize;
+        int wy = testRegion.sourceRegion.getY();
+        int wz = testRegion.sourceRegion.getZ() + j % testRegion.zSize;
 
         Chunk chunk = worldServer1.getChunkFromChunkCoords(wx >> 4, wz >> 4);
         boolean successful = WorldFragment.setBlockIDWithMetadata(chunk, wx, wy, wz, (0 == (j & (1 << i))) ? 0 : Block.getIdFromBlock(Blocks.wool), i+1);
       }
       VoxelSelection voxelSelection = InGameTester.selectAllNonAir(worldServer1, testRegion.sourceRegion, testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragment.readFromWorld(worldServer1, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
+      worldFragment.readFromWorld(worldServer1, testRegion.sourceRegion.getX(), testRegion.sourceRegion.getY(), testRegion.sourceRegion.getZ(), voxelSelection);
       sourceFragments.add(worldFragment);
     }
 
@@ -89,9 +89,9 @@ public class WorldSelectionUndoTest
     WorldHistory worldHistory = new WorldHistory(MAX_HISTORY_DEPTH_TEST_1, MAX_HISTORY_PER_PLAYER);
     ArrayList<WorldSelectionUndo> worldSelectionUndos = new ArrayList<WorldSelectionUndo>();
     for (int i = 0; i < ACTION_COUNT; ++i) {
-      worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(i), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+      worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(i), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
       worldSelectionUndos.add(new WorldSelectionUndo());
-      worldSelectionUndos.get(i).writeToWorld(worldServer2, sourceFragments.get(i), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+      worldSelectionUndos.get(i).writeToWorld(worldServer2, sourceFragments.get(i), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 //      printTestRegionSlice("Assemble" + i, worldServer1, worldServer2, allRegions, 0);
     }
 
@@ -109,20 +109,20 @@ public class WorldSelectionUndoTest
 
     // second test:
     // 2) Intersperse two different WorldServers and two different players.  Verify that the performUndo calls in correct order
-    worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
-    worldFragmentBlank.writeToWorld(worldServer2, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
+    worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
+    worldFragmentBlank.writeToWorld(worldServer2, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
 
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(0), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer2, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(2), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer2, sourceFragments.get(3), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(0), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer2, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(2), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer2, sourceFragments.get(3), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 
     WorldServerTest worldServer1b = WorldServerTest.createDummyInstance(TEST_WORLD_X_SIZE, TEST_WORLD_Z_SIZE);
     WorldServerTest worldServer2b = WorldServerTest.createDummyInstance(TEST_WORLD_X_SIZE, TEST_WORLD_Z_SIZE);
-    worldSelectionUndos.get(0).writeToWorld(worldServer1b, sourceFragments.get(0), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldSelectionUndos.get(1).writeToWorld(worldServer2b, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldSelectionUndos.get(2).writeToWorld(worldServer1b, sourceFragments.get(2), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldSelectionUndos.get(3).writeToWorld(worldServer2b, sourceFragments.get(3), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldSelectionUndos.get(0).writeToWorld(worldServer1b, sourceFragments.get(0), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldSelectionUndos.get(1).writeToWorld(worldServer2b, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldSelectionUndos.get(2).writeToWorld(worldServer1b, sourceFragments.get(2), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldSelectionUndos.get(3).writeToWorld(worldServer2b, sourceFragments.get(3), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true) && compareTestWorldServers(worldServer2, worldServer2b, allRegions, true);
 
     List<WorldSelectionUndo> laterLayers = new LinkedList<WorldSelectionUndo>();
@@ -147,15 +147,15 @@ public class WorldSelectionUndoTest
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true) && compareTestWorldServers(worldServer2, worldServer2b, allRegions, true);
 
     // third test: 3) Delete one of the WorldServers and verify that the performUndo doesn't crash, correctly undoes the remaining change, and further undoes return false
-    worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
-    worldFragmentBlank.writeToWorld(worldServer1b, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
+    worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
+    worldFragmentBlank.writeToWorld(worldServer1b, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
 
     WorldServerTest worldServer3 = WorldServerTest.createDummyInstance(TEST_WORLD_X_SIZE, TEST_WORLD_Z_SIZE);
     WorldServerTest worldServer4 = WorldServerTest.createDummyInstance(TEST_WORLD_X_SIZE, TEST_WORLD_Z_SIZE);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer3, sourceFragments.get(0), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer4, sourceFragments.get(2), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldSelectionUndos.get(0).writeToWorld(worldServer1b, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer3, sourceFragments.get(0), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer4, sourceFragments.get(2), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldSelectionUndos.get(0).writeToWorld(worldServer1b, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
     assert compareTestWorldServers(worldServer1, worldServer1b, allRegions, true);
 
     worldServer3 = null;
@@ -167,20 +167,20 @@ public class WorldSelectionUndoTest
     assert !worldHistory.performComplexUndo(entityPlayerMPTest1, worldServer1);
 
     // 4th test: 4) Delete one of the EntityPlayerMP and verify that it doesn't affect the other player's undoes
-    worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
-    worldFragmentBlank.writeToWorld(worldServer1b, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
+    worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
+    worldFragmentBlank.writeToWorld(worldServer1b, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
 
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(0), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(2), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(3), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(4), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(0), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(2), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(3), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(4), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 
-    worldSelectionUndos.get(0).writeToWorld(worldServer1b, sourceFragments.get(0), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldSelectionUndos.get(1).writeToWorld(worldServer1b, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldSelectionUndos.get(2).writeToWorld(worldServer1b, sourceFragments.get(2), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldSelectionUndos.get(3).writeToWorld(worldServer1b, sourceFragments.get(3), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldSelectionUndos.get(4).writeToWorld(worldServer1b, sourceFragments.get(4), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldSelectionUndos.get(0).writeToWorld(worldServer1b, sourceFragments.get(0), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldSelectionUndos.get(1).writeToWorld(worldServer1b, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldSelectionUndos.get(2).writeToWorld(worldServer1b, sourceFragments.get(2), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldSelectionUndos.get(3).writeToWorld(worldServer1b, sourceFragments.get(3), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldSelectionUndos.get(4).writeToWorld(worldServer1b, sourceFragments.get(4), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 //    printTestRegionSlice("init", worldServer1b, worldServer1, allRegions, 0);
     entityPlayerMPTest2 = null;
@@ -207,51 +207,51 @@ public class WorldSelectionUndoTest
     // 5th test:
     // 5) Initialise with a small history depth, add multiple from different players, and verify that they are deleted oldest first, leaving each player with at least one.
     //    add a WorldServer and delete it and verify that it doesn't occupy space.
-    worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
-    worldFragmentBlank.writeToWorld(worldServer1b, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
+    worldFragmentBlank.writeToWorld(worldServer1, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
+    worldFragmentBlank.writeToWorld(worldServer1b, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
     entityPlayerMPTest2 = EntityPlayerMPTest.createDummyInstance();
     EntityPlayerMPTest entityPlayerMPTest3 = EntityPlayerMPTest.createDummyInstance();
 
     worldHistory = new WorldHistory(3, MAX_HISTORY_PER_PLAYER);
     worldServer2 = WorldServerTest.createDummyInstance(TEST_WORLD_X_SIZE, TEST_WORLD_Z_SIZE);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(0), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer1, sourceFragments.get(0), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 //    printTestRegionSlice("writeToWorldWithUndo:1", worldServer1b, worldServer1, allRegions, 0);
 //    worldHistory.printUndoStackYSlice(worldServer1, allRegions.testOutputRegion, allRegions.xSize, 0, allRegions.zSize);
 
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer2, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest1, worldServer2, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
     worldHistory.removeWorldServer(worldServer2);  worldServer2 = null;
 //    printTestRegionSlice("writeToWorldWithUndo:2", worldServer1b, worldServer1, allRegions, 0);
 //    worldHistory.printUndoStackYSlice(worldServer1, allRegions.testOutputRegion, allRegions.xSize, 0, allRegions.zSize);
 
     // test that 0 is not pushed because server2 was removed
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(2), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(2), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 //    printTestRegionSlice("writeToWorldWithUndo:3", worldServer1b, worldServer1, allRegions, 0);
 //    worldHistory.printUndoStackYSlice(worldServer1, allRegions.testOutputRegion, allRegions.xSize, 0, allRegions.zSize);
 
     // test that oldest player 2 is pushed not 1
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest3, worldServer1, sourceFragments.get(3), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest3, worldServer1, sourceFragments.get(3), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
     worldHistory.removePlayer(entityPlayerMPTest3);  entityPlayerMPTest3 = null;
 //    printTestRegionSlice("writeToWorldWithUndo:4", worldServer1b, worldServer1, allRegions, 0);
 //    worldHistory.printUndoStackYSlice(worldServer1, allRegions.testOutputRegion, allRegions.xSize, 0, allRegions.zSize);
 
     // test that 0 is not pushed because player3 was removed
-    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(4), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldHistory.writeToWorldWithUndo(entityPlayerMPTest2, worldServer1, sourceFragments.get(4), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
     // in summary: should see 0U, 1P, 2U, 3P, 4U
 
 //    printTestRegionSlice("writeToWorldWithUndo:5", worldServer1b, worldServer1, allRegions, 0);
 //    worldHistory.printUndoStackYSlice(worldServer1, allRegions.testOutputRegion, allRegions.xSize, 0, allRegions.zSize);
 
 //    printTestRegionSlice("worldHistory.writeToWorldWithUndo)", worldServer1b, worldServer1, allRegions, 0);
-    worldSelectionUndos.get(0).writeToWorld(worldServer1b, sourceFragments.get(0), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldSelectionUndos.get(0).writeToWorld(worldServer1b, sourceFragments.get(0), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 //    printTestRegionSlice("worldSelectionUndos.get(0)", worldServer1b, worldServer1, allRegions, 0);
-    worldSelectionUndos.get(1).writeToWorld(worldServer1b, sourceFragments.get(1), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldSelectionUndos.get(1).writeToWorld(worldServer1b, sourceFragments.get(1), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 //    printTestRegionSlice("worldSelectionUndos.get(1)", worldServer1b, worldServer1, allRegions, 0);
-    worldSelectionUndos.get(2).writeToWorld(worldServer1b, sourceFragments.get(2), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldSelectionUndos.get(2).writeToWorld(worldServer1b, sourceFragments.get(2), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 //    printTestRegionSlice("worldSelectionUndos.get(2)", worldServer1b, worldServer1, allRegions, 0);
-    worldSelectionUndos.get(3).writeToWorld(worldServer1b, sourceFragments.get(3), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldSelectionUndos.get(3).writeToWorld(worldServer1b, sourceFragments.get(3), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 //    printTestRegionSlice("worldSelectionUndos.get(3)", worldServer1b, worldServer1, allRegions, 0);
-    worldSelectionUndos.get(4).writeToWorld(worldServer1b, sourceFragments.get(4), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+    worldSelectionUndos.get(4).writeToWorld(worldServer1b, sourceFragments.get(4), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
 //    printTestRegionSlice("worldSelectionUndos.get(4)", worldServer1b, worldServer1, allRegions, 0);
     assert compareTestWorldServers(worldServer1b, worldServer1, allRegions, true);
 
@@ -278,9 +278,9 @@ public class WorldSelectionUndoTest
   // returns true if the testOutputRegion in both worldServers is identical
   public boolean compareTestWorldServers(WorldServerTest worldServerExpected, WorldServerTest worldServerActual, InGameTester.TestRegions testRegions, boolean printOnCompareFail) {
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServerExpected, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServerExpected, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServerActual, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServerActual, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     boolean retval = WorldFragment.areFragmentsEqual(worldFragmentExpectedOutcome, worldFragmentActualOutcome);
     if (!retval && printOnCompareFail) {
       printFragments(worldFragmentExpectedOutcome, worldFragmentActualOutcome, WorldFragment.lastCompareFailY);
@@ -308,9 +308,9 @@ public class WorldSelectionUndoTest
   // prints a slice from two world Server test regions
   public void printTestRegionSlice(String title, WorldServerTest worldServerExpected, WorldServerTest worldServerActual, InGameTester.TestRegions testRegions, int y) {
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServerExpected, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServerExpected, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServerActual, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServerActual, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     System.out.println(title);
     printFragments(worldFragmentExpectedOutcome, worldFragmentActualOutcome, y);
   }
@@ -360,21 +360,21 @@ public class WorldSelectionUndoTest
     }
 
     WorldFragment worldFragmentBlank = new WorldFragment(allRegions.xSize, allRegions.ySize, allRegions.zSize);
-    worldFragmentBlank.readFromWorld(worldServer, allRegions.testRegionInitialiser.posX, allRegions.testRegionInitialiser.posY, allRegions.testRegionInitialiser.posZ, null);
+    worldFragmentBlank.readFromWorld(worldServer, allRegions.testRegionInitialiser.getX(), allRegions.testRegionInitialiser.getY(), allRegions.testRegionInitialiser.getZ(), null);
     ArrayList<WorldFragment> sourceFragments = new ArrayList<WorldFragment>();
     for (int i = 0; i < ACTION_COUNT; ++i) {
       InGameTester.TestRegions testRegion = testRegions.get(i);
       WorldFragment worldFragment = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
       for (int j = 0; j < (2 << ACTION_COUNT); ++j) {                                                          // make binary pattern for all combinations of actions
-        int wx = testRegion.sourceRegion.posX + j / testRegion.zSize;
-        int wy = testRegion.sourceRegion.posY;
-        int wz = testRegion.sourceRegion.posZ + j % testRegion.zSize;
+        int wx = testRegion.sourceRegion.getX() + j / testRegion.zSize;
+        int wy = testRegion.sourceRegion.getY();
+        int wz = testRegion.sourceRegion.getZ() + j % testRegion.zSize;
 
         Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
         boolean successful = WorldFragment.setBlockIDWithMetadata(chunk, wx, wy, wz, (0 == (j & (1 << i))) ? 0 : Block.getIdFromBlock(Blocks.wool), i+1);
       }
       VoxelSelection voxelSelection = InGameTester.selectAllNonAir(worldServer, testRegion.sourceRegion, testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragment.readFromWorld(worldServer, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
+      worldFragment.readFromWorld(worldServer, testRegion.sourceRegion.getX(), testRegion.sourceRegion.getY(), testRegion.sourceRegion.getZ(), voxelSelection);
       sourceFragments.add(worldFragment);
     }
 
@@ -395,20 +395,20 @@ public class WorldSelectionUndoTest
           debugPrint = true; // breakpoint here
         }
         // start by placing all actions, then undoing or permanenting them one by one, checking the match after each step
-        worldFragmentBlank.writeToWorld(worldServer, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
+        worldFragmentBlank.writeToWorld(worldServer, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
         boolean actionIncluded[] = new boolean[ACTION_COUNT];
         ArrayList<WorldSelectionUndo> layersLeft = new ArrayList<WorldSelectionUndo>();
         for (int i = 0; i < ACTION_COUNT; ++i) {
-          worldSelectionUndos.get(i).writeToWorld(worldServer, sourceFragments.get(i), allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ);
+          worldSelectionUndos.get(i).writeToWorld(worldServer, sourceFragments.get(i), allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ());
           layersLeft.add(worldSelectionUndos.get(i));
           actionIncluded[i] = true;
         }
         if (debugPrint) {
           String states = "worldSelectionUndos[" + DEBUG_XPOS + ", 0, " + DEBUG_ZPOS + "]:";
           for (int k = 0; k < ACTION_COUNT; ++k) {
-            Integer savedValue = worldSelectionUndos.get(k).getStoredMetadata(DEBUG_XPOS + allRegions.testOutputRegion.posX,
-                                                                             allRegions.testOutputRegion.posY,
-                                                                             DEBUG_ZPOS + allRegions.testOutputRegion.posZ);
+            Integer savedValue = worldSelectionUndos.get(k).getStoredMetadata(DEBUG_XPOS + allRegions.testOutputRegion.getX(),
+                                                                             allRegions.testOutputRegion.getY(),
+                                                                             DEBUG_ZPOS + allRegions.testOutputRegion.getZ());
             states += (savedValue == null) ? "-" : savedValue;
             states += " ";
           }
@@ -445,25 +445,25 @@ public class WorldSelectionUndoTest
           if (debugPrint) {
             String states = "after undo/place   [" + DEBUG_XPOS + ", 0, " + DEBUG_ZPOS + "]:";
             for (int k = 0; k < ACTION_COUNT; ++k) {
-              Integer savedValue = worldSelectionUndos.get(k).getStoredMetadata(DEBUG_XPOS + allRegions.testOutputRegion.posX,
-                      allRegions.testOutputRegion.posY,
-                      DEBUG_ZPOS + allRegions.testOutputRegion.posZ);
+              Integer savedValue = worldSelectionUndos.get(k).getStoredMetadata(DEBUG_XPOS + allRegions.testOutputRegion.getX(),
+                      allRegions.testOutputRegion.getY(),
+                      DEBUG_ZPOS + allRegions.testOutputRegion.getZ());
               states += (savedValue == null) ? "-" : savedValue;
               states += " ";
             }
             System.out.println(states);
           }
           // create expected outcome at this step = placing all fragments which are still included
-          worldFragmentBlank.writeToWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
+          worldFragmentBlank.writeToWorld(worldServer, allRegions.expectedOutcome.getX(), allRegions.expectedOutcome.getY(), allRegions.expectedOutcome.getZ(), null);
           for (int i = 0; i < ACTION_COUNT; ++i) {
             if (actionIncluded[i]) {
-              sourceFragments.get(i).writeToWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
+              sourceFragments.get(i).writeToWorld(worldServer, allRegions.expectedOutcome.getX(), allRegions.expectedOutcome.getY(), allRegions.expectedOutcome.getZ(), null);
             }
           }
           WorldFragment worldFragmentExpectedOutcome = new WorldFragment(allRegions.xSize, allRegions.ySize, allRegions.zSize);
-          worldFragmentExpectedOutcome.readFromWorld(worldServer, allRegions.expectedOutcome.posX, allRegions.expectedOutcome.posY, allRegions.expectedOutcome.posZ, null);
+          worldFragmentExpectedOutcome.readFromWorld(worldServer, allRegions.expectedOutcome.getX(), allRegions.expectedOutcome.getY(), allRegions.expectedOutcome.getZ(), null);
           WorldFragment worldFragmentActualOutcome = new WorldFragment(allRegions.xSize, allRegions.ySize, allRegions.zSize);
-          worldFragmentActualOutcome.readFromWorld(worldServer, allRegions.testOutputRegion.posX, allRegions.testOutputRegion.posY, allRegions.testOutputRegion.posZ, null);
+          worldFragmentActualOutcome.readFromWorld(worldServer, allRegions.testOutputRegion.getX(), allRegions.testOutputRegion.getY(), allRegions.testOutputRegion.getZ(), null);
           boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
           if (!retval) {
             String errorString = "comparison failed for perm=" + perm + " [";
@@ -511,7 +511,7 @@ public class WorldSelectionUndoTest
     }
 
     public WorldServerTest() {
-      super(null, null, null, 0, null, null);
+      super(null, null, null, 0, null);
     }
 
     public void initialise(int i_xChunkCount, int i_zChunkCount) {
@@ -525,11 +525,11 @@ public class WorldSelectionUndoTest
       }
     }
 
-    @Override
-    public TileEntity getTileEntity(int par1, int par2, int par3) {return null;}
+//    @Override  todo need to update this stub
+//    public TileEntity getTileEntity(int par1, int par2, int par3) {return null;}
 
-    @Override
-    public List selectEntitiesWithinAABB(Class par1Class, AxisAlignedBB par2AxisAlignedBB, IEntitySelector par3IEntitySelector) {return new ArrayList();}
+//    @Override todo need to update this stub
+//    public List selectEntitiesWithinAABB(Class par1Class, AxisAlignedBB par2AxisAlignedBB, IEntitySelector par3IEntitySelector) {return new ArrayList();}
 
     @Override
     public Chunk getChunkFromChunkCoords(int cx, int cz)
@@ -553,18 +553,18 @@ public class WorldSelectionUndoTest
     public void generateSkylightMap() {return;}
     @Override
     public void generateHeightMap() {return;}
-    @Override
-    public int getSavedLightValue(EnumSkyBlock par1EnumSkyBlock, int par2, int par3, int par4)
-    {
-      ExtendedBlockStorage extendedblockstorage = this.getBlockStorageArray()[par3 >> 4];
-      if (extendedblockstorage == null)
-        return (this.canBlockSeeTheSky(par2, par3, par4) ? par1EnumSkyBlock.defaultLightValue : 0);
-      else if (par1EnumSkyBlock == EnumSkyBlock.Sky)
-        return (/* this.worldObj.provider.hasNoSky ? 0 :*/ extendedblockstorage.getExtSkylightValue(par2, par3 & 15, par4));
-      else if (par1EnumSkyBlock == EnumSkyBlock.Block)
-        return extendedblockstorage.getExtBlocklightValue(par2, par3 & 15, par4);
-      else return par1EnumSkyBlock.defaultLightValue;
-    }
+
+//    public int getSavedLightValue(EnumSkyBlock par1EnumSkyBlock, int par2, int par3, int par4)
+//    {
+////      ExtendedBlockStorage extendedblockstorage = this.getBlockStorageArray()[par3 >> 4];   todo light storage
+////      if (extendedblockstorage == null)
+////        return (this.canBlockSeeTheSky(par2, par3, par4) ? par1EnumSkyBlock.defaultLightValue : 0);
+////      else if (par1EnumSkyBlock == EnumSkyBlock.Sky)
+////        return (/* this.worldObj.provider.hasNoSky ? 0 :*/ extendedblockstorage.getExtSkylightValue(par2, par3 & 15, par4));
+////      else if (par1EnumSkyBlock == EnumSkyBlock.Block)
+////        return extendedblockstorage.getExtBlocklightValue(par2, par3 & 15, par4);
+////      else return par1EnumSkyBlock.defaultLightValue;
+//    }
 
 
   }

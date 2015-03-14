@@ -7,6 +7,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
+import speedytools.SpeedyToolsMod;
 import speedytools.common.network.Packet250Base;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.PacketHandlerRegistry;
@@ -158,7 +159,7 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
      * @param message The message
      * @return an optional return message
      */
-    public IMessage onMessage(Packet250MultipartSegmentAcknowledge message, MessageContext ctx)
+    public IMessage onMessage(final Packet250MultipartSegmentAcknowledge message, final MessageContext ctx)
     {
       Packet250Types packet250Type = message.getPacket250Type();
       PacketHandlerMethod handlerMethod = null;
@@ -177,7 +178,18 @@ public class Packet250MultipartSegmentAcknowledge extends Packet250Base
       if (handlerMethod == null) {
         ErrorLog.defaultLog().severe("Packet250MultipartSegmentAcknowledge for packet type " + packet250Type + " received but not registered on side " + ctx.side);
       } else {
-        handlerMethod.handlePacket(message, ctx);
+        final PacketHandlerMethod handlerMethodFinal = handlerMethod;
+        Runnable messageProcessor = new Runnable() {
+          @Override
+          public void run() {
+            handlerMethodFinal.handlePacket(message, ctx);
+          }
+        };
+        boolean success = SpeedyToolsMod.proxy.enqueueMessageOnCorrectThread(ctx, messageProcessor);
+        if (!success) {
+          ErrorLog.defaultLog().severe("Packet250MultipartSegmentAcknowledge failed to handle Packet");
+        }
+
       }
 
       return null;

@@ -1,5 +1,7 @@
 package speedytools.serverside.ingametester;
 
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -309,9 +311,9 @@ public class InGameStatusSimulator
     }
 
     @Override
-    public String getDisplayName()
+    public IChatComponent getDisplayName()
     {
-      return "Dummy";
+      return new ChatComponentText("Dummy");
     }
 
   }

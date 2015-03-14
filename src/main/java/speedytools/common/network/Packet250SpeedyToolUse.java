@@ -10,6 +10,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
+import speedytools.SpeedyToolsMod;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.utilities.ErrorLog;
 
@@ -91,14 +92,20 @@ public class Packet250SpeedyToolUse extends Packet250Base
      * @param message The message
      * @return an optional return message
      */
-    public IMessage onMessage(Packet250SpeedyToolUse message, MessageContext ctx)
+    public IMessage onMessage(final Packet250SpeedyToolUse message, final MessageContext ctx)
     {
       if (serverSideHandler == null) {
         ErrorLog.defaultLog().severe("Packet250SpeedyToolUse received but not registered.");
       } else if (ctx.side != Side.SERVER) {
         ErrorLog.defaultLog().severe("Packet250SpeedyToolUse received on wrong side");
       } else {
-        serverSideHandler.handlePacket(message, ctx);
+        Runnable messageProcessor = new Runnable() {
+          @Override
+          public void run() {
+            serverSideHandler.handlePacket(message, ctx);
+          }
+        };
+        SpeedyToolsMod.proxy.enqueueMessageOnCorrectThread(ctx, messageProcessor);
       }
       return null;
     }

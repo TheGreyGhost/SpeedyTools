@@ -1,8 +1,10 @@
 package speedytools.serverside.worldmanipulation;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 
@@ -19,7 +21,7 @@ public class WorldServerReader
   }
 
   public int getBlockId(int wx, int wy, int wz) {
-    Block block = worldServer.getBlock(wx, wy, wz);
+    Block block = worldServer.getBlockState(new BlockPos(wx, wy, wz)).getBlock();
     return Block.getIdFromBlock(block);
   }
 
@@ -28,11 +30,12 @@ public class WorldServerReader
   }
 
   public int getBlockMetadata(int wx, int wy, int wz) {
-    return worldServer.getBlockMetadata(wx, wy, wz);
+    IBlockState iBlockState = worldServer.getBlockState(new BlockPos(wx, wy, wz));
+    return iBlockState.getBlock().getMetaFromState(iBlockState);
   }
 
   public TileEntity getBlockTileEntity(int wx, int wy, int wz) {
-    return worldServer.getTileEntity(wx, wy, wz);
+    return worldServer.getTileEntity(new BlockPos(wx, wy, wz));
   }
 
   public List getEntitiesWithinAABB(Class par1Class, AxisAlignedBB par2AxisAlignedBB) {

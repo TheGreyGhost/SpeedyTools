@@ -7,6 +7,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
+import speedytools.SpeedyToolsMod;
 import speedytools.common.utilities.ErrorLog;
 
 /**
@@ -167,14 +168,20 @@ public class Packet250CloneToolAcknowledge extends Packet250Base
      * @param message The message
      * @return an optional return message
      */
-    public IMessage onMessage(Packet250CloneToolAcknowledge message, MessageContext ctx)
+    public IMessage onMessage(final Packet250CloneToolAcknowledge message, final MessageContext ctx)
     {
+      Runnable messageProcessor = null;
       switch (ctx.side) {
         case CLIENT: {
           if (clientSideHandler == null) {
             ErrorLog.defaultLog().severe("Packet250CloneToolAcknowledge received but not registered on side " + ctx.side);
           } else {
-            clientSideHandler.handlePacket(message, ctx);
+            messageProcessor = new Runnable() {
+              @Override
+              public void run() {
+                clientSideHandler.handlePacket(message, ctx);
+              }
+            };
           }
           break;
         }
@@ -182,12 +189,24 @@ public class Packet250CloneToolAcknowledge extends Packet250Base
           if (serverSideHandler == null) {
             ErrorLog.defaultLog().severe("Packet250CloneToolAcknowledge received but not registered on side " + ctx.side);
           } else {
-            serverSideHandler.handlePacket(message, ctx);
+            messageProcessor = new Runnable() {
+              @Override
+              public void run() {
+                serverSideHandler.handlePacket(message, ctx);
+              }
+            };
           }
           break;
         }
         default: assert false : "Received message on invalid side: " + ctx.side;
       }
+      if (messageProcessor != null) {
+        boolean success = SpeedyToolsMod.proxy.enqueueMessageOnCorrectThread(ctx, messageProcessor);
+        if (!success) {
+          ErrorLog.defaultLog().severe("Packet250CloneToolAcknowledge failed to handle Packet");
+        }
+      }
+
       return null;
     }
   }

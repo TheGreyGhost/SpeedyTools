@@ -6,6 +6,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.BlockPos;
+import speedytools.SpeedyToolsMod;
 import speedytools.common.selections.FillAlgorithmSettings;
 import speedytools.common.utilities.ErrorLog;
 
@@ -280,14 +281,20 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
     public Packet250ServerSelectionGeneration handlePacket(Packet250ServerSelectionGeneration packet250CloneToolUse, MessageContext ctx);
   }
 
-  private static Packet250ServerSelectionGeneration handleMessage(Packet250ServerSelectionGeneration message, MessageContext ctx)
+  private static Packet250ServerSelectionGeneration handleMessage(final Packet250ServerSelectionGeneration message, final MessageContext ctx)
   {
+    Runnable messageProcessor = null;
     switch (ctx.side) {
       case CLIENT: {
         if (clientSideHandler == null) {
           ErrorLog.defaultLog().severe("Packet250ServerSelectionGeneration received but not registered on client.");
         } else {
-          clientSideHandler.handlePacket(message, ctx);
+          messageProcessor = new Runnable() {
+            @Override
+            public void run() {
+              clientSideHandler.handlePacket(message, ctx);
+            }
+          };
         }
         break;
       }
@@ -295,13 +302,23 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
         if (serverSideHandler == null) {
           ErrorLog.defaultLog().severe("Packet250ServerSelectionGeneration received but not registered.");
         } else {
-          Packet250ServerSelectionGeneration reply = serverSideHandler.handlePacket(message, ctx);
-          return reply;
+          messageProcessor = new Runnable() {
+            @Override
+            public void run() {
+              serverSideHandler.handlePacket(message, ctx);
+            }
+          };
         }
         break;
       }
       default: {
         ErrorLog.defaultLog().severe("Packet250ServerSelectionGeneration received on wrong side " + ctx.side);
+      }
+    }
+    if (messageProcessor != null) {
+      boolean success = SpeedyToolsMod.proxy.enqueueMessageOnCorrectThread(ctx, messageProcessor);
+      if (!success) {
+        ErrorLog.defaultLog().severe("Packet250ServerSelectionGeneration failed to handle Packet");
       }
     }
     return null;

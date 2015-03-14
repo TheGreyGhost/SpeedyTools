@@ -2,6 +2,8 @@ package speedytools.clientside.network;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import speedytools.common.blocks.BlockWithMetadata;
@@ -211,7 +213,7 @@ public class CloneToolsNetworkClient
     return serverStatus;
   }
 
-  public String getNameOfPlayerBeingServiced() { return nameOfPlayerBeingServiced;}
+  public IChatComponent getNameOfPlayerBeingServiced() { return nameOfPlayerBeingServiced;}
 
   /**
    * respond to an incoming status packet
@@ -406,7 +408,7 @@ public class CloneToolsNetworkClient
   private ClientStatus clientStatus;
   private ServerStatus serverStatus;
   private byte serverPercentComplete;
-  private String nameOfPlayerBeingServiced = "";
+  private IChatComponent nameOfPlayerBeingServiced = new ChatComponentText("");
 
   private ActionStatus lastActionStatus;
   private ActionStatus lastUndoStatus;

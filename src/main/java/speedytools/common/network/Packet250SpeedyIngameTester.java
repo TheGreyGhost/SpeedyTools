@@ -6,6 +6,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
+import speedytools.SpeedyToolsMod;
 import speedytools.common.utilities.ErrorLog;
 
 /**
@@ -85,14 +86,20 @@ public class Packet250SpeedyIngameTester extends Packet250Base
      * @param message The message
      * @return an optional return message
      */
-    public IMessage onMessage(Packet250SpeedyIngameTester message, MessageContext ctx)
+    public IMessage onMessage(final Packet250SpeedyIngameTester message, final MessageContext ctx)
     {
       if (serverSideHandler == null) {
         ErrorLog.defaultLog().severe("Packet250SpeedyIngameTester received but not registered.");
       } else if (ctx.side != Side.SERVER) {
         ErrorLog.defaultLog().severe("Packet250SpeedyIngameTester received on wrong side");
       } else {
-        serverSideHandler.handlePacket(message, ctx);
+        Runnable messageProcessor = new Runnable() {
+          @Override
+          public void run() {
+            serverSideHandler.handlePacket(message, ctx);
+          }
+        };
+        SpeedyToolsMod.proxy.enqueueMessageOnCorrectThread(ctx, messageProcessor);
       }
       return null;
     }

@@ -11,6 +11,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
+import speedytools.SpeedyToolsMod;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.QuadOrientation;
@@ -243,21 +244,20 @@ public class Packet250CloneToolUse extends Packet250Base
      * @param message The message
      * @return an optional return message
      */
-    public IMessage onMessage(Packet250CloneToolUse message, MessageContext ctx)
+    public IMessage onMessage(final Packet250CloneToolUse message, final MessageContext ctx)
     {
       if (serverSideHandler == null) {
         ErrorLog.defaultLog().severe("Packet250CloneToolUse received but not registered.");
       } else if (ctx.side != Side.SERVER) {
         ErrorLog.defaultLog().severe("Packet250CloneToolUse received on wrong side");
       } else {
-        final WorldServer playerWorldServer = sendingPlayer.getServerForPlayer();
-        playerWorldServer.addScheduledTask(new Runnable() {
+        Runnable messageProcessor = new Runnable() {
+          @Override
           public void run() {
-            processMessage(message, sendingPlayer);
+            serverSideHandler.handlePacket(message, ctx);
           }
-        });
-
-        boolean success = serverSideHandler.handlePacket(message, ctx);
+        };
+        boolean success = SpeedyToolsMod.proxy.enqueueMessageOnCorrectThread(ctx, messageProcessor);
         if (!success) {
           ErrorLog.defaultLog().severe("Packet250CloneToolUse failed to handle Packet");
         }

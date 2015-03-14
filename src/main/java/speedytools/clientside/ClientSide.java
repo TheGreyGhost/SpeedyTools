@@ -38,14 +38,13 @@ public class ClientSide
 
   public static void load()
   {
-//  todo uncomment
     packetHandlerRegistry = new PacketHandlerRegistryClient();
     packetSenderClient = new PacketSenderClient(packetHandlerRegistry);
     cloneToolsNetworkClient = new CloneToolsNetworkClient(packetHandlerRegistry, packetSenderClient);
     speedyToolRenderers = new SpeedyToolRenderers();
     speedyToolSounds = new SoundController();
     undoManagerSimple = new UndoManagerClient(SpeedyToolsOptions.getMaxSimpleToolUndoCount());
-//    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
+    undoManagerComplex = new UndoManagerClient(SpeedyToolsOptions.getMaxComplexToolUndoCount());
     selectionPacketSenderComplex = new SelectionPacketSender(packetHandlerRegistry, packetSenderClient);
     clientVoxelSelection = new ClientVoxelSelection(packetHandlerRegistry, selectionPacketSenderComplex, packetSenderClient);
 

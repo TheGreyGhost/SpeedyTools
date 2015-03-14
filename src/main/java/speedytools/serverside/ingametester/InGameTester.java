@@ -1,5 +1,7 @@
 package speedytools.serverside.ingametester;
 
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumFacing;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.block.Block;
@@ -142,21 +144,21 @@ public class
     if (!performTest) {
       testRegions.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
       return true;
     }
 
     WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.getX(), testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), null);
 
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ);
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ());
 
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.sourceRegion.getX(), testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
   }
 
@@ -171,23 +173,23 @@ public class
     if (!performTest) {
       testRegions.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentInitial = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentInitial.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      worldFragmentInitial.readFromWorld(worldServer, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
       return true;
     }
 
     WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize-2, testRegions.ySize, testRegions.zSize-2);
-    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX+1, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ+1, null);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.getX()+1, testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ()+1, null);
 
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.posX+1, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ+1);
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.getX()+1, testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ()+1);
     List<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
     worldSelectionUndo.undoChanges(worldServer, undoLayers);
 
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
   }
 
@@ -202,26 +204,26 @@ public class
     if (!performTest) {
       testRegions.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentInitial = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentInitial.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
-//      worldFragmentInitial.readFromWorld(worldServerReader, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+      worldFragmentInitial.readFromWorld(worldServer, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
+//      worldFragmentInitial.readFromWorld(worldServerReader, testRegions.sourceRegion.getX(), testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
       return true;
     }
 
     WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize-2, testRegions.ySize, testRegions.zSize-2);
-    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX+1, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ+1, null);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.getX()+1, testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ()+1, null);
 
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.posX+1, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ+1);
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.getX()+1, testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ()+1);
     List<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
     worldSelectionUndo.undoChanges(worldServer, undoLayers);
 
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
   }
 
@@ -238,23 +240,23 @@ public class
     if (!performTest) {
       testRegions.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
       return true;
     }
 
     VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegions.sourceRegion, testRegions.xSize, testRegions.ySize, testRegions.zSize);
 
     WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.getX(), testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), voxelSelection);
 
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ);
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ());
 
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     return WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
   }
 
@@ -289,54 +291,57 @@ public class
       testRegions2.drawAllTestRegionBoundaries();
       testRegions3.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentInitial = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
-      worldFragmentInitial.readFromWorld(worldServer, testRegions1.testRegionInitialiser.posX, testRegions1.testRegionInitialiser.posY, testRegions1.testRegionInitialiser.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegions2.testOutputRegion.posX, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegions3.testOutputRegion.posX, testRegions3.testOutputRegion.posY, testRegions3.testOutputRegion.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegions3.expectedOutcome.posX, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ, null);
+      worldFragmentInitial.readFromWorld(worldServer, testRegions1.testRegionInitialiser.getX(), testRegions1.testRegionInitialiser.getY(), testRegions1.testRegionInitialiser.getZ(), null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions1.testOutputRegion.getX(), testRegions1.testOutputRegion.getY(), testRegions1.testOutputRegion.getZ(), null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions2.testOutputRegion.getX(), testRegions2.testOutputRegion.getY(), testRegions2.testOutputRegion.getZ(), null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions3.testOutputRegion.getX(), testRegions3.testOutputRegion.getY(), testRegions3.testOutputRegion.getZ(), null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegions3.expectedOutcome.getX(), testRegions3.expectedOutcome.getY(), testRegions3.expectedOutcome.getZ(), null);
 
-//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions3.expectedOutcome.posX, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ, null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions1.expectedOutcome.getX(), testRegions1.expectedOutcome.getY(), testRegions1.expectedOutcome.getZ(), null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions2.expectedOutcome.getX(), testRegions2.expectedOutcome.getY(), testRegions2.expectedOutcome.getZ(), null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions3.expectedOutcome.getX(), testRegions3.expectedOutcome.getY(), testRegions3.expectedOutcome.getZ(), null);
 
       BlockPos sourceFragOrigin = new BlockPos(testRegions2.sourceRegion);
-      sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
+      sourceFragOrigin = sourceFragOrigin.add(1, 0, 1);
+//      sourceFragOrigin.getX()++; sourceFragOrigin.getZ()++;
       VoxelSelection voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
       WorldFragment sourceWorldFragment2 = new WorldFragment(testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
-      sourceWorldFragment2.readFromWorld(worldServer, testRegions2.sourceRegion.posX + 1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ + 1, voxelSelection);
-      sourceWorldFragment2.writeToWorld(worldServer, testRegions1.expectedOutcome.posX+1,  testRegions1.expectedOutcome.posY,  testRegions1.expectedOutcome.posZ+1, null);
-      sourceWorldFragment2.writeToWorld(worldServer, testRegions3.expectedOutcome.posX + 1, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ + 1, null);
+      sourceWorldFragment2.readFromWorld(worldServer, testRegions2.sourceRegion.getX() + 1, testRegions2.sourceRegion.getY(), testRegions2.sourceRegion.getZ() + 1, voxelSelection);
+      sourceWorldFragment2.writeToWorld(worldServer, testRegions1.expectedOutcome.getX()+1,  testRegions1.expectedOutcome.getY(),  testRegions1.expectedOutcome.getZ()+1, null);
+      sourceWorldFragment2.writeToWorld(worldServer, testRegions3.expectedOutcome.getX() + 1, testRegions3.expectedOutcome.getY(), testRegions3.expectedOutcome.getZ() + 1, null);
 
 //      WorldFragment sourceWorldFragment3 = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
-//      sourceWorldFragment3.readFromWorld(worldServerReader, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
-//      sourceWorldFragment3.writeToWorld(worldServerReader, testRegions3.expectedOutcome.posX+1,  testRegions3.expectedOutcome.posY,  testRegions3.expectedOutcome.posZ+1, null);
-//      worldFragmentInitial.readFromWorld(worldServerReader, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+//      sourceWorldFragment3.readFromWorld(worldServerReader, testRegions2.sourceRegion.getX()+1, testRegions2.sourceRegion.getY(), testRegions2.sourceRegion.getZ()+1, voxelSelection);
+//      sourceWorldFragment3.writeToWorld(worldServerReader, testRegions3.expectedOutcome.getX()+1,  testRegions3.expectedOutcome.getY(),  testRegions3.expectedOutcome.getZ()+1, null);
+//      worldFragmentInitial.readFromWorld(worldServerReader, testRegions.sourceRegion.getX(), testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+//      worldFragmentInitial.writeToWorld(worldServerReader, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
       whichStep9 = 0;
       return true;
     }
 
     ++whichStep9;
     BlockPos sourceFragOrigin = new BlockPos(testRegions1.sourceRegion);
-    sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
+    sourceFragOrigin = sourceFragOrigin.add(1, 0, 1);
+//    sourceFragOrigin.getX()++; sourceFragOrigin.getZ()++;
     VoxelSelection voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions1.xSize-2, testRegions1.ySize, testRegions1.zSize-2);
     WorldFragment sourceWorldFragment1 = new WorldFragment(testRegions1.xSize-2, testRegions1.ySize, testRegions1.zSize-2);
-    sourceWorldFragment1.readFromWorld(worldServer, testRegions1.sourceRegion.posX+1, testRegions1.sourceRegion.posY, testRegions1.sourceRegion.posZ+1, voxelSelection);
+    sourceWorldFragment1.readFromWorld(worldServer, testRegions1.sourceRegion.getX()+1, testRegions1.sourceRegion.getY(), testRegions1.sourceRegion.getZ()+1, voxelSelection);
 
     sourceFragOrigin = new BlockPos(testRegions2.sourceRegion);
-    sourceFragOrigin.posX++; sourceFragOrigin.posZ++;
+    sourceFragOrigin = sourceFragOrigin.add(1, 0, 1);
+//    sourceFragOrigin.getX()++; sourceFragOrigin.getZ()++;
     voxelSelection = selectAllNonAir(worldServer, sourceFragOrigin, testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
     WorldFragment sourceWorldFragment2 = new WorldFragment(testRegions2.xSize-2, testRegions2.ySize, testRegions2.zSize-2);
-    sourceWorldFragment2.readFromWorld(worldServer, testRegions2.sourceRegion.posX+1, testRegions2.sourceRegion.posY, testRegions2.sourceRegion.posZ+1, voxelSelection);
+    sourceWorldFragment2.readFromWorld(worldServer, testRegions2.sourceRegion.getX()+1, testRegions2.sourceRegion.getY(), testRegions2.sourceRegion.getZ()+1, voxelSelection);
 
     if (runAllSteps || (whichStep9 == 1)) {
       worldSelectionUndo1a_9 = new WorldSelectionUndo();
-      worldSelectionUndo1a_9.writeToWorld(worldServer, sourceWorldFragment1, testRegions1.testOutputRegion.posX + 1, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ + 1);
+      worldSelectionUndo1a_9.writeToWorld(worldServer, sourceWorldFragment1, testRegions1.testOutputRegion.getX() + 1, testRegions1.testOutputRegion.getY(), testRegions1.testOutputRegion.getZ() + 1);
     }
     if (runAllSteps || (whichStep9 == 2)) {
       worldSelectionUndo1b_9 = new WorldSelectionUndo();
-      worldSelectionUndo1b_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions1.testOutputRegion.posX + 1, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ + 1);
+      worldSelectionUndo1b_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions1.testOutputRegion.getX() + 1, testRegions1.testOutputRegion.getY(), testRegions1.testOutputRegion.getZ() + 1);
     }
 
     if (runAllSteps || (whichStep9 == 3)) {
@@ -347,11 +352,11 @@ public class
 
     if (runAllSteps || (whichStep9 == 1)) {
       worldSelectionUndo2a_9 = new WorldSelectionUndo();
-      worldSelectionUndo2a_9.writeToWorld(worldServer, sourceWorldFragment1, testRegions2.testOutputRegion.posX + 1, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ + 1);
+      worldSelectionUndo2a_9.writeToWorld(worldServer, sourceWorldFragment1, testRegions2.testOutputRegion.getX() + 1, testRegions2.testOutputRegion.getY(), testRegions2.testOutputRegion.getZ() + 1);
     }
     if (runAllSteps || (whichStep9 == 2)) {
       worldSelectionUndo2b_9 = new WorldSelectionUndo();
-      worldSelectionUndo2b_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions2.testOutputRegion.posX + 1, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ + 1);
+      worldSelectionUndo2b_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions2.testOutputRegion.getX() + 1, testRegions2.testOutputRegion.getY(), testRegions2.testOutputRegion.getZ() + 1);
     }
     if (runAllSteps || (whichStep9 == 3)) {
       LinkedList<WorldSelectionUndo> undoLayers = new LinkedList<WorldSelectionUndo>();
@@ -365,11 +370,11 @@ public class
 
     if (runAllSteps || (whichStep9 == 1)) {
       worldSelectionUndo3a_9 = new WorldSelectionUndo();
-      worldSelectionUndo3a_9.writeToWorld(worldServer, sourceWorldFragment1, testRegions3.testOutputRegion.posX + 1, testRegions3.testOutputRegion.posY, testRegions3.testOutputRegion.posZ + 1);
+      worldSelectionUndo3a_9.writeToWorld(worldServer, sourceWorldFragment1, testRegions3.testOutputRegion.getX() + 1, testRegions3.testOutputRegion.getY(), testRegions3.testOutputRegion.getZ() + 1);
     }
     if (runAllSteps || (whichStep9 == 2)) {
       worldSelectionUndo3b_9 = new WorldSelectionUndo();
-      worldSelectionUndo3b_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions3.testOutputRegion.posX + 1, testRegions3.testOutputRegion.posY, testRegions3.testOutputRegion.posZ + 1);
+      worldSelectionUndo3b_9.writeToWorld(worldServer, sourceWorldFragment2, testRegions3.testOutputRegion.getX() + 1, testRegions3.testOutputRegion.getY(), testRegions3.testOutputRegion.getZ() + 1);
     }
     if (runAllSteps || (whichStep9 == 3)) {
       LinkedList<WorldSelectionUndo> precedingUndoLayers = new LinkedList<WorldSelectionUndo>();
@@ -384,21 +389,21 @@ public class
 
     if (runAllSteps || (whichStep9 >= 5)) {
       WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
-      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions1.expectedOutcome.posX, testRegions1.expectedOutcome.posY, testRegions1.expectedOutcome.posZ, null);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions1.expectedOutcome.getX(), testRegions1.expectedOutcome.getY(), testRegions1.expectedOutcome.getZ(), null);
       WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
-      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions1.testOutputRegion.getX(), testRegions1.testOutputRegion.getY(), testRegions1.testOutputRegion.getZ(), null);
       boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
 
       worldFragmentExpectedOutcome = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
-      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions2.expectedOutcome.posX, testRegions2.expectedOutcome.posY, testRegions2.expectedOutcome.posZ, null);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions2.expectedOutcome.getX(), testRegions2.expectedOutcome.getY(), testRegions2.expectedOutcome.getZ(), null);
       worldFragmentActualOutcome = new WorldFragment(testRegions2.xSize, testRegions2.ySize, testRegions2.zSize);
-      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions2.testOutputRegion.posX, testRegions2.testOutputRegion.posY, testRegions2.testOutputRegion.posZ, null);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions2.testOutputRegion.getX(), testRegions2.testOutputRegion.getY(), testRegions2.testOutputRegion.getZ(), null);
       retval = retval && WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
 
       worldFragmentExpectedOutcome = new WorldFragment(testRegions3.xSize, testRegions3.ySize, testRegions3.zSize);
-      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions3.expectedOutcome.posX, testRegions3.expectedOutcome.posY, testRegions3.expectedOutcome.posZ, null);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions3.expectedOutcome.getX(), testRegions3.expectedOutcome.getY(), testRegions3.expectedOutcome.getZ(), null);
       worldFragmentActualOutcome = new WorldFragment(testRegions3.xSize, testRegions3.ySize, testRegions3.zSize);
-      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions3.testOutputRegion.posX, testRegions3.testOutputRegion.posY, testRegions3.testOutputRegion.posZ, null);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions3.testOutputRegion.getX(), testRegions3.testOutputRegion.getY(), testRegions3.testOutputRegion.getZ(), null);
       retval = retval && WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
 
       return retval;
@@ -454,9 +459,9 @@ public class
     if (!performTest) {
       testRegions.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
       return true;
     }
 
@@ -464,21 +469,21 @@ public class
 
     // do a synchronous copy
     WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
-    sourceWorldFragment.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, voxelSelection);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.getX(), testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), voxelSelection);
+    sourceWorldFragment.writeToWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), voxelSelection);
 
     // do the asynchronous copy
     WorldFragment asyncWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    AsynchronousToken token = asyncWorldFragment.readFromWorldAsynchronous(worldServer, testRegions.sourceRegion.posX,
-                                                                           testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
+    AsynchronousToken token = asyncWorldFragment.readFromWorldAsynchronous(worldServer, testRegions.sourceRegion.getX(),
+                                                                           testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), voxelSelection);
     while (!token.isTaskComplete()) {
       token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
       token.continueProcessing();
     }
 
     QuadOrientation orientation = new QuadOrientation(0,0,1,1);
-    AsynchronousToken writeToken = asyncWorldFragment.writeToWorldAsynchronous(worldServer, testRegions.testOutputRegion.posX,
-                                                                               testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, voxelSelection, orientation);
+    AsynchronousToken writeToken = asyncWorldFragment.writeToWorldAsynchronous(worldServer, testRegions.testOutputRegion.getX(),
+                                                                               testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), voxelSelection, orientation);
     while (!writeToken.isTaskComplete()) {
       writeToken.setTimeOfInterrupt(writeToken.IMMEDIATE_TIMEOUT);
       writeToken.continueProcessing();
@@ -486,9 +491,9 @@ public class
 
     // compare the two
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
     if (!retval) {
       System.out.println();
@@ -512,9 +517,9 @@ public class
     if (!performTest) {
       testRegions.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
       return true;
     }
 
@@ -522,15 +527,15 @@ public class
 
     // do a synchronous copy
     WorldFragment sourceWorldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, voxelSelection);
+    sourceWorldFragment.readFromWorld(worldServer, testRegions.sourceRegion.getX(), testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), voxelSelection);
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
-    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ);
+    worldSelectionUndo.writeToWorld(worldServer, sourceWorldFragment, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ());
 
     // do the asynchronous copy
     WorldSelectionUndo asyncWorldSelectionUndo = new WorldSelectionUndo();
     QuadOrientation identity = new QuadOrientation(0,0,1,1);
     AsynchronousToken token = asyncWorldSelectionUndo.writeToWorldAsynchronous(worldServer, sourceWorldFragment,
-                                                                                  testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ,
+                                                                                  testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(),
                                                                                   identity, null);
     while (!token.isTaskComplete()) {
       token.setTimeOfInterrupt(token.IMMEDIATE_TIMEOUT);
@@ -539,9 +544,9 @@ public class
 
     // compare the two
     WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
     WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
     boolean retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
     if (!retval) {
       System.out.println();
@@ -563,9 +568,9 @@ public class
 
     // compare the two
      worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.posX, testRegions.expectedOutcome.posY, testRegions.expectedOutcome.posZ, null);
+    worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegions.expectedOutcome.getX(), testRegions.expectedOutcome.getY(), testRegions.expectedOutcome.getZ(), null);
      worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+    worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
      retval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
     if (!retval) {
       System.out.println();
@@ -608,8 +613,8 @@ public class
       for (TestRegions testRegions1 : testRegions) {
         testRegions1.drawAllTestRegionBoundaries();
         WorldFragment worldFragmentBlank = new WorldFragment(testRegions1.xSize, testRegions1.ySize, testRegions1.zSize);
-        worldFragmentBlank.readFromWorld(worldServer, testRegions1.testRegionInitialiser.posX, testRegions1.testRegionInitialiser.posY, testRegions1.testRegionInitialiser.posZ, null);
-        worldFragmentBlank.writeToWorld(worldServer, testRegions1.testOutputRegion.posX, testRegions1.testOutputRegion.posY, testRegions1.testOutputRegion.posZ, null);
+        worldFragmentBlank.readFromWorld(worldServer, testRegions1.testRegionInitialiser.getX(), testRegions1.testRegionInitialiser.getY(), testRegions1.testRegionInitialiser.getZ(), null);
+        worldFragmentBlank.writeToWorld(worldServer, testRegions1.testOutputRegion.getX(), testRegions1.testOutputRegion.getY(), testRegions1.testOutputRegion.getZ(), null);
       }
       return true;
     }
@@ -617,9 +622,9 @@ public class
     ArrayList<BlockPos> simple2 = new ArrayList<BlockPos>();
     ArrayList<BlockPos> simple3 = new ArrayList<BlockPos>();
     ArrayList<BlockPos> simple4 = new ArrayList<BlockPos>();
-    int x0 = testRegions.get(0).testOutputRegion.posX;
-    int y0 = testRegions.get(0).testOutputRegion.posY;
-    int z0 = testRegions.get(0).testOutputRegion.posZ;
+    int x0 = testRegions.get(0).testOutputRegion.getX();
+    int y0 = testRegions.get(0).testOutputRegion.getY();
+    int z0 = testRegions.get(0).testOutputRegion.getZ();
 
     for (int i = 0; i < 16; ++i) {
       if ((i & 1) == 0) simple1.add(new BlockPos(x0 + (i & 3), y0, z0 + i/4));
@@ -634,31 +639,31 @@ public class
 
     WorldFragment worldFragment = new WorldFragment(testRegions.get(0).xSize, testRegions.get(0).ySize, testRegions.get(0).zSize);
     WorldFragment worldFragmentBlank = new WorldFragment(testRegions.get(0).xSize, testRegions.get(0).ySize, testRegions.get(0).zSize);
-    worldFragmentBlank.readFromWorld(worldServer, testRegions.get(0).testRegionInitialiser.posX, testRegions.get(0).testRegionInitialiser.posY, testRegions.get(0).testRegionInitialiser.posZ, null);
+    worldFragmentBlank.readFromWorld(worldServer, testRegions.get(0).testRegionInitialiser.getX(), testRegions.get(0).testRegionInitialiser.getY(), testRegions.get(0).testRegionInitialiser.getZ(), null);
 
     WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
     BlockWithMetadata blockWithMetadata = new BlockWithMetadata();
 
-    final int DUMMY_SIDETOPLACE = 0;
+    final EnumFacing DUMMY_SIDETOPLACE = EnumFacing.DOWN;
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Blocks.gold_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple1);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(1).sourceRegion.posX, testRegions.get(1).sourceRegion.posY, testRegions.get(1).sourceRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(1).sourceRegion.getX(), testRegions.get(1).sourceRegion.getY(), testRegions.get(1).sourceRegion.getZ(), null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Blocks.emerald_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple2);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(2).sourceRegion.posX, testRegions.get(2).sourceRegion.posY, testRegions.get(2).sourceRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(2).sourceRegion.getX(), testRegions.get(2).sourceRegion.getY(), testRegions.get(2).sourceRegion.getZ(), null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Blocks.lapis_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple3);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(3).sourceRegion.posX, testRegions.get(3).sourceRegion.posY, testRegions.get(3).sourceRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(3).sourceRegion.getX(), testRegions.get(3).sourceRegion.getY(), testRegions.get(3).sourceRegion.getZ(), null);
 
     worldSelectionUndo.writeToWorld(worldServer, worldFragmentBlank, x0, y0, z0);
     blockWithMetadata.block = Blocks.diamond_block; worldSelectionUndo.writeToWorld(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple4);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(6).sourceRegion.posX, testRegions.get(6).sourceRegion.posY, testRegions.get(6).sourceRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(6).sourceRegion.getX(), testRegions.get(6).sourceRegion.getY(), testRegions.get(6).sourceRegion.getZ(), null);
 
     EntityPlayerMP entityPlayerMP2 = WorldSelectionUndoTest.EntityPlayerMPTest.createDummyInstance();
 
@@ -668,41 +673,41 @@ public class
     WorldHistory worldHistory = new WorldHistory(ARBITRARY_LARGE_DEPTH, ARBITRARY_LARGE_DEPTH);
     blockWithMetadata.block = Blocks.gold_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple1);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(1).testOutputRegion.posX, testRegions.get(1).testOutputRegion.posY, testRegions.get(1).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(1).testOutputRegion.getX(), testRegions.get(1).testOutputRegion.getY(), testRegions.get(1).testOutputRegion.getZ(), null);
 
     // placement 2
     blockWithMetadata.block = Blocks.emerald_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP2, blockWithMetadata, DUMMY_SIDETOPLACE, simple2);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(2).testOutputRegion.posX, testRegions.get(2).testOutputRegion.posY, testRegions.get(2).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(2).testOutputRegion.getX(), testRegions.get(2).testOutputRegion.getY(), testRegions.get(2).testOutputRegion.getZ(), null);
 
     // placement 3
     blockWithMetadata.block = Blocks.lapis_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP, blockWithMetadata, DUMMY_SIDETOPLACE, simple3);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(3).testOutputRegion.posX, testRegions.get(3).testOutputRegion.posY, testRegions.get(3).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(3).testOutputRegion.getX(), testRegions.get(3).testOutputRegion.getY(), testRegions.get(3).testOutputRegion.getZ(), null);
 
     // placement 4 (start complex)
     QuadOrientation orientation = new QuadOrientation(0,0,1,1);
     WorldFragment complexWorldFragment = new WorldFragment(testRegions.get(4).xSize, testRegions.get(4).ySize, testRegions.get(4).zSize);
     VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegions.get(4).sourceRegion, testRegions.get(4).xSize, testRegions.get(4).ySize, testRegions.get(4).zSize);
-    complexWorldFragment.readFromWorld(worldServer, testRegions.get(4).sourceRegion.posX, testRegions.get(4).sourceRegion.posY, testRegions.get(4).sourceRegion.posZ, voxelSelection);
+    complexWorldFragment.readFromWorld(worldServer, testRegions.get(4).sourceRegion.getX(), testRegions.get(4).sourceRegion.getY(), testRegions.get(4).sourceRegion.getZ(), voxelSelection);
     AsynchronousToken token = worldHistory.writeToWorldWithUndoAsynchronous(entityPlayerMP, worldServer, complexWorldFragment, x0, y0, z0, orientation, null);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(4).testOutputRegion.posX, testRegions.get(4).testOutputRegion.posY, testRegions.get(4).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(4).testOutputRegion.getX(), testRegions.get(4).testOutputRegion.getY(), testRegions.get(4).testOutputRegion.getZ(), null);
 
     // placement 6
     blockWithMetadata.block = Blocks.diamond_block; worldHistory.writeToWorldWithUndo(worldServer, entityPlayerMP2, blockWithMetadata, DUMMY_SIDETOPLACE, simple4);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(6).testOutputRegion.posX, testRegions.get(6).testOutputRegion.posY, testRegions.get(6).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(6).testOutputRegion.getX(), testRegions.get(6).testOutputRegion.getY(), testRegions.get(6).testOutputRegion.getZ(), null);
 
     // undo third simple
     worldHistory.performSimpleUndo(entityPlayerMP, worldServer);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(7).testOutputRegion.posX, testRegions.get(7).testOutputRegion.posY, testRegions.get(7).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(7).testOutputRegion.getX(), testRegions.get(7).testOutputRegion.getY(), testRegions.get(7).testOutputRegion.getZ(), null);
 
     // undo first simple
     worldHistory.performSimpleUndo(entityPlayerMP, worldServer);
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(8).testOutputRegion.posX, testRegions.get(8).testOutputRegion.posY, testRegions.get(8).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(8).testOutputRegion.getX(), testRegions.get(8).testOutputRegion.getY(), testRegions.get(8).testOutputRegion.getZ(), null);
 
     // complete the complex placement
     while (!token.isTaskComplete()) {
@@ -710,7 +715,7 @@ public class
       token.continueProcessing();
     }
     worldFragment.readFromWorld(worldServer, x0, y0, z0, null);
-    worldFragment.writeToWorld(worldServer, testRegions.get(9).testOutputRegion.posX, testRegions.get(9).testOutputRegion.posY, testRegions.get(9).testOutputRegion.posZ, null);
+    worldFragment.writeToWorld(worldServer, testRegions.get(9).testOutputRegion.getX(), testRegions.get(9).testOutputRegion.getY(), testRegions.get(9).testOutputRegion.getZ(), null);
 
     boolean retval = true;
     // compare the two
@@ -718,9 +723,9 @@ public class
     for (TestRegions checkRegion : testRegions) {
       checkRegion.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentExpectedOutcome = new WorldFragment(checkRegion.xSize, checkRegion.ySize, checkRegion.zSize);
-      worldFragmentExpectedOutcome.readFromWorld(worldServer, checkRegion.expectedOutcome.posX, checkRegion.expectedOutcome.posY, checkRegion.expectedOutcome.posZ, null);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, checkRegion.expectedOutcome.getX(), checkRegion.expectedOutcome.getY(), checkRegion.expectedOutcome.getZ(), null);
       WorldFragment worldFragmentActualOutcome = new WorldFragment(checkRegion.xSize, checkRegion.ySize, checkRegion.zSize);
-      worldFragmentActualOutcome.readFromWorld(worldServer, checkRegion.testOutputRegion.posX, checkRegion.testOutputRegion.posY, checkRegion.testOutputRegion.posZ, null);
+      worldFragmentActualOutcome.readFromWorld(worldServer, checkRegion.testOutputRegion.getX(), checkRegion.testOutputRegion.getY(), checkRegion.testOutputRegion.getZ(), null);
       boolean thisretval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
       if (!thisretval) {
         System.out.println();
@@ -753,9 +758,9 @@ public class
     if (!performTest) {
       testRegion.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentBlank = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragmentBlank.readFromWorld(worldServer, testRegion.testRegionInitialiser.posX, testRegion.testRegionInitialiser.posY, testRegion.testRegionInitialiser.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegion.expectedOutcome.posX, testRegion.expectedOutcome.posY, testRegion.expectedOutcome.posZ, null);
+      worldFragmentBlank.readFromWorld(worldServer, testRegion.testRegionInitialiser.getX(), testRegion.testRegionInitialiser.getY(), testRegion.testRegionInitialiser.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegion.expectedOutcome.getX(), testRegion.expectedOutcome.getY(), testRegion.expectedOutcome.getZ(), null);
       return true;
     }
 
@@ -764,16 +769,16 @@ public class
 
     while (!maximumExecutesReached) {
       WorldFragment worldFragmentInitial = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragmentInitial.readFromWorld(worldServer, testRegion.testRegionInitialiser.posX, testRegion.testRegionInitialiser.posY, testRegion.testRegionInitialiser.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
+      worldFragmentInitial.readFromWorld(worldServer, testRegion.testRegionInitialiser.getX(), testRegion.testRegionInitialiser.getY(), testRegion.testRegionInitialiser.getZ(), null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), null);
       WorldFragment worldFragmentSource = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
       VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegion.sourceRegion, testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragmentSource.readFromWorld(worldServer, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
+      worldFragmentSource.readFromWorld(worldServer, testRegion.sourceRegion.getX(), testRegion.sourceRegion.getY(), testRegion.sourceRegion.getZ(), voxelSelection);
 
       QuadOrientation orientation = new QuadOrientation(0, 0, 1, 1);
       WorldSelectionUndo worldSelectionUndo = new WorldSelectionUndo();
       AsynchronousToken token = worldSelectionUndo.writeToWorldAsynchronous(worldServer, worldFragmentSource,
-              testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ,
+              testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(),
               orientation, null);
       for (int i = 0; i < numberOfExecutes; ++i) {
         token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
@@ -784,8 +789,8 @@ public class
 
       // make a copy of the aborted fragment
       WorldFragment inProgress = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      inProgress.readFromWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
-      inProgress.writeToWorld(worldServer, testRegion.testOutputRegion.posX + (numberOfExecutes % 10) * (XSIZE + 1), testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ - ZSIZE - 1, null);
+      inProgress.readFromWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), null);
+      inProgress.writeToWorld(worldServer, testRegion.testOutputRegion.getX() + (numberOfExecutes % 10) * (XSIZE + 1), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ() - ZSIZE - 1, null);
 
       // undo the aborted fragment
       while (!token.isTaskAborted()) {
@@ -800,9 +805,9 @@ public class
       assert token.isTaskComplete();
 
       WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegion.expectedOutcome.posX, testRegion.expectedOutcome.posY, testRegion.expectedOutcome.posZ, null);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegion.expectedOutcome.getX(), testRegion.expectedOutcome.getY(), testRegion.expectedOutcome.getZ(), null);
       WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragmentActualOutcome.readFromWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), null);
       boolean thisretval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
       if (!thisretval) {
         System.out.println();
@@ -837,9 +842,9 @@ public class
     if (!performTest) {
       testRegion.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentBlank = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragmentBlank.readFromWorld(worldServer, testRegion.testRegionInitialiser.posX, testRegion.testRegionInitialiser.posY, testRegion.testRegionInitialiser.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegion.expectedOutcome.posX, testRegion.expectedOutcome.posY, testRegion.expectedOutcome.posZ, null);
+      worldFragmentBlank.readFromWorld(worldServer, testRegion.testRegionInitialiser.getX(), testRegion.testRegionInitialiser.getY(), testRegion.testRegionInitialiser.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegion.expectedOutcome.getX(), testRegion.expectedOutcome.getY(), testRegion.expectedOutcome.getZ(), null);
       return true;
     }
 
@@ -849,11 +854,11 @@ public class
 
     while (!maximumExecutesReached) {
       WorldFragment worldFragmentInitial = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      worldFragmentInitial.readFromWorld(worldServer, testRegion.testRegionInitialiser.posX, testRegion.testRegionInitialiser.posY, testRegion.testRegionInitialiser.posZ, null);
-      worldFragmentInitial.writeToWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
+      worldFragmentInitial.readFromWorld(worldServer, testRegion.testRegionInitialiser.getX(), testRegion.testRegionInitialiser.getY(), testRegion.testRegionInitialiser.getZ(), null);
+      worldFragmentInitial.writeToWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), null);
 //      WorldFragment worldFragmentSource = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
       VoxelSelection voxelSelection = selectAllNonAir(worldServer, testRegion.sourceRegion, testRegion.xSize, testRegion.ySize, testRegion.zSize);
-//      worldFragmentSource.readFromWorld(worldServerReader, testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
+//      worldFragmentSource.readFromWorld(worldServerReader, testRegion.sourceRegion.getX(), testRegion.sourceRegion.getY(), testRegion.sourceRegion.getZ(), voxelSelection);
 
       QuadOrientation orientation = new QuadOrientation(0, 0, 1, 1);
 
@@ -861,9 +866,9 @@ public class
       WorldHistory worldHistory = new WorldHistory(ARBITRARY_LARGE_DEPTH, ARBITRARY_LARGE_DEPTH);
       int sequenceNumber = 13;
       int toolID = 0;
-      VoxelSelectionWithOrigin voxelSelectionWithOrigin = new VoxelSelectionWithOrigin(testRegion.sourceRegion.posX, testRegion.sourceRegion.posY, testRegion.sourceRegion.posZ, voxelSelection);
+      VoxelSelectionWithOrigin voxelSelectionWithOrigin = new VoxelSelectionWithOrigin(testRegion.sourceRegion.getX(), testRegion.sourceRegion.getY(), testRegion.sourceRegion.getZ(), voxelSelection);
       AsynchronousActionCopy token = new AsynchronousActionCopy(worldServer, entityPlayerMP, worldHistory, voxelSelectionWithOrigin,
-                            sequenceNumber, toolID, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, orientation);
+                            sequenceNumber, toolID, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), orientation);
       for (int i = 0; i < numberOfExecutes; ++i) {
         token.setTimeOfInterrupt(AsynchronousToken.IMMEDIATE_TIMEOUT);
         token.continueProcessing();
@@ -874,8 +879,8 @@ public class
 
       // make a copy of the aborted fragment
       WorldFragment inProgress = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-      inProgress.readFromWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
-      inProgress.writeToWorld(worldServer, testRegion.testOutputRegion.posX + (numberOfExecutes % 10) * (XSIZE + 1), testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ - ZSIZE - 1, null);
+      inProgress.readFromWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), null);
+      inProgress.writeToWorld(worldServer, testRegion.testOutputRegion.getX() + (numberOfExecutes % 10) * (XSIZE + 1), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ() - ZSIZE - 1, null);
 
       // undo the aborted fragment
       while (!token.isTaskComplete()) {
@@ -885,9 +890,9 @@ public class
 
       if (!maximumExecutesReached) {
         WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-        worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegion.expectedOutcome.posX, testRegion.expectedOutcome.posY, testRegion.expectedOutcome.posZ, null);
+        worldFragmentExpectedOutcome.readFromWorld(worldServer, testRegion.expectedOutcome.getX(), testRegion.expectedOutcome.getY(), testRegion.expectedOutcome.getZ(), null);
         WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegion.xSize, testRegion.ySize, testRegion.zSize);
-        worldFragmentActualOutcome.readFromWorld(worldServer, testRegion.testOutputRegion.posX, testRegion.testOutputRegion.posY, testRegion.testOutputRegion.posZ, null);
+        worldFragmentActualOutcome.readFromWorld(worldServer, testRegion.testOutputRegion.getX(), testRegion.testOutputRegion.getY(), testRegion.testOutputRegion.getZ(), null);
         boolean thisretval = WorldFragment.areFragmentsEqual(worldFragmentActualOutcome, worldFragmentExpectedOutcome);
         if (!thisretval) {
           System.out.println();
@@ -932,7 +937,7 @@ public class
     int ypos = (int)entityPlayerMP.posY;
     int zpos = (int)entityPlayerMP.posZ;
 
-    final int TOP_SIDE = 1;
+    final EnumFacing TOP_SIDE = EnumFacing.UP;
     while (blockIt.hasNext()) {
       Block block = (Block)blockIt.next();
       BlockWithMetadata blockToPlace = new BlockWithMetadata();
@@ -963,19 +968,19 @@ public class
     if (!performTest) {
       testRegions.drawAllTestRegionBoundaries();
       WorldFragment worldFragmentBlank = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.posX, testRegions.testRegionInitialiser.posY, testRegions.testRegionInitialiser.posZ, null);
-      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      worldFragmentBlank.readFromWorld(worldServer, testRegions.testRegionInitialiser.getX(), testRegions.testRegionInitialiser.getY(), testRegions.testRegionInitialiser.getZ(), null);
+      worldFragmentBlank.writeToWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
       return true;
     } else {
       BlockPos expectedOutcome = (testRegions.expectedOutcome == null) ? testRegions.sourceRegion : testRegions.expectedOutcome;
       WorldFragment worldFragment = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragment.readFromWorld(worldServer, testRegions.sourceRegion.posX, testRegions.sourceRegion.posY, testRegions.sourceRegion.posZ, null);
-      worldFragment.writeToWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      worldFragment.readFromWorld(worldServer, testRegions.sourceRegion.getX(), testRegions.sourceRegion.getY(), testRegions.sourceRegion.getZ(), null);
+      worldFragment.writeToWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
 
       WorldFragment worldFragmentExpectedOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentExpectedOutcome.readFromWorld(worldServer, expectedOutcome.posX, expectedOutcome.posY, expectedOutcome.posZ, null);
+      worldFragmentExpectedOutcome.readFromWorld(worldServer, expectedOutcome.getX(), expectedOutcome.getY(), expectedOutcome.getZ(), null);
       WorldFragment worldFragmentActualOutcome = new WorldFragment(testRegions.xSize, testRegions.ySize, testRegions.zSize);
-      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.posX, testRegions.testOutputRegion.posY, testRegions.testOutputRegion.posZ, null);
+      worldFragmentActualOutcome.readFromWorld(worldServer, testRegions.testOutputRegion.getX(), testRegions.testOutputRegion.getY(), testRegions.testOutputRegion.getZ(), null);
       boolean retval = WorldFragment.areFragmentsEqual(worldFragmentExpectedOutcome, worldFragmentActualOutcome);
       if (!retval) {
         System.out.println();
@@ -993,7 +998,7 @@ public class
     for (int zpos = 0; zpos < zSize; ++zpos) {
       for (int xpos = 0; xpos < xSize; ++xpos) {
         for (int ypos = 0; ypos < ySize; ++ypos) {
-          if (!world.isAirBlock(xpos + origin.posX, ypos + origin.posY, zpos + origin.posZ)) {
+          if (!world.isAirBlock(origin.add(xpos, ypos, zpos))) {
             retval.setVoxel(xpos, ypos, zpos);
           }
         }
@@ -1048,26 +1053,27 @@ public class
     public void drawSingleTestRegionBoundaries(Block boundaryBlock, int boundaryMetadata,
                                                BlockPos origin)
     {
-      int wOriginX = origin.posX;
-      int wOriginY = origin.posY;
-      int wOriginZ = origin.posZ;
+      IBlockState iBlockState = boundaryBlock.getStateFromMeta(boundaryMetadata);
+      int wOriginX = origin.getX();
+      int wOriginY = origin.getY();
+      int wOriginZ = origin.getZ();
       WorldServer worldServer = MinecraftServer.getServer().worldServerForDimension(0);
       int wy = wOriginY - 1;
       for (int x = -1; x <= xSize; ++x) {
-        worldServer.setBlock(x + wOriginX, wy, wOriginZ - 1, boundaryBlock, boundaryMetadata, 1 + 2);
-        worldServer.setBlock(x + wOriginX, wy, wOriginZ + zSize, boundaryBlock, boundaryMetadata, 1 + 2);
+        worldServer.setBlockState(new BlockPos(x + wOriginX, wy, wOriginZ - 1),  iBlockState, 1 + 2);
+        worldServer.setBlockState(new BlockPos(x + wOriginX, wy, wOriginZ + zSize),  iBlockState, 1 + 2);
       }
 
       for (int z = -1; z <= zSize; ++z) {
-        worldServer.setBlock(wOriginX - 1, wy, z + wOriginZ, boundaryBlock, boundaryMetadata, 1 + 2);
-        worldServer.setBlock(wOriginX + xSize, wy, z + wOriginZ, boundaryBlock, boundaryMetadata, 1 + 2);
+        worldServer.setBlockState(new BlockPos(wOriginX - 1, wy, z + wOriginZ),  iBlockState, 1 + 2);
+        worldServer.setBlockState(new BlockPos(wOriginX + xSize, wy, z + wOriginZ),  iBlockState, 1 + 2);
       }
 
       for (int y = 0; y < ySize; ++y) {
-        worldServer.setBlock(    wOriginX - 1, y + wOriginY,     wOriginZ - 1, boundaryBlock, boundaryMetadata, 1 + 2);
-        worldServer.setBlock(wOriginX + xSize, y + wOriginY,     wOriginZ - 1, boundaryBlock, boundaryMetadata, 1 + 2);
-        worldServer.setBlock(    wOriginX - 1, y + wOriginY, wOriginZ + zSize, boundaryBlock, boundaryMetadata, 1 + 2);
-        worldServer.setBlock(wOriginX + xSize, y + wOriginY, wOriginZ + zSize, boundaryBlock, boundaryMetadata, 1 + 2);
+        worldServer.setBlockState(new BlockPos(wOriginX - 1, y + wOriginY, wOriginZ - 1),  iBlockState, 1 + 2);
+        worldServer.setBlockState(new BlockPos(wOriginX + xSize, y + wOriginY, wOriginZ - 1),  iBlockState, 1 + 2);
+        worldServer.setBlockState(new BlockPos(wOriginX - 1, y + wOriginY, wOriginZ + zSize),  iBlockState, 1 + 2);
+        worldServer.setBlockState(new BlockPos(wOriginX + xSize, y + wOriginY, wOriginZ + zSize),  iBlockState, 1 + 2);
       }
     }
 
