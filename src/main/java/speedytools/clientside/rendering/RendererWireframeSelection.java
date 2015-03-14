@@ -76,7 +76,7 @@ public class RendererWireframeSelection implements RendererElement
       double expandDistance = 0.002F;
 
       Vec3 playerOrigin = player.getPositionEyes(partialTick);//.subtract(0.0, player.getEyeHeight(), 0.0);
-      GlStateManager.translate(0.0F, player.getEyeHeight(), 0.0F);
+      GlStateManager.translate(0.0F, player.getEyeHeight(), 0.0F);  // put [0,0,0] at eye height
 
       for (BlockPos block : renderInfo.currentlySelectedBlocks) {
         AxisAlignedBB boundingBox = new AxisAlignedBB(block, block.add(1, 1, 1));

@@ -1,6 +1,6 @@
 package test.multipart;
 
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.Side;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

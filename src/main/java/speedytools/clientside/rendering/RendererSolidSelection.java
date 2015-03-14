@@ -1,5 +1,6 @@
 package speedytools.clientside.rendering;
 
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderGlobal;
@@ -61,11 +62,13 @@ public class RendererSolidSelection implements RendererElement
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, player, partialTick);
     if (!shouldIRender) return;
 
-    Vec3 playerOrigin = player.getPositionEyes(partialTick).subtract(0.0, player.getEyeHeight(), 0.0);
+    Vec3 playerOrigin = player.getPositionEyes(partialTick);//.subtract(0.0, player.getEyeHeight(), 0.0);
 
     try {
       GL11.glPushMatrix();
       GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+
+      GlStateManager.translate(0.0F, player.getEyeHeight(), 0.0F);  // put [0,0,0] at eye height
       Vec3 playerRelativeToSelectionOrigin = playerOrigin.addVector(-renderInfo.draggedSelectionOriginX,
                                                                     -renderInfo.draggedSelectionOriginY,
                                                                     -renderInfo.draggedSelectionOriginZ);

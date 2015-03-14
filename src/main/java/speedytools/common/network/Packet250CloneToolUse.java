@@ -1,6 +1,9 @@
 package speedytools.common.network;
 
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -247,6 +250,13 @@ public class Packet250CloneToolUse extends Packet250Base
       } else if (ctx.side != Side.SERVER) {
         ErrorLog.defaultLog().severe("Packet250CloneToolUse received on wrong side");
       } else {
+        final WorldServer playerWorldServer = sendingPlayer.getServerForPlayer();
+        playerWorldServer.addScheduledTask(new Runnable() {
+          public void run() {
+            processMessage(message, sendingPlayer);
+          }
+        });
+
         boolean success = serverSideHandler.handlePacket(message, ctx);
         if (!success) {
           ErrorLog.defaultLog().severe("Packet250CloneToolUse failed to handle Packet");

@@ -115,7 +115,7 @@ public class MinecraftSaveFolderBackups
     MinecraftServer minecraftServer = MinecraftServer.getServer();
     CommandBroadcast commandBroadcast = new CommandBroadcast();
     try {
-      commandBroadcast.processCommand(minecraftServer, allMessages);
+      commandBroadcast.execute(minecraftServer, allMessages);
     } catch (CommandException ce) {
       // just ignore
     }
@@ -133,9 +133,9 @@ public class MinecraftSaveFolderBackups
       if (minecraftserver.worldServers[i] != null)
       {
         WorldServer worldserver = minecraftserver.worldServers[i];
-        if (!worldserver.levelSaving)
+        if (!worldserver.disableLevelSaving)
         {
-          worldserver.levelSaving = true;
+          worldserver.disableLevelSaving = true;
         }
       }
     }
@@ -154,9 +154,9 @@ public class MinecraftSaveFolderBackups
       {
         WorldServer worldserver = minecraftserver.worldServers[i];
 
-        if (worldserver.levelSaving)
+        if (worldserver.disableLevelSaving)
         {
-          worldserver.levelSaving = false;
+          worldserver.disableLevelSaving = false;
         }
       }
     }
@@ -174,10 +174,10 @@ public class MinecraftSaveFolderBackups
       if (minecraftserver.worldServers[i] != null)
       {
         WorldServer worldserver = minecraftserver.worldServers[i];
-        boolean flag = worldserver.levelSaving;
-        worldserver.levelSaving = false;
+        boolean flag = worldserver.disableLevelSaving;
+        worldserver.disableLevelSaving = false;
         worldserver.saveAllChunks(true, (IProgressUpdate)null);
-        worldserver.levelSaving = flag;
+        worldserver.disableLevelSaving = flag;
       }
     }
   }

@@ -2,6 +2,7 @@ package speedytools.clientside.rendering;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
@@ -65,29 +66,37 @@ public class RendererBoundaryField implements RendererElement
     boolean shouldIRender = infoProvider.refreshRenderInfo(renderInfo, playerPositionEyes);
     if (!shouldIRender) return;
 
-    GL11.glEnable(GL11.GL_BLEND);
-    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-    GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
-    GL11.glLineWidth(2.0F);
-    GL11.glDisable(GL11.GL_TEXTURE_2D);
-    GL11.glDepthMask(false);
-    double EXPAND_BOX_DISTANCE = 0.002F;
+    try {
+      GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+      GL11.glPushMatrix();
+      GL11.glEnable(GL11.GL_BLEND);
+      GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+      GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.4F);
+      GL11.glLineWidth(2.0F);
+      GL11.glDisable(GL11.GL_TEXTURE_2D);
+      GL11.glDepthMask(false);
+      double EXPAND_BOX_DISTANCE = 0.002F;
 
-    AxisAlignedBB boundingBox = renderInfo.boundaryFieldAABB;
-    Vec3 playerPositionFeet = playerPositionEyes.subtract(0, player.getEyeHeight(), 0);
-    boundingBox = boundingBox.expand(EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE)
-                             .offset(-playerPositionFeet.xCoord, -playerPositionFeet.yCoord, -playerPositionFeet.zCoord);
-    int faceToHighlight = -1;
-    if (renderInfo.boundaryGrabActivated) {
-      faceToHighlight = renderInfo.boundaryGrabSide;
-    } else {
-      faceToHighlight = renderInfo.boundaryCursorSide;
+      AxisAlignedBB boundingBox = renderInfo.boundaryFieldAABB;
+//    Vec3 playerPositionFeet = playerPositionEyes.subtract(0, player.getEyeHeight(), 0);
+      GlStateManager.translate(0.0F, player.getEyeHeight(), 0.0F);  // put [0,0,0] at eye height
+
+      boundingBox = boundingBox.expand(EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE, EXPAND_BOX_DISTANCE)
+              .offset(-playerPositionEyes.xCoord, -playerPositionEyes.yCoord, -playerPositionEyes.zCoord);
+      int faceToHighlight = -1;
+      if (renderInfo.boundaryGrabActivated) {
+        faceToHighlight = renderInfo.boundaryGrabSide;
+      } else {
+        faceToHighlight = renderInfo.boundaryCursorSide;
+      }
+      SelectionBoxRenderer.drawFilledCubeWithSelectedSide(boundingBox, faceToHighlight,
+                                                          renderInfo.boundaryGrabActivated);
+
+    } finally {
+      GL11.glPopMatrix();
+      GL11.glDepthMask(true);
+      GL11.glPopAttrib();
     }
-    SelectionBoxRenderer.drawFilledCubeWithSelectedSide(boundingBox, faceToHighlight, renderInfo.boundaryGrabActivated);
-
-    GL11.glDepthMask(true);
-    GL11.glEnable(GL11.GL_TEXTURE_2D);
-    GL11.glDisable(GL11.GL_BLEND);
   }
 
   /**  The BoundaryFieldRenderInfoUpdateLink and BoundaryFieldRenderInfo are used to retrieve the necessary information for rendering from the current tool
