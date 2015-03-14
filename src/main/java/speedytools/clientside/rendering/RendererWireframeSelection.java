@@ -2,6 +2,7 @@ package speedytools.clientside.rendering;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
@@ -58,6 +59,7 @@ public class RendererWireframeSelection implements RendererElement
     try {
       GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
       GL11.glDepthMask(false);
+      GL11.glPushMatrix();
 
       GL11.glEnable(GL11.GL_BLEND);
       GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -73,7 +75,8 @@ public class RendererWireframeSelection implements RendererElement
       GL11.glDisable(GL11.GL_TEXTURE_2D);
       double expandDistance = 0.002F;
 
-      Vec3 playerOrigin = player.getPositionVector();
+      Vec3 playerOrigin = player.getPositionEyes(partialTick);//.subtract(0.0, player.getEyeHeight(), 0.0);
+      GlStateManager.translate(0.0F, player.getEyeHeight(), 0.0F);
 
       for (BlockPos block : renderInfo.currentlySelectedBlocks) {
         AxisAlignedBB boundingBox = new AxisAlignedBB(block, block.add(1, 1, 1));
@@ -90,6 +93,7 @@ public class RendererWireframeSelection implements RendererElement
         }
       }
     } finally {
+      GL11.glPopMatrix();
       GL11.glDepthMask(true);
       GL11.glPopAttrib();
     }

@@ -1,12 +1,15 @@
 package speedytools.clientside.selections;
 
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.util.EnumFacing;
 import net.minecraftforge.fml.common.FMLLog;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
-import net.minecraft.util.IIcon;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -20,6 +23,7 @@ import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.UsefulConstants;
 
+import javax.xml.soap.Text;
 import java.util.BitSet;
 import java.util.LinkedList;
 
@@ -35,6 +39,10 @@ import java.util.LinkedList;
 */
 public class BlockVoxelMultiSelectorRenderer
 {
+  public BlockVoxelMultiSelectorRenderer(TextureManager textureManager)
+  {
+    selectionBlockTextures = new SelectionBlockTextures(textureManager);
+  }
 
   /**
    * releases the GL11 render lists associated with this instance
@@ -77,13 +85,15 @@ public class BlockVoxelMultiSelectorRenderer
   private int xSize, ySize, zSize;
   private int xOffset, yOffset, zOffset;
   private int sourceWXorigin, sourceWYorigin, sourceWZorigin;
-  private BlockWithMetadata overrideTextureBlock;
+  private IBlockState overrideTextureBlock;
   private BitSet unloadedChunks = new BitSet();  // unloadedChunks[cx + cz * chunkCountX] = 1 if this chunk was unloaded when trying to get textures -> don't know what the block is
 
   private int [] displayListMapping;  // mapping of the cx, cy, cz to displayListIndex used by OpenGL.
 
   // holds the allocated display lists: <start index, count>
-  LinkedList<Pair<Integer, Integer>> displayListAllocations = new LinkedList<Pair<Integer, Integer>>();
+  private LinkedList<Pair<Integer, Integer>> displayListAllocations = new LinkedList<Pair<Integer, Integer>>();
+
+  private SelectionBlockTextures selectionBlockTextures;
 
   // get the display list for the given chunk
   private int getDisplayListIndex(int cx, int cy, int cz) {
@@ -234,7 +244,8 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
         for (; czCurrent < chunkCountZ; ++czCurrent) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (cxCurrent / (float)chunkCountX);
           renderThisChunk(world, overrideTextureBlock, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cxCurrent, cyCurrent, czCurrent);
-          Chunk chunk = world.getChunkFromBlockCoords(sourceWXorigin + cxCurrent * DISPLAY_LIST_XSIZE, sourceWZorigin + czCurrent * DISPLAY_LIST_ZSIZE);
+          Chunk chunk = world.getChunkFromChunkCoords((sourceWXorigin + cxCurrent * DISPLAY_LIST_XSIZE) >> 4,
+                                                      (sourceWZorigin + czCurrent * DISPLAY_LIST_ZSIZE) >> 4);
           if (!chunk.isEmpty()) {
             unloadedChunks.clear(cxCurrent + czCurrent * chunkCountX);
 //            System.out.println("refresh clear [" + cxCurrent + ", " + czCurrent + "]");
@@ -259,7 +270,7 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
    * @param cy
    * @param cz
    */
-  private void renderThisChunk(World world, BlockWithMetadata textureOverride, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels,
+  private void renderThisChunk(World world, IBlockState textureOverride, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels,
                                int wxOrigin, int wyOrigin, int wzOrigin,
                                int cx, int cy, int cz)
   {
@@ -271,7 +282,7 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
     GL11.glDisable(GL11.GL_CULL_FACE);
     GL11.glDisable(GL11.GL_LIGHTING);
     GL11.glEnable(GL11.GL_TEXTURE_2D);
-    Tessellator tessellator = Tessellator.getInstance();  WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+    Tessellator tessellator = Tessellator.getInstance();
     tessellateSurfaceWithTexture(world, textureOverride, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin,
             cx * DISPLAY_LIST_XSIZE - xOffset, cy * DISPLAY_LIST_YSIZE - yOffset, cz * DISPLAY_LIST_ZSIZE - zOffset,
             tessellator, WhatToDraw.FACES, NUDGE_DISTANCE);
@@ -315,7 +326,8 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
       for (int cz = 0; cz < chunkCountZ; ++cz) {
         if (System.nanoTime() - startTime >= maxTimeInNS) return false;
         if (unloadedChunks.get(cx + cz * chunkCountX)) {
-          Chunk chunk = world.getChunkFromBlockCoords(sourceWXorigin + cx * DISPLAY_LIST_XSIZE, sourceWZorigin + cz * DISPLAY_LIST_ZSIZE);
+          Chunk chunk = world.getChunkFromChunkCoords((sourceWXorigin + cx * DISPLAY_LIST_XSIZE) >> 4,
+                                                      (sourceWZorigin + cz * DISPLAY_LIST_ZSIZE) >> 4);
           if (!chunk.isEmpty()) {
             for (int cy = 0; cy < chunkCountY; ++cy) {
               renderThisChunk(world, overrideTextureBlock, selectedVoxels, unknownVoxels, sourceWXorigin, sourceWYorigin, sourceWZorigin, cx, cy, cz);
@@ -339,7 +351,7 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
    * @param selectedVoxels the current selection
    * @param unknownVoxels any unknown voxels in the current selection (voxels that might be selected - not known).  Must be the same size [x,y,z] as selectedVoxels
    */
-  public void createRenderListStart(World world, BlockWithMetadata textureOverride, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels)
+  public void createRenderListStart(World world, IBlockState textureOverride, int wxOrigin, int wyOrigin, int wzOrigin, VoxelSelection selectedVoxels, VoxelSelection unknownVoxels)
   {
     release();
     displayListWireFrameXY = GLAllocation.generateDisplayLists(1);
@@ -430,7 +442,8 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
         for (; czCurrent < chunkCountZ; ++czCurrent) {
           if (System.nanoTime() - startTime >= maxTimeInNS) return (cxCurrent / (float)chunkCountX);
           renderThisChunk(world, overrideTextureBlock, selectedVoxels, unknownVoxels, wxOrigin, wyOrigin, wzOrigin, cxCurrent, cyCurrent, czCurrent);
-          Chunk chunk = world.getChunkFromBlockCoords(wxOrigin + cxCurrent * DISPLAY_LIST_XSIZE, wzOrigin + DISPLAY_LIST_ZSIZE);
+          Chunk chunk = world.getChunkFromChunkCoords((wxOrigin + cxCurrent * DISPLAY_LIST_XSIZE) >> 4,
+                                                      (wzOrigin + DISPLAY_LIST_ZSIZE) >> 4);
           if (!chunk.isEmpty()) {
             unloadedChunks.clear(cxCurrent + czCurrent * chunkCountX);
           }
@@ -514,6 +527,7 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
       try {
         GL11.glPushMatrix();
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+        selectionBlockTextures.bindTexture();
         for (int cy = CY_MIN; cy <= CY_MAX; ++cy) {
           for (int cx = CX_MIN; cx <= CX_MAX; ++cx) {
             for (int cz = CZ_MIN; cz <= CZ_MAX; ++cz) {
@@ -606,6 +620,7 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
   {
     int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
 
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
     if (whatToDraw == WhatToDraw.FACES) {
       worldRenderer.startDrawingQuads();
     }
@@ -628,11 +643,11 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               zNegNudge = (selection.getVoxel(sx-1, sy+0, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx-1, sy+0, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-              tessellator.addVertex(x - nudgeDistance, y     - yNegNudge * nudgeDistance, z     - zNegNudge * nudgeDistance);
-              tessellator.addVertex(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z     - zNegNudge * nudgeDistance);
-              tessellator.addVertex(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
-              tessellator.addVertex(x - nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
+              worldRenderer.addVertex(x - nudgeDistance, y     - yNegNudge * nudgeDistance, z     - zNegNudge * nudgeDistance);
+              worldRenderer.addVertex(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z     - zNegNudge * nudgeDistance);
+              worldRenderer.addVertex(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
+              worldRenderer.addVertex(x - nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // xpos face
@@ -642,11 +657,11 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               zNegNudge = (selection.getVoxel(sx+1, sy+0, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+1, sy+0, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-              tessellator.addVertex(x + 1 + nudgeDistance, y     - yNegNudge * nudgeDistance, z     - zNegNudge * nudgeDistance);
-              tessellator.addVertex(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z     - zNegNudge * nudgeDistance);
-              tessellator.addVertex(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
-              tessellator.addVertex(x + 1 + nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
+              worldRenderer.addVertex(x + 1 + nudgeDistance, y     - yNegNudge * nudgeDistance, z     - zNegNudge * nudgeDistance);
+              worldRenderer.addVertex(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z     - zNegNudge * nudgeDistance);
+              worldRenderer.addVertex(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
+              worldRenderer.addVertex(x + 1 + nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // yneg face
@@ -656,11 +671,11 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               zNegNudge = (selection.getVoxel(sx+0, sy-1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+0, sy-1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-              tessellator.addVertex(x     - xNegNudge * nudgeDistance, y - nudgeDistance, z     - zNegNudge * nudgeDistance);
-              tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z     - zNegNudge * nudgeDistance);
-              tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
-              tessellator.addVertex(x     - xNegNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
+              worldRenderer.addVertex(x     - xNegNudge * nudgeDistance, y - nudgeDistance, z     - zNegNudge * nudgeDistance);
+              worldRenderer.addVertex(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z     - zNegNudge * nudgeDistance);
+              worldRenderer.addVertex(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
+              worldRenderer.addVertex(x     - xNegNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // ypos face
@@ -670,11 +685,11 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               zNegNudge = (selection.getVoxel(sx+0, sy+1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+0, sy+1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-              tessellator.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z     - zNegNudge * nudgeDistance);
-              tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z     - zNegNudge * nudgeDistance);
-              tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
-              tessellator.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
+              worldRenderer.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z     - zNegNudge * nudgeDistance);
+              worldRenderer.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z     - zNegNudge * nudgeDistance);
+              worldRenderer.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
+              worldRenderer.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance);
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // zneg face
@@ -684,11 +699,11 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               yNegNudge = (selection.getVoxel(sx+0, sy-1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy-1, sz+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(sx+0, sy+1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-              tessellator.addVertex(x     - xNegNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z - nudgeDistance);
-              tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z - nudgeDistance);
-              tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance);
-              tessellator.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
+              worldRenderer.addVertex(x     - xNegNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z - nudgeDistance);
+              worldRenderer.addVertex(x + 1 + xPosNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z - nudgeDistance);
+              worldRenderer.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance);
+              worldRenderer.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance);
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
             // zpos face
@@ -698,11 +713,11 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               yNegNudge = (selection.getVoxel(sx+0, sy-1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy-1, sz+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(sx+0, sy+1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
-              tessellator.addVertex(x     - xNegNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + nudgeDistance);
-              tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + nudgeDistance);
-              tessellator.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance);
-              tessellator.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
+              worldRenderer.addVertex(x     - xNegNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + nudgeDistance);
+              worldRenderer.addVertex(x + 1 + xPosNudge * nudgeDistance, y     - yNegNudge * nudgeDistance, z + 1 + nudgeDistance);
+              worldRenderer.addVertex(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance);
+              worldRenderer.addVertex(x     - xNegNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance);
               if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.draw();
             }
           }
@@ -730,13 +745,14 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
    * @param whatToDraw
    * @param nudgeDistance how far to nudge the face (to prevent overlap)
    */
-  private void tessellateSurfaceWithTexture(World world, BlockWithMetadata overrideTexture,
+  private void tessellateSurfaceWithTexture(World world, IBlockState overrideTexture,
                                             VoxelSelection selection, VoxelSelection unknownVoxels, int wxOrigin, int wyOrigin, int wzOrigin,
                                             int sx0, int sy0, int sz0,
                                             Tessellator tessellator, WhatToDraw whatToDraw, double nudgeDistance)
   {
     int xNegNudge, xPosNudge, yNegNudge, yPosNudge, zNegNudge, zPosNudge;
 
+    WorldRenderer worldRenderer = tessellator.getWorldRenderer();
     if (whatToDraw == WhatToDraw.FACES) {
       worldRenderer.startDrawingQuads();
     }
@@ -759,18 +775,15 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
 
             // unknown blocks get SelectionFog
             // selected blocks which are air (either because the block is air, or because the chunk is not loaded), get SelectionSolidFog
-            Block block = RegistryForBlocks.blockSelectionFog;
-            int metaData = 0;
+            IBlockState iBlockState = RegistryForBlocks.blockSelectionFog.getDefaultState();
             if (selected) {
               if (overrideTexture != null) {
-                block = overrideTexture.block;
-                metaData = overrideTexture.metaData;
+                iBlockState = overrideTexture;
               } else {
-                block = world.getBlock(wx, wy, wz);
-                metaData = world.getBlockMetadata(wx, wy, wz);
+                iBlockState = world.getBlockState(new BlockPos(wx, wy, wz));
               }
-              if (block == Blocks.air) {
-                block = RegistryForBlocks.blockSelectionSolidFog;
+              if (iBlockState == Blocks.air) {
+                iBlockState = RegistryForBlocks.blockSelectionSolidFog.getDefaultState();
               }
             }
 
@@ -780,9 +793,9 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               yPosNudge = (selection.getVoxel(sx-1, sy+1, sz+0) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(sx-1, sy+0, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx-1, sy+0, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
-              IIcon icon = block.getIcon(UsefulConstants.FACE_XNEG, metaData);
+              SelectionBlockTextures.SBTIcon icon = selectionBlockTextures.getSBTIcon(iBlockState, EnumFacing.WEST);
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
               worldRenderer.addVertexWithUV(x - nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
               worldRenderer.addVertexWithUV(x - nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
@@ -795,9 +808,9 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               yPosNudge = (selection.getVoxel(sx+1, sy+1, sz+0) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(sx+1, sy+0, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+1, sy+0, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
-              IIcon icon = block.getIcon(UsefulConstants.FACE_XPOS, metaData);
+              SelectionBlockTextures.SBTIcon icon = selectionBlockTextures.getSBTIcon(iBlockState, EnumFacing.EAST);
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
               worldRenderer.addVertexWithUV(x + 1 + nudgeDistance, y - yNegNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
               worldRenderer.addVertexWithUV(x + 1 + nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
@@ -810,9 +823,9 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               xPosNudge = (selection.getVoxel(sx+1, sy-1, sz+0) ? -1 : (selection.getVoxel(sx+1, sy+0, sz+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(sx+0, sy-1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+0, sy-1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
-              IIcon icon = block.getIcon(UsefulConstants.FACE_YNEG, metaData);
+              SelectionBlockTextures.SBTIcon icon = selectionBlockTextures.getSBTIcon(iBlockState, EnumFacing.DOWN);
               // NB yneg face is flipped left-right in vanilla
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
               worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMinU(), icon.getMinV());
@@ -825,9 +838,9 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               xPosNudge = (selection.getVoxel(sx+1, sy+1, sz+0) ? -1 : (selection.getVoxel(sx+1, sy+0, sz+0) ? 0 : 1) );
               zNegNudge = (selection.getVoxel(sx+0, sy+1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz-1) ? 0 : 1) );
               zPosNudge = (selection.getVoxel(sx+0, sy+1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+0, sz+1) ? 0 : 1) );
-              IIcon icon = block.getIcon(UsefulConstants.FACE_YPOS, metaData);
+              SelectionBlockTextures.SBTIcon icon = selectionBlockTextures.getSBTIcon(iBlockState, EnumFacing.UP);
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
               worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMinU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z - zNegNudge * nudgeDistance, icon.getMaxU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + nudgeDistance, z + 1 + zPosNudge * nudgeDistance, icon.getMaxU(), icon.getMinV());
@@ -840,9 +853,9 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               xPosNudge = (selection.getVoxel(sx+1, sy+0, sz-1) ? -1 : (selection.getVoxel(sx+1, sy+0, sz+0) ? 0 : 1) );
               yNegNudge = (selection.getVoxel(sx+0, sy-1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy-1, sz+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(sx+0, sy+1, sz-1) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
-              IIcon icon = block.getIcon(UsefulConstants.FACE_ZNEG, metaData);
+              SelectionBlockTextures.SBTIcon icon = selectionBlockTextures.getSBTIcon(iBlockState, EnumFacing.NORTH);
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
               worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMaxU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z - nudgeDistance, icon.getMinU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z - nudgeDistance, icon.getMinU(), icon.getMinV());
@@ -855,9 +868,9 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
               xPosNudge = (selection.getVoxel(sx+1, sy+0, sz+1) ? -1 : (selection.getVoxel(sx+1, sy+0, sz+0) ? 0 : 1) );
               yNegNudge = (selection.getVoxel(sx+0, sy-1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy-1, sz+0) ? 0 : 1) );
               yPosNudge = (selection.getVoxel(sx+0, sy+1, sz+1) ? -1 : (selection.getVoxel(sx+0, sy+1, sz+0) ? 0 : 1) );
-              IIcon icon = block.getIcon(UsefulConstants.FACE_ZPOS, metaData);
+              SelectionBlockTextures.SBTIcon icon = selectionBlockTextures.getSBTIcon(iBlockState, EnumFacing.SOUTH);
 
-              if (whatToDraw == WhatToDraw.WIREFRAME) tessellator.startDrawing(GL11.GL_LINE_LOOP);
+              if (whatToDraw == WhatToDraw.WIREFRAME) worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
               worldRenderer.addVertexWithUV(x - xNegNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMinU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y - yNegNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMaxU(), icon.getMaxV());
               worldRenderer.addVertexWithUV(x + 1 + xPosNudge * nudgeDistance, y + 1 + yPosNudge * nudgeDistance, z + 1 + nudgeDistance, icon.getMaxU(), icon.getMinV());
@@ -909,35 +922,35 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
     GL11.glDisable(GL11.GL_TEXTURE_2D);
     GL11.glDepthMask(false);
 
-    tessellator.startDrawing(GL11.GL_LINE_LOOP);
-    tessellator.addVertex(0.0, 0.0, 0.0);
+    worldRenderer.startDrawing(GL11.GL_LINE_LOOP);
+    worldRenderer.addVertex(0.0, 0.0, 0.0);
     if (xcount == 0) {
-      tessellator.addVertex(   0.0, -ycount,    0.0);
-      tessellator.addVertex(   0.0, -ycount, zcount);
-      tessellator.addVertex(   0.0,       0, zcount);
+      worldRenderer.addVertex(   0.0, -ycount,    0.0);
+      worldRenderer.addVertex(   0.0, -ycount, zcount);
+      worldRenderer.addVertex(   0.0,       0, zcount);
     } else {
-      tessellator.addVertex(xcount,     0.0,    0.0);
-      tessellator.addVertex(xcount, -ycount, zcount);
-      tessellator.addVertex(   0.0, -ycount, zcount);
+      worldRenderer.addVertex(xcount,     0.0,    0.0);
+      worldRenderer.addVertex(xcount, -ycount, zcount);
+      worldRenderer.addVertex(   0.0, -ycount, zcount);
     }
     tessellator.draw();
 
     for (int x = 1; x < xcount; ++x) {
-      tessellator.startDrawing(GL11.GL_LINES);
-      tessellator.addVertex(x,     0.0,    0.0);
-      tessellator.addVertex(x, -ycount, zcount);
+      worldRenderer.startDrawing(GL11.GL_LINES);
+      worldRenderer.addVertex(x,     0.0,    0.0);
+      worldRenderer.addVertex(x, -ycount, zcount);
       tessellator.draw();
     }
     for (int y = 1; y < ycount; ++y) {
-      tessellator.startDrawing(GL11.GL_LINES);
-      tessellator.addVertex(   0.0, -y,    0.0);
-      tessellator.addVertex(xcount, -y, zcount);
+      worldRenderer.startDrawing(GL11.GL_LINES);
+      worldRenderer.addVertex(   0.0, -y,    0.0);
+      worldRenderer.addVertex(xcount, -y, zcount);
       tessellator.draw();
     }
     for (int z = 1; z < zcount; ++z) {
-      tessellator.startDrawing(GL11.GL_LINES);
-      tessellator.addVertex(   0.0,     0.0, z);
-      tessellator.addVertex(xcount, -ycount, z);
+      worldRenderer.startDrawing(GL11.GL_LINES);
+      worldRenderer.addVertex(   0.0,     0.0, z);
+      worldRenderer.addVertex(xcount, -ycount, z);
       tessellator.draw();
     }
 

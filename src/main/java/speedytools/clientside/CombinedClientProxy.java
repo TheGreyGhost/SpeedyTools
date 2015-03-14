@@ -9,10 +9,7 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import speedytools.SpeedyToolsMod;
 import speedytools.clientside.rendering.ItemEventHandler;
 import speedytools.clientside.rendering.RenderEventHandlers;
-import speedytools.clientside.tools.SpeedyToolBoundary;
-import speedytools.clientside.tools.SpeedyToolTester;
-import speedytools.clientside.tools.SpeedyToolWandStrong;
-import speedytools.clientside.tools.SpeedyToolWandWeak;
+import speedytools.clientside.tools.*;
 import speedytools.clientside.userinput.InputEventHandler;
 import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
@@ -70,7 +67,7 @@ public class CombinedClientProxy extends CommonProxy {
                     ClientSide.packetSenderClient
             ));
 //      todo uncomment
-//    CommonSelectionState commonSelectionState = new CommonSelectionState();
+    CommonSelectionState commonSelectionState = new CommonSelectionState();
     SpeedyToolBoundary speedyToolBoundary = new SpeedyToolBoundary(RegistryForItems.itemSpeedyBoundary,
             ClientSide.speedyToolRenderers,
             ClientSide.speedyToolSounds,
@@ -122,19 +119,19 @@ public class CombinedClientProxy extends CommonProxy {
 //    ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedySceptre, simpleComplexSceptre);
 //
     ClientSide.activeTool.registerToolType(RegistryForItems.itemSpeedyBoundary, speedyToolBoundary);
-//
-//    ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexCopy,
-//            new SpeedyToolComplexCopy(RegistryForItems.itemComplexCopy,
-//                                      ClientSide.speedyToolRenderers,
-//                                      ClientSide.speedyToolSounds,
-//                                      ClientSide.undoManagerComplex,
-//                                      ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
-//                                      ClientSide.clientVoxelSelection, commonSelectionState,
-//                                      ClientSide.selectionPacketSenderComplex,
-//                    ClientSide.packetSenderClient
-//                                    )
-//            );
-//
+
+    ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexCopy,
+                                           new SpeedyToolComplexCopy(RegistryForItems.itemComplexCopy,
+                                                                     ClientSide.speedyToolRenderers,
+                                                                     ClientSide.speedyToolSounds,
+                                                                     ClientSide.undoManagerComplex,
+                                                                     ClientSide.getCloneToolsNetworkClient(), speedyToolBoundary,
+                                                                     ClientSide.clientVoxelSelection, commonSelectionState,
+                                                                     ClientSide.selectionPacketSenderComplex,
+                                                                     ClientSide.packetSenderClient
+                                           )
+    );
+
 //    ClientSide.activeTool.registerToolType(RegistryForItems.itemComplexDelete,
 //            new SpeedyToolComplexDelete(RegistryForItems.itemComplexDelete,
 //                    ClientSide.speedyToolRenderers,

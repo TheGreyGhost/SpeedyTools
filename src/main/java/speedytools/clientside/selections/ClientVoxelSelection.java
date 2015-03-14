@@ -1,6 +1,9 @@
 package speedytools.clientside.selections;
 
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraft.block.Block;
@@ -8,6 +11,7 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import speedytools.clientside.network.PacketHandlerRegistryClient;
 import speedytools.clientside.network.PacketSenderClient;
+import speedytools.clientside.tools.SelectionPacketSender;
 import speedytools.common.blocks.BlockWithMetadata;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.Packet250Types;
@@ -283,7 +287,7 @@ public class ClientVoxelSelection
    * @param fillAlgorithmSettings the fill settings to use
    * @param i_overrideTexture the block texture to use when displaying the selection; null for use world block at each [x,y,z]
   */
-  public ResultWithReason createUnboundFillSelection(EntityPlayerSP thePlayer, FillAlgorithmSettings fillAlgorithmSettings, BlockWithMetadata i_overrideTexture)
+  public ResultWithReason createUnboundFillSelection(EntityPlayerSP thePlayer, FillAlgorithmSettings fillAlgorithmSettings, IBlockState i_overrideTexture)
   {
     initialiseForGeneration();
     overrideTexture = i_overrideTexture;
@@ -301,7 +305,7 @@ public class ClientVoxelSelection
    * @param boundaryCorner1 first corner of the fill boundary
    * @param boundaryCorner2 opposite corner of the fill boundary
    */
-  public ResultWithReason createBoundFillSelection(EntityPlayerSP thePlayer, FillAlgorithmSettings fillAlgorithmSettings, BlockWithMetadata i_overrideTexture,
+  public ResultWithReason createBoundFillSelection(EntityPlayerSP thePlayer, FillAlgorithmSettings fillAlgorithmSettings, IBlockState i_overrideTexture,
                                                    BlockPos boundaryCorner1, BlockPos boundaryCorner2)
   {
     initialiseForGeneration();
@@ -388,17 +392,18 @@ public class ClientVoxelSelection
             clientSelectionState = ClientSelectionState.CREATING_RENDERLISTS;
             BlockPos selectionInitialOrigin = clientVoxelMultiSelector.getWorldOrigin();
             if (voxelSelectionRenderer == null) {
-              voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer();
+              TextureManager textureManager = Minecraft.getMinecraft().getTextureManager();
+              voxelSelectionRenderer = new BlockVoxelMultiSelectorRenderer(textureManager);
             }
-            voxelSelectionRenderer.createRenderListStart(world, overrideTexture, selectionInitialOrigin.posX, selectionInitialOrigin.posY,
-                    selectionInitialOrigin.posZ, clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels());
+            voxelSelectionRenderer.createRenderListStart(world, overrideTexture, selectionInitialOrigin.getX(), selectionInitialOrigin.getY(),
+                    selectionInitialOrigin.getZ(), clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels());
           }
         }
         break;
       }
       case CREATING_RENDERLISTS: {
         BlockPos wOrigin = clientVoxelMultiSelector.getWorldOrigin();
-        float progress = voxelSelectionRenderer.createRenderListContinue(world, wOrigin.posX, wOrigin.posY, wOrigin.posZ,
+        float progress = voxelSelectionRenderer.createRenderListContinue(world, wOrigin.getX(), wOrigin.getY(), wOrigin.getZ(),
                 clientVoxelMultiSelector.getSelection(), clientVoxelMultiSelector.getUnavailableVoxels(), maxDurationInNS);
 
         if (progress >= 0) {
@@ -541,7 +546,7 @@ public class ClientVoxelSelection
   private int tickCount;
   private int lastStatusRequestTick;
 
-  private BlockWithMetadata overrideTexture;  // for the complex fill; the block that will fill the displayed selection; null for no override
+  private IBlockState overrideTexture;  // for the complex fill; the block that will fill the displayed selection; null for no override
 
   public BlockVoxelMultiSelectorRenderer getVoxelSelectionRenderer() {
     return voxelSelectionRenderer;

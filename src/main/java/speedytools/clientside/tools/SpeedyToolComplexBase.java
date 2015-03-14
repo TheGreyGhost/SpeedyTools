@@ -4,10 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.*;
 import net.minecraft.world.World;
 import speedytools.clientside.UndoManagerClient;
 import speedytools.clientside.network.PacketSenderClient;
@@ -115,7 +112,7 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
 
 
   protected BlockPos blockUnderCursor = null;   // todo - removed static - still ok?
-  protected int blockUnderCursorSideHit;  // which side of the block under cursor is the cursor on?
+  protected EnumFacing blockUnderCursorSideHit;  // which side of the block under cursor is the cursor on?
   protected BlockPos boundaryCorner1 = null;
   protected BlockPos boundaryCorner2 = null;
 

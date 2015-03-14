@@ -2,6 +2,7 @@ package speedytools.common.selections;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import speedytools.common.utilities.ErrorLog;
 
 /**
@@ -23,7 +24,8 @@ public class FillAlgorithmSettings
       retval.diagonalPropagationAllowed = buf.readBoolean();
       retval.automaticLowerBound = buf.readBoolean();
       retval.startPosition = new BlockPos(buf.readInt(), buf.readInt(), buf.readInt());
-      retval.normalDirection = buf.readInt();
+      int intNormalDirection = buf.readInt();
+      retval.normalDirection = EnumFacing.getFront(intNormalDirection);
       retval.fillMatcher = FillMatcher.createMatcherFromBuffer(buf);
     } catch (IndexOutOfBoundsException ioe) {
       ErrorLog.defaultLog().info("Exception while createMatcherFromBuffer: " + ioe);
@@ -39,7 +41,7 @@ public class FillAlgorithmSettings
     buf.writeInt(startPosition.getX());
     buf.writeInt(startPosition.getY());
     buf.writeInt(startPosition.getZ());
-    buf.writeInt(normalDirection);
+    buf.writeInt(normalDirection.getIndex());
     fillMatcher.writeToBuffer(buf);
   }
 
@@ -83,11 +85,11 @@ public class FillAlgorithmSettings
     this.automaticLowerBound = automaticLowerBound;
   }
 
-  public int getNormalDirection() {
+  public EnumFacing getNormalDirection() {
     return normalDirection;
   }
 
-  public void setNormalDirection(int normalDirection) {
+  public void setNormalDirection(EnumFacing normalDirection) {
     this.normalDirection = normalDirection;
   }
 
@@ -96,5 +98,5 @@ public class FillAlgorithmSettings
   private BlockPos startPosition = new BlockPos(BlockPos.ORIGIN);    // default
   private FillMatcher fillMatcher = new FillMatcher.NullMatcher();
   private boolean automaticLowerBound = true;
-  private int normalDirection; // for contour: defines the plane to fill in
+  private EnumFacing normalDirection; // for contour: defines the plane to fill in
 }

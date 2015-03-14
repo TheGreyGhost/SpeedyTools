@@ -25,7 +25,7 @@ public class PacketSenderClient implements PacketSender
 //    } else {
 //      System.out.println();
 //    }
-    packetHandlerRegistry.sendToServer(packet);
+//    packetHandlerRegistry.sendToServer(packet); /todo uncomment in order to reenable sending of packets
     bytesSentBacklog += packet.getPacketSize();
     return true;
   }

@@ -1,5 +1,6 @@
 package speedytools.clientside.tools;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
@@ -60,7 +61,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     statusMessageRenderInfoUpdateLink = this.new StatusMessageRenderInfoLink();
     hotbarRenderInfoUpdateLink = this.new HotbarRenderInfoUpdateLink();
     cloneToolsNetworkClient = i_cloneToolsNetworkClient;
-//    selectionPacketSender = i_selectionPacketSender;
+    selectionPacketSender = i_selectionPacketSender;
     clientVoxelSelection = i_clientVoxelSelection;
     commonSelectionState = i_commonSelectionState;
 
@@ -330,7 +331,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    * @param inputEvent
    * @return
    */
-  private boolean processSelectionUserInput(EntityClientPlayerMP player, float partialTick, UserInput.InputEvent inputEvent) {
+  private boolean processSelectionUserInput(EntityPlayerSP player, float partialTick, UserInput.InputEvent inputEvent) {
     final long MIN_UNDO_HOLD_DURATION_NS = SpeedyToolsOptionsClient.getLongClickMinDurationNS(); // length of time to hold for undo
     final long MIN_PLACE_HOLD_DURATION_NS = SpeedyToolsOptionsClient.getLongClickMinDurationNS(); // length of time to hold for action (place)
     final long MAX_SHORT_CLICK_DURATION_NS = SpeedyToolsOptionsClient.getShortClickMaxDurationNS();  // maximum length of time for a "short" click
@@ -350,18 +351,19 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
             flipSelection(player);
           } else { // toggle selection grabbing
             commonSelectionState.hasBeenMoved = true;
-            Vec3 playerPosition = player.getPosition(partialTick);  // beware, Vec3 is short-lived
+            Vec3 playerPosition = player.getPositionEyes(partialTick);  // beware, Vec3 is short-lived
             commonSelectionState.selectionGrabActivated = !commonSelectionState.selectionGrabActivated;
             if (commonSelectionState.selectionGrabActivated) {
               commonSelectionState.selectionMovedFastYet = false;
-              commonSelectionState.selectionGrabPoint = Vec3.createVectorHelper(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
+              commonSelectionState.selectionGrabPoint = new Vec3(playerPosition.xCoord, playerPosition.yCoord, playerPosition.zCoord);
               SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_GRAB, soundController);
               soundEffectSimple.startPlaying();
             } else {
-              Vec3 distanceMoved = commonSelectionState.selectionGrabPoint.subtract(playerPosition);
-              commonSelectionState.selectionOrigin.posX += (int)Math.round(distanceMoved.xCoord);
-              commonSelectionState.selectionOrigin.posY += (int)Math.round(distanceMoved.yCoord);
-              commonSelectionState.selectionOrigin.posZ += (int)Math.round(distanceMoved.zCoord);
+              Vec3 distanceMoved = playerPosition.subtract(commonSelectionState.selectionGrabPoint);
+              commonSelectionState.selectionOrigin = commonSelectionState.selectionOrigin.add(
+                    (int)Math.round(distanceMoved.xCoord),
+                    (int)Math.round(distanceMoved.yCoord),
+                    (int)Math.round(distanceMoved.zCoord));
               SoundEffectSimple soundEffectSimple = new SoundEffectSimple(SoundEffectNames.BOUNDARY_UNGRAB, soundController);
               soundEffectSimple.startPlaying();
             }
@@ -397,7 +399,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    * @param player
    * @param inputEvent
    */
-//  protected void changeObjectCount(EntityClientPlayerMP player, UserInput.InputEvent inputEvent) {
+//  protected void changeObjectCount(EntityPlayerSP player, UserInput.InputEvent inputEvent) {
 //    ItemStack currentItem = player.inventory.getCurrentItem();
 //    int currentcount = currentItem.stackSize;
 //    int maxStackSize = currentItem.getMaxStackSize();
@@ -439,16 +441,16 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
     MovingObjectPosition target = selectBlockUnderCursor(player, null, partialTick);
     if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
-      blockUnderCursor = new BlockPos(target.blockX, target.blockY, target.blockZ);
+      blockUnderCursor = target.getBlockPos();
       blockUnderCursorSideHit = target.sideHit;
       fillAlgorithmSettings.setStartPosition(blockUnderCursor);
       fillAlgorithmSettings.setNormalDirection(blockUnderCursorSideHit);
       boolean selectedBlockIsInsideBoundaryField = false;
 
       if (boundaryCorner1 != null && boundaryCorner2 != null) {
-        if (   blockUnderCursor.posX >= boundaryCorner1.posX && blockUnderCursor.posX <= boundaryCorner2.posX
-                && blockUnderCursor.posY >= boundaryCorner1.posY && blockUnderCursor.posY <= boundaryCorner2.posY
-                && blockUnderCursor.posZ >= boundaryCorner1.posZ && blockUnderCursor.posZ <= boundaryCorner2.posZ ) {
+        if (   blockUnderCursor.getX() >= boundaryCorner1.getX() && blockUnderCursor.getX() <= boundaryCorner2.getX()
+                && blockUnderCursor.getY() >= boundaryCorner1.getY() && blockUnderCursor.getY() <= boundaryCorner2.getY()
+                && blockUnderCursor.getZ() >= boundaryCorner1.getZ() && blockUnderCursor.getZ() <= boundaryCorner2.getZ() ) {
           selectedBlockIsInsideBoundaryField = true;
         }
       }
@@ -460,17 +462,17 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.FLOODFILL) {
           highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
                   fillAlgorithmSettings.getFillMatcher(),
-                  boundaryCorner1.posX, boundaryCorner2.posX,
-                  boundaryCorner1.posY, boundaryCorner2.posY,
-                  boundaryCorner1.posZ, boundaryCorner2.posZ);
+                  boundaryCorner1.getX(), boundaryCorner2.getX(),
+                  boundaryCorner1.getY(), boundaryCorner2.getY(),
+                  boundaryCorner1.getZ(), boundaryCorner2.getZ());
         } else if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.CONTOUR) {
           highlightedBlocks = BlockMultiSelector.selectContourBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS,
                   fillAlgorithmSettings.isDiagonalPropagationAllowed(),
                   fillAlgorithmSettings.getFillMatcher(),
                   blockUnderCursorSideHit,
-                  boundaryCorner1.posX, boundaryCorner2.posX,
-                  boundaryCorner1.posY, boundaryCorner2.posY,
-                  boundaryCorner1.posZ, boundaryCorner2.posZ);
+                  boundaryCorner1.getX(), boundaryCorner2.getX(),
+                  boundaryCorner1.getY(), boundaryCorner2.getY(),
+                  boundaryCorner1.getZ(), boundaryCorner2.getZ());
         }
       } else {
         final int MAXIMUM_Y = 255;
@@ -480,7 +482,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
           highlightedBlocks = BlockMultiSelector.selectFillBounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS, fillAlgorithmSettings.isDiagonalPropagationAllowed(),
                   fillAlgorithmSettings.getFillMatcher(),
                   Integer.MIN_VALUE, Integer.MAX_VALUE,
-                  (fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.posY : MINIMUM_Y), MAXIMUM_Y,
+                  (fillAlgorithmSettings.isAutomaticLowerBound() ? blockUnderCursor.getY() : MINIMUM_Y), MAXIMUM_Y,
                   Integer.MIN_VALUE, Integer.MAX_VALUE);
         } else if (fillAlgorithmSettings.getPropagation() == FillAlgorithmSettings.Propagation.CONTOUR) {
           highlightedBlocks = BlockMultiSelector.selectContourUnbounded(blockUnderCursor, world, MAX_NUMBER_OF_HIGHLIGHTED_BLOCKS,
@@ -495,10 +497,10 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
     // if there is no block selected, check whether the player is pointing at the boundary field from outside.
     if (boundaryCorner1 == null || boundaryCorner2 == null) return false;
-    Vec3 playerPosition = player.getPosition(1.0F);
-    if (   playerPosition.xCoord >= boundaryCorner1.posX && playerPosition.xCoord <= boundaryCorner2.posX +1
-            && playerPosition.yCoord >= boundaryCorner1.posY && playerPosition.yCoord <= boundaryCorner2.posY +1
-            && playerPosition.zCoord >= boundaryCorner1.posZ && playerPosition.zCoord <= boundaryCorner2.posZ +1) {
+    Vec3 playerPosition = player.getPositionEyes(1.0F);
+    if (   playerPosition.xCoord >= boundaryCorner1.getX() && playerPosition.xCoord <= boundaryCorner2.getX() +1
+            && playerPosition.yCoord >= boundaryCorner1.getY() && playerPosition.yCoord <= boundaryCorner2.getY() +1
+            && playerPosition.zCoord >= boundaryCorner1.getZ() && playerPosition.zCoord <= boundaryCorner2.getZ() +1) {
       return false;
     }
     MovingObjectPosition highlightedFace = boundaryFieldFaceSelection(player);
@@ -508,7 +510,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     return true;
   }
 
-//  protected MovingObjectPosition getBlockUnderCursor(EntityClientPlayerMP player, float partialTick)
+//  protected MovingObjectPosition getBlockUnderCursor(EntityPlayerSP player, float partialTick)
 //  {
 //    MovingObjectPosition target = parentItem.rayTraceLineOfSight(player.worldObj, player);
 //    if (target != null && target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
@@ -564,7 +566,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   /**
    * don't call if an action is already pending
    */
-  protected void placeSelection(EntityClientPlayerMP player, float partialTick)
+  protected void placeSelection(EntityPlayerSP player, float partialTick)
   {
     checkInvariants();
     if (!clientVoxelSelection.isSelectionCompleteOnServer()) {
@@ -590,9 +592,9 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
               commonSelectionState.selectionOrientation);
   }
 
-  private void flipSelection(EntityClientPlayerMP entityClientPlayerMP)
+  private void flipSelection(EntityPlayerSP EntityPlayerSP)
   {
-    float modulusYaw =  MathHelper.wrapAngleTo180_float(entityClientPlayerMP.rotationYaw);
+    float modulusYaw =  MathHelper.wrapAngleTo180_float(EntityPlayerSP.rotationYaw);
 
     if (Math.abs(modulusYaw) < 45 || Math.abs(modulusYaw) > 135) { // looking mostly north-south
       commonSelectionState.selectionOrientation.flipWX();
@@ -606,7 +608,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     commonSelectionState.selectionOrientation.rotateClockwise(rotationCountAndDirection);
   }
 
-  private void initiateSelectionCreation(EntityClientPlayerMP thePlayer)
+  private void initiateSelectionCreation(EntityPlayerSP thePlayer)
   {
     commonSelectionState.selectionGrabActivated = false;
     switch (currentHighlighting) {
@@ -653,7 +655,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   protected FillAlgorithmSettings fillAlgorithmSettings = new FillAlgorithmSettings();
 
-  protected BlockWithMetadata getOverrideTexture()
+  protected IBlockState getOverrideTexture()
   {
     return null;
   }
@@ -680,11 +682,11 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         commonSelectionState.selectionOrigin = commonSelectionState.initialSelectionOrigin;
         commonSelectionState.selectionOrientation = commonSelectionState.initialSelectionOrientation;
       } else {                                                         // apply any user translations and orientation changes to the new values
-        int dx = commonSelectionState.selectionOrigin.posX - commonSelectionState.initialSelectionOrigin.posX;
-        int dy = commonSelectionState.selectionOrigin.posY - commonSelectionState.initialSelectionOrigin.posY;
-        int dz = commonSelectionState.selectionOrigin.posZ - commonSelectionState.initialSelectionOrigin.posZ;
+        int dx = commonSelectionState.selectionOrigin.getX() - commonSelectionState.initialSelectionOrigin.getX();
+        int dy = commonSelectionState.selectionOrigin.getY() - commonSelectionState.initialSelectionOrigin.getY();
+        int dz = commonSelectionState.selectionOrigin.getZ() - commonSelectionState.initialSelectionOrigin.getZ();
         BlockPos newOrigin = clientVoxelSelection.getSourceWorldOrigin();
-        commonSelectionState.selectionOrigin = new BlockPos(newOrigin.posX + dx, newOrigin.posY + dy, newOrigin.posZ + dz);
+        commonSelectionState.selectionOrigin = new BlockPos(newOrigin.getX() + dx, newOrigin.getY() + dy, newOrigin.getZ() + dz);
         QuadOrientation newOrientation = clientVoxelSelection.getSourceQuadOrientation();
         if (commonSelectionState.initialSelectionOrientation.isFlippedX()) newOrientation.flipX();
         newOrientation.rotateClockwise(commonSelectionState.initialSelectionOrientation.getClockwiseRotationCount());
@@ -762,13 +764,12 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     boundaryCorner2 = null;
 
     if (speedyToolBoundary == null) return false;
-    BlockPos cnrMin = new BlockPos();
-    BlockPos cnrMax = new BlockPos();
+    Pair<BlockPos, BlockPos> boundaryCorners = speedyToolBoundary.getBoundaryCorners();
 
-    boolean hasABoundaryField = speedyToolBoundary.copyBoundaryCorners(cnrMin, cnrMax);
+    boolean hasABoundaryField = boundaryCorners != null;
     if (hasABoundaryField) {
-      boundaryCorner1 = cnrMin;
-      boundaryCorner2 = cnrMax;
+      boundaryCorner1 = boundaryCorners.getFirst();
+      boundaryCorner2 = boundaryCorners.getSecond();
     }
     return hasABoundaryField;
   }
@@ -871,7 +872,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
     @Override
     public boolean refreshHumInfo(SoundEffectBoundaryHum.BoundaryHumInfo infoToUpdate) {
-      EntityClientPlayerMP entityClientPlayerMP = Minecraft.getMinecraft().thePlayer;
+      EntityPlayerSP entityPlayerSP = Minecraft.getMinecraft().thePlayer;
 
       ToolSelectionStates currentToolSelectionState = ToolSelectionStates.getState(clientVoxelSelection.getReadinessForDisplaying());
       if (!currentToolSelectionState.displayBoundaryField) return false;
@@ -879,8 +880,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
       AxisAlignedBB boundaryFieldAABB = speedyToolBoundary.getBoundaryField();
       if (boundaryFieldAABB == null) return false;
 
-      Vec3 playerPosition = entityClientPlayerMP.getPosition(0);
-      Vec3 epicentre = Vec3.createVectorHelper((boundaryFieldAABB.minX + boundaryFieldAABB.maxX) / 2.0,
+      Vec3 playerPosition = entityPlayerSP.getPositionEyes(0);
+      Vec3 epicentre = new Vec3((boundaryFieldAABB.minX + boundaryFieldAABB.maxX) / 2.0,
               (boundaryFieldAABB.minY + boundaryFieldAABB.maxY) / 2.0,
               (boundaryFieldAABB.minZ + boundaryFieldAABB.maxZ) / 2.0);
       MovingObjectPosition mop = boundaryFieldAABB.calculateIntercept(playerPosition, epicentre);
@@ -982,13 +983,13 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
    */
   private Vec3 getSelectionPosition(EntityPlayer player, float partialTick, boolean snapToGrid)
   {
-    Vec3 playerOrigin = player.getPosition(partialTick);
+    Vec3 playerOrigin = player.getPositionEyes(partialTick);
 
-    double draggedSelectionOriginX = commonSelectionState.selectionOrigin.posX;
-    double draggedSelectionOriginY = commonSelectionState.selectionOrigin.posY;
-    double draggedSelectionOriginZ = commonSelectionState.selectionOrigin.posZ;
+    double draggedSelectionOriginX = commonSelectionState.selectionOrigin.getX();
+    double draggedSelectionOriginY = commonSelectionState.selectionOrigin.getY();
+    double draggedSelectionOriginZ = commonSelectionState.selectionOrigin.getZ();
     if (commonSelectionState.selectionGrabActivated) {
-      Vec3 distanceMoved = commonSelectionState.selectionGrabPoint.subtract(playerOrigin);
+      Vec3 distanceMoved = playerOrigin.subtract(commonSelectionState.selectionGrabPoint);
       draggedSelectionOriginX += distanceMoved.xCoord;
       draggedSelectionOriginY += distanceMoved.yCoord;
       draggedSelectionOriginZ += distanceMoved.zCoord;
@@ -998,7 +999,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         draggedSelectionOriginZ = Math.round(draggedSelectionOriginZ);
       }
     }
-    return Vec3.createVectorHelper(draggedSelectionOriginX, draggedSelectionOriginY, draggedSelectionOriginZ);
+    return new Vec3(draggedSelectionOriginX, draggedSelectionOriginY, draggedSelectionOriginZ);
   }
 
   /**
@@ -1199,7 +1200,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
 
   private ClientVoxelSelection clientVoxelSelection;
   protected CloneToolsNetworkClient cloneToolsNetworkClient;
-//  private SelectionPacketSender selectionPacketSender;
+  private SelectionPacketSender selectionPacketSender;
 
   private SpeedyToolBoundary speedyToolBoundary;   // used to retrieve the boundary field coordinates, if selected
 

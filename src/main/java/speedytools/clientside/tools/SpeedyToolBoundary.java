@@ -17,6 +17,7 @@ import speedytools.clientside.sound.SoundEffectSimple;
 import speedytools.clientside.userinput.UserInput;
 import speedytools.common.items.ItemSpeedyBoundary;
 import speedytools.common.items.ItemSpeedyTool;
+import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.UsefulConstants;
 import speedytools.common.utilities.UsefulFunctions;
 
@@ -326,6 +327,22 @@ public class SpeedyToolBoundary extends SpeedyToolComplexBase
     BlockPos nullPos = null;
     nullPos.add(1,2,3);   // cause a crash
     return true;
+  }
+
+  /**
+   * Gets the boundary field extend (integer positions)
+   * @return Pair<[minx, miny, minz], [maxx, maxy, maxz]> or null if there is no boundary field
+   */
+  public Pair<BlockPos, BlockPos> getBoundaryCorners()
+  {
+    sortBoundaryFieldCorners();
+
+    if (boundaryCorner1 == null) {
+      return null;
+    }
+    BlockPos cnrMin = boundaryCorner1;
+    BlockPos cnrMax = (boundaryCorner2 != null) ? boundaryCorner2 : boundaryCorner1;
+    return new Pair<BlockPos, BlockPos>(cnrMin, cnrMax);
   }
 
   /**

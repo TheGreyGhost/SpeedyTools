@@ -1,6 +1,7 @@
 package speedytools.common.selections;
 
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import speedytools.common.utilities.ErrorLog;
 
 import java.util.*;
@@ -55,20 +56,20 @@ public class VoxelChunkwiseContourIterator implements IVoxelIterator
    * @param wz
    * @param normalDirection specifies the plane that will be searched in (Facing directions; specifies the normal to the plane)
    */
-  public void setStartPositionAndPlane(int wx, int wy, int wz, int normalDirection) {
+  public void setStartPositionAndPlane(int wx, int wy, int wz, EnumFacing normalDirection) {
     if (!isWithinBounds(wx, wy, wz)) return;
     currentCheckPosition = new BlockPos(wx, wy, wz);
-    switch (normalDirection) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
-      case 0:
-      case 1:
+    switch (normalDirection) {
+      case DOWN:
+      case UP:
         searchPlane = PLANE_XZ;
         break;
-      case 2:
-      case 3:
+      case EAST:
+      case WEST:
         searchPlane = PLANE_XY;
         break;
-      case 4:
-      case 5:
+      case NORTH:
+      case SOUTH:
         searchPlane = PLANE_YZ;
         break;
       default: {

@@ -238,7 +238,7 @@ public class BlockMultiSelector
   }
 
   public static List<BlockPos> selectContourUnbounded(BlockPos startingBlockPosition, World world,
-                                                              int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, int normalDirection)
+                                                              int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, EnumFacing normalDirection)
   {
     return selectContourBounded(startingBlockPosition, world, maxBlockCount, diagonalOK, fillMatcher, normalDirection,
                                 Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE);
@@ -263,7 +263,7 @@ public class BlockMultiSelector
    */
 
   public static List<BlockPos> selectContourBounded(BlockPos startingBlockPosition, World world,
-                                                              int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, int normalDirection,
+                                                              int maxBlockCount, boolean diagonalOK, FillMatcher fillMatcher, EnumFacing normalDirection,
                                                               int xMin, int xMax, int yMin, int yMax, int zMin, int zMax)
   {
     // lookup table to give the possible search directions for any given search plane
@@ -291,17 +291,17 @@ public class BlockMultiSelector
 
 //    BlockPos startingBlock = new BlockPos();
     int searchPlane;
-    switch (normalDirection) {   //  Bottom = 0, Top = 1, East = 2, West = 3, North = 4, South = 5.
-      case 0:
-      case 1:
+    switch (normalDirection) {
+      case DOWN:
+      case UP:
         searchPlane = PLANE_XZ;
         break;
-      case 2:
-      case 3:
+      case EAST:
+      case WEST:
         searchPlane = PLANE_XY;
         break;
-      case 4:
-      case 5:
+      case NORTH:
+      case SOUTH:
         searchPlane = PLANE_YZ;
         break;
       default: return selection;  // illegal value so return nothing
