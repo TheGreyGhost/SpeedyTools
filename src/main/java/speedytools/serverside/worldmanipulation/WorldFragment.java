@@ -18,14 +18,9 @@ import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraft.world.gen.structure.StructureBoundingBox;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
-import speedytools.common.utilities.BlockRotateFlipHelper;
-import speedytools.common.utilities.ErrorLog;
-import speedytools.common.utilities.Pair;
-import speedytools.common.utilities.QuadOrientation;
+import speedytools.common.utilities.*;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
 * User: The Grey Ghost
@@ -287,6 +282,24 @@ public class WorldFragment
   }
 
   /**
+   * Retrieve the block ticking info for this position
+   * @param x x position relative to the block origin [0,0,0]
+   * @param y y position relative to the block origin [0,0,0]
+   * @param z z position relative to the block origin [0,0,0]
+   * @return ticking information for this block, null if none
+   */
+  public NextTickListEntry getTickInfo(int x, int y, int z)
+  {
+    assert (x >= 0 && x < xCount);
+    assert (y >= 0 && y < yCount);
+    assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
+
+    final int offset = y * xCount * zCount + z * xCount + x;
+    return tickingBlocks.get(offset);
+  }
+
+  /**
    * sets the block tick data for the given location
    * @param x x position relative to the block origin [0,0,0]
    * @param y y position relative to the block origin [0,0,0]
@@ -515,10 +528,12 @@ public class WorldFragment
           StructureBoundingBox yColumnSBB = new StructureBoundingBox(x + wxOrigin, yClipMin + wyOrigin, z + wzOrigin,
                                                                      x + wxOrigin, yClipMaxPlusOne - 1 + wyOrigin, z + wzOrigin);
           List<NextTickListEntry> blockTickInfo = worldServerReader.getTickingBlocks(yColumnSBB);
-          for (NextTickListEntry nextTickListEntry : blockTickInfo) {
-            int y = nextTickListEntry.position.getY() - wyOrigin;
-            if (selection.getVoxel(x, y, z)) {
-              setTickInfo(x, y, z, nextTickListEntry);
+          if (blockTickInfo != null) {
+            for (NextTickListEntry nextTickListEntry : blockTickInfo) {
+              int y = nextTickListEntry.position.getY() - wyOrigin;
+              if (selection.getVoxel(x, y, z)) {
+                setTickInfo(x, y, z, nextTickListEntry);
+              }
             }
           }
 
@@ -747,7 +762,7 @@ public class WorldFragment
     57: create any hanging entities
     60: updateTick for all blocks to restart updating (causes Dispensers to dispense, but leave for now)
 
-    10: delete EntityHanging to stop resource leaks / items popping out
+   MAYBE 10: delete EntityHanging to stop resource leaks / items popping out
     20: copy ID and metadata to chunk directly (chunk setBlockIDwithMetadata without the updating)
     30: create & update TileEntities - setChunkBlockTileEntity, World.addTileEntity
     35: update stored light values
@@ -804,8 +819,14 @@ public class WorldFragment
       if (state.isTimeToInterrupt()) return;
     }
 
+    // TileEntities need special treatment to remove properly without triggering updates
+    // 1) during overwrite, the TileEntity is marked invalid and removed from the chunk.  It is added to a list
+    //    for later removal from worldServer, but nothing further done at that time
+    // 2) after all blocks updated, worldServer.removeTileEntity(blockPos); is called for each previously removed
+    //    TileEntity.  New TileEntities created for the new copies
+
     if (state.getStage() == AsynchronousWriteStages.WRITE_TILEDATA) {
-      //todo: keep track of dirty chunks here
+      //todo: keep track of dirty chunks here  Need to to makeChunkDirty?
 
       int x = state.x;
       int z = state.z;
@@ -816,14 +837,18 @@ public class WorldFragment
               int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
               int wy = y + wyOrigin;
               int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
+              BlockPos blockPos = new BlockPos(wx, wy, wz);
               int blockID = getBlockID(x, y, z);
               int blockMetadata = getMetadata(x, y, z);
               byte lightValue = getLightValue(x, y, z);
-              NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
 
               Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
-
-              chunk.removeTileEntity(new BlockPos(wx, wy, wz));
+              TileEntity tileentity = chunk.getTileEntity(blockPos, Chunk.EnumCreateEntityType.CHECK);
+              if (tileentity != null) {
+                tileentity.invalidate();
+                state.enqueueTileEntityForRemoval(tileentity);
+                chunk.removeTileEntity(blockPos);
+              }
 
               if (orientation.isFlippedX()) {
                 blockMetadata = BlockRotateFlipHelper.flip(blockID, blockMetadata, BlockRotateFlipHelper.FlipDirection.WEST_EAST);
@@ -833,9 +858,6 @@ public class WorldFragment
               }
 
               boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
-              if (successful && tileEntityNBT != null) {
-                setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
-              }
 
               setLightValue(chunk, wx, wy, wz, lightValue);
             }
@@ -848,8 +870,48 @@ public class WorldFragment
           }
         }
       }
+      state.setStage(AsynchronousWriteStages.TILE_ENTITIES);
+    }
+
+    if (state.getStage() == AsynchronousWriteStages.TILE_ENTITIES) {
+      Queue<BlockPos> tileEntitiesToRemove = state.getTileEntitiesForRemoval();
+      BlockPos blockPos;
+      while (null != (blockPos = tileEntitiesToRemove.poll())) {
+        worldServer.removeTileEntity(blockPos);
+        if (state.isTimeToInterrupt()) {
+          return;
+        }
+      }
+
+      THE PROBLEM IS: WHEN COPYING A TILEENTITY OVER AN EXISTING ONE, THE REMOVAL OF THE OLD ONE DELETES THE NEW ONE
+
+      int x = state.x;
+      int z = state.z;
+      for (; z < zCount; ++z, x = 0) {
+        for (; x < xCount; ++x) {
+          for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
+            if (selection.getVoxel(x, y, z)) {
+              int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
+              int wy = y + wyOrigin;
+              int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
+              blockPos = new BlockPos(wx, wy, wz);
+              NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
+
+              Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+              setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
+            }
+          } // for y
+          if (state.isTimeToInterrupt()) {
+            state.z = z;
+            state.x = x + 1;
+            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
+            return;
+          }
+        }
+      }
       state.setStage(AsynchronousWriteStages.HEIGHT_AND_SKYLIGHT);
     }
+
 
     final int cxMin = wxMin >> 4;
     final int cxMax = (wxMaxPlusOne - 1) >> 4;
@@ -891,6 +953,7 @@ public class WorldFragment
               int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
               BlockPos blockPos = new BlockPos(wx, wy, wz);
               IBlockState blockState = worldServer.getBlockState(blockPos);
+              worldServer.notifyNeighborsRespectDebug(blockPos, blockState.getBlock());
 ////              int blockID = Block.getIdFromBlock();                                 todo notify of neighbour change
 //              worldServer.func_147453_f(wx, wy, wz, block);
 //
@@ -974,6 +1037,7 @@ public class WorldFragment
     }
 
     if (state.getStage() == AsynchronousWriteStages.UPDATE_TICKS) {
+      long worldTotalTimeNow = worldServer.getWorldInfo().getWorldTotalTime();
       int x = state.x;
       int z = state.z;
       for (; z < zCount; ++z, x = 0) {
@@ -984,9 +1048,20 @@ public class WorldFragment
               int wy = y + wyOrigin;
               int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
               int blockID = getBlockID(x, y, z);
-//              if (blockID > 0) {  todo block tick
-//                Block.getBlockById(blockID).updateTick(worldServer, wx, wy, wz, worldServer.rand);
-//              }
+              NextTickListEntry nextTickListEntry = getTickInfo(x, y, z);
+              if (nextTickListEntry != null ) {
+                long timeLeftTillTick = nextTickListEntry.scheduledTime - worldTotalTimeNow;
+                int intTimeLeftTillTick;
+                if (timeLeftTillTick < 0) {
+                  intTimeLeftTillTick = 0;
+                } else if (timeLeftTillTick > Integer.MAX_VALUE) {
+                  intTimeLeftTillTick = Integer.MAX_VALUE;
+                } else {
+                  intTimeLeftTillTick = (int) timeLeftTillTick;
+                }
+                worldServer.func_180497_b(new BlockPos(wx, wy, wz), Block.getBlockById(blockID),
+                                          intTimeLeftTillTick, nextTickListEntry.priority);
+              }
             }
           }
           if (state.isTimeToInterrupt()) {
@@ -1003,7 +1078,7 @@ public class WorldFragment
 
   public enum AsynchronousWriteStages
   {
-    SETUP(0.1), WRITE_TILEDATA(0.3), HEIGHT_AND_SKYLIGHT(0.1), NEIGHBOUR_CHANGE(0.2), SEND_CHUNKS_AND_ENTITIES(0.2), UPDATE_TICKS(0.1), COMPLETE(0.0);
+    SETUP(0.1), WRITE_TILEDATA(0.2), TILE_ENTITIES(0.1), HEIGHT_AND_SKYLIGHT(0.1), NEIGHBOUR_CHANGE(0.2), SEND_CHUNKS_AND_ENTITIES(0.2), UPDATE_TICKS(0.1), COMPLETE(0.0);
 
     AsynchronousWriteStages(double i_durationWeight) {durationWeight = i_durationWeight;}
     public double durationWeight;
@@ -1065,6 +1140,7 @@ public class WorldFragment
       x = 0;
       z = 0;
       lockedRegion = (writeMask == null) ? voxelsWithStoredData : writeMask;
+      tileEntitiesForRemoval = new LinkedList<BlockPos>();
     }
 
     public AsynchronousWriteStages getStage() {return currentStage;}
@@ -1086,6 +1162,16 @@ public class WorldFragment
     {
       if (isTaskComplete()) return null;
       return new VoxelSelectionWithOrigin(wxOrigin, wyOrigin, wzOrigin, lockedRegion);
+    }
+
+    public void enqueueTileEntityForRemoval(TileEntity tileEntity)
+    {
+      tileEntitiesForRemoval.add(tileEntity.getPos());
+    }
+
+    public Queue<BlockPos> getTileEntitiesForRemoval()
+    {
+      return tileEntitiesForRemoval;
     }
 
     @Override
@@ -1110,6 +1196,7 @@ public class WorldFragment
     private final VoxelSelection lockedRegion;
     private boolean aborted;
     private final UniqueTokenID uniqueTokenID = new UniqueTokenID();
+    private Queue<BlockPos> tileEntitiesForRemoval;
   }
 
   /**

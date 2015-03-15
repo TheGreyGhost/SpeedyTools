@@ -58,7 +58,8 @@ public class ClientTickHandler  {
     boolean inputUsed = false;
     if (ClientSide.activeTool.toolIsActive()) {
       long timeNow = System.nanoTime();
-      ClientSide.userInput.updateButtonStates(SpeedyToolControls.attackButtonInterceptor.isKeyDown(), SpeedyToolControls.useItemButtonInterceptor.isKeyDown(), timeNow);
+      ClientSide.userInput.updateButtonStates(SpeedyToolControls.attackButtonInterceptor.isUnderlyingKeyDown(),
+                                              SpeedyToolControls.useItemButtonInterceptor.isUnderlyingKeyDown(), timeNow);
       inputUsed = ClientSide.activeTool.processUserInput(player, 1.0F, ClientSide.userInput);
     }
 

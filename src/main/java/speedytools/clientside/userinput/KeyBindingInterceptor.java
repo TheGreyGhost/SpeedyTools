@@ -16,7 +16,7 @@ package speedytools.clientside.userinput;
 *          KeyBinding hashmap and keyBindArray.
 *    (2) Set the interception mode (eg true = on)
 *        eg  setInterceptionActive(false);
-*    (3) read the underlying clicks using .retrieveClick() or .isKeyDown();
+*    (3) read the underlying clicks using .retrieveClick() or .isUnderlyingKeyDown();
 *    (4) when Interceptor is no longer required, call .getOriginalKeyBinding();
 *        eg GameSettings.keyBindAttack = attackButtonInterceptor.getOriginalKeyBinding();
 *
@@ -87,7 +87,17 @@ public class KeyBindingInterceptor extends KeyBinding
     interceptionActive = newMode;
   }
 
+  @Override
   public boolean isKeyDown()
+  {
+    if (interceptionActive) {
+      return false;
+    } else {
+      return super.isKeyDown();
+    }
+  }
+
+  public boolean isUnderlyingKeyDown()
   {
     copyKeyCodeToOriginal();
 //    return interceptedKeyBinding.pressed;

@@ -6,6 +6,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
@@ -525,8 +526,8 @@ public class WorldSelectionUndoTest
       }
     }
 
-//    @Override  todo need to update this stub
-//    public TileEntity getTileEntity(int par1, int par2, int par3) {return null;}
+    @Override
+    public TileEntity getTileEntity(BlockPos blockPos) {return null;}
 
 //    @Override todo need to update this stub
 //    public List selectEntitiesWithinAABB(Class par1Class, AxisAlignedBB par2AxisAlignedBB, IEntitySelector par3IEntitySelector) {return new ArrayList();}
@@ -554,6 +555,25 @@ public class WorldSelectionUndoTest
     @Override
     public void generateHeightMap() {return;}
 
+    @Override
+    public int getLightFor(EnumSkyBlock enumSkyBlock, BlockPos pos)
+    {
+      int i = pos.getX() & 15;
+      int j = pos.getY();
+      int k = pos.getZ() & 15;
+      ExtendedBlockStorage extendedblockstorage = this.getBlockStorageArray()[j >> 4];
+      if (extendedblockstorage == null) {
+        return (this.canSeeSky(pos) ? enumSkyBlock.defaultLightValue : 0);
+      } else {
+        if (enumSkyBlock == EnumSkyBlock.SKY) {
+          return (extendedblockstorage.getExtSkylightValue(i, j & 15, k));
+        } else {
+          return (enumSkyBlock == EnumSkyBlock.BLOCK ? extendedblockstorage.getExtBlocklightValue(i, j & 15, k) :
+                  enumSkyBlock.defaultLightValue);
+        }
+      }
+
+    }
 //    public int getSavedLightValue(EnumSkyBlock par1EnumSkyBlock, int par2, int par3, int par4)
 //    {
 ////      ExtendedBlockStorage extendedblockstorage = this.getBlockStorageArray()[par3 >> 4];   todo light storage

@@ -47,7 +47,7 @@ public class WorldServerReader
   /**
    * Get a list of all the blocks within the given area that are scheduled for ticking
    * @param structureBoundingBox cuboid region - NB all corner points are inclusive!
-   * @return list of ticking information, empty list for none
+   * @return list of ticking information, null for none
    */
 
   public List<NextTickListEntry> getTickingBlocks(StructureBoundingBox structureBoundingBox)
