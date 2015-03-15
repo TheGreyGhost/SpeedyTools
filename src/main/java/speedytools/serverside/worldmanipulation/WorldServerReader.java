@@ -5,8 +5,10 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
+import net.minecraft.world.NextTickListEntry;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.gen.structure.StructureBoundingBox;
 
 import java.util.List;
 
@@ -40,6 +42,17 @@ public class WorldServerReader
 
   public List getEntitiesWithinAABB(Class par1Class, AxisAlignedBB par2AxisAlignedBB) {
     return worldServer.getEntitiesWithinAABB(par1Class, par2AxisAlignedBB);
+  }
+
+  /**
+   * Get a list of all the blocks within the given area that are scheduled for ticking
+   * @param structureBoundingBox cuboid region - NB all corner points are inclusive!
+   * @return list of ticking information, empty list for none
+   */
+
+  public List<NextTickListEntry> getTickingBlocks(StructureBoundingBox structureBoundingBox)
+  {
+    return worldServer.func_175712_a(structureBoundingBox, false);
   }
 
   private WorldServer worldServer;

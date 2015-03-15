@@ -12,15 +12,14 @@ import net.minecraft.server.management.PlayerManager;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
-import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraft.world.EnumSkyBlock;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
+import net.minecraft.world.gen.structure.StructureBoundingBox;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.BlockRotateFlipHelper;
+import speedytools.common.utilities.ErrorLog;
 import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
 
@@ -75,6 +74,7 @@ public class WorldFragment
     tileEntityData = sourceFragment.tileEntityData;
     entityData = sourceFragment.entityData;
     voxelsWithStoredData = sourceFragment.voxelsWithStoredData;
+    tickingBlocks = sourceFragment.tickingBlocks;
   }
 
   /** creates a WorldFragment, initially empty
@@ -102,6 +102,7 @@ public class WorldFragment
     tileEntityData = new HashMap<Integer, NBTTagCompound>();
     entityData = new HashMap<Integer, LinkedList<NBTTagCompound>>();
     voxelsWithStoredData = new VoxelSelection(i_xcount, i_ycount, i_zcount);
+    tickingBlocks = new HashMap<Integer, NextTickListEntry>();
   }
 
   /**
@@ -285,6 +286,26 @@ public class WorldFragment
     voxelsWithStoredData.setVoxel(x, y, z);
   }
 
+  /**
+   * sets the block tick data for the given location
+   * @param x x position relative to the block origin [0,0,0]
+   * @param y y position relative to the block origin [0,0,0]
+   * @param z z position relative to the block origin [0,0,0]
+   */
+  public void setTickInfo(int x, int y, int z, NextTickListEntry nextTickListEntry)
+  {
+    assert (x >= 0 && x < xCount);
+    assert (y >= 0 && y < yCount);
+    assert (z >= 0 && z < zCount);
+    assert (voxelsWithStoredData.getVoxel(x, y, z));
+
+    final int offset = y * xCount * zCount + z * xCount + x;
+    if (nextTickListEntry == null) {
+      tickingBlocks.remove(offset);
+    } else {
+      tickingBlocks.put(offset, nextTickListEntry);
+    }
+  }
 
   public int getxCount() {
     return xCount;
@@ -348,6 +369,14 @@ public class WorldFragment
     setBlockID(x, y, z, id);
     setMetadata(x, y, z, data);
     setTileEntityData(x, y, z, tileEntityTag);
+    StructureBoundingBox boundingBox = new StructureBoundingBox(blockPos, blockPos);
+    List<NextTickListEntry> blockTickInfo = worldServer.func_175712_a(boundingBox, false);
+    if (!blockTickInfo.isEmpty()) {
+      setTickInfo(x, y, z, blockTickInfo.get(0));
+      if (blockTickInfo.size() != 1) {
+        ErrorLog.defaultLog().debug("Illegal block tick info size in WorldFragment::readSingleBlockFromWorld = " + blockTickInfo.size());
+      }
+    }
 //  todo saved light values
 //    Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
 //    int lightValue = 0;
@@ -420,6 +449,11 @@ public class WorldFragment
 
   private void readFromWorldAsynchronous_do(WorldServerReader worldServerReader, AsynchronousRead state)
   {
+    /*
+       The read algorithm is based on CommandClone.
+       The saving of light values was necessary in 1.7.10, not sure about 1.8  (eg to prevent mushrooms dying)
+       Not sure about blocks with associated entities yet eg EntityPicture
+     */
     VoxelSelection selection = state.voxelSelection;
     int wxOrigin = state.wxOrigin;
     int wyOrigin = state.wyOrigin;
@@ -468,14 +502,26 @@ public class WorldFragment
               }
 
               Chunk chunk = worldServerReader.getChunkFromChunkCoords(wx >> 4, wz >> 4);
-//              int lightValue = (chunk.getSavedLightValue(EnumSkyBlock.Sky, wx & 0x0f, wy, wz & 0x0f) << 4)         todo saved light values
-//                      | chunk.getSavedLightValue(EnumSkyBlock.Block, wx & 0x0f, wy, wz & 0x0f);
-//              setBlockID(x, y, z, id);
-//              setMetadata(x, y, z, data);
-//              setTileEntityData(x, y, z, tileEntityTag);
-//              setLightValue(x, y, z, (byte) lightValue);
+              BlockPos blockPos = new BlockPos(wx, wy, wz);
+              int lightValue = (chunk.getLightFor(EnumSkyBlock.SKY, blockPos) << 4)
+                              | chunk.getLightFor(EnumSkyBlock.BLOCK, blockPos);
+              setBlockID(x, y, z, id);
+              setMetadata(x, y, z, data);
+              setTileEntityData(x, y, z, tileEntityTag);
+              setLightValue(x, y, z, (byte) lightValue);
             }
           } // for y
+
+          StructureBoundingBox yColumnSBB = new StructureBoundingBox(x + wxOrigin, yClipMin + wyOrigin, z + wzOrigin,
+                                                                     x + wxOrigin, yClipMaxPlusOne - 1 + wyOrigin, z + wzOrigin);
+          List<NextTickListEntry> blockTickInfo = worldServerReader.getTickingBlocks(yColumnSBB);
+          for (NextTickListEntry nextTickListEntry : blockTickInfo) {
+            int y = nextTickListEntry.position.getY() - wyOrigin;
+            if (selection.getVoxel(x, y, z)) {
+              setTickInfo(x, y, z, nextTickListEntry);
+            }
+          }
+
           if (state.isTimeToInterrupt()) {
             state.z = z;
             state.x = x + 1;
@@ -690,7 +736,7 @@ public class WorldFragment
    */
   private void writeToWorldAsynchronous_do(WorldServer worldServer, AsynchronousWrite state)
   {
-    /* the steps are
+    /* the 1.7.10 steps were
     10: delete EntityHanging to stop resource leaks / items popping out
     20: copy ID and metadata to chunk directly (chunk setBlockIDwithMetadata without the updating)
     30: create & update TileEntities - setChunkBlockTileEntity, World.addTileEntity
@@ -700,7 +746,17 @@ public class WorldFragment
     55: queue all changes chunks to resend to client
     57: create any hanging entities
     60: updateTick for all blocks to restart updating (causes Dispensers to dispense, but leave for now)
-     */
+
+    10: delete EntityHanging to stop resource leaks / items popping out
+    20: copy ID and metadata to chunk directly (chunk setBlockIDwithMetadata without the updating)
+    30: create & update TileEntities - setChunkBlockTileEntity, World.addTileEntity
+    35: update stored light values
+    40: update helper structures - heightmap, lighting
+    50: notifyNeighbourChange for all blocks; World.func_96440_m for redstone comparators
+    55: queue all changes chunks to resend to client
+    57: create any hanging entities
+    60: updateTick for all blocks to restart updating (causes Dispensers to dispense, but leave for now)
+    */
 
     VoxelSelection writeMask = state.writeMask;
     int wxOrigin = state.wxOrigin;
@@ -1385,6 +1441,7 @@ public class WorldFragment
   private BlockDataStore blockDataStore;
   private HashMap<Integer, NBTTagCompound> tileEntityData;
   private HashMap<Integer, LinkedList<NBTTagCompound>> entityData;
+  private HashMap<Integer, NextTickListEntry> tickingBlocks;
 
   private VoxelSelection voxelsWithStoredData;                        // each set voxel corresponds to a block with valid data.
 

@@ -4,9 +4,11 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.world.NextTickListEntry;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.EmptyChunk;
+import net.minecraft.world.gen.structure.StructureBoundingBox;
 import speedytools.common.blocks.BlockWithMetadata;
 
 import java.util.LinkedList;
@@ -36,24 +38,34 @@ public class WorldServerReaderFill extends WorldServerReader
     return blockID;
   }
 
+  @Override
   public Chunk getChunkFromChunkCoords(int cx, int cz) {
     return emptyChunk;
   }
 
+  @Override
   public int getBlockMetadata(int wx, int wy, int wz) {
     return fillBlock.metaData;
   }
 
+  @Override
   public TileEntity getBlockTileEntity(int wx, int wy, int wz) {
     return null;
   }
 
+  @Override
   public List getEntitiesWithinAABB(Class par1Class, AxisAlignedBB par2AxisAlignedBB) {
     return emptyList;
   }
 
+  @Override
+  public List<NextTickListEntry> getTickingBlocks(StructureBoundingBox structureBoundingBox) {
+    return emptyTickingList;
+  }
+
   private EmptyChunk emptyChunk;
   private List<Object> emptyList = new LinkedList<Object>();
+  private List<NextTickListEntry> emptyTickingList = new LinkedList<NextTickListEntry>();
   private BlockWithMetadata fillBlock;
   private int blockID;
 }
