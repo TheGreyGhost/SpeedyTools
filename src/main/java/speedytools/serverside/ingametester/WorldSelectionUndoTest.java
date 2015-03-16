@@ -4,13 +4,17 @@ import net.minecraft.block.Block;
 import net.minecraft.command.IEntitySelector;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
+import net.minecraft.world.gen.structure.StructureBoundingBox;
+import net.minecraft.world.storage.WorldInfo;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import speedytools.common.selections.VoxelSelection;
@@ -529,8 +533,8 @@ public class WorldSelectionUndoTest
     @Override
     public TileEntity getTileEntity(BlockPos blockPos) {return null;}
 
-//    @Override todo need to update this stub
-//    public List selectEntitiesWithinAABB(Class par1Class, AxisAlignedBB par2AxisAlignedBB, IEntitySelector par3IEntitySelector) {return new ArrayList();}
+    @Override
+    public List getEntitiesWithinAABB(Class par1Class, AxisAlignedBB par2AxisAlignedBB) {return new ArrayList();}
 
     @Override
     public Chunk getChunkFromChunkCoords(int cx, int cz)
@@ -539,6 +543,24 @@ public class WorldSelectionUndoTest
       assert(cz >= 0 && cz < zChunkCount);
       return chunks[cx][cz];
     }
+
+    @Override
+    public WorldType getWorldType() {return WorldType.DEFAULT;}
+
+    @Override
+    public WorldInfo getWorldInfo()
+    {
+      return MinecraftServer.getServer().getEntityWorld().getWorldInfo();
+    }
+
+    @Override
+    public List func_175712_a(StructureBoundingBox p_175712_1_, boolean p_175712_2_) {return null;}  // get ticking blocks
+
+    @Override
+    public void func_180497_b(BlockPos pos, Block p_180497_2_, int p_180497_3_, int p_180497_4_) {} // schedule block tick
+
+    @Override
+    public void notifyNeighborsRespectDebug(BlockPos pos, Block blockType) {  }
 
     ChunkTest chunks[][];
     int xChunkCount;

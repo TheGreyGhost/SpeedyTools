@@ -845,8 +845,11 @@ public class WorldFragment
               Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
               TileEntity tileentity = chunk.getTileEntity(blockPos, Chunk.EnumCreateEntityType.CHECK);
               if (tileentity != null) {
+                final BlockPos ARBITRARY_INVALID_POSITION = new BlockPos(0, -1, 0);
+                tileentity.setPos(ARBITRARY_INVALID_POSITION);      // stops it from overwriting a new TileEntity in the same position
+                                                                    //  see World.updateEntities() at section "blockEntities"
                 tileentity.invalidate();
-                state.enqueueTileEntityForRemoval(tileentity);
+//                state.enqueueTileEntityForRemoval(tileentity);
                 chunk.removeTileEntity(blockPos);
               }
 
@@ -858,6 +861,11 @@ public class WorldFragment
               }
 
               boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
+              NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
+              if (successful && tileEntityNBT != null) {
+//                Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+                setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
+              }
 
               setLightValue(chunk, wx, wy, wz, lightValue);
             }
@@ -874,41 +882,41 @@ public class WorldFragment
     }
 
     if (state.getStage() == AsynchronousWriteStages.TILE_ENTITIES) {
-      Queue<BlockPos> tileEntitiesToRemove = state.getTileEntitiesForRemoval();
-      BlockPos blockPos;
-      while (null != (blockPos = tileEntitiesToRemove.poll())) {
-        worldServer.removeTileEntity(blockPos);
-        if (state.isTimeToInterrupt()) {
-          return;
-        }
-      }
-
-      THE PROBLEM IS: WHEN COPYING A TILEENTITY OVER AN EXISTING ONE, THE REMOVAL OF THE OLD ONE DELETES THE NEW ONE
-
-      int x = state.x;
-      int z = state.z;
-      for (; z < zCount; ++z, x = 0) {
-        for (; x < xCount; ++x) {
-          for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
-            if (selection.getVoxel(x, y, z)) {
-              int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
-              int wy = y + wyOrigin;
-              int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
-              blockPos = new BlockPos(wx, wy, wz);
-              NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
-
-              Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
-              setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
-            }
-          } // for y
-          if (state.isTimeToInterrupt()) {
-            state.z = z;
-            state.x = x + 1;
-            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
-            return;
-          }
-        }
-      }
+////      Queue<BlockPos> tileEntitiesToRemove = state.getTileEntitiesForRemoval();
+////      BlockPos blockPos;
+////      while (null != (blockPos = tileEntitiesToRemove.poll())) {
+////        worldServer.removeTileEntity(blockPos);
+////        if (state.isTimeToInterrupt()) {
+////          return;
+////        }
+////      }
+////
+////      THE PROBLEM IS: WHEN COPYING A TILEENTITY OVER AN EXISTING ONE, THE REMOVAL OF THE OLD ONE DELETES THE NEW ONE
+//
+//      int x = state.x;
+//      int z = state.z;
+//      for (; z < zCount; ++z, x = 0) {
+//        for (; x < xCount; ++x) {
+//          for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
+//            if (selection.getVoxel(x, y, z)) {
+//              int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
+//              int wy = y + wyOrigin;
+//              int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
+//              blockPos = new BlockPos(wx, wy, wz);
+//              NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
+//
+//              Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+//              setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
+//            }
+//          } // for y
+//          if (state.isTimeToInterrupt()) {
+//            state.z = z;
+//            state.x = x + 1;
+//            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
+//            return;
+//          }
+//        }
+//      }
       state.setStage(AsynchronousWriteStages.HEIGHT_AND_SKYLIGHT);
     }
 
@@ -1315,9 +1323,13 @@ public class WorldFragment
   private void setWorldTileEntity(World world, int wx, int wy, int wz, NBTTagCompound nbtTagCompound) {
     if (nbtTagCompound != null) {
       changeTileEntityNBTposition(nbtTagCompound, wx, wy, wz);
+      BlockPos blockPos = new BlockPos(wx, wy, wz);
       TileEntity tileEntity = TileEntity.createAndLoadEntity(nbtTagCompound);
       if (tileEntity != null) {
-        world.setTileEntity(new BlockPos(wx, wy, wz), tileEntity);
+//        world.setTileEntity(, tileEntity);
+        world.addTileEntity(tileEntity);
+        Chunk chunk = world.getChunkFromBlockCoords(blockPos);
+        if (chunk != null) chunk.addTileEntity(blockPos, tileEntity);
       }
     }
   }
