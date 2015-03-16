@@ -68,6 +68,7 @@ public class SelectionFillTester
               null);
 
       FillAlgorithmSettings fillAlgorithmSettings = new FillAlgorithmSettings();
+      fillAlgorithmSettings.setDiagonalPropagationAllowed(true);
       fillAlgorithmSettings.setFillMatcher(new FillMatcher.AnyNonAir());
       fillAlgorithmSettings.setStartPosition(blockUnderCursor);
       BlockVoxelMultiSelector blockVoxelMultiSelector = new BlockVoxelMultiSelector();

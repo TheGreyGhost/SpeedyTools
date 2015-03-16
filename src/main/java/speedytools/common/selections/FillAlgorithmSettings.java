@@ -7,6 +7,7 @@ import speedytools.common.utilities.ErrorLog;
 
 /**
  * Created by TheGreyGhost on 5/11/14.
+ * Holds the settings used for filling.  Primary use is for serialisation for network packets.
  */
 public class FillAlgorithmSettings
 {
