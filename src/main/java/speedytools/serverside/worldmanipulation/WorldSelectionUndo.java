@@ -407,10 +407,18 @@ public class WorldSelectionUndo
         worldServer.setBlockToAir(cc);
       } else {
         final float DUMMY_HIT_XYZ = 0.5F;
-        IBlockState iBlockState = blockToPlace.block.onBlockPlaced(worldServer, cc,
-                                                                   sideToPlace, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ, blockToPlace.metaData, entityPlayerMP);
-        worldServer.setBlockState(cc, iBlockState, 1+2);
-        blockToPlace.block.onBlockPlacedBy(worldServer, cc, iBlockState, entityPlayerMP, dummyPlaceItemStack);
+        try {
+          IBlockState iBlockState = blockToPlace.block.onBlockPlaced(worldServer, cc,
+                                                                     sideToPlace, DUMMY_HIT_XYZ, DUMMY_HIT_XYZ,
+                                                                     DUMMY_HIT_XYZ, blockToPlace.metaData,
+                                                                     entityPlayerMP);
+          worldServer.setBlockState(cc, iBlockState, 1 + 2);
+          blockToPlace.block.onBlockPlacedBy(worldServer, cc, iBlockState, entityPlayerMP, dummyPlaceItemStack);
+        } catch (IllegalArgumentException iae) {  // some blocks can't be placed (such as DoubleSlab), so
+          // just paste it directly
+          IBlockState iBlockState = blockToPlace.block.getStateFromMeta(blockToPlace.metaData);
+          worldServer.setBlockState(cc, iBlockState, 1 + 2);
+        }
       }
     }
 

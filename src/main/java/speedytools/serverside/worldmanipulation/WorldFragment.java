@@ -12,6 +12,7 @@ import net.minecraft.server.management.PlayerManager;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
@@ -406,13 +407,13 @@ public class WorldFragment
 
     List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
-//    for (EntityHanging entity : allHangingEntities) { todo hanging entities
-//      if (wx == entity.field_146063_b && wy == entity.field_146064_c && wz == entity.field_146062_d) { //(wx == entity.xPosition && wy == entity.yPosition && wz == entity.zPosition) {
-//        NBTTagCompound tag = new NBTTagCompound();
-//        entity.writeToNBTOptional(tag);
-//        addEntity(x, y, z, tag);
-//      }
-//    }
+    for (EntityHanging entity : allHangingEntities) {
+      if (wx == entity.func_174857_n().getX() && wy == entity.func_174857_n().getY() && wz == entity.func_174857_n().getZ()) { // func_174857 - getHangingPosition() {
+        NBTTagCompound tag = new NBTTagCompound();
+        entity.writeToNBTOptional(tag);
+        addEntity(x, y, z, tag);
+      }
+    }
   }
 
   /**
@@ -556,17 +557,17 @@ public class WorldFragment
 
       List<EntityHanging> allHangingEntities = worldServerReader.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
-//      for (EntityHanging entity : allHangingEntities) { todo hanging entities
-//        int x = entity.field_146063_b - wxOrigin;  // int x = entity.xPosition - wxOrigin;
-//        int y = entity.field_146064_c - wyOrigin;  // int y = entity.yPosition - wyOrigin;
-//        int z = entity.field_146062_d - wzOrigin;  // int z = entity.zPosition - wzOrigin;
-//
-//        if (selection.getVoxel(x, y, z)) {
-//          NBTTagCompound tag = new NBTTagCompound();
-//          entity.writeToNBTOptional(tag);
-//          addEntity(x, y, z, tag);
-//        }
-//      }
+      for (EntityHanging entity : allHangingEntities) {
+        int x = entity.func_174857_n().getX() - wxOrigin;
+        int y = entity.func_174857_n().getY() - wyOrigin;
+        int z = entity.func_174857_n().getZ() - wzOrigin;
+
+        if (selection.getVoxel(x, y, z)) {
+          NBTTagCompound tag = new NBTTagCompound();
+          entity.writeToNBTOptional(tag);
+          addEntity(x, y, z, tag);
+        }
+      }
       state.setStage(AsynchronousReadStages.COMPLETE);
     }
 
@@ -803,27 +804,23 @@ public class WorldFragment
 
       List<EntityHanging> allHangingEntities = worldServer.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
 
-//      for (EntityHanging entity : allHangingEntities) {
-////        int x = orientation.calcXfromWXZ(entity.xPosition - wxOrigin, entity.zPosition - wzOrigin);
-////        int y = entity.yPosition - wyOrigin;
-////        int z = orientation.calcZfromWXZ(entity.xPosition - wxOrigin, entity.zPosition - wzOrigin);
-//        int x = orientation.calcXfromWXZ(entity.field_146063_b - wxOrigin, entity.field_146062_d - wzOrigin);
-//        int y = entity.field_146064_c - wyOrigin;
-//        int z = orientation.calcZfromWXZ(entity.field_146063_b - wxOrigin, entity.field_146062_d - wzOrigin);
-//
-//        if (selection.getVoxel(x, y, z)) {
-//          entity.setDead();
-//        }
-//      } todo hanging entities
+      for (EntityHanging entity : allHangingEntities) {
+        BlockPos entityBlockPos = entity.func_174857_n();
+        int x = orientation.calcXfromWXZ(entityBlockPos.getX() - wxOrigin, entityBlockPos.getZ() - wzOrigin);
+        int y = entityBlockPos.getY() - wyOrigin;
+        int z = orientation.calcZfromWXZ(entityBlockPos.getX() - wxOrigin, entityBlockPos.getZ() - wzOrigin);
+
+        if (selection.getVoxel(x, y, z)) {
+          entity.setDead();
+        }
+      }
       state.setStage(AsynchronousWriteStages.WRITE_TILEDATA);
       if (state.isTimeToInterrupt()) return;
     }
 
     // TileEntities need special treatment to remove properly without triggering updates
-    // 1) during overwrite, the TileEntity is marked invalid and removed from the chunk.  It is added to a list
-    //    for later removal from worldServer, but nothing further done at that time
-    // 2) after all blocks updated, worldServer.removeTileEntity(blockPos); is called for each previously removed
-    //    TileEntity.  New TileEntities created for the new copies
+    // During overwrite, the TileEntity is marked invalid and removed from the chunk.  The position is changed to
+    //    prevent it from interfering with the new TileEntity at the same blockpos.
 
     if (state.getStage() == AsynchronousWriteStages.WRITE_TILEDATA) {
       //todo: keep track of dirty chunks here  Need to to makeChunkDirty?
@@ -849,7 +846,6 @@ public class WorldFragment
                 tileentity.setPos(ARBITRARY_INVALID_POSITION);      // stops it from overwriting a new TileEntity in the same position
                                                                     //  see World.updateEntities() at section "blockEntities"
                 tileentity.invalidate();
-//                state.enqueueTileEntityForRemoval(tileentity);
                 chunk.removeTileEntity(blockPos);
               }
 
@@ -863,7 +859,6 @@ public class WorldFragment
               boolean successful = setBlockIDWithMetadata(chunk, wx, wy, wz, blockID, blockMetadata);
               NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
               if (successful && tileEntityNBT != null) {
-//                Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
                 setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
               }
 
@@ -878,48 +873,8 @@ public class WorldFragment
           }
         }
       }
-      state.setStage(AsynchronousWriteStages.TILE_ENTITIES);
-    }
-
-    if (state.getStage() == AsynchronousWriteStages.TILE_ENTITIES) {
-////      Queue<BlockPos> tileEntitiesToRemove = state.getTileEntitiesForRemoval();
-////      BlockPos blockPos;
-////      while (null != (blockPos = tileEntitiesToRemove.poll())) {
-////        worldServer.removeTileEntity(blockPos);
-////        if (state.isTimeToInterrupt()) {
-////          return;
-////        }
-////      }
-////
-////      THE PROBLEM IS: WHEN COPYING A TILEENTITY OVER AN EXISTING ONE, THE REMOVAL OF THE OLD ONE DELETES THE NEW ONE
-//
-//      int x = state.x;
-//      int z = state.z;
-//      for (; z < zCount; ++z, x = 0) {
-//        for (; x < xCount; ++x) {
-//          for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
-//            if (selection.getVoxel(x, y, z)) {
-//              int wx = orientation.calcWXfromXZ(x, z) + wxOrigin;
-//              int wy = y + wyOrigin;
-//              int wz = orientation.calcWZfromXZ(x, z) + wzOrigin;
-//              blockPos = new BlockPos(wx, wy, wz);
-//              NBTTagCompound tileEntityNBT = getTileEntityData(x, y, z);
-//
-//              Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
-//              setWorldTileEntity(worldServer, wx, wy, wz, tileEntityNBT);
-//            }
-//          } // for y
-//          if (state.isTimeToInterrupt()) {
-//            state.z = z;
-//            state.x = x + 1;
-//            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
-//            return;
-//          }
-//        }
-//      }
       state.setStage(AsynchronousWriteStages.HEIGHT_AND_SKYLIGHT);
     }
-
 
     final int cxMin = wxMin >> 4;
     final int cxMax = (wxMaxPlusOne - 1) >> 4;
@@ -962,15 +917,6 @@ public class WorldFragment
               BlockPos blockPos = new BlockPos(wx, wy, wz);
               IBlockState blockState = worldServer.getBlockState(blockPos);
               worldServer.notifyNeighborsRespectDebug(blockPos, blockState.getBlock());
-////              int blockID = Block.getIdFromBlock();                                 todo notify of neighbour change
-//              worldServer.func_147453_f(wx, wy, wz, block);
-//
-//              worldServer.notifyNeighborsOfStateChange(wx - 1, wy, wz, block);
-//              worldServer.notifyBlockOfNeighborChange(wx + 1, wy, wz, block);
-//              worldServer.notifyBlockOfNeighborChange(wx, wy - 1, wz, block);
-//              worldServer.notifyBlockOfNeighborChange(wx, wy + 1, wz, block);
-//              worldServer.notifyBlockOfNeighborChange(wx, wy, wz - 1, block);
-//              worldServer.notifyBlockOfNeighborChange(wx, wy, wz + 1, block);
             }
           }
           if (state.isTimeToInterrupt()) {
@@ -1086,7 +1032,7 @@ public class WorldFragment
 
   public enum AsynchronousWriteStages
   {
-    SETUP(0.1), WRITE_TILEDATA(0.2), TILE_ENTITIES(0.1), HEIGHT_AND_SKYLIGHT(0.1), NEIGHBOUR_CHANGE(0.2), SEND_CHUNKS_AND_ENTITIES(0.2), UPDATE_TICKS(0.1), COMPLETE(0.0);
+    SETUP(0.1), WRITE_TILEDATA(0.3), HEIGHT_AND_SKYLIGHT(0.1), NEIGHBOUR_CHANGE(0.2), SEND_CHUNKS_AND_ENTITIES(0.2), UPDATE_TICKS(0.1), COMPLETE(0.0);
 
     AsynchronousWriteStages(double i_durationWeight) {durationWeight = i_durationWeight;}
     public double durationWeight;
@@ -1235,85 +1181,56 @@ public class WorldFragment
     nbtTagCompound.setInteger("TileY", wy);
     nbtTagCompound.setInteger("TileZ", wz);
     Entity newEntity = EntityList.createEntityFromNBT(nbtTagCompound, worldServer);
-//    if (newEntity instanceof EntityHanging ) { todo hanging entity
-//      EntityHanging newEntityHanging = (EntityHanging)newEntity;
-//      int direction = newEntityHanging.hangingDirection;
-//
-////      System.out.println("Direction:" + direction + "; old [x,y,z]= [" + wx + ", " + wy + ", " + wz + "]");
-//
-//      if (orientation.isFlippedX()) {
-//        if (direction == 1 || direction == 3) {   // 0 and 2 are when the painting is parallel to the x axis
-//          direction ^= 2;
-//        }
-//      }
-//      direction = (direction + orientation.getClockwiseRotationCount()) & 3;
-//
-//      if (orientation.isFlippedX()) {
-//        // if a hanging entity is mirrored and is more than 1 block wide, we need to shift the "origin" of the painting to the opposite end of the painting to make sure it stays in the same place
-//        int originShiftDirection = (newEntityHanging.hangingDirection - orientation.getClockwiseRotationCount()) & 3;
-//        int paintingOriginShift = newEntityHanging.getWidthPixels() >= 31.9F ? 1 : 0;
-//        switch (originShiftDirection) {
-//          case 0: {
-//            newEntityHanging.field_146063_b -= paintingOriginShift;      //xPosition
-//            break;
-//          }
-//          case 1: {
-//            newEntityHanging.field_146062_d += paintingOriginShift;          //zPosition
-//            break;
-//          }
-//          case 2: {
-//            newEntityHanging.field_146063_b += paintingOriginShift;     //xPosition
-//            break;
-//          }
-//          case 3: {
-//            newEntityHanging.field_146062_d -= paintingOriginShift;          //zPosition
-//            break;
-//          }
-//        }
-////        System.out.println("getWidthPixels = " + newEntityHanging.getWidthPixels() + "; new [x,y,z]= [" + newEntityHanging.xPosition + ", " + newEntityHanging.yPosition + ", " + newEntityHanging.zPosition + "]");
-//      }
-//      newEntityHanging.setDirection(direction);
-//    }
+    if (newEntity instanceof EntityHanging ) {
+      EntityHanging newEntityHanging = (EntityHanging)newEntity;
+      EnumFacing direction = newEntityHanging.field_174860_b;  // field_174860_b = facing
+
+//      System.out.println("Direction:" + direction + "; old [x,y,z]= [" + wx + ", " + wy + ", " + wz + "]");
+
+      if (orientation.isFlippedX()) {
+        if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) {  // flipX --> only change if facing east or west
+          direction = direction.getOpposite();
+        }
+      }
+      int currentHorizontalIndex = direction.getHorizontalIndex();
+      int newHorizontalIndex  = (currentHorizontalIndex + orientation.getClockwiseRotationCount()) & 3;
+      EnumFacing newFacing = EnumFacing.getHorizontal(newHorizontalIndex);
+
+      if (orientation.isFlippedX()) {
+        // if a hanging entity is mirrored and is more than 1 block wide, we need to shift the "origin" of the painting to the opposite end of the painting to make sure it stays in the same place
+        int originShiftDirection = (newEntityHanging.field_174860_b.getHorizontalIndex() - orientation.getClockwiseRotationCount()) & 3;
+        int paintingOriginShift = newEntityHanging.getWidthPixels() >= 31.9F ? 1 : 0;
+        int newXpos = wx;
+        int newZpos = wz;
+        switch (originShiftDirection) {
+          case 0: {
+            newXpos -= paintingOriginShift;      //xPosition
+            break;
+          }
+          case 1: {
+            newZpos += paintingOriginShift;          //zPosition
+            break;
+          }
+          case 2: {
+            newXpos += paintingOriginShift;     //xPosition
+            break;
+          }
+          case 3: {
+            newZpos -= paintingOriginShift;          //zPosition
+            break;
+          }
+        }
+        // have to respawn to get the blockpos in the right spot
+        nbtTagCompound.setInteger("TileX", newXpos);
+        nbtTagCompound.setInteger("TileZ", newZpos);
+        newEntity = EntityList.createEntityFromNBT(nbtTagCompound, worldServer);
+        newEntityHanging = (EntityHanging)newEntity;
+//        System.out.println("getWidthPixels = " + newEntityHanging.getWidthPixels() + "; new [x,y,z]= [" + newEntityHanging.xPosition + ", " + newEntityHanging.yPosition + ", " + newEntityHanging.zPosition + "]");
+      }
+      newEntityHanging.field_174860_b = direction; // field_174860_b is public facing
+    }
     return newEntity;
   }
-
-  /**
-   * Update the position information of the given HangingEntityNBT.  The integer position is changed; the fractional component is unchanged.
-   * @param nbtTagCompound the NBT
-   * @return the updated NBT
-   */
-//  public static NBTTagCompound changeHangingEntityNBTposition(NBTTagCompound nbtTagCompound, int wx, int wy, int wz)
-//  {
-//    int oldPosX = nbtTagCompound.getInteger("TileX");
-//    int oldPosY = nbtTagCompound.getInteger("TileY");
-//    int oldPosZ = nbtTagCompound.getInteger("TileZ");
-//    int deltaX = wx - oldPosX;
-//    int deltaY = wy - oldPosY;
-//    int deltaZ = wz - oldPosZ;
-//
-//    NBTTagList nbttaglist = nbtTagCompound.getTagList("Pos");
-//    double oldX = ((NBTTagDouble)nbttaglist.tagAt(0)).data;
-//    double oldY = ((NBTTagDouble)nbttaglist.tagAt(1)).data;
-//    double oldZ = ((NBTTagDouble)nbttaglist.tagAt(2)).data;
-//
-//    System.out.println("OldPos: ["+ oldX + ", " + oldY + ", " + oldZ + "]");
-//
-//    double newX = oldX + deltaX;
-//    double newY = oldY + deltaY;
-//    double newZ = oldZ + deltaZ;
-//
-//    NBTTagList newPositionNBT = new NBTTagList();
-//    newPositionNBT.appendTag(new NBTTagDouble((String) null, newX));
-//    newPositionNBT.appendTag(new NBTTagDouble((String) null, newY));
-//    newPositionNBT.appendTag(new NBTTagDouble((String) null, newZ));
-//    nbtTagCompound.setTag("Pos", newPositionNBT);
-//
-//    nbtTagCompound.setInteger("TileX", wx);
-//    nbtTagCompound.setInteger("TileY", wy);
-//    nbtTagCompound.setInteger("TileZ", wz);
-//
-//    return nbtTagCompound;
-//  }
 
   /**
    * Creates a TileEntity from the given NBT and puts it at the specified world location
@@ -1333,36 +1250,6 @@ public class WorldFragment
       }
     }
   }
-
-//  /** splits this WorldFragment into two, in accordance with the supplied mask:
-//   * voxels which are set in the mask are removed from this WorldFragment and placed into the new WorldFragment
-//   * @param mask
-//   * @param xOffsetOfMask the origin of the mask relative to the origin of this fragment
-//   * @param yOffsetOfMask
-//   * @param zOffsetOfMask
-//   * @return a new WorldFragment containing those voxels that are also present in the mask.  Shallow copy of the original
-//   */
-//  public WorldFragment splitByMask(VoxelSelection mask, int xOffsetOfMask, int yOffsetOfMask, int zOffsetOfMask)
-//  {
-//    WorldFragment overlapped = new WorldFragment(this);
-//    overlapped.voxelsWithStoredData = new VoxelSelection(xCount, yCount, zCount);
-//    int xSize = mask.getXsize();
-//    int ySize = mask.getYsize();
-//    int zSize = mask.getZsize();
-//    for (int x = 0; x < xSize; ++x) {
-//      for (int z = 0; z < zSize; ++z) {
-//        for (int y = 0; y < ySize; ++y) {
-//          if (mask.getVoxel(x, y, z)) {
-//            if (getVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask)) {
-//              overlapped.voxelsWithStoredData.setVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
-//              voxelsWithStoredData.clearVoxel(x - xOffsetOfMask, y - yOffsetOfMask, z - zOffsetOfMask);
-//            }
-//          }
-//        }
-//      }
-//    }
-//    return overlapped;
-//  }
 
   public static boolean setBlockIDWithMetadata(Chunk chunk, int wx, int wy, int wz, int blockID, int metaData)
   {
