@@ -373,6 +373,7 @@ public class ClientVoxelSelection
   public void performTick(World world, long maxDurationInNS) {
     ++tickCount;
     assert checkInvariants();
+    System.out.println("Client:" + clientSelectionState + ", Server:" + serverSelectionState + ", Outgoing XmissionState:" + outgoingTransmissionState);
 
     switch (clientSelectionState) {
       case IDLE:
@@ -389,6 +390,11 @@ public class ClientVoxelSelection
           if (clientVoxelMultiSelector.isEmpty()) {
             clientSelectionState = ClientSelectionState.IDLE;
           } else {
+            VoxelSelectionWithOrigin clientVoxelSelection = clientVoxelMultiSelector.getSelection();
+            System.out.println("Client selection origin: ["  + clientVoxelSelection.getWxOrigin()  //todo remove
+                                       + ", " + clientVoxelSelection.getWyOrigin()
+                                       + ", " + clientVoxelSelection.getWzOrigin()+"]");
+
             clientSelectionState = ClientSelectionState.CREATING_RENDERLISTS;
             BlockPos selectionInitialOrigin = clientVoxelMultiSelector.getWorldOrigin();
             if (voxelSelectionRenderer == null) {

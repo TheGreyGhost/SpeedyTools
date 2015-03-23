@@ -1,11 +1,13 @@
 package speedytools.serverside;
 
+import com.sun.xml.internal.bind.v2.runtime.reflect.Lister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
+import speedytools.common.network.Packet250Base;
 import speedytools.common.network.Packet250ServerSelectionGeneration;
 import speedytools.common.network.Packet250Types;
 import speedytools.common.network.multipart.*;
@@ -125,6 +127,11 @@ public class ServerVoxelSelections
         BlockPos origin = blockVoxelMultiSelector.getWorldOrigin();
         VoxelSelectionWithOrigin newSelection = new VoxelSelectionWithOrigin(origin.getX(), origin.getY(), origin.getZ(),
                                                                              blockVoxelMultiSelector.getSelection());
+        System.out.println("New selection origin: ["  + newSelection.getWxOrigin()
+                                   + ", " + newSelection.getWyOrigin()
+                                   + ", " + newSelection.getWzOrigin()+"]");
+
+                                                //todo remove
         playerSelections.put(entityPlayerMP, newSelection);
         playerBlockVoxelMultiSelectors.remove(entityPlayerMP);
         playerCommandStatus.put(entityPlayerMP, CommandStatus.COMPLETED);
@@ -132,7 +139,7 @@ public class ServerVoxelSelections
 
         MultipartOneAtATimeSender sender = playerMOATsenders.get(entityPlayerMP);
         if (sender != null) {
-          SelectionPacket selectionPacket = SelectionPacket.createSenderPacket(blockVoxelMultiSelector);
+          SelectionPacket selectionPacket = SelectionPacket.createSenderPacket(blockVoxelMultiSelector, Side.SERVER);
           SenderLinkage newLinkage = new SenderLinkage(entityPlayerMP, selectionPacket.getUniqueID());
           playerSenderLinkages.put(entityPlayerMP, newLinkage);
           sender.sendMultipartPacket(newLinkage, selectionPacket);
@@ -244,7 +251,9 @@ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSe
      int uniqueID = packet.getUniqueID();
      if (!players.containsKey(entityPlayerMP)) {
        ErrorLog.defaultLog().info("ServerVoxelSelections:: Packet received from player not in players");
-       return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
+       Packet250Base message = Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
+       sendReplyMessageToClient(message, entityPlayerMP);
+       return null;
      }
 
      Integer lastCommandID = playerLastCommandID.get(entityPlayerMP);
@@ -257,17 +266,32 @@ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSe
          CommandStatus commandStatus = playerCommandStatus.get(entityPlayerMP);
          if (commandStatus == null) return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
          final float JUST_STARTED_VALUE = 0.01F;
+         Packet250Base message = null;
          switch (commandStatus) {
-           case QUEUED: return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, JUST_STARTED_VALUE);
-           case COMPLETED: return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, 1.0F);
+           case QUEUED: {
+             message = Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, JUST_STARTED_VALUE);
+             break;
+           }
+           case COMPLETED: {
+             message =  Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, 1.0F);
+             break;
+           }
            case EXECUTING: {
              BlockVoxelMultiSelector blockVoxelMultiSelector = playerBlockVoxelMultiSelectors.get(entityPlayerMP);
-             if (blockVoxelMultiSelector == null) return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
-             return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, blockVoxelMultiSelector.getEstimatedFractionComplete());
+             if (blockVoxelMultiSelector == null) {
+               message = Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, ERROR_STATUS);
+             } else {
+               message = Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID,
+                                                                                   blockVoxelMultiSelector.getEstimatedFractionComplete());
+             }
+             break;
            }
            default: assert false : "Invalid commandStatus in ServerVoxelSelections:" + commandStatus;
          }
-
+         if (message != null) {
+           sendReplyMessageToClient(message, entityPlayerMP);
+         }
+         return null;
        }
        case ABORT: {
          if (uniqueID == lastCommandID) {
@@ -284,7 +308,9 @@ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSe
          if (success) {
            playerLastCommandID.put(entityPlayerMP, uniqueID);
          }
-         return Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, success ? 0.0F : ERROR_STATUS);
+         Packet250Base message = Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, success ? 0.0F : ERROR_STATUS);
+         sendReplyMessageToClient(message, entityPlayerMP);
+         return null;
        }
        default: {
          ErrorLog.defaultLog().severe("Invalid command received in ServerVoxelSelections:" + packet.getCommand());
@@ -293,6 +319,12 @@ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSe
      }
    }
 }
+
+  // send a reply message back to the client
+  private void sendReplyMessageToClient(Packet250Base message, EntityPlayerMP entityPlayerMP)
+  {
+    packetHandlerRegistryServer.sendToClientSinglePlayer(message, entityPlayerMP);
+  }
 
   /**
    * a client has requested the server to create a selection and send it back.  Queue it up for later processing.

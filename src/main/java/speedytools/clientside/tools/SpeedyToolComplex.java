@@ -676,6 +676,14 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     ClientVoxelSelection.VoxelSelectionState oldState = clientVoxelSelection.getReadinessForDisplaying();
     clientVoxelSelection.performTick(world, MAX_TIME_IN_NS);
     if (clientVoxelSelection.hasSelectionBeenUpdated()) {   // update the origin and orientation if the selection has been updated
+
+      The cause of the problem is here:
+      If the user places the selection after the server has generated a selection, but before it has finished being
+              transmitted to the client, the origin is in the wrong spot (client doesn't match server')
+      How to fix?  encode as a displacement from original position and let server calculate what & where
+
+      To fix: kilobytes vs bytes bug in SelectionPacketSender
+
       if (oldState != ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY) {
         commonSelectionState.initialSelectionOrigin = clientVoxelSelection.getSourceWorldOrigin();
         commonSelectionState.initialSelectionOrientation = clientVoxelSelection.getSourceQuadOrientation();

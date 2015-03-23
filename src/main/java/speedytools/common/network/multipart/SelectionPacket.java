@@ -32,11 +32,11 @@ public class SelectionPacket extends MultipartPacket
    * @param selection
    * @return the new SelectionPacket, or null for failure
    */
-  public static SelectionPacket createSenderPacket(BlockVoxelMultiSelector selection)
+  public static SelectionPacket createSenderPacket(BlockVoxelMultiSelector selection, Side senderSide)
   {
     final int SEGMENT_SIZE = SpeedyToolsOptions.getSelectionPacketFragmentSize();
 
-    SelectionPacket newPacket = new SelectionPacket(Packet250Types.PACKET250_SELECTION_PACKET, Side.CLIENT, SEGMENT_SIZE);
+    SelectionPacket newPacket = new SelectionPacket(Packet250Types.PACKET250_SELECTION_PACKET, senderSide, SEGMENT_SIZE);
     ByteArrayOutputStream bos = selection.writeToBytes();
     if (bos == null) return null;
     newPacket.setRawDataForSending(bos.toByteArray());

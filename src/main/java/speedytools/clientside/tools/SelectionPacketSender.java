@@ -52,7 +52,7 @@ public class SelectionPacketSender
   public boolean startSendingSelection(BlockVoxelMultiSelector selection)
   {
     currentPacketProgress = PacketProgress.IDLE;
-    SelectionPacket newSelectionPacket =  SelectionPacket.createSenderPacket(selection);
+    SelectionPacket newSelectionPacket =  SelectionPacket.createSenderPacket(selection, Side.CLIENT);
     if (newSelectionPacket == null) {
       packetLinkage = null;
       return false;

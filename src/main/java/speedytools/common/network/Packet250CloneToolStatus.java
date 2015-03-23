@@ -77,8 +77,8 @@ public class Packet250CloneToolStatus  extends Packet250Base
   {
     boolean valid;
     valid = (clientStatus == ClientStatus.UNUSED || serverStatus == ServerStatus.UNUSED);
-    valid = valid & (clientStatus != ClientStatus.UNUSED || clientStatus != ClientStatus.UNUSED);
-    valid = valid & (serverStatus == ServerStatus.IDLE
+    valid = valid && (clientStatus != ClientStatus.UNUSED || serverStatus != ServerStatus.UNUSED);
+    valid = valid && (serverStatus == ServerStatus.IDLE
                      || (completionPercentage >= 0 && completionPercentage <= 100) );
     return valid;
   }
