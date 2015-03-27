@@ -589,7 +589,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
               Math.round((float) selectionPosition.xCoord),
               Math.round((float) selectionPosition.yCoord),
               Math.round((float) selectionPosition.zCoord),
-              commonSelectionState.selectionOrientation);
+              commonSelectionState.selectionOrientation,
+              commonSelectionState.initialSelectionOrigin);
   }
 
   private void flipSelection(EntityPlayerSP EntityPlayerSP)
@@ -677,12 +678,8 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     clientVoxelSelection.performTick(world, MAX_TIME_IN_NS);
     if (clientVoxelSelection.hasSelectionBeenUpdated()) {   // update the origin and orientation if the selection has been updated
 
-      The cause of the problem is here:
-      If the user places the selection after the server has generated a selection, but before it has finished being
-              transmitted to the client, the origin is in the wrong spot (client doesn't match server')
-      How to fix?  encode as a displacement from original position and let server calculate what & where
 
-      To fix: kilobytes vs bytes bug in SelectionPacketSender
+//      todo To fix: kilobytes vs bytes bug in SelectionPacketSender
 
       if (oldState != ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY) {
         commonSelectionState.initialSelectionOrigin = clientVoxelSelection.getSourceWorldOrigin();
@@ -695,6 +692,7 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
         int dz = commonSelectionState.selectionOrigin.getZ() - commonSelectionState.initialSelectionOrigin.getZ();
         BlockPos newOrigin = clientVoxelSelection.getSourceWorldOrigin();
         commonSelectionState.selectionOrigin = new BlockPos(newOrigin.getX() + dx, newOrigin.getY() + dy, newOrigin.getZ() + dz);
+        commonSelectionState.initialSelectionOrigin = new BlockPos(commonSelectionState.selectionOrigin);
         QuadOrientation newOrientation = clientVoxelSelection.getSourceQuadOrientation();
         if (commonSelectionState.initialSelectionOrientation.isFlippedX()) newOrientation.flipX();
         newOrientation.rotateClockwise(commonSelectionState.initialSelectionOrientation.getClockwiseRotationCount());

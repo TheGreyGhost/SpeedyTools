@@ -100,7 +100,10 @@ public class SpeedyToolServerActions
    * @param zpos
    * @param quadOrientation     @return
    */
-  public ResultWithReason performComplexAction(EntityPlayerMP player, int sequenceNumber, int toolID, BlockWithMetadata fillBlock, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
+  public ResultWithReason performComplexAction(EntityPlayerMP player, int sequenceNumber, int toolID,
+                                               BlockWithMetadata fillBlock,
+                                               int xpos, int ypos, int zpos, QuadOrientation quadOrientation,
+                                               BlockPos initialSelectionOrigin)
   {
     assert (!isAsynchronousActionInProgress());
 //    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos
@@ -121,11 +124,33 @@ public class SpeedyToolServerActions
 
     if (ServerSide.getInGameStatusSimulator().isTestModeActivated()) {    // testing only
       ResultWithReason resultWithReason = null;
-      resultWithReason = ServerSide.getInGameStatusSimulator().performToolAction(speedyToolsNetworkServer, player, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+      resultWithReason = ServerSide.getInGameStatusSimulator().performToolAction(speedyToolsNetworkServer, player,
+                                                                                 sequenceNumber, toolID,
+                                                                                 xpos, ypos, zpos, quadOrientation,
+                                                                                 initialSelectionOrigin);
       if (resultWithReason != null) return resultWithReason;
     }
 
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
+
+    System.out.println("initialSelectionOrigin:" + initialSelectionOrigin);
+    System.out.println("voxelSelection: [" + voxelSelection.getWxOrigin() + "," + voxelSelection.getWyOrigin()
+                       + ", " + voxelSelection.getWzOrigin() + "]");
+    System.out.println("placement pos before: [" + xpos + "," + ypos + ", " + zpos + "]");
+    // In some cases, the client will still be using the client-side-generated selection while the server has calculated
+    //  a new, expanded selection to include the chunks that the client couldn't see.  In this case, the selection
+    //  origins may not match; and if not, the placement position must be corrected to account for it.
+    int dx = voxelSelection.getWxOrigin() - initialSelectionOrigin.getX();
+    int dy = voxelSelection.getWyOrigin() - initialSelectionOrigin.getY();
+    int dz = voxelSelection.getWzOrigin() - initialSelectionOrigin.getZ();
+    if (dx != 0 || dy != 0 || dz != 0) {
+      xpos += dx;
+      ypos += dy;
+      zpos += dz;
+      System.out.println("placement pos after: [" + xpos + "," + ypos + ", " + zpos + "]");
+    }
+
+    STILL DOESnt appear to be right when flipping.  Also - not ready error on second placement after first placement without undo in between
 
     AsynchronousActionBase token;
     if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexCopy)) {

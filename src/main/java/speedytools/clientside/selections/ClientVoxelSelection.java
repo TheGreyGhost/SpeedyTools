@@ -373,7 +373,7 @@ public class ClientVoxelSelection
   public void performTick(World world, long maxDurationInNS) {
     ++tickCount;
     assert checkInvariants();
-    System.out.println("Client:" + clientSelectionState + ", Server:" + serverSelectionState + ", Outgoing XmissionState:" + outgoingTransmissionState);
+//    System.out.println("Client:" + clientSelectionState + ", Server:" + serverSelectionState + ", Outgoing XmissionState:" + outgoingTransmissionState);
 
     switch (clientSelectionState) {
       case IDLE:

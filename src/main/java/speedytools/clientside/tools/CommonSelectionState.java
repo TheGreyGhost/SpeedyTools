@@ -16,7 +16,6 @@ public class CommonSelectionState
   public boolean selectionMovedFastYet;
   public boolean hasBeenMoved;               // used to change the appearance when freshly created or placed.
   public QuadOrientation selectionOrientation;
-  public BlockPos initialSelectionOrigin;
+  public BlockPos initialSelectionOrigin;    // the origin of the selection at its original position
   public QuadOrientation initialSelectionOrientation;
-
 }

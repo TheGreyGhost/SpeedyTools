@@ -273,7 +273,7 @@ public class SpeedyToolsNetworkServer
           if (serverStatus == ServerStatus.IDLE) {
             result = speedyToolServerActions.performComplexAction(player, sequenceNumber, packet.getToolID(), packet.getBlockWithMetadata(),
                                                                   packet.getXpos(), packet.getYpos(), packet.getZpos(),
-                                                                  packet.getQuadOrientation());
+                                                                  packet.getQuadOrientation(), packet.getSelectionInitialOrigin());
           } else {
             switch (serverStatus) {
               case PERFORMING_BACKUP: {

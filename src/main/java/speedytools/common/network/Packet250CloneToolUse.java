@@ -1,9 +1,7 @@
 package speedytools.common.network;
 
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.world.WorldServer;
+import net.minecraft.util.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -33,7 +31,8 @@ public class Packet250CloneToolUse extends Packet250Base
     return retval;
   }
 
-  public static Packet250CloneToolUse performToolAction(int i_sequenceNumber, int i_toolID, int x, int y, int z, QuadOrientation i_quadOrientation)
+  public static Packet250CloneToolUse performToolAction(int i_sequenceNumber, int i_toolID, int x, int y, int z,
+                                                        QuadOrientation i_quadOrientation, BlockPos i_selectionOrigin)
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_ACTION);
     retval.toolID = i_toolID;
@@ -42,14 +41,17 @@ public class Packet250CloneToolUse extends Packet250Base
     retval.zpos = z;
     retval.quadOrientation = i_quadOrientation;
     retval.sequenceNumber = i_sequenceNumber;
+    retval.selectionInitialOrigin = i_selectionOrigin;
 
     assert (retval.checkInvariants());
     retval.packetIsValid= true;
     return retval;
   }
 
-  public static Packet250CloneToolUse performToolFillAction(int i_sequenceNumber, int i_toolID, BlockWithMetadata i_fillBlock,
-                                                            int x, int y, int z, QuadOrientation i_quadOrientation)
+  public static Packet250CloneToolUse performToolFillAction(int i_sequenceNumber, int i_toolID,
+                                                            BlockWithMetadata i_fillBlock,
+                                                            int x, int y, int z, QuadOrientation i_quadOrientation,
+                                                            BlockPos i_selectionOrigin)
   {
     Packet250CloneToolUse retval = new Packet250CloneToolUse(Command.PERFORM_TOOL_ACTION);
     retval.toolID = i_toolID;
@@ -59,6 +61,7 @@ public class Packet250CloneToolUse extends Packet250Base
     retval.zpos = z;
     retval.quadOrientation = i_quadOrientation;
     retval.sequenceNumber = i_sequenceNumber;
+    retval.selectionInitialOrigin = i_selectionOrigin;
 
     assert (retval.checkInvariants());
     retval.packetIsValid= true;
@@ -103,6 +106,8 @@ public class Packet250CloneToolUse extends Packet250Base
       ypos = buf.readInt();
       zpos = buf.readInt();
       quadOrientation = new QuadOrientation(buf);
+      int originX = buf.readInt(); int originY = buf.readInt(); int originZ = buf.readInt();
+      selectionInitialOrigin = new BlockPos(originX, originY, originZ);
     } catch (IndexOutOfBoundsException ioe) {
       ErrorLog.defaultLog().info("Exception while reading Packet250CloneToolUse: " + ioe);
       return;
@@ -133,6 +138,12 @@ public class Packet250CloneToolUse extends Packet250Base
       quadOrientation = new QuadOrientation(0, 0, 1, 1); // just a dummy
     }
     quadOrientation.writeToStream(buf);
+    if (selectionInitialOrigin == null) {
+      selectionInitialOrigin = new BlockPos(0,0,0);
+    }
+    buf.writeInt(selectionInitialOrigin.getX());
+    buf.writeInt(selectionInitialOrigin.getY());
+    buf.writeInt(selectionInitialOrigin.getZ());
   }
 
   public static enum Command {
@@ -203,6 +214,12 @@ public class Packet250CloneToolUse extends Packet250Base
     assert (checkInvariants());
     assert(command == Command.PERFORM_TOOL_ACTION);
     return quadOrientation;
+  }
+
+  public BlockPos getSelectionInitialOrigin() {
+    assert (checkInvariants());
+    assert(command == Command.PERFORM_TOOL_ACTION);
+    return selectionInitialOrigin;
   }
 
   public int getSequenceNumber() {
@@ -310,6 +327,7 @@ public class Packet250CloneToolUse extends Packet250Base
   private int ypos;
   private int zpos;
   private QuadOrientation quadOrientation;
+  private BlockPos selectionInitialOrigin;
 
   private static PacketHandlerMethod serverSideHandler;
 

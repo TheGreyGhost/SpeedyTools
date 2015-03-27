@@ -2,6 +2,7 @@ package speedytools.clientside.network;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -101,12 +102,12 @@ public class CloneToolsNetworkClient
    * @param quadOrientation the flipped and rotation status of the placement
    * @return true for success, false otherwise
    */
-  public ResultWithReason performComplexToolAction(int toolID, int x, int y, int z, QuadOrientation quadOrientation)
+  public ResultWithReason performComplexToolAction(int toolID, int x, int y, int z, QuadOrientation quadOrientation, BlockPos initialSelectionOrigin)
   {
     ResultWithReason result = isReadyToPerformAction();
     if (!result.succeeded()) return result;
 
-    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, quadOrientation);
+    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolAction(currentActionSequenceNumber, toolID, x, y, z, quadOrientation, initialSelectionOrigin);
     lastActionPacket = packet;
     if (lastActionPacket != null) {
       packetSender.sendPacket(lastActionPacket);
@@ -126,12 +127,16 @@ public class CloneToolsNetworkClient
    * @param quadOrientation the flipped and rotation status of the placement
    * @return true for success, false otherwise
    */
-  public ResultWithReason performComplexToolFillAction(int toolID, BlockWithMetadata blockWithMetadata, int x, int y, int z, QuadOrientation quadOrientation)
+  public ResultWithReason performComplexToolFillAction(int toolID, BlockWithMetadata blockWithMetadata,
+                                                       int x, int y, int z, QuadOrientation quadOrientation,
+                                                       BlockPos initialSelectionOrigin)
   {
     ResultWithReason result = isReadyToPerformAction();
     if (!result.succeeded()) return result;
 
-    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolFillAction(currentActionSequenceNumber, toolID, blockWithMetadata, x, y, z, quadOrientation);
+    Packet250CloneToolUse packet = Packet250CloneToolUse.performToolFillAction(currentActionSequenceNumber, toolID,
+                                                                               blockWithMetadata, x, y, z,
+                                                                               quadOrientation, initialSelectionOrigin);
     lastActionPacket = packet;
     if (lastActionPacket != null) {
       packetSender.sendPacket(lastActionPacket);

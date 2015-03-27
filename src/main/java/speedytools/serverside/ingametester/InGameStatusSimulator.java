@@ -1,5 +1,6 @@
 package speedytools.serverside.ingametester;
 
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -214,7 +215,9 @@ public class InGameStatusSimulator
   /** simulate this method
    * @return null if not simulated (-> progress to real code)
    */
-  public ResultWithReason performToolAction(SpeedyToolsNetworkServer speedyToolsNetworkServer, EntityPlayerMP player, int sequenceNumber, int toolID, int xpos, int ypos, int zpos, QuadOrientation quadOrientation)
+  public ResultWithReason performToolAction(SpeedyToolsNetworkServer speedyToolsNetworkServer, EntityPlayerMP player,
+                                            int sequenceNumber, int toolID, int xpos, int ypos, int zpos,
+                                            QuadOrientation quadOrientation, BlockPos initalSelectionOrigin)
   {
     final int TEST_ACTION_FLAG = 2;
     if (testMode >= 20 && testMode <= 27) {
