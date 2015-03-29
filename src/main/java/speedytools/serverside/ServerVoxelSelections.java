@@ -127,11 +127,11 @@ public class ServerVoxelSelections
         BlockPos origin = blockVoxelMultiSelector.getWorldOrigin();
         VoxelSelectionWithOrigin newSelection = new VoxelSelectionWithOrigin(origin.getX(), origin.getY(), origin.getZ(),
                                                                              blockVoxelMultiSelector.getSelection());
-        System.out.println("New selection origin: ["  + newSelection.getWxOrigin()
-                                   + ", " + newSelection.getWyOrigin()
-                                   + ", " + newSelection.getWzOrigin()+"]");
+//        System.out.println("New selection origin: ["  + newSelection.getWxOrigin()
+//                                   + ", " + newSelection.getWyOrigin()
+//                                   + ", " + newSelection.getWzOrigin()+"]");
 
-                                                //todo remove
+
         playerSelections.put(entityPlayerMP, newSelection);
         playerBlockVoxelMultiSelectors.remove(entityPlayerMP);
         playerCommandStatus.put(entityPlayerMP, CommandStatus.COMPLETED);

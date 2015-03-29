@@ -824,9 +824,9 @@ public class WorldFragment
 
     if (state.getStage() == AsynchronousWriteStages.WRITE_TILEDATA) {
       //todo: keep track of dirty chunks here  Need to to makeChunkDirty?
-      System.out.println("writeToWorldAsynchronous_do: origin [" + wxOrigin + ", " + wyOrigin + ", " + wzOrigin + "]"); //todo remove
-      System.out.println("  [wx0,wz0] = [" + orientation.calcWXfromXZ(0, 0) +", " +orientation.calcWZfromXZ(0,0) + "]");
-      System.out.println("  [wxmax,wzmax] inclusive = [" + orientation.calcWXfromXZ(xCount-1, zCount-1) +", " +orientation.calcWZfromXZ(xCount-1, zCount-1) + "]");
+//      System.out.println("writeToWorldAsynchronous_do: origin [" + wxOrigin + ", " + wyOrigin + ", " + wzOrigin + "]");
+//      System.out.println("  [wx0,wz0] = [" + orientation.calcWXfromXZ(0, 0) +", " +orientation.calcWZfromXZ(0,0) + "]");
+//      System.out.println("  [wxmax,wzmax] inclusive = [" + orientation.calcWXfromXZ(xCount-1, zCount-1) +", " +orientation.calcWZfromXZ(xCount-1, zCount-1) + "]");
 
       int x = state.x;
       int z = state.z;

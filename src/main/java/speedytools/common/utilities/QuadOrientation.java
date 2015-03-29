@@ -302,31 +302,31 @@ public class QuadOrientation
     int oldWZ0 = calcWZfromXZ(0,0);
     int newWX0 = newQuadOrientation.calcWXfromXZ(xRelativeOrigin, zRelativeOrigin);
     int newWZ0 = newQuadOrientation.calcWZfromXZ(xRelativeOrigin, zRelativeOrigin);
-    System.out.println("old WXZ0 = [" + oldWX0 + ", " + oldWZ0 + "]");
-    System.out.println("new WXZ0 = [" + newWX0 + ", " + newWZ0 + "]");
+//    System.out.println("old WXZ0 = [" + oldWX0 + ", " + oldWZ0 + "]");
+//    System.out.println("new WXZ0 = [" + newWX0 + ", " + newWZ0 + "]");
     int dWXa = newWX0 - oldWX0;
     int dWZa = newWZ0 - oldWZ0;
 
-    // we also need to make a correction for the change in minWX, minWZ when the quad is rotated by 90 or 270
-
-    Pair<Integer, Integer> oldWXrange = new Pair<Integer, Integer>(0, xSize - 1);
-    Pair<Integer, Integer> oldWZrange = new Pair<Integer, Integer>(0, zSize - 1);
-    getWXZranges(oldWXrange, oldWZrange);
-    System.out.println("old WXrange = " + oldWXrange);
-    System.out.println("old WZrange = " + oldWZrange);
-
-    Pair<Integer, Integer> newWXrange = new Pair<Integer, Integer>(0, newQuadOrientation.xSize - 1);
-    Pair<Integer, Integer> newWZrange = new Pair<Integer, Integer>(0, newQuadOrientation.zSize - 1);
-    newQuadOrientation.getWXZranges(newWXrange, newWZrange);
-    System.out.println("new WXrange = " + newWXrange);
-    System.out.println("new WZrange = " + newWZrange);
-
-    int dWXb = newWXrange.getFirst() - oldWXrange.getFirst();
-    int dWZb = newWZrange.getFirst() - oldWZrange.getFirst();
-
-    System.out.println("dx = dWXa + dWXb = " + dWXa + " + " + dWXb + " = " + (dWXa + dWXb));
-    System.out.println("dz = dWZa + dWZb = " + dWZa + " + " + dWZb + " = " + (dWZa + dWZb));
-    return new Pair<Integer, Integer>(dWXa , dWZa );
+//    // we also need to make a correction for the change in minWX, minWZ when the quad is rotated by 90 or 270
+//
+//    Pair<Integer, Integer> oldWXrange = new Pair<Integer, Integer>(0, xSize - 1);
+//    Pair<Integer, Integer> oldWZrange = new Pair<Integer, Integer>(0, zSize - 1);
+//    getWXZranges(oldWXrange, oldWZrange);
+//    System.out.println("old WXrange = " + oldWXrange);
+//    System.out.println("old WZrange = " + oldWZrange);
+//
+//    Pair<Integer, Integer> newWXrange = new Pair<Integer, Integer>(0, newQuadOrientation.xSize - 1);
+//    Pair<Integer, Integer> newWZrange = new Pair<Integer, Integer>(0, newQuadOrientation.zSize - 1);
+//    newQuadOrientation.getWXZranges(newWXrange, newWZrange);
+//    System.out.println("new WXrange = " + newWXrange);
+//    System.out.println("new WZrange = " + newWZrange);
+//
+//    int dWXb = newWXrange.getFirst() - oldWXrange.getFirst();
+//    int dWZb = newWZrange.getFirst() - oldWZrange.getFirst();
+//
+//    System.out.println("dx = dWXa + dWXb = " + dWXa + " + " + dWXb + " = " + (dWXa + dWXb));
+//    System.out.println("dz = dWZa + dWZb = " + dWZa + " + " + dWZb + " = " + (dWZa + dWZb));
+    return new Pair<Integer, Integer>(dWXa , dWZa);
   }
 
   private void calculateOriginTransformed()

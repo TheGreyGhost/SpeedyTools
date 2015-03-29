@@ -391,9 +391,9 @@ public class ClientVoxelSelection
             clientSelectionState = ClientSelectionState.IDLE;
           } else {
             VoxelSelectionWithOrigin clientVoxelSelection = clientVoxelMultiSelector.getSelection();
-            System.out.println("Client selection origin: ["  + clientVoxelSelection.getWxOrigin()  //todo remove
-                                       + ", " + clientVoxelSelection.getWyOrigin()
-                                       + ", " + clientVoxelSelection.getWzOrigin()+"]");
+//            System.out.println("Client selection origin: ["  + clientVoxelSelection.getWxOrigin()
+//                                       + ", " + clientVoxelSelection.getWyOrigin()
+//                                       + ", " + clientVoxelSelection.getWzOrigin()+"]");
 
             clientSelectionState = ClientSelectionState.CREATING_RENDERLISTS;
             BlockPos selectionInitialOrigin = clientVoxelMultiSelector.getWorldOrigin();
@@ -621,7 +621,7 @@ public class ClientVoxelSelection
     public void packetCompleted() {
 //      System.out.println("VoxelPacketLinkage - completed packet ID " + myLinkedPacket.getUniqueID());
       if (myLinkedPacket == null) return;
-//      serverVoxelSelection = myLinkedPacket.retrieveVoxelSelection();  // todo reinstate once mismatch is finished
+      serverVoxelSelection = myLinkedPacket.retrieveVoxelSelection();
     }
     @Override
     public void packetAborted() {}

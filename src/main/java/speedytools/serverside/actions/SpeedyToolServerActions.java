@@ -134,11 +134,11 @@ public class SpeedyToolServerActions
 
     WorldServer worldServer = (WorldServer)player.theItemInWorldManager.theWorld;
 
-    System.out.println("initialSelectionOrigin:" + initialSelectionOrigin);
-    System.out.println("voxelSelection: [" + voxelSelection.getWxOrigin() + "," + voxelSelection.getWyOrigin()
-                       + ", " + voxelSelection.getWzOrigin() + "]");
-    System.out.println("placement pos before: [" + wxpos + "," + wypos + ", " + wzpos + "]");
-    System.out.println("placement QuadOrientation size before:" + quadOrientation.getWXsize() + ", " + quadOrientation.getWZSize());
+//    System.out.println("initialSelectionOrigin:" + initialSelectionOrigin);
+//    System.out.println("voxelSelection: [" + voxelSelection.getWxOrigin() + "," + voxelSelection.getWyOrigin()
+//                       + ", " + voxelSelection.getWzOrigin() + "]");
+//    System.out.println("placement pos before: [" + wxpos + "," + wypos + ", " + wzpos + "]");
+//    System.out.println("placement QuadOrientation size before:" + quadOrientation.getWXsize() + ", " + quadOrientation.getWZSize());
 
     // In some cases, the client will still be using the client-side-generated selection while the server has calculated
     //  a new, expanded selection to include the chunks that the client couldn't see.  In this case, the selection
@@ -154,17 +154,15 @@ public class SpeedyToolServerActions
     QuadOrientation clientQuadOrientation = quadOrientation;
     QuadOrientation serverQuadOrientation = quadOrientation.getResizedCopy(voxelSelection.getxSize(), voxelSelection.getzSize());
 
-    System.out.println("[dx,dy,dz] = " + dx + ", " + dy + ", " + dz);
+//    System.out.println("[dx,dy,dz] = " + dx + ", " + dy + ", " + dz);
     Pair<Integer, Integer> serverDisplacement = clientQuadOrientation.calculateDisplacementForExpandedSelection(serverQuadOrientation,
                                                                                                                 dx, dz);
     wxpos -= serverDisplacement.getFirst();
     wypos -= dy;
     wzpos -= serverDisplacement.getSecond();
-    System.out.println("placement pos after: [" + wxpos + "," + wypos + ", " + wzpos + "]");
+//    System.out.println("placement pos after: [" + wxpos + "," + wypos + ", " + wzpos + "]");
     quadOrientation = serverQuadOrientation;
-    System.out.println("placement QuadOrientation size after:" + quadOrientation.getWXsize() + ", " + quadOrientation.getWZSize());
-
-    // todo not ready error on second placement after first placement without undo in between
+//    System.out.println("placement QuadOrientation size after:" + quadOrientation.getWXsize() + ", " + quadOrientation.getWZSize());
 
     AsynchronousActionBase token;
     if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexCopy)) {

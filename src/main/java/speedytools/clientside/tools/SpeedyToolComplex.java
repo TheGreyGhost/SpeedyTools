@@ -677,10 +677,6 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
     ClientVoxelSelection.VoxelSelectionState oldState = clientVoxelSelection.getReadinessForDisplaying();
     clientVoxelSelection.performTick(world, MAX_TIME_IN_NS);
     if (clientVoxelSelection.hasSelectionBeenUpdated()) {   // update the origin and orientation if the selection has been updated
-
-
-//      todo To fix: kilobytes vs bytes bug in SelectionPacketSender
-
       if (oldState != ClientVoxelSelection.VoxelSelectionState.READY_FOR_DISPLAY) {
         commonSelectionState.initialSelectionOrigin = clientVoxelSelection.getSourceWorldOrigin();
         commonSelectionState.initialSelectionOrientation = clientVoxelSelection.getSourceQuadOrientation();
