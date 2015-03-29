@@ -621,7 +621,7 @@ public class ClientVoxelSelection
     public void packetCompleted() {
 //      System.out.println("VoxelPacketLinkage - completed packet ID " + myLinkedPacket.getUniqueID());
       if (myLinkedPacket == null) return;
-      serverVoxelSelection = myLinkedPacket.retrieveVoxelSelection();
+//      serverVoxelSelection = myLinkedPacket.retrieveVoxelSelection();  // todo reinstate once mismatch is finished
     }
     @Override
     public void packetAborted() {}

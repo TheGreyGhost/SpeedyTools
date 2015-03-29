@@ -14,6 +14,7 @@ import speedytools.common.items.RegistryForItems;
 import speedytools.common.network.ServerStatus;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.ErrorLog;
+import speedytools.common.utilities.Pair;
 import speedytools.common.utilities.QuadOrientation;
 import speedytools.common.utilities.ResultWithReason;
 import speedytools.serverside.ServerSide;
@@ -95,18 +96,18 @@ public class SpeedyToolServerActions
    * @param sequenceNumber
    * @param toolID
    * @param fillBlock for fill tools, the block that will be used to fill
-   *@param xpos
-   * @param ypos
-   * @param zpos
+   *@param wxpos
+   * @param wypos
+   * @param wzpos
    * @param quadOrientation     @return
    */
   public ResultWithReason performComplexAction(EntityPlayerMP player, int sequenceNumber, int toolID,
                                                BlockWithMetadata fillBlock,
-                                               int xpos, int ypos, int zpos, QuadOrientation quadOrientation,
+                                               int wxpos, int wypos, int wzpos, QuadOrientation quadOrientation,
                                                BlockPos initialSelectionOrigin)
   {
     assert (!isAsynchronousActionInProgress());
-//    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + xpos + ", " + ypos + ", " + zpos
+//    System.out.println("Server: Tool Action received sequence #" + sequenceNumber + ": tool " + toolID + " at [" + wxpos + ", " + wypos + ", " + wzpos
 //                       + "], rotated:" + quadOrientation.getClockwiseRotationCount() + ", flippedX:" + quadOrientation.isFlippedX());
 
     VoxelSelectionWithOrigin voxelSelection = serverVoxelSelections.getVoxelSelection(player);
@@ -126,7 +127,7 @@ public class SpeedyToolServerActions
       ResultWithReason resultWithReason = null;
       resultWithReason = ServerSide.getInGameStatusSimulator().performToolAction(speedyToolsNetworkServer, player,
                                                                                  sequenceNumber, toolID,
-                                                                                 xpos, ypos, zpos, quadOrientation,
+                                                                                 wxpos, wypos, wzpos, quadOrientation,
                                                                                  initialSelectionOrigin);
       if (resultWithReason != null) return resultWithReason;
     }
@@ -136,34 +137,47 @@ public class SpeedyToolServerActions
     System.out.println("initialSelectionOrigin:" + initialSelectionOrigin);
     System.out.println("voxelSelection: [" + voxelSelection.getWxOrigin() + "," + voxelSelection.getWyOrigin()
                        + ", " + voxelSelection.getWzOrigin() + "]");
-    System.out.println("placement pos before: [" + xpos + "," + ypos + ", " + zpos + "]");
+    System.out.println("placement pos before: [" + wxpos + "," + wypos + ", " + wzpos + "]");
+    System.out.println("placement QuadOrientation size before:" + quadOrientation.getWXsize() + ", " + quadOrientation.getWZSize());
+
     // In some cases, the client will still be using the client-side-generated selection while the server has calculated
     //  a new, expanded selection to include the chunks that the client couldn't see.  In this case, the selection
-    //  origins may not match; and if not, the placement position must be corrected to account for it.
-    int dx = voxelSelection.getWxOrigin() - initialSelectionOrigin.getX();
-    int dy = voxelSelection.getWyOrigin() - initialSelectionOrigin.getY();
-    int dz = voxelSelection.getWzOrigin() - initialSelectionOrigin.getZ();
-    if (dx != 0 || dy != 0 || dz != 0) {
-      xpos += dx;
-      ypos += dy;
-      zpos += dz;
-      System.out.println("placement pos after: [" + xpos + "," + ypos + ", " + zpos + "]");
-    }
+    //  origins may not match; and if not, the placement position must be corrected to account for it, also the
+    //  QuadOrientation.  This is done by looking at what happens to the [0,0] grid coordinate of the client selection:
+    // 1) the client selection is a rect inside the server selection, with the client [0,0] at [dx,dz] within the server selection
+    // 2) the [0,0] to [xsize-1, zsize-1] of the client selection maps to a rectangle at wx0, wz0 in world coordinates using the client QuadOrientation.
+    // 3) hence, [dx,dz] to [dx+xsize-1, dz+zsize-1] must map to the same world rectangle when using the server QuadOrientation
+    //    it actually maps to swx0, swz0, hence the difference corresponds to the adjustment to wxpos, wypos
+    int dx = initialSelectionOrigin.getX() - voxelSelection.getWxOrigin();
+    int dy = initialSelectionOrigin.getY() - voxelSelection.getWyOrigin();
+    int dz = initialSelectionOrigin.getZ() - voxelSelection.getWzOrigin();
+    QuadOrientation clientQuadOrientation = quadOrientation;
+    QuadOrientation serverQuadOrientation = quadOrientation.getResizedCopy(voxelSelection.getxSize(), voxelSelection.getzSize());
 
-    STILL DOESnt appear to be right when flipping.  Also - not ready error on second placement after first placement without undo in between
+    System.out.println("[dx,dy,dz] = " + dx + ", " + dy + ", " + dz);
+    Pair<Integer, Integer> serverDisplacement = clientQuadOrientation.calculateDisplacementForExpandedSelection(serverQuadOrientation,
+                                                                                                                dx, dz);
+    wxpos -= serverDisplacement.getFirst();
+    wypos -= dy;
+    wzpos -= serverDisplacement.getSecond();
+    System.out.println("placement pos after: [" + wxpos + "," + wypos + ", " + wzpos + "]");
+    quadOrientation = serverQuadOrientation;
+    System.out.println("placement QuadOrientation size after:" + quadOrientation.getWXsize() + ", " + quadOrientation.getWZSize());
+
+    // todo not ready error on second placement after first placement without undo in between
 
     AsynchronousActionBase token;
     if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexCopy)) {
-      token = new AsynchronousActionCopy(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+      token = new AsynchronousActionCopy(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, wxpos, wypos, wzpos, quadOrientation);
     } else if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexDelete)) {
       BlockWithMetadata airBWM = new BlockWithMetadata(Blocks.air, 0);
-      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, airBWM, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, airBWM, sequenceNumber, toolID, wxpos, wypos, wzpos, quadOrientation);
     } else if (toolID == Item.getIdFromItem(RegistryForItems.itemComplexMove)) {
-      token = new AsynchronousActionMove(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+      token = new AsynchronousActionMove(worldServer, player, worldHistory, voxelSelection, sequenceNumber, toolID, wxpos, wypos, wzpos, quadOrientation);
     } else if (toolID == Item.getIdFromItem(RegistryForItems.itemSpeedyOrb)) {
-      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, fillBlock, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, fillBlock, sequenceNumber, toolID, wxpos, wypos, wzpos, quadOrientation);
     } else if (toolID == Item.getIdFromItem(RegistryForItems.itemSpeedySceptre)) {
-      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, fillBlock, sequenceNumber, toolID, xpos, ypos, zpos, quadOrientation);
+      token = new AsynchronousActionFill(worldServer, player, worldHistory, voxelSelection, fillBlock, sequenceNumber, toolID, wxpos, wypos, wzpos, quadOrientation);
     } else {
       ErrorLog.defaultLog().info("Invalid toolID received in performComplexAction:" + toolID);
       return ResultWithReason.failure();

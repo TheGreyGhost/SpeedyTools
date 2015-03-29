@@ -30,4 +30,10 @@ public final class Pair<A, B>
 
   private A first;
   private B second;
+
+  @Override
+  public String toString() {
+    return "(" + first + "," + second + ")";
+  }
+
 }

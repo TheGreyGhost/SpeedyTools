@@ -45,7 +45,7 @@ public class PacketSenderClient implements PacketSender
     }
     assert bytesSentBacklog >= 0;
     lastTime = now;
-    return (bytesSentBacklog <= MAXIMUM_KB_PER_SECOND);
+    return (bytesSentBacklog <= MAXIMUM_KB_PER_SECOND * 1000);
   }
 
   private Long lastTime;

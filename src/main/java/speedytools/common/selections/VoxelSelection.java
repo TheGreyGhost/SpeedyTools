@@ -248,7 +248,6 @@ public class VoxelSelection
     wxzOrigin.setFirst(wxNewMin);
     wxzOrigin.setSecond(wzNewMin);
 
-
     int newXsize = (xrange.getSecond() - xrange.getFirst() + 1) + 2 * borderWidth;
     int newYsize = ySize + 2* borderWidth;
     int newZsize = (zrange.getSecond() - zrange.getFirst() + 1) + 2 * borderWidth;
