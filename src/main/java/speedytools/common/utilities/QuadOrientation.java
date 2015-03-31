@@ -141,11 +141,15 @@ public class QuadOrientation
    */
   public QuadOrientation flipWX()
   {
-    if ((clockwiseRotationCount & 1) == 0) {
-      flipX();
-    } else {
-      flipZ();
-    }
+    flipX();
+//    System.out.println("flipWX:clockwiseRotationCount" + clockwiseRotationCount);
+//    if ((clockwiseRotationCount & 1) == 0) {
+//      System.out.println("flipX");
+//      flipX();
+//    } else {
+//      System.out.println("flipZ");
+//      flipZ();
+//    }
     return this;
   }
 
@@ -154,11 +158,15 @@ public class QuadOrientation
    */
   public QuadOrientation flipWZ()
   {
-    if ((clockwiseRotationCount & 1) == 0) {
-      flipZ();
-    } else {
-      flipX();
-    }
+    flipZ();
+//    System.out.println("flipWZ:clockwiseRotationCount" + clockwiseRotationCount);
+//    if ((clockwiseRotationCount & 1) == 0) {
+//      System.out.println("flipZ");
+//      flipZ();
+//    } else {
+//      System.out.println("flipX");
+//      flipX();
+//    }
     return this;
   }
 

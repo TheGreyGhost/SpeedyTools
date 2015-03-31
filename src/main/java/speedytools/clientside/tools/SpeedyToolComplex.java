@@ -596,11 +596,14 @@ public abstract class SpeedyToolComplex extends SpeedyToolComplexBase
   private void flipSelection(EntityPlayerSP EntityPlayerSP)
   {
     float modulusYaw =  MathHelper.wrapAngleTo180_float(EntityPlayerSP.rotationYaw);
-
+    System.out.println("Flip modulusYaw:" + modulusYaw);
+    System.out.println("Clockwise Rotation Count:" + commonSelectionState.selectionOrientation.getClockwiseRotationCount());
     if (Math.abs(modulusYaw) < 45 || Math.abs(modulusYaw) > 135) { // looking mostly north-south
       commonSelectionState.selectionOrientation.flipWX();
+      System.out.println("FlipWX");
     } else {
       commonSelectionState.selectionOrientation.flipWZ();
+      System.out.println("FlipWZ");
     }
   }
 
