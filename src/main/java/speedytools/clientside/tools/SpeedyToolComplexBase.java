@@ -102,16 +102,10 @@ public abstract class SpeedyToolComplexBase extends SpeedyTool
 
     boundaryCorner1 = new BlockPos(wxmin, wymin, wzmin);
     boundaryCorner2 = new BlockPos(wxmax, wymax, wzmax);
-//    boundaryCorner1.posX = wxmin;  todo this might be different? changes object instead of object reference
-//    boundaryCorner1.posY = wymin;
-//    boundaryCorner1.posZ = wzmin;
-//    boundaryCorner2.posX = wxmax;
-//    boundaryCorner2.posY = wymax;
-//    boundaryCorner2.posZ = wzmax;
   }
 
 
-  protected BlockPos blockUnderCursor = null;   // todo - removed static - still ok?
+  protected BlockPos blockUnderCursor = null;
   protected EnumFacing blockUnderCursorSideHit;  // which side of the block under cursor is the cursor on?
   protected BlockPos boundaryCorner1 = null;
   protected BlockPos boundaryCorner2 = null;

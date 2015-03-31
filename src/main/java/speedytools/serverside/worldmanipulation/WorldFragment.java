@@ -391,14 +391,12 @@ public class WorldFragment
         ErrorLog.defaultLog().debug("Illegal block tick info size in WorldFragment::readSingleBlockFromWorld = " + blockTickInfo.size());
       }
     }
-//  todo saved light values
-//    Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
-//    int lightValue = 0;
-//    if (wy >= Y_MIN_VALID && wy < Y_MAX_VALID_PLUS_ONE) {
-//      lightValue = (chunk.getSavedLightValue(EnumSkyBlock.Sky, wx & 0x0f, wy, wz & 0x0f) << 4)
-//                  | chunk.getSavedLightValue(EnumSkyBlock.Block, wx & 0x0f, wy, wz & 0x0f);
-//    }
-//    setLightValue(x, y, z, (byte)lightValue);
+
+    Chunk chunk = worldServer.getChunkFromChunkCoords(wx >> 4, wz >> 4);
+
+    int lightValue = (chunk.getLightFor(EnumSkyBlock.SKY, blockPos) << 4)
+            | chunk.getLightFor(EnumSkyBlock.BLOCK, blockPos);
+    setLightValue(x, y, z, (byte)lightValue);
 
     final double EXPAND = 3;
     AxisAlignedBB axisAlignedBB = new AxisAlignedBB(wxOrigin, wyOrigin, wzOrigin,

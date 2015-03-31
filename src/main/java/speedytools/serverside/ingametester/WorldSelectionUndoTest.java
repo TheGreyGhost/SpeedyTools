@@ -594,21 +594,7 @@ public class WorldSelectionUndoTest
                   enumSkyBlock.defaultLightValue);
         }
       }
-
     }
-//    public int getSavedLightValue(EnumSkyBlock par1EnumSkyBlock, int par2, int par3, int par4)
-//    {
-////      ExtendedBlockStorage extendedblockstorage = this.getBlockStorageArray()[par3 >> 4];   todo light storage
-////      if (extendedblockstorage == null)
-////        return (this.canBlockSeeTheSky(par2, par3, par4) ? par1EnumSkyBlock.defaultLightValue : 0);
-////      else if (par1EnumSkyBlock == EnumSkyBlock.Sky)
-////        return (/* this.worldObj.provider.hasNoSky ? 0 :*/ extendedblockstorage.getExtSkylightValue(par2, par3 & 15, par4));
-////      else if (par1EnumSkyBlock == EnumSkyBlock.Block)
-////        return extendedblockstorage.getExtBlocklightValue(par2, par3 & 15, par4);
-////      else return par1EnumSkyBlock.defaultLightValue;
-//    }
-
-
   }
 
   public static class EntityPlayerMPTest extends EntityPlayerMP {
