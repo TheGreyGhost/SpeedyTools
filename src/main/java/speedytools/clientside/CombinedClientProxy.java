@@ -3,6 +3,7 @@ package speedytools.clientside;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.network.NetHandlerPlayClient;
+import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
@@ -21,6 +22,7 @@ import speedytools.clientside.userinput.SpeedyToolControls;
 import speedytools.common.CommonProxy;
 import speedytools.common.SpeedyToolsOptions;
 import speedytools.common.blocks.RegistryForBlocks;
+import speedytools.common.items.ItemSpeedyBoundary;
 import speedytools.common.items.ItemSpeedyOrb;
 import speedytools.common.items.ItemSpeedyTool;
 import speedytools.common.items.RegistryForItems;
@@ -203,7 +205,9 @@ public class CombinedClientProxy extends CommonProxy {
       if (itemBlockSimple instanceof ItemSpeedyTool) {
         ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)itemBlockSimple;
         for (int metadata : itemSpeedyTool.validMetadataValues()) {
-          itemModelResourceLocation = new ModelResourceLocation(itemSpeedyTool.getVariantModelResLoc(itemName, metadata));
+          String modelName = itemSpeedyTool.getVariantModelResLoc(itemName, metadata);
+          ModelBakery.addVariantName(itemSpeedyTool, modelName);
+          itemModelResourceLocation = new ModelResourceLocation(modelName, "inventory");
           Minecraft.getMinecraft().getRenderItem().getItemModelMesher().register(itemBlockSimple, metadata, itemModelResourceLocation);
         }
       } else {

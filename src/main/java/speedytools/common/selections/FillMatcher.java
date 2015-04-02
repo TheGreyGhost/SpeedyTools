@@ -255,7 +255,7 @@ public abstract class FillMatcher
       buf.writeInt(directionToContour.getIndex());
     }
 
-    protected byte getUniqueID() {return ONLY_SPECIFIED_BLOCK;}
+    protected byte getUniqueID() {return CONTOUR_FOLLOWER;}  // used to be ONLY_SPECIFIED_BLOCK -?!!!
     private EnumFacing directionToContour;
     private boolean additiveMode;
   }
