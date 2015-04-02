@@ -2,6 +2,7 @@ package speedytools.common.items;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import speedytools.SpeedyToolsMod;
 
 import java.util.List;
 
@@ -17,6 +18,19 @@ public class ItemSpeedyOrb extends ItemSpeedyTool {
   @Override
   public boolean showDurabilityBar(ItemStack stack) {
     return false;
+  }
+
+  @Override
+  public String getVariantModelResLoc(String itemName, int metadata)
+  {
+    switch (metadata) {
+      case INFINITE_MODE_DAMAGE:{
+        return SpeedyToolsMod.prependModID(itemName + "_infinite");
+      }
+      default: {
+        return SpeedyToolsMod.prependModID(itemName);
+      }
+    }
   }
 
   /**

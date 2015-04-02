@@ -174,8 +174,8 @@ public class CombinedClientProxy extends CommonProxy {
 
     }
 
-    MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedyOrb, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedyOrb));
-    MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedySceptre, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedySceptre));
+//    MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedyOrb, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedyOrb));
+//    MinecraftForgeClient.registerItemRenderer(RegistryForItems.itemSpeedySceptre, new RendererInventoryItemInfinite(RegistryForItems.itemSpeedySceptre));
   }
 
   /**
@@ -203,6 +203,7 @@ public class CombinedClientProxy extends CommonProxy {
       if (itemBlockSimple instanceof ItemSpeedyTool) {
         ItemSpeedyTool itemSpeedyTool = (ItemSpeedyTool)itemBlockSimple;
         for (int metadata : itemSpeedyTool.validMetadataValues()) {
+          itemModelResourceLocation = new ModelResourceLocation(itemSpeedyTool.getVariantModelResLoc(itemName, metadata));
           Minecraft.getMinecraft().getRenderItem().getItemModelMesher().register(itemBlockSimple, metadata, itemModelResourceLocation);
         }
       } else {

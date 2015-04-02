@@ -5,6 +5,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
+import speedytools.SpeedyToolsMod;
 import speedytools.clientside.ClientSide;
 import speedytools.common.utilities.ErrorLog;
 
@@ -44,14 +45,24 @@ public abstract class ItemSpeedyTool extends Item
    */
   public boolean usesAdjacentBlockInHotbar() {return true;}
 
-  private final int INFINITE_MODE_DAMAGE = 1;
-  private final int FINITE_MODE_DAMAGE = 2;
-  private final int INFINITE_MODE_STACKSIZE_CHANGE_TRIGGER = 64;
+  protected final int INFINITE_MODE_DAMAGE = 1;
+  protected final int FINITE_MODE_DAMAGE = 2;
+  protected final int INFINITE_MODE_STACKSIZE_CHANGE_TRIGGER = 64;
 
   // returns an array of all the metadata values that are valid for this item.  Intended for use when registering item models
   public int [] validMetadataValues()
   {
-    return new int[] {0, INFINITE_MODE_DAMAGE, FINITE_MODE_DAMAGE, INFINITE_MODE_STACKSIZE_CHANGE_TRIGGER};
+    return new int[] {0, INFINITE_MODE_DAMAGE, FINITE_MODE_DAMAGE};
+  }
+
+  /** return the ModelResourceLocation string for the given variant of this item
+   * @param itemName as string
+   * @param metadata item metadata
+   * @return name of the resource to be used for new ModelResourceLocation
+   */
+  public String getVariantModelResLoc(String itemName, int metadata)
+  {
+    return SpeedyToolsMod.prependModID(itemName);
   }
 
   /**
