@@ -3,14 +3,16 @@ package speedytools.clientside.selections;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by TheGreyGhost on 14/03/2015.
@@ -42,6 +44,7 @@ public class SelectionBlockTextures {
     TEXELWIDTHPERBLOCK = 1.0 / BLOCK_COUNT;
 
     nextFreeTextureIndex = FIRST_BLOCK_INDEX;
+    firstUncachedIndex = FIRST_BLOCK_INDEX;
     blockTextures = new DynamicTexture(textureWidthTexels, textureHeightTexels);
     textureResourceLocation = textureManager.getDynamicTextureLocation("SelectionBlockTextures", blockTextures);
 
@@ -56,8 +59,126 @@ public class SelectionBlockTextures {
     blockTextures.updateDynamicTexture();
   }
 
+  /** bind the texture sheet of the SelectionBlockTextures, ready for rendering the SBTicons
+   * Will also stitch together any blocks which are in the map but haven't been rendered/cached yet
+   */
   public void bindTexture() {
+    prepareTextureSheet();
     textureManager.bindTexture(textureResourceLocation);
+  }
+
+  /**
+   * Will stitch together any blocks which are in the map but haven't been rendered/cached yet
+   */
+  public void prepareTextureSheet()
+  {
+    if (firstUncachedIndex >= nextFreeTextureIndex) return;
+
+    OpenGlHelper.framebufferSupported
+    GL11.glGenFramebuffers(1, &frameBuffer);
+    glCheckFramebufferStatus
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+    glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0
+                          );
+
+
+    for (Map.Entry<Block, Integer> entry : blockTextureNumber.entrySet()) {
+      if (entry.getValue() >= firstUncachedIndex) {
+        stitchBlockTextureIntoSheet(entry.getKey().getDefaultState());
+      }
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+    glDeleteFramebuffers(1, &frameBuffer);
+
+    // draw the colored quad into the initially empty texture
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+
+// store attibutes
+    glPushAttrib(GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+// reset viewport
+    glViewport(0, 0, width, height);
+
+// setup modelview matrix
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+// setup projection matrix
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+// setup orthogonal projection
+    glOrtho(-width / 2, width / 2, -height / 2, height / 2, 0, 1000);
+
+// bind framebuffer object
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferObject);
+
+// attach empty texture to framebuffer object
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+
+// check framebuffer status (see above)
+
+// bind framebuffer object (IMPORTANT! bind before adding color attachments!)
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferObject);
+
+// define render targets (empty texture is at GL_COLOR_ATTACHMENT0)
+    glDrawBuffers(1, GL_COLOR_ATTACHMENT0); // you can of course have more than only 1 attachment
+
+// activate & bind empty texture
+// I figured activating and binding must take place AFTER attaching texture as color attachment
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+// clear color attachments
+    glClear(GL_COLOR_BUFFER_BIT);
+
+// make background yellow
+    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+
+// draw quad into texture attached to frame buffer object
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    glBegin(GL_QUADS);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); glVertex2f(0.0f, 100.0f); // top left
+    glColor4f(1.0f, 0.0f, 0.0f, 1.0f); glVertex2f(0.0f, 0.0f); // bottom left
+    glColor4f(0.0f, 1.0f, 0.0f, 1.0f); glVertex2f(100.0f, 0.0f); // bottom right
+    glColor4f(0.0f, 0.0f, 1.0f, 1.0f); glVertex2f(100.0f, 100.0f); // top right
+    glEnd();
+
+// reset projection matrix
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+// reset modelview matrix
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+// restore attributes
+    glPopAttrib();
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+
+
+
+    firstUncachedIndex = nextFreeTextureIndex;
+  }
+
+  /** reset the cache for all blocks
+   * (useful if the cache was full and we are starting with a fresh selection)
+   */
+  public void resetCache()
+  {
+    blockTextureNumber.clear();
+    nextFreeTextureIndex = FIRST_BLOCK_INDEX;
+    firstUncachedIndex = FIRST_BLOCK_INDEX;
   }
 
   /**
@@ -74,7 +195,7 @@ public class SelectionBlockTextures {
     } else if (!blockTextureNumber.containsKey(iBlockState.getBlock())) {
       if (nextFreeTextureIndex < LAST_BLOCK_INDEX_PLUS_ONE) {
         textureIndex = nextFreeTextureIndex;
-        addBlockTextureToMap(iBlockState);
+        ++nextFreeTextureIndex;
       } else {
         textureIndex = NULL_BLOCK_INDEX;
       }
@@ -93,7 +214,7 @@ public class SelectionBlockTextures {
   /** insert the default state of this block into the texture map
    * @param iBlockState the block to texture; property is ignored (uses defaultstate)
    */
-  public void addBlockTextureToMap(IBlockState iBlockState)
+  public void stitchBlockTextureIntoSheet(IBlockState iBlockState)
   {
 
   }
@@ -104,6 +225,7 @@ public class SelectionBlockTextures {
   private final double TEXELWIDTHPERBLOCK;
   private final double TEXELHEIGHTPERFACE;
   private int nextFreeTextureIndex;
+  private int firstUncachedIndex;
 
   private final int NUMBER_OF_FACES_PER_BLOCK = 6;
   private final int U_TEXELS_PER_FACE = 16;
