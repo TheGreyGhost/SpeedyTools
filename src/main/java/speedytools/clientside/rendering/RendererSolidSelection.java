@@ -21,10 +21,10 @@ import java.util.Collection;
 /**
 * User: The Grey Ghost
 * Date: 18/04/2014
-*  * This class is used to render the boundary field (translucent cuboid)
+*  * This class is used to render the current complex selection
 * Usage:
-* (1) Call the constructor, providing a BoundaryFieldRenderInfoUpdateLink:
-*     This interface is used to fill the supplied BoundaryFieldRenderInfo with the requested information for a render.
+* (1) Call the constructor, providing a SolidSelectionRenderInfoUpdateLink:
+*     This interface is used to fill the supplied SolidSelectionRenderInfo with the requested information for a render.
 * (2) When ready to render, call .render.
 
 */
