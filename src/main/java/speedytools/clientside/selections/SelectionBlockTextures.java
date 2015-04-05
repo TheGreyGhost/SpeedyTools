@@ -11,6 +11,7 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,63 +19,115 @@ import java.util.Map;
  * Created by TheGreyGhost on 14/03/2015.
  *
  * Used to track the textures used for each cube in a selection.
- * The first time the icon for a given block is requested, the block's model will be rendered by projecting onto the
- *   six cube sides, converted to greyscale, and the resulting textures stored.
- * Subsequent calls will return the cached texture.
- * A limited number of block textures will be stored, once full a generic block texture will be returned instead
+  * A limited number of block textures will be stored, once full a generic block texture will be returned instead
+ *
+ * Usage:
+ * (1) Create the SelectionBlockTextures to allocate the space and create a texture sheet
+ * (2) addBlock() for each Block you want included in the texture sheet - doesn't actually capture the block's
+ *     texture yet.
+ * (3) updateTextures() to capture the textures of all blocks you added using addBlock()
+ * When rendering:
+ * (4) bindTexture() to bind to the SelectionBlockTextures for subsequent rendering
+ * (5) getSBTIcon() to get the Icon (texture coordinates) for the given block
+ * Other tools:
+ * (6) clear() to empty the list of blocks on the sheet
+ * (7) release() to release the OpenGL texture sheet
+ *
+ * If you are creating and releasing a lot of SelectionBlockTextures you should release() to avoid using up
+ *   the OpenGL memory.
+ *
  */
 public class SelectionBlockTextures {
 
-  public SelectionBlockTextures(TextureManager i_textureManager)
-  {
+  public SelectionBlockTextures(TextureManager i_textureManager) {
     textureManager = i_textureManager;
-    int textureWidthTexels = BLOCK_COUNT_DESIRED * U_TEXELS_PER_FACE;
-    int maximumTextureWidth = Minecraft.getGLMaximumTextureSize();
-    if (textureWidthTexels <= maximumTextureWidth) {
+    int textureHeightTexels = BLOCK_COUNT_DESIRED * V_TEXELS_PER_FACE;
+    int maximumTextureHeight = Minecraft.getGLMaximumTextureSize();
+    if (textureHeightTexels <= maximumTextureHeight) {
       BLOCK_COUNT = BLOCK_COUNT_DESIRED;
     } else {
-      BLOCK_COUNT = maximumTextureWidth / U_TEXELS_PER_FACE;
-      textureWidthTexels = maximumTextureWidth;
+      BLOCK_COUNT = maximumTextureHeight / V_TEXELS_PER_FACE;
+      textureHeightTexels = maximumTextureHeight;
     }
     LAST_BLOCK_INDEX_PLUS_ONE = FIRST_BLOCK_INDEX + BLOCK_COUNT - 1;
 
-    int textureHeightTexels = NUMBER_OF_FACES_PER_BLOCK * V_TEXELS_PER_FACE;
+    int textureWidthTexels = NUMBER_OF_FACES_PER_BLOCK * U_TEXELS_PER_FACE;
 
-    TEXELHEIGHTPERFACE = 1.0 / NUMBER_OF_FACES_PER_BLOCK;
-    TEXELWIDTHPERBLOCK = 1.0 / BLOCK_COUNT;
+    TEXEL_HEIGHT_PER_BLOCK = 1.0 / BLOCK_COUNT;
+    TEXEL_WIDTH_PER_FACE = 1.0 / NUMBER_OF_FACES_PER_BLOCK;
 
     nextFreeTextureIndex = FIRST_BLOCK_INDEX;
     firstUncachedIndex = FIRST_BLOCK_INDEX;
     blockTextures = new DynamicTexture(textureWidthTexels, textureHeightTexels);
+    textureAllocated = true;
     textureResourceLocation = textureManager.getDynamicTextureLocation("SelectionBlockTextures", blockTextures);
 
-    // just for now, initialise texture to all white
-    // todo make texturing properly
-    int [] rawTexture = blockTextures.getTextureData();
-
-    for (int i = 0; i < rawTexture.length; ++i) {
-      rawTexture[i] = Color.WHITE.getRGB();
-    }
-
+    eraseBlockTextures(NULL_BLOCK_INDEX, NULL_BLOCK_INDEX);
+    eraseBlockTextures(FIRST_BLOCK_INDEX, LAST_BLOCK_INDEX_PLUS_ONE - 1);
     blockTextures.updateDynamicTexture();
+
+    ++sbtCount;
+    if (sbtCount > SBT_COUNT_WARNING) {
+      System.err.println("Warning: allocated " + sbtCount + " textures without release()");
+    }
   }
 
   /** bind the texture sheet of the SelectionBlockTextures, ready for rendering the SBTicons
-   * Will also stitch together any blocks which are in the map but haven't been rendered/cached yet
    */
   public void bindTexture() {
-    prepareTextureSheet();
     textureManager.bindTexture(textureResourceLocation);
   }
 
-  /**
-   * Will stitch together any blocks which are in the map but haven't been rendered/cached yet
+  /** remove all blocks from the texture sheet
    */
-  public void prepareTextureSheet()
+  public void clear()
+  {
+    blockTextureNumbers.clear();
+    nextFreeTextureIndex = FIRST_BLOCK_INDEX;
+    firstUncachedIndex = FIRST_BLOCK_INDEX;
+  }
+
+  /**
+   * release the allocated OpenGL texture
+   * do not use this object again after release
+   */
+  public void release()
+  {
+    blockTextures.deleteGlTexture();
+    if (textureAllocated) {
+      --sbtCount;
+      assert sbtCount >= 0;
+      textureAllocated = false;
+    }
+  }
+
+  /**
+   * Include this block in the texture sheet
+   * (Doesn't actually stitch the block's texture into the sheet until you call updateTextures() )
+   * @param iBlockState the block to add.  Ignores properties (uses block.getDefaultState())
+   */
+  public void addBlock(IBlockState iBlockState)
+  {
+    if (iBlockState == null) {
+      return;
+    }
+    if (blockTextureNumbers.containsKey(iBlockState.getBlock())) {
+      return;
+    }
+    if (nextFreeTextureIndex >= LAST_BLOCK_INDEX_PLUS_ONE) {
+      return;
+    }
+    blockTextureNumbers.put(iBlockState.getBlock(), nextFreeTextureIndex);
+    ++nextFreeTextureIndex;
+  }
+
+  /**
+   * Will stitch any newly-added blocks into the texture sheet
+   */
+  public void updateTextures()
   {
     if (firstUncachedIndex >= nextFreeTextureIndex) return;
 
-    OpenGlHelper.framebufferSupported
     GL11.glGenFramebuffers(1, &frameBuffer);
     glCheckFramebufferStatus
     glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
@@ -83,8 +136,12 @@ public class SelectionBlockTextures {
             GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0
                           );
 
+    int frameBufferID = OpenGlHelper.glGenFramebuffers();
+    if (frameBufferID < 0) {
 
-    for (Map.Entry<Block, Integer> entry : blockTextureNumber.entrySet()) {
+      firstUncachedIndex = nextFreeTextureIndex;
+    }
+    for (Map.Entry<Block, Integer> entry : blockTextureNumbers.entrySet()) {
       if (entry.getValue() >= firstUncachedIndex) {
         stitchBlockTextureIntoSheet(entry.getKey().getDefaultState());
       }
@@ -171,16 +228,6 @@ public class SelectionBlockTextures {
     firstUncachedIndex = nextFreeTextureIndex;
   }
 
-  /** reset the cache for all blocks
-   * (useful if the cache was full and we are starting with a fresh selection)
-   */
-  public void resetCache()
-  {
-    blockTextureNumber.clear();
-    nextFreeTextureIndex = FIRST_BLOCK_INDEX;
-    firstUncachedIndex = FIRST_BLOCK_INDEX;
-  }
-
   /**
    * get the icon (position in the texture sheet) of the given block
    * @param iBlockState block to be retrieved (properties ignored)
@@ -190,40 +237,58 @@ public class SelectionBlockTextures {
   public SBTIcon getSBTIcon(IBlockState iBlockState, EnumFacing whichFace)
   {
     Integer textureIndex;
-    if (iBlockState == null) {
+    if (iBlockState == null
+        || !blockTextureNumbers.containsKey(iBlockState.getBlock())) {
       textureIndex = NULL_BLOCK_INDEX;
-    } else if (!blockTextureNumber.containsKey(iBlockState.getBlock())) {
-      if (nextFreeTextureIndex < LAST_BLOCK_INDEX_PLUS_ONE) {
-        textureIndex = nextFreeTextureIndex;
-        ++nextFreeTextureIndex;
-      } else {
-        textureIndex = NULL_BLOCK_INDEX;
-      }
     } else {
-      textureIndex = blockTextureNumber.get(iBlockState.getBlock());
+      textureIndex = blockTextureNumbers.get(iBlockState.getBlock());
       if (textureIndex == null) {
         textureIndex = NULL_BLOCK_INDEX;
       }
     }
 
-    double umin = TEXELWIDTHPERBLOCK * textureIndex;
-    double vmin = TEXELHEIGHTPERFACE * whichFace.getIndex();
-    return new SBTIcon(umin, umin + TEXELWIDTHPERBLOCK, vmin, vmin + TEXELHEIGHTPERFACE);
+    double umin = TEXEL_WIDTH_PER_FACE * whichFace.getIndex();
+    double vmin = TEXEL_HEIGHT_PER_BLOCK * textureIndex;
+    return new SBTIcon(umin, umin + TEXEL_WIDTH_PER_FACE, vmin, vmin + TEXEL_HEIGHT_PER_BLOCK);
   }
 
   /** insert the default state of this block into the texture map
+   * @param frameBufferID the frame buffer
    * @param iBlockState the block to texture; property is ignored (uses defaultstate)
    */
-  public void stitchBlockTextureIntoSheet(IBlockState iBlockState)
+  private void stitchBlockTextureIntoSheet(int frameBufferID,  IBlockState iBlockState)
   {
 
   }
 
+  /**
+   * Overwrite the given texture indices with blank (untextured white)
+   * Must call updateDynamicTexture() afterwards to upload
+   * @param firstTextureIndex first texture index to blank out
+   * @param lastTextureIndex last texture index to blank out (inclusive)
+   */
+  private void eraseBlockTextures(int firstTextureIndex, int lastTextureIndex)
+  {
+    int[] rawTexture = blockTextures.getTextureData();
+    int textureWidthTexels = NUMBER_OF_FACES_PER_BLOCK * U_TEXELS_PER_FACE;
+
+    for (int i = firstTextureIndex; i <= lastTextureIndex; ++i) {
+      int startRawDataIndex = textureWidthTexels * V_TEXELS_PER_FACE * firstTextureIndex;
+      int endRawDataIndexPlus1 = textureWidthTexels * V_TEXELS_PER_FACE * (lastTextureIndex + 1);
+
+      Arrays.fill(rawTexture, startRawDataIndex,  endRawDataIndexPlus1, Color.WHITE.getRGB() );
+    }
+  }
+
+  // The face textures are stored as:
+  //  one row per block, one column per face
+  //  i.e. the texture sheet is six faces wide and BLOCK_COUNT faces high.
+
   private final DynamicTexture blockTextures;
   private final ResourceLocation textureResourceLocation;
   private final TextureManager textureManager;
-  private final double TEXELWIDTHPERBLOCK;
-  private final double TEXELHEIGHTPERFACE;
+  private final double TEXEL_WIDTH_PER_FACE;
+  private final double TEXEL_HEIGHT_PER_BLOCK;
   private int nextFreeTextureIndex;
   private int firstUncachedIndex;
 
@@ -238,7 +303,7 @@ public class SelectionBlockTextures {
   private final int BLOCK_COUNT;
   private final int LAST_BLOCK_INDEX_PLUS_ONE;
 
-  private HashMap<Block, Integer> blockTextureNumber = new HashMap<Block, Integer>(BLOCK_COUNT_DESIRED);
+  private HashMap<Block, Integer> blockTextureNumbers = new HashMap<Block, Integer>(BLOCK_COUNT_DESIRED);
 
   public class SBTIcon
   {
@@ -272,4 +337,8 @@ public class SelectionBlockTextures {
     private double vmax;
   }
 
+  // debug- to help detect resource leaks
+  private static final int SBT_COUNT_WARNING = 5;  // if we have more than 5 opened-but-not-released objects, give a warning
+  private static int sbtCount = 0;
+  private boolean textureAllocated = false;
 }
