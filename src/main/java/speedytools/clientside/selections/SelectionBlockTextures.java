@@ -3,12 +3,16 @@ package speedytools.clientside.selections;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
+import speedytools.common.utilities.ErrorLog;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -19,7 +23,7 @@ import java.util.Map;
  * Created by TheGreyGhost on 14/03/2015.
  *
  * Used to track the textures used for each cube in a selection.
-  * A limited number of block textures will be stored, once full a generic block texture will be returned instead
+  * A limited number of block textures will be stored.  Once full a generic block texture will be substituted instead
  *
  * Usage:
  * (1) Create the SelectionBlockTextures to allocate the space and create a texture sheet
@@ -137,20 +141,95 @@ public class SelectionBlockTextures {
                           );
 
     int frameBufferID = OpenGlHelper.glGenFramebuffers();
-    if (frameBufferID < 0) {
-
+    if (frameBufferID < 0) {  // frame buffer not available, just use blank texture
+      eraseBlockTextures(firstUncachedIndex, nextFreeTextureIndex - 1);
       firstUncachedIndex = nextFreeTextureIndex;
+      return;
     }
-    for (Map.Entry<Block, Integer> entry : blockTextureNumbers.entrySet()) {
-      if (entry.getValue() >= firstUncachedIndex) {
-        stitchBlockTextureIntoSheet(entry.getKey().getDefaultState());
+
+    try {
+      GL11.glPushAttrib();
+      GL11.glMatrixMode(GL11.GL_MODELVIEW);
+      GL11.glPushMatrix();
+      GL11.glMatrixMode(GL11.GL_PROJECTION);
+      GL11.glPushMatrix();
+
+      // setup modelview matrix
+      GL11.glMatrixMode(GL11.GL_MODELVIEW);
+      GL11.glLoadIdentity();
+
+      GL11.glMatrixMode(GL11.GL_PROJECTION);
+      GL11.glLoadIdentity();
+
+      GL11.glEnable(GL11.GL_CULL_FACE);
+      GL11.glEnable(GL11.GL_DEPTH_TEST);
+      this.depthBuffer = OpenGlHelper.glGenRenderbuffers();
+
+      OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, frameBufferID);
+      OpenGlHelper.glFramebufferTexture2D(OpenGlHelper.GL_FRAMEBUFFER, OpenGlHelper.GL_COLOR_ATTACHMENT0,
+                                          GL11.GL_TEXTURE_2D, blockTextures.getGlTextureId(), 0);
+
+      GlStateManager.bindTexture(this.framebufferTexture);
+      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, (float)p_147607_1_);
+      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, (float)p_147607_1_);
+      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, 10496.0F);
+      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, 10496.0F);
+      GlStateManager.colorMask(true, true, true, false);
+      GlStateManager.disableDepth();
+      GlStateManager.depthMask(false);
+      GlStateManager.matrixMode(5889);
+      GlStateManager.loadIdentity();
+      GlStateManager.ortho(0.0D, (double)p_178038_1_, (double)p_178038_2_, 0.0D, 1000.0D, 3000.0D);
+      GlStateManager.matrixMode(5888);
+      GlStateManager.loadIdentity();
+      GlStateManager.translate(0.0F, 0.0F, -2000.0F);
+      GlStateManager.viewport(0, 0, p_178038_1_, p_178038_2_);
+      GlStateManager.enableTexture2D();
+      GlStateManager.disableLighting();
+      GlStateManager.disableAlpha();
+
+      if (p_178038_3_)
+      {
+        GlStateManager.disableBlend();
+        GlStateManager.enableColorMaterial();
       }
+
+      GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+      this.bindFramebufferTexture();
+      float f = (float)p_178038_1_;
+      float f1 = (float)p_178038_2_;
+      float f2 = (float)this.framebufferWidth / (float)this.framebufferTextureWidth;
+      float f3 = (float)this.framebufferHeight / (float)this.framebufferTextureHeight;
+      Tessellator tessellator = Tessellator.getInstance();
+      WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+      worldrenderer.startDrawingQuads();
+      worldrenderer.setColorOpaque_I(-1);
+      worldrenderer.addVertexWithUV(0.0D, (double)f1, 0.0D, 0.0D, 0.0D);
+      worldrenderer.addVertexWithUV((double)f, (double)f1, 0.0D, (double)f2, 0.0D);
+      worldrenderer.addVertexWithUV((double)f, 0.0D, 0.0D, (double)f2, (double)f3);
+      worldrenderer.addVertexWithUV(0.0D, 0.0D, 0.0D, 0.0D, (double)f3);
+      tessellator.draw();
+      this.unbindFramebufferTexture();
+      GlStateManager.depthMask(true);
+      GlStateManager.colorMask(true, true, true, true);
+
+      for (Map.Entry<Block, Integer> entry : blockTextureNumbers.entrySet()) {
+        if (entry.getValue() >= firstUncachedIndex) {
+          stitchBlockTextureIntoSheet(entry.getValue(), entry.getKey().getDefaultState());
+        }
+      }
+
+    } catch (Exception e) {
+      ErrorLog.defaultLog().info(e.toString());
+    } finally {
+      OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, 0);
+      OpenGlHelper.glDeleteFramebuffers(frameBufferID);
+      GL11.glMatrixMode(GL11.GL_PROJECTION);
+      GL11.glPopMatrix();
+      GL11.glMatrixMode(GL11.GL_MODELVIEW);
+      GL11.glPopMatrix();
+      GL11.glPopAttrib();
     }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    glDeleteFramebuffers(1, &frameBuffer);
 
     // draw the colored quad into the initially empty texture
     glDisable(GL_CULL_FACE);
