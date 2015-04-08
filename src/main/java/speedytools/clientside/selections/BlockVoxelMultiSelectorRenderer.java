@@ -42,6 +42,7 @@ public class BlockVoxelMultiSelectorRenderer
   public BlockVoxelMultiSelectorRenderer(TextureManager textureManager)
   {
     selectionBlockTextures = new SelectionBlockTextures(textureManager);
+    selectionBlockTextures.setAutoAllocateIcon(true);
   }
 
   /**
@@ -253,6 +254,7 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
         }
       }
     }
+    selectionBlockTextures.updateTextures();
     mode = OperationInProgress.COMPLETE;
     return -1;
   }
@@ -474,6 +476,7 @@ public float refreshRenderListContinue(World world, VoxelSelectionWithOrigin sel
         }
       }
     }
+    selectionBlockTextures.updateTextures();
     mode = OperationInProgress.COMPLETE;
     return -1;
   }

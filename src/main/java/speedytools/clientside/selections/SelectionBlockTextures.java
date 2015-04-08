@@ -3,18 +3,24 @@ package speedytools.clientside.selections;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 import speedytools.common.utilities.ErrorLog;
 
 import java.awt.*;
+import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +35,8 @@ import java.util.Map;
  * (1) Create the SelectionBlockTextures to allocate the space and create a texture sheet
  * (2) addBlock() for each Block you want included in the texture sheet - doesn't actually capture the block's
  *     texture yet.
+ * (2b) alternatively, if the autoAllocate() is set to true, calling getSBTIcon() on an unused block will automatically
+ *      allocate a space for that block
  * (3) updateTextures() to capture the textures of all blocks you added using addBlock()
  * When rendering:
  * (4) bindTexture() to bind to the SelectionBlockTextures for subsequent rendering
@@ -74,6 +82,15 @@ public class SelectionBlockTextures {
     if (sbtCount > SBT_COUNT_WARNING) {
       System.err.println("Warning: allocated " + sbtCount + " textures without release()");
     }
+  }
+
+  /**
+   * If true, a call to getSBTIcon for a block with no allocated Icon will automatically allocate an Icon
+   * The default is false.
+   * @param autoAllocateIcon
+   */
+  public void setAutoAllocateIcon(boolean autoAllocateIcon) {
+    this.autoAllocateIcon = autoAllocateIcon;
   }
 
   /** bind the texture sheet of the SelectionBlockTextures, ready for rendering the SBTicons
@@ -132,23 +149,31 @@ public class SelectionBlockTextures {
   {
     if (firstUncachedIndex >= nextFreeTextureIndex) return;
 
-    GL11.glGenFramebuffers(1, &frameBuffer);
-    glCheckFramebufferStatus
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-
-    glFramebufferTexture2D(
-            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0
-                          );
-
-    int frameBufferID = OpenGlHelper.glGenFramebuffers();
-    if (frameBufferID < 0) {  // frame buffer not available, just use blank texture
+//    int frameBufferID = OpenGlHelper.glGenFramebuffers();
+    if (!OpenGlHelper.isFramebufferEnabled()) {  // frame buffer not available, just use blank texture
       eraseBlockTextures(firstUncachedIndex, nextFreeTextureIndex - 1);
       firstUncachedIndex = nextFreeTextureIndex;
       return;
     }
 
+//
+//    OpenGlHelper.isFramebufferEnabled()
+//
+//    GL11.glGenFramebuffers(1, &frameBuffer);
+//    glCheckFramebufferStatus
+//    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+//
+//    glFramebufferTexture2D(
+//            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0
+//                          );
+
+
+    Framebuffer frameBuffer = null;
     try {
-      GL11.glPushAttrib();
+      final boolean USE_DEPTH = true;
+      frameBuffer = new Framebuffer(U_TEXELS_PER_FACE, V_TEXELS_PER_FACE, USE_DEPTH);
+
+      GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
       GL11.glMatrixMode(GL11.GL_MODELVIEW);
       GL11.glPushMatrix();
       GL11.glMatrixMode(GL11.GL_PROJECTION);
@@ -163,55 +188,78 @@ public class SelectionBlockTextures {
 
       GL11.glEnable(GL11.GL_CULL_FACE);
       GL11.glEnable(GL11.GL_DEPTH_TEST);
-      this.depthBuffer = OpenGlHelper.glGenRenderbuffers();
+//      this.depthBuffer = OpenGlHelper.glGenRenderbuffers();
 
-      OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, frameBufferID);
-      OpenGlHelper.glFramebufferTexture2D(OpenGlHelper.GL_FRAMEBUFFER, OpenGlHelper.GL_COLOR_ATTACHMENT0,
-                                          GL11.GL_TEXTURE_2D, blockTextures.getGlTextureId(), 0);
+      frameBuffer.setFramebufferColor(1.0F, 1.0F, 1.0F, 1.0F);
+      frameBuffer.framebufferClear();
 
-      GlStateManager.bindTexture(this.framebufferTexture);
-      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, (float)p_147607_1_);
-      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, (float)p_147607_1_);
-      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, 10496.0F);
-      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, 10496.0F);
-      GlStateManager.colorMask(true, true, true, false);
-      GlStateManager.disableDepth();
-      GlStateManager.depthMask(false);
-      GlStateManager.matrixMode(5889);
-      GlStateManager.loadIdentity();
-      GlStateManager.ortho(0.0D, (double)p_178038_1_, (double)p_178038_2_, 0.0D, 1000.0D, 3000.0D);
-      GlStateManager.matrixMode(5888);
-      GlStateManager.loadIdentity();
-      GlStateManager.translate(0.0F, 0.0F, -2000.0F);
-      GlStateManager.viewport(0, 0, p_178038_1_, p_178038_2_);
-      GlStateManager.enableTexture2D();
-      GlStateManager.disableLighting();
-      GlStateManager.disableAlpha();
+      final boolean SET_VIEWPORT = true;
+      frameBuffer.bindFramebuffer(SET_VIEWPORT);
+      GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
 
-      if (p_178038_3_)
-      {
-        GlStateManager.disableBlend();
-        GlStateManager.enableColorMaterial();
-      }
-
-      GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-      this.bindFramebufferTexture();
-      float f = (float)p_178038_1_;
-      float f1 = (float)p_178038_2_;
-      float f2 = (float)this.framebufferWidth / (float)this.framebufferTextureWidth;
-      float f3 = (float)this.framebufferHeight / (float)this.framebufferTextureHeight;
       Tessellator tessellator = Tessellator.getInstance();
       WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+      Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+      float f = 32.0F;
       worldrenderer.startDrawingQuads();
-      worldrenderer.setColorOpaque_I(-1);
-      worldrenderer.addVertexWithUV(0.0D, (double)f1, 0.0D, 0.0D, 0.0D);
-      worldrenderer.addVertexWithUV((double)f, (double)f1, 0.0D, (double)f2, 0.0D);
-      worldrenderer.addVertexWithUV((double)f, 0.0D, 0.0D, (double)f2, (double)f3);
-      worldrenderer.addVertexWithUV(0.0D, 0.0D, 0.0D, 0.0D, (double)f3);
+      worldrenderer.setColorOpaque_I(0xc0b0a0);
+      worldrenderer.addVertex(0.25, 0.25, 0.5);
+      worldrenderer.addVertex(0.75, 0.25, 0.5);
+      worldrenderer.addVertex(0.75, 0.75, 0.5);
+      worldrenderer.addVertex(0.25, 0.75, 0.5);
       tessellator.draw();
-      this.unbindFramebufferTexture();
-      GlStateManager.depthMask(true);
-      GlStateManager.colorMask(true, true, true, true);
+
+      frameBuffer.bindFramebufferTexture();
+      IntBuffer pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+      GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+
+//      OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, frameBufferID);
+//      OpenGlHelper.glFramebufferTexture2D(OpenGlHelper.GL_FRAMEBUFFER, OpenGlHelper.GL_COLOR_ATTACHMENT0,
+//                                          GL11.GL_TEXTURE_2D, blockTextures.getGlTextureId(), 0);
+//
+//      GlStateManager.bindTexture(this.framebufferTexture);
+//      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, (float)p_147607_1_);
+//      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, (float)p_147607_1_);
+//      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, 10496.0F);
+//      GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, 10496.0F);
+//      GlStateManaDyger.colorMask(true, true, true, false);
+//      GlStateManager.disableDepth();
+//      GlStateManager.depthMask(false);
+//      GlStateManager.matrixMode(5889);
+//      GlStateManager.loadIdentity();
+//      GlStateManager.ortho(0.0D, (double)p_178038_1_, (double)p_178038_2_, 0.0D, 1000.0D, 3000.0D);
+//      GlStateManager.matrixMode(5888);
+//      GlStateManager.loadIdentity();
+//      GlStateManager.translate(0.0F, 0.0F, -2000.0F);
+//      GlStateManager.viewport(0, 0, p_178038_1_, p_178038_2_);
+//      GlStateManager.enableTexture2D();
+//      GlStateManager.disableLighting();
+//      GlStateManager.disableAlpha();
+//
+//      if (p_178038_3_)
+//      {
+//        GlStateManager.disableBlend();
+//        GlStateManager.enableColorMaterial();
+//      }
+//
+//      GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+//      this.bindFramebufferTexture();
+//      float f = (float)p_178038_1_;
+//      float f1 = (float)p_178038_2_;
+//      float f2 = (float)this.framebufferWidth / (float)this.framebufferTextureWidth;
+//      float f3 = (float)this.framebufferHeight / (float)this.framebufferTextureHeight;
+//      Tessellator tessellator = Tessellator.getInstance();
+//      WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+//      worldrenderer.startDrawingQuads();
+//      worldrenderer.setColorOpaque_I(-1);
+//      worldrenderer.addVertexWithUV(0.0D, (double)f1, 0.0D, 0.0D, 0.0D);
+//      worldrenderer.addVertexWithUV((double)f, (double)f1, 0.0D, (double)f2, 0.0D);
+//      worldrenderer.addVertexWithUV((double)f, 0.0D, 0.0D, (double)f2, (double)f3);
+//      worldrenderer.addVertexWithUV(0.0D, 0.0D, 0.0D, 0.0D, (double)f3);
+//      tessellator.draw();
+//      this.unbindFramebufferTexture();
+//      GlStateManager.depthMask(true);
+//      GlStateManager.colorMask(true, true, true, true);
 
       for (Map.Entry<Block, Integer> entry : blockTextureNumbers.entrySet()) {
         if (entry.getValue() >= firstUncachedIndex) {
@@ -222,8 +270,12 @@ public class SelectionBlockTextures {
     } catch (Exception e) {
       ErrorLog.defaultLog().info(e.toString());
     } finally {
-      OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, 0);
-      OpenGlHelper.glDeleteFramebuffers(frameBufferID);
+      if (frameBuffer != null) {
+        frameBuffer.deleteFramebuffer();
+      }
+
+//      OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, 0);
+//      OpenGlHelper.glDeleteFramebuffers(frameBufferID);
       GL11.glMatrixMode(GL11.GL_PROJECTION);
       GL11.glPopMatrix();
       GL11.glMatrixMode(GL11.GL_MODELVIEW);
@@ -231,84 +283,87 @@ public class SelectionBlockTextures {
       GL11.glPopAttrib();
     }
 
-    // draw the colored quad into the initially empty texture
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-
-// store attibutes
-    glPushAttrib(GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-// reset viewport
-    glViewport(0, 0, width, height);
-
-// setup modelview matrix
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-// setup projection matrix
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-
-// setup orthogonal projection
-    glOrtho(-width / 2, width / 2, -height / 2, height / 2, 0, 1000);
-
-// bind framebuffer object
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferObject);
-
-// attach empty texture to framebuffer object
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-
-// check framebuffer status (see above)
-
-// bind framebuffer object (IMPORTANT! bind before adding color attachments!)
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferObject);
-
-// define render targets (empty texture is at GL_COLOR_ATTACHMENT0)
-    glDrawBuffers(1, GL_COLOR_ATTACHMENT0); // you can of course have more than only 1 attachment
-
-// activate & bind empty texture
-// I figured activating and binding must take place AFTER attaching texture as color attachment
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-// clear color attachments
-    glClear(GL_COLOR_BUFFER_BIT);
-
-// make background yellow
-    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
-
-// draw quad into texture attached to frame buffer object
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    glBegin(GL_QUADS);
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); glVertex2f(0.0f, 100.0f); // top left
-    glColor4f(1.0f, 0.0f, 0.0f, 1.0f); glVertex2f(0.0f, 0.0f); // bottom left
-    glColor4f(0.0f, 1.0f, 0.0f, 1.0f); glVertex2f(100.0f, 0.0f); // bottom right
-    glColor4f(0.0f, 0.0f, 1.0f, 1.0f); glVertex2f(100.0f, 100.0f); // top right
-    glEnd();
-
-// reset projection matrix
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-
-// reset modelview matrix
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-
-// restore attributes
-    glPopAttrib();
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-
-
+//    // draw the colored quad into the initially empty texture
+//    glDisable(GL_CULL_FACE);
+//    glDisable(GL_DEPTH_TEST);
+//
+//// store attibutes
+//    glPushAttrib(GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//
+//// reset viewport
+//    glViewport(0, 0, width, height);
+//
+//// setup modelview matrix
+//    glMatrixMode(GL_MODELVIEW);
+//    glPushMatrix();
+//    glLoadIdentity();
+//
+//// setup projection matrix
+//    glMatrixMode(GL_PROJECTION);
+//    glPushMatrix();
+//    glLoadIdentity();
+//
+//// setup orthogonal projection
+//    glOrtho(-width / 2, width / 2, -height / 2, height / 2, 0, 1000);
+//
+//// bind framebuffer object
+//    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferObject);
+//
+//// attach empty texture to framebuffer object
+//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+//
+//// check framebuffer status (see above)
+//
+//// bind framebuffer object (IMPORTANT! bind before adding color attachments!)
+//    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferObject);
+//
+//// define render targets (empty texture is at GL_COLOR_ATTACHMENT0)
+//    glDrawBuffers(1, GL_COLOR_ATTACHMENT0); // you can of course have more than only 1 attachment
+//
+//// activate & bind empty texture
+//// I figured activating and binding must take place AFTER attaching texture as color attachment
+//    glActiveTexture(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE_2D, texture);
+//
+//// clear color attachments
+//    glClear(GL_COLOR_BUFFER_BIT);
+//
+//// make background yellow
+//    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+//
+//// draw quad into texture attached to frame buffer object
+//    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+//    glBegin(GL_QUADS);
+//    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); glVertex2f(0.0f, 100.0f); // top left
+//    glColor4f(1.0f, 0.0f, 0.0f, 1.0f); glVertex2f(0.0f, 0.0f); // bottom left
+//    glColor4f(0.0f, 1.0f, 0.0f, 1.0f); glVertex2f(100.0f, 0.0f); // bottom right
+//    glColor4f(0.0f, 0.0f, 1.0f, 1.0f); glVertex2f(100.0f, 100.0f); // top right
+//    glEnd();
+//
+//// reset projection matrix
+//    glMatrixMode(GL_PROJECTION);
+//    glPopMatrix();
+//
+//// reset modelview matrix
+//    glMatrixMode(GL_MODELVIEW);
+//    glPopMatrix();
+//
+//// restore attributes
+//    glPopAttrib();
+//
+//    glEnable(GL_DEPTH_TEST);
+//    glEnable(GL_CULL_FACE);
+//
+//
 
     firstUncachedIndex = nextFreeTextureIndex;
   }
 
   /**
    * get the icon (position in the texture sheet) of the given block
+   * If autoAllocatedIcon() has been set, a call to getSBTIcon for a block with no allocated Icon will
+   *   automatically allocate an Icon, otherwise a generic null icon is returned instead.
+   * The default is false, i.e. do not automatically allocate.
    * @param iBlockState block to be retrieved (properties ignored)
    * @param whichFace which faces' texture?
    * @return the blocks' icon, or a generic "null" icon if not available
@@ -316,13 +371,20 @@ public class SelectionBlockTextures {
   public SBTIcon getSBTIcon(IBlockState iBlockState, EnumFacing whichFace)
   {
     Integer textureIndex;
-    if (iBlockState == null
-        || !blockTextureNumbers.containsKey(iBlockState.getBlock())) {
+    if (iBlockState == null) {
       textureIndex = NULL_BLOCK_INDEX;
     } else {
-      textureIndex = blockTextureNumbers.get(iBlockState.getBlock());
-      if (textureIndex == null) {
+      if (!blockTextureNumbers.containsKey(iBlockState.getBlock())
+            && autoAllocateIcon) {
+        addBlock(iBlockState);
+      }
+      if (!blockTextureNumbers.containsKey(iBlockState.getBlock())) {
         textureIndex = NULL_BLOCK_INDEX;
+      } else {
+        textureIndex = blockTextureNumbers.get(iBlockState.getBlock());
+        if (textureIndex == null) {
+          textureIndex = NULL_BLOCK_INDEX;
+        }
       }
     }
 
@@ -383,6 +445,8 @@ public class SelectionBlockTextures {
   private final int LAST_BLOCK_INDEX_PLUS_ONE;
 
   private HashMap<Block, Integer> blockTextureNumbers = new HashMap<Block, Integer>(BLOCK_COUNT_DESIRED);
+
+  private boolean autoAllocateIcon = false;
 
   public class SBTIcon
   {
