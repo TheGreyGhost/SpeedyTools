@@ -24,6 +24,7 @@ import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Created by TheGreyGhost on 14/03/2015.
@@ -186,21 +187,157 @@ public class SelectionBlockTextures {
       GL11.glMatrixMode(GL11.GL_PROJECTION);
       GL11.glLoadIdentity();
 
-      GL11.glEnable(GL11.GL_CULL_FACE);
-      GL11.glEnable(GL11.GL_DEPTH_TEST);
+      GL11.glDisable(GL11.GL_CULL_FACE);
+      GL11.glDisable(GL11.GL_DEPTH_TEST);
 //      this.depthBuffer = OpenGlHelper.glGenRenderbuffers();
 
       frameBuffer.setFramebufferColor(1.0F, 1.0F, 1.0F, 1.0F);
       frameBuffer.framebufferClear();
 
+      frameBuffer.bindFramebufferTexture();
+      IntBuffer pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+      GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+
+      int [] temp = new int[pixelBuffer.remaining()];
+      pixelBuffer.get(temp);
+
+      //----
+      frameBuffer.setFramebufferColor(0.0F, 0.0F, 0.0F, 0.0F);
+      frameBuffer.framebufferClear();
+
+      pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+      GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+
+      temp = new int[pixelBuffer.remaining()];
+      pixelBuffer.get(temp);
+
+      //----
+      frameBuffer.setFramebufferColor(0.0F, 1.0F, 0.0F, 1.0F);
+      frameBuffer.framebufferClear();
+
+      pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+      GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+
+      temp = new int[pixelBuffer.remaining()];
+      pixelBuffer.get(temp);
+
+      //----
+      frameBuffer.setFramebufferColor(0.23F, 0.23F, 0.23F, 0.23F);
+      frameBuffer.framebufferClear();
+
+      pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+      GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+
+      temp = new int[pixelBuffer.remaining()];
+      pixelBuffer.get(temp);
+
       final boolean SET_VIEWPORT = true;
-      frameBuffer.bindFramebuffer(SET_VIEWPORT);
-      GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
+      Random random = new Random();
+      boolean done = false;
+      do {
+        frameBuffer.setFramebufferColor(0.23F, 0.23F, 0.23F, 0.23F);
+        frameBuffer.framebufferClear();
+        frameBuffer.bindFramebuffer(SET_VIEWPORT);
+        GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
+
+        GL11.glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+
+        frameBuffer.bindFramebufferTexture();
+        pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+        GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+        temp = new int[pixelBuffer.remaining()];
+        pixelBuffer.get(temp);
+
+        frameBuffer.bindFramebuffer(SET_VIEWPORT);
+
+        final float RNG = 1000.0F; final float MID = 500.0F;
+        float x1 = random.nextFloat() * RNG - MID;
+        float y1 = random.nextFloat() * RNG - MID;
+        float z1 = random.nextFloat() * RNG - MID;
+
+        float x2 = random.nextFloat() * RNG - MID;
+        float y2 = random.nextFloat() * RNG - MID;
+        float z2 = random.nextFloat() * RNG - MID;
+
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glColor4f(0.2F, 0.1F, 0.0F, 1.0F);
+        GL11.glVertex4f(x1, y1, z1, 1.0F);
+        GL11.glVertex4f(x1, y2, z1, 1.0F);
+        GL11.glVertex4f(x2, y2, z1, 1.0F);
+        GL11.glVertex4f(x2, y1, z1, 1.0F);
+
+        GL11.glVertex4f(x1, y1, z1, 1.0F);
+        GL11.glVertex4f(x1, y2, z1, 1.0F);
+        GL11.glVertex4f(x1, y2, z2, 1.0F);
+        GL11.glVertex4f(x1, y1, z2, 1.0F);
+
+        GL11.glVertex4f(x1, y1, z1, 1.0F);
+        GL11.glVertex4f(x2, y1, z1, 1.0F);
+        GL11.glVertex4f(x2, y1, z2, 1.0F);
+        GL11.glVertex4f(x1, y1, z2, 1.0F);
+
+        GL11.glEnd();
+
+//        GL11.glBegin(GL11.GL_QUADS);
+//        GL11.glVertex4f(0.125F, 0.40F, 0.019F, 1.0F);
+//        GL11.glVertex4f(0.157F, -0.475F, 0.299F, 1.0F);
+//        GL11.glVertex4f(0.488F, 0.042F, 0.11F, 1.0F);
+//        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
+//        GL11.glEnd();
+
+        float offsetX = random.nextFloat() - random.nextFloat();
+        float offsetY = random.nextFloat() - random.nextFloat();
+        float offsetZ = random.nextFloat() - random.nextFloat();
+        switch (random.nextInt(3)) {
+          case 0: offsetX = 0; offsetY = 0; break;
+          case 1: offsetX = 0; offsetZ = 0; break;
+          case 2: offsetY = 0; offsetZ = 0; break;
+
+        }
+//        GL11.glBegin(GL11.GL_TRIANGLES);
+//        GL11.glVertex4f(0.125F+offsetX, 0.40F+offsetY, 0.019F+offsetZ, 1.0F);
+//        GL11.glVertex4f(0.157F+offsetX, -0.475F+offsetY, 0.299F+offsetZ, 1.0F);
+//        GL11.glVertex4f(0.488F+offsetX, 0.042F+offsetY, 0.11F+offsetZ, 1.0F);
+////        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
+//        GL11.glEnd();
+
+//        GL11.glBegin(GL11.GL_TRIANGLES);
+//        GL11.glVertex4f(0.125F+offsetX, 0.40F+offsetY, 0.2F, 1.0F);
+//        GL11.glVertex4f(0.157F+offsetX, -0.475F+offsetY, 0.2F, 1.0F);
+//        GL11.glVertex4f(0.488F+offsetX, 0.042F+offsetY, 0.2F, 1.0F);
+////        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
+//        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        GL11.glVertex4f(0.5F, 0.90F, 0.2F, 1.0F);
+        GL11.glVertex4f(0.8F, 0.90F, 0.2F, 1.0F);
+        GL11.glVertex4f(0.5F, 0.30F, 0.2F, 1.0F);
+//        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
+        GL11.glEnd();
+
+        frameBuffer.bindFramebufferTexture();
+        pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+        GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+
+        temp = new int[pixelBuffer.remaining()];
+        pixelBuffer.get(temp);
+        int firstval = temp[0];
+        for (int value : temp ) {
+          if (value != firstval ) {
+            done = true; // breakpoint here!
+          }
+        }
+
+      } while (!done);
+
+
+
+
 
       Tessellator tessellator = Tessellator.getInstance();
       WorldRenderer worldrenderer = tessellator.getWorldRenderer();
       Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
-      float f = 32.0F;
       worldrenderer.startDrawingQuads();
       worldrenderer.setColorOpaque_I(0xc0b0a0);
       worldrenderer.addVertex(0.25, 0.25, 0.5);
@@ -210,8 +347,15 @@ public class SelectionBlockTextures {
       tessellator.draw();
 
       frameBuffer.bindFramebufferTexture();
-      IntBuffer pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+      pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
       GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+
+      temp = new int[pixelBuffer.remaining()];
+      pixelBuffer.get(temp);
+
+
+
+
 
 //      OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, frameBufferID);
 //      OpenGlHelper.glFramebufferTexture2D(OpenGlHelper.GL_FRAMEBUFFER, OpenGlHelper.GL_COLOR_ATTACHMENT0,
