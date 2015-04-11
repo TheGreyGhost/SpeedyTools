@@ -4,27 +4,32 @@ import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.renderer.texture.TextureUtil;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.resources.model.IBakedModel;
+import net.minecraft.client.resources.model.WeightedBakedModel;
 import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.IBlockAccess;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+import scala.collection.parallel.ParIterableLike;
+import speedytools.common.blocks.RegistryForBlocks;
 import speedytools.common.utilities.ErrorLog;
 
 import java.awt.*;
 import java.nio.IntBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
+import java.util.List;
 
 /**
  * Created by TheGreyGhost on 14/03/2015.
@@ -231,120 +236,231 @@ public class SelectionBlockTextures {
       temp = new int[pixelBuffer.remaining()];
       pixelBuffer.get(temp);
 
-      final boolean SET_VIEWPORT = true;
-      Random random = new Random();
-      boolean done = false;
-      do {
-        frameBuffer.setFramebufferColor(0.23F, 0.23F, 0.23F, 0.23F);
-        frameBuffer.framebufferClear();
-        frameBuffer.bindFramebuffer(SET_VIEWPORT);
-        GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
-
-        GL11.glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-
-        frameBuffer.bindFramebufferTexture();
-        pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
-        GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
-        temp = new int[pixelBuffer.remaining()];
-        pixelBuffer.get(temp);
-
-        frameBuffer.bindFramebuffer(SET_VIEWPORT);
-
-        final float RNG = 1000.0F; final float MID = 500.0F;
-        float x1 = random.nextFloat() * RNG - MID;
-        float y1 = random.nextFloat() * RNG - MID;
-        float z1 = random.nextFloat() * RNG - MID;
-
-        float x2 = random.nextFloat() * RNG - MID;
-        float y2 = random.nextFloat() * RNG - MID;
-        float z2 = random.nextFloat() * RNG - MID;
-
-        GL11.glBegin(GL11.GL_QUADS);
-        GL11.glColor4f(0.2F, 0.1F, 0.0F, 1.0F);
-        GL11.glVertex4f(x1, y1, z1, 1.0F);
-        GL11.glVertex4f(x1, y2, z1, 1.0F);
-        GL11.glVertex4f(x2, y2, z1, 1.0F);
-        GL11.glVertex4f(x2, y1, z1, 1.0F);
-
-        GL11.glVertex4f(x1, y1, z1, 1.0F);
-        GL11.glVertex4f(x1, y2, z1, 1.0F);
-        GL11.glVertex4f(x1, y2, z2, 1.0F);
-        GL11.glVertex4f(x1, y1, z2, 1.0F);
-
-        GL11.glVertex4f(x1, y1, z1, 1.0F);
-        GL11.glVertex4f(x2, y1, z1, 1.0F);
-        GL11.glVertex4f(x2, y1, z2, 1.0F);
-        GL11.glVertex4f(x1, y1, z2, 1.0F);
-
-        GL11.glEnd();
-
+      final boolean SET_VIEWPORT_TRUE = true;
+//      Random random = new Random();
+//      boolean done = false;
+//      do {
+//        frameBuffer.setFramebufferColor(0.23F, 0.23F, 0.23F, 0.23F);
+//        frameBuffer.framebufferClear();
+//        frameBuffer.bindFramebuffer(SET_VIEWPORT_TRUE);
+//        GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
+//
+//        float lx = 0.0F;
+//        float rx = 1.0F;
+//        float by = 0.0F;
+//        float uy = 1.0F;
+//        float fz = 0.5F;
+//        int xLocationOfInterest = 0;
+//        int yLocationOfInterest = 8;
+//        int pixelOfInterestIndex = xLocationOfInterest + yLocationOfInterest * U_TEXELS_PER_FACE;
+//        for (lx = 0.0F; lx <= 1.0F; lx += 0.25F/16.0F) {
+//          GL11.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+//          GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+//
+//          frameBuffer.bindFramebufferTexture();
+//          pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+//          GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+//          temp = new int[pixelBuffer.remaining()];
+//          pixelBuffer.get(temp);
+//          int firstval = temp[0];
+//          for (int value : temp ) {
+//            if (value != firstval ) {
+//              done = true; // breakpoint here!  we have a problem
+//            }
+//          }
+//
+//          frameBuffer.bindFramebuffer(SET_VIEWPORT_TRUE);
+//          GL11.glBegin(GL11.GL_QUADS);
+//          GL11.glColor4f(0.0F, 0.0F, 0.0F, 1.0F);
+//
+//
+//          GL11.glVertex4f(lx, by, fz, 1.0F);
+//          GL11.glVertex4f(rx, by, fz, 1.0F);
+//          GL11.glVertex4f(rx, uy, fz, 1.0F);
+//          GL11.glVertex4f(lx, uy, fz, 1.0F);
+//          GL11.glEnd();
+//
+//          frameBuffer.bindFramebufferTexture();
+//          pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+//          GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+//
+//          temp = new int[pixelBuffer.remaining()];
+//          pixelBuffer.get(temp);
+//
+//          String output = "LX:" + lx + " ->";
+//          for (int i = 0; i < U_TEXELS_PER_FACE; ++i ) {
+//            output += String.format("%X", temp[pixelOfInterestIndex + i]) + " ";
+//          }
+//          System.out.println(output);
+//        }
+//
+//        final float RNG = 1000.0F; final float MID = 500.0F;
+//        float x1 = random.nextFloat() * RNG - MID;
+//        float y1 = random.nextFloat() * RNG - MID;
+//        float z1 = random.nextFloat() * RNG - MID;
+//
+//        float x2 = random.nextFloat() * RNG - MID;
+//        float y2 = random.nextFloat() * RNG - MID;
+//        float z2 = random.nextFloat() * RNG - MID;
+//
 //        GL11.glBegin(GL11.GL_QUADS);
-//        GL11.glVertex4f(0.125F, 0.40F, 0.019F, 1.0F);
-//        GL11.glVertex4f(0.157F, -0.475F, 0.299F, 1.0F);
-//        GL11.glVertex4f(0.488F, 0.042F, 0.11F, 1.0F);
-//        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
+//        GL11.glColor4f(0.2F, 0.1F, 0.0F, 1.0F);
+//        GL11.glVertex4f(x1, y1, z1, 1.0F);
+//        GL11.glVertex4f(x1, y2, z1, 1.0F);
+//        GL11.glVertex4f(x2, y2, z1, 1.0F);
+//        GL11.glVertex4f(x2, y1, z1, 1.0F);
+//
+//        GL11.glVertex4f(x1, y1, z1, 1.0F);
+//        GL11.glVertex4f(x1, y2, z1, 1.0F);
+//        GL11.glVertex4f(x1, y2, z2, 1.0F);
+//        GL11.glVertex4f(x1, y1, z2, 1.0F);
+//
+//        GL11.glVertex4f(x1, y1, z1, 1.0F);
+//        GL11.glVertex4f(x2, y1, z1, 1.0F);
+//        GL11.glVertex4f(x2, y1, z2, 1.0F);
+//        GL11.glVertex4f(x1, y1, z2, 1.0F);
+//
 //        GL11.glEnd();
-
-        float offsetX = random.nextFloat() - random.nextFloat();
-        float offsetY = random.nextFloat() - random.nextFloat();
-        float offsetZ = random.nextFloat() - random.nextFloat();
-        switch (random.nextInt(3)) {
-          case 0: offsetX = 0; offsetY = 0; break;
-          case 1: offsetX = 0; offsetZ = 0; break;
-          case 2: offsetY = 0; offsetZ = 0; break;
-
-        }
+//
+////        GL11.glBegin(GL11.GL_QUADS);
+////        GL11.glVertex4f(0.125F, 0.40F, 0.019F, 1.0F);
+////        GL11.glVertex4f(0.157F, -0.475F, 0.299F, 1.0F);
+////        GL11.glVertex4f(0.488F, 0.042F, 0.11F, 1.0F);
+////        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
+////        GL11.glEnd();
+//
+//        float offsetX = random.nextFloat() - random.nextFloat();
+//        float offsetY = random.nextFloat() - random.nextFloat();
+//        float offsetZ = random.nextFloat() - random.nextFloat();
+//        switch (random.nextInt(3)) {
+//          case 0: offsetX = 0; offsetY = 0; break;
+//          case 1: offsetX = 0; offsetZ = 0; break;
+//          case 2: offsetY = 0; offsetZ = 0; break;
+//
+//        }
+////        GL11.glBegin(GL11.GL_TRIANGLES);
+////        GL11.glVertex4f(0.125F+offsetX, 0.40F+offsetY, 0.019F+offsetZ, 1.0F);
+////        GL11.glVertex4f(0.157F+offsetX, -0.475F+offsetY, 0.299F+offsetZ, 1.0F);
+////        GL11.glVertex4f(0.488F+offsetX, 0.042F+offsetY, 0.11F+offsetZ, 1.0F);
+//////        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
+////        GL11.glEnd();
+//
+////        GL11.glBegin(GL11.GL_TRIANGLES);
+////        GL11.glVertex4f(0.125F+offsetX, 0.40F+offsetY, 0.2F, 1.0F);
+////        GL11.glVertex4f(0.157F+offsetX, -0.475F+offsetY, 0.2F, 1.0F);
+////        GL11.glVertex4f(0.488F+offsetX, 0.042F+offsetY, 0.2F, 1.0F);
+//////        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
+////        GL11.glEnd();
+//
 //        GL11.glBegin(GL11.GL_TRIANGLES);
-//        GL11.glVertex4f(0.125F+offsetX, 0.40F+offsetY, 0.019F+offsetZ, 1.0F);
-//        GL11.glVertex4f(0.157F+offsetX, -0.475F+offsetY, 0.299F+offsetZ, 1.0F);
-//        GL11.glVertex4f(0.488F+offsetX, 0.042F+offsetY, 0.11F+offsetZ, 1.0F);
+//        GL11.glVertex4f(0.5F, 0.90F, 0.2F, 1.0F);
+//        GL11.glVertex4f(0.8F, 0.90F, 0.2F, 1.0F);
+//        GL11.glVertex4f(0.5F, 0.30F, 0.2F, 1.0F);
 ////        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
 //        GL11.glEnd();
+//
+//        frameBuffer.bindFramebufferTexture();
+//        pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+//        GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+//
+//        temp = new int[pixelBuffer.remaining()];
+//        pixelBuffer.get(temp);
+//        int firstval = temp[0];
+//        for (int value : temp ) {
+//          if (value != firstval ) {
+//            done = true; // breakpoint here!
+//          }
+//        }
+//
+//      } while (!done);
 
-//        GL11.glBegin(GL11.GL_TRIANGLES);
-//        GL11.glVertex4f(0.125F+offsetX, 0.40F+offsetY, 0.2F, 1.0F);
-//        GL11.glVertex4f(0.157F+offsetX, -0.475F+offsetY, 0.2F, 1.0F);
-//        GL11.glVertex4f(0.488F+offsetX, 0.042F+offsetY, 0.2F, 1.0F);
-////        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
-//        GL11.glEnd();
+      frameBuffer.setFramebufferColor(1.0F, 1.0F, 1.0F, 1.0F);
+      frameBuffer.framebufferClear();
 
-        GL11.glBegin(GL11.GL_TRIANGLES);
-        GL11.glVertex4f(0.5F, 0.90F, 0.2F, 1.0F);
-        GL11.glVertex4f(0.8F, 0.90F, 0.2F, 1.0F);
-        GL11.glVertex4f(0.5F, 0.30F, 0.2F, 1.0F);
-//        GL11.glVertex4f(-0.02F, -0.24F, 0.195F, 1.0F);
-        GL11.glEnd();
+      frameBuffer.bindFramebufferTexture();
+      pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+      GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
 
-        frameBuffer.bindFramebufferTexture();
-        pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
-        GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+      temp = new int[pixelBuffer.remaining()];
+      pixelBuffer.get(temp);
 
-        temp = new int[pixelBuffer.remaining()];
-        pixelBuffer.get(temp);
-        int firstval = temp[0];
-        for (int value : temp ) {
-          if (value != firstval ) {
-            done = true; // breakpoint here!
-          }
+      frameBuffer.bindFramebuffer(SET_VIEWPORT_TRUE);
+      GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
+      GL11.glEnable(GL11.GL_CULL_FACE);
+      GL11.glEnable(GL11.GL_DEPTH_TEST);
+
+      Minecraft mc = Minecraft.getMinecraft();
+      BlockRendererDispatcher blockRendererDispatcher = mc.getBlockRendererDispatcher();
+      BlockModelShapes blockModelShapes = blockRendererDispatcher.getBlockModelShapes();
+      Block testBlock = RegistryForBlocks.blockSelectionSolidFog;
+      IBlockState testState = testBlock.getDefaultState();
+      IBakedModel ibakedmodel = blockModelShapes.getModelForState(testState);
+
+      if (ibakedmodel instanceof net.minecraftforge.client.model.ISmartBlockModel) {
+        ibakedmodel = ((net.minecraftforge.client.model.ISmartBlockModel)ibakedmodel).handleBlockState(testState);
+      }
+
+//      Tessellator tessellator = Tessellator.getInstance();
+//      WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+//      Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+//      worldrenderer.startDrawingQuads();
+//
+//      worldrenderer.setColorOpaque_I(Color.YELLOW.getRGB());
+//      renderModelStandard(ibakedmodel, worldrenderer);
+
+      // from RenderFallingBlock.doRender()
+
+      for (EnumFacing facing : EnumFacing.values()) {
+        List<BakedQuad> faceQuads = ibakedmodel.getFaceQuads(facing);
+        if (!faceQuads.isEmpty()) {
+
+          frameBuffer.setFramebufferColor(0.315F, 0.315F, 0.315F, 0.315F);
+          frameBuffer.framebufferClear();
+          frameBuffer.bindFramebuffer(SET_VIEWPORT_TRUE);
+          GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
+
+          GlStateManager.disableLighting();
+          Tessellator tessellator = Tessellator.getInstance();
+          WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+          worldrenderer.startDrawingQuads();
+          worldrenderer.setVertexFormat(DefaultVertexFormats.BLOCK);
+          Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+
+          renderModelStandardQuads(worldrenderer, faceQuads);
+//          renderModelStandard(ibakedmodel, worldrenderer);
+          tessellator.draw();
+          GlStateManager.enableLighting();
+
+          frameBuffer.bindFramebufferTexture();
+          pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+          GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+
+          temp = new int[pixelBuffer.remaining()];
+          pixelBuffer.get(temp);
+
+
         }
 
-      } while (!done);
+      }
+
+
+//      int i = blockpos.getX();
+//      int j = blockpos.getY();
+//      int k = blockpos.getZ();
+//      worldrenderer.setTranslation((double)((float)(-i) - 0.5F), (double)(-j), (double)((float)(-k) - 0.5F));
+//      BlockRendererDispatcher blockrendererdispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
+//      IBakedModel ibakedmodel = blockrendererdispatcher.getModelFromBlockState(iblockstate, world, (BlockPos)null);
+//      blockrendererdispatcher.getBlockModelRenderer().renderModel(world, ibakedmodel, iblockstate, blockpos, worldrenderer, false);
+//      worldrenderer.setTranslation(0.0D, 0.0D, 0.0D);
 
 
 
-
-
-      Tessellator tessellator = Tessellator.getInstance();
-      WorldRenderer worldrenderer = tessellator.getWorldRenderer();
-      Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
-      worldrenderer.startDrawingQuads();
-      worldrenderer.setColorOpaque_I(0xc0b0a0);
-      worldrenderer.addVertex(0.25, 0.25, 0.5);
-      worldrenderer.addVertex(0.75, 0.25, 0.5);
-      worldrenderer.addVertex(0.75, 0.75, 0.5);
-      worldrenderer.addVertex(0.25, 0.75, 0.5);
-      tessellator.draw();
+//      worldrenderer.setColorOpaque_I(0x0);
+//      worldrenderer.addVertex(0.25, 0.25, 0.5);
+//      worldrenderer.addVertex(0.75, 0.25, 0.5);
+//      worldrenderer.addVertex(0.75, 0.75, 0.5);
+//      worldrenderer.addVertex(0.25, 0.75, 0.5);
+//      tessellator.draw();
 
       frameBuffer.bindFramebufferTexture();
       pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
@@ -501,6 +617,68 @@ public class SelectionBlockTextures {
 //
 
     firstUncachedIndex = nextFreeTextureIndex;
+  }
+
+  public void renderModelStandard(IBakedModel modelIn, WorldRenderer worldRendererIn)
+  {
+    for (EnumFacing facing : EnumFacing.values()) {
+      List<BakedQuad> faceQuads = modelIn.getFaceQuads(facing);
+      if (!faceQuads.isEmpty()) {
+        renderModelStandardQuads(worldRendererIn, faceQuads);
+      }
+    }
+
+    List<BakedQuad> generalQuads = modelIn.getGeneralQuads();
+    if (!generalQuads.isEmpty()) {
+      renderModelStandardQuads(worldRendererIn, generalQuads);
+    }
+  }
+
+  private void renderModelStandardQuads(WorldRenderer worldRendererIn, List<BakedQuad> bakedQuadList)
+  {
+//    double d0 = (double)blockPosIn.getX();
+//    double d1 = (double)blockPosIn.getY();
+//    double d2 = (double)blockPosIn.getZ();
+
+    final int VERTEX_BRIGHTNESS = -1;
+    for (BakedQuad bakedQuad : bakedQuadList ) {
+      worldRendererIn.addVertexData(bakedQuad.getVertexData());
+      worldRendererIn.putBrightness4(VERTEX_BRIGHTNESS, VERTEX_BRIGHTNESS, VERTEX_BRIGHTNESS, VERTEX_BRIGHTNESS);
+
+//      worldRendererIn.putBrightness4(brightnessIn, brightnessIn, brightnessIn, brightnessIn);
+    }
+
+//    for (Iterator iterator = listQuadsIn.iterator(); iterator.hasNext(); worldRendererIn.putPosition(d0, d1, d2))
+//    {
+//      BakedQuad bakedquad = (BakedQuad)iterator.next();
+//
+//      if (ownBrightness)
+//      {
+//        this.fillQuadBounds(blockIn, bakedquad.getVertexData(), bakedquad.getFace(), (float[])null, boundsFlags);
+//        brightnessIn = boundsFlags.get(0) ? blockIn.getMixedBrightnessForBlock(blockAccessIn, blockPosIn.offset(bakedquad.getFace())) : blockIn.getMixedBrightnessForBlock(blockAccessIn, blockPosIn);
+//      }
+//
+//      worldRendererIn.addVertexData(bakedquad.getVertexData());
+//      worldRendererIn.putBrightness4(brightnessIn, brightnessIn, brightnessIn, brightnessIn);
+//
+//      if (bakedquad.hasTintIndex())
+//      {
+//        int i1 = blockIn.colorMultiplier(blockAccessIn, blockPosIn, bakedquad.getTintIndex());
+//
+//        if (EntityRenderer.anaglyphEnable)
+//        {
+//          i1 = TextureUtil.anaglyphColor(i1);
+//        }
+//
+//        float f = (float)(i1 >> 16 & 255) / 255.0F;
+//        float f1 = (float)(i1 >> 8 & 255) / 255.0F;
+//        float f2 = (float)(i1 & 255) / 255.0F;
+//        worldRendererIn.putColorMultiplier(f, f1, f2, 4);
+//        worldRendererIn.putColorMultiplier(f, f1, f2, 3);
+//        worldRendererIn.putColorMultiplier(f, f1, f2, 2);
+//        worldRendererIn.putColorMultiplier(f, f1, f2, 1);
+//      }
+//    }
   }
 
   /**
