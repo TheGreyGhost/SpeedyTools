@@ -217,7 +217,6 @@ public class CombinedClientProxy extends CommonProxy {
     }
 
     MinecraftForge.EVENT_BUS.register(new ItemEventHandler());
-//    MinecraftForge.EVENT_BUS.register(new SoundsRegistry());          todo uncomment
     MinecraftForge.EVENT_BUS.register(new InputEventHandler());
     MinecraftForge.EVENT_BUS.register(new RenderEventHandlers());
     FMLCommonHandler.instance().bus().register(new ClientTickHandler());

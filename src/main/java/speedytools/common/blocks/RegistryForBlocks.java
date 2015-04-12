@@ -17,6 +17,7 @@ public class RegistryForBlocks
   // custom blocks
   public static BlockSelectionFog blockSelectionFog;
   public static BlockSelectionSolidFog blockSelectionSolidFog;
+//  public static BlockSimple blockSimple;
 
   public static void initialise()
   {
@@ -24,6 +25,9 @@ public class RegistryForBlocks
     GameRegistry.registerBlock(blockSelectionFog, blockSelectionFog.NAME);
     blockSelectionSolidFog = new BlockSelectionSolidFog(Material.rock);  // material is arbitrary; can't be air because air has no icon
     GameRegistry.registerBlock(blockSelectionSolidFog, blockSelectionSolidFog.NAME);
+
+//    blockSimple = (BlockSimple)(new BlockSimple().setUnlocalizedName("mbe01_block_simple"));
+//    GameRegistry.registerBlock(blockSimple, "mbe01_block_simple");
   }
 
   // get a list of all the blocks which have a corresponding item
