@@ -410,36 +410,60 @@ public class SelectionBlockTextures {
 
       // from RenderFallingBlock.doRender()
 
-      for (EnumFacing facing : EnumFacing.values()) {
-        List<BakedQuad> faceQuads = ibakedmodel.getFaceQuads(facing);
-        if (!faceQuads.isEmpty()) {
+      EnumFacing [] vals = EnumFacing.values();
+      for (EnumFacing facing : vals) {
+        for (int i = 0; i < 5; ++i) {
+//          if (i == 0) {
+//            GL11.glEnable(GL11.GL_CULL_FACE);
+//          } else {
+//            GL11.glDisable(GL11.GL_CULL_FACE);
+//          }
+          List<BakedQuad> faceQuads = ibakedmodel.getFaceQuads(facing);
+          if (!faceQuads.isEmpty()) {
 
-          frameBuffer.setFramebufferColor(0.315F, 0.315F, 0.315F, 0.315F);
-          frameBuffer.framebufferClear();
-          frameBuffer.bindFramebuffer(SET_VIEWPORT_TRUE);
-          GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
+            frameBuffer.setFramebufferColor(0.315F, 0.315F, 0.315F, 0.315F);
+            frameBuffer.framebufferClear();
+            frameBuffer.bindFramebuffer(SET_VIEWPORT_TRUE);
+//            if ((i % 2) == 0) {
+//              GL11.glOrtho(0.0D, 1.0, 1.0, 0.0, -10.0, 10.0);  // set up to render over [0,0,0] to [1,1,1]
+//            }
+            GL11.glPushMatrix();
+            GL11.glTranslatef(+0.5F, +0.5F, +0.5F);
+            switch (facing) {
+              case NORTH:  GL11.glRotatef(0.0F, 0.0F, 1.0F, 0.0F); break;
+              case SOUTH:  GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F); break;
+              case EAST:   GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F); break;
+              case WEST:   GL11.glRotatef(270.0F, 0.0F, 1.0F, 0.0F); break;
+              case UP:     GL11.glRotatef(-90.0F, 1.0F, 0.0F, 0.0F); break;
+              case DOWN:   GL11.glRotatef(90.0F, 1.0F, 0.0F, 0.0F); break;
+            }
+            GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
 
-          GlStateManager.disableLighting();
-          Tessellator tessellator = Tessellator.getInstance();
-          WorldRenderer worldrenderer = tessellator.getWorldRenderer();
-          worldrenderer.startDrawingQuads();
-          worldrenderer.setVertexFormat(DefaultVertexFormats.BLOCK);
-          Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+              GlStateManager.disableLighting();
+              Tessellator tessellator = Tessellator.getInstance();
+              WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+              worldrenderer.startDrawingQuads();
+              worldrenderer.setVertexFormat(DefaultVertexFormats.BLOCK);
+              Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
 
-          renderModelStandardQuads(worldrenderer, faceQuads);
-//          renderModelStandard(ibakedmodel, worldrenderer);
-          tessellator.draw();
-          GlStateManager.enableLighting();
+  //          worldrenderer.setColorOpaque_F();
+              renderModelStandardQuads(worldrenderer, faceQuads);
+  //          renderModelStandard(ibakedmodel, worldrenderer);
+              tessellator.draw();
+              GlStateManager.enableLighting();
+            GL11.glPopMatrix();
 
-          frameBuffer.bindFramebufferTexture();
-          pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
-          GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
+            frameBuffer.bindFramebufferTexture();
+            pixelBuffer = BufferUtils.createIntBuffer(U_TEXELS_PER_FACE * V_TEXELS_PER_FACE);
+            GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, pixelBuffer);
 
-          temp = new int[pixelBuffer.remaining()];
-          pixelBuffer.get(temp);
+            temp = new int[pixelBuffer.remaining()];
+            pixelBuffer.get(temp);
 
 
+          }
         }
+
 
       }
 
