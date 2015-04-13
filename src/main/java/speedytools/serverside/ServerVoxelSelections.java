@@ -142,6 +142,7 @@ public class ServerVoxelSelections
           SelectionPacket selectionPacket = SelectionPacket.createSenderPacket(blockVoxelMultiSelector, Side.SERVER);
           SenderLinkage newLinkage = new SenderLinkage(entityPlayerMP, selectionPacket.getUniqueID());
           playerSenderLinkages.put(entityPlayerMP, newLinkage);
+          System.out.println("send new Multipart Selection from server to client, ID = " + selectionPacket.getUniqueID()); // todo remove
           sender.sendMultipartPacket(newLinkage, selectionPacket);
         }
         assert (commandQueue.peekFirst() == currentCommand);
@@ -273,7 +274,7 @@ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSe
              break;
            }
            case COMPLETED: {
-             message =  Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, 1.0F);
+             message = Packet250ServerSelectionGeneration.replyFractionCompleted(uniqueID, 1.0F);
              break;
            }
            case EXECUTING: {
@@ -302,7 +303,11 @@ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSe
        case ALL_IN_BOX:
        case UNBOUND_FILL:
        case BOUND_FILL: {
-         if (uniqueID <= lastCommandID) return null;  // discard old commands
+         if (uniqueID < lastCommandID) return null;  // discard old commands
+         if (uniqueID == lastCommandID) {
+           CommandStatus commandStatus = playerCommandStatus.get(entityPlayerMP);
+           if (commandStatus != CommandStatus.COMPLETED) return null;  // ignore this command if we're currently processing it
+         }
 
          boolean success = enqueueSelectionCommand(entityPlayerMP, packet);
          if (success) {
@@ -425,7 +430,7 @@ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSe
   public class VoxelPacketLinkage implements MultipartOneAtATimeReceiver.PacketLinkage
   {
     public VoxelPacketLinkage(EntityPlayerMP player, SelectionPacket linkedPacket) {
-//      System.out.println("VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID());
+      System.out.println("ServerVoxelSelection::VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID()); // todo remove
       myLinkedPacket = linkedPacket;
       myPlayer = new WeakReference<EntityPlayerMP>(player);
     }

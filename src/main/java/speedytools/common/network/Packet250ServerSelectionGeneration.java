@@ -95,6 +95,7 @@ public class Packet250ServerSelectionGeneration extends Packet250Base
       command = Command.byteToCommand(commandValue);
       if (command == null) return;
       uniqueID = buf.readInt();
+      System.out.println("Packet250ServerSelectionGeneration: cmd=" + command + ", ID = " + uniqueID); //todo remove
 
       switch (command) {
         case STATUS_REQUEST:

@@ -17,6 +17,7 @@ import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraft.world.gen.structure.StructureBoundingBox;
+import org.lwjgl.Sys;
 import speedytools.common.selections.VoxelSelection;
 import speedytools.common.selections.VoxelSelectionWithOrigin;
 import speedytools.common.utilities.*;
@@ -495,10 +496,16 @@ public class WorldFragment
       int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
       int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
 
+      long startTime = System.nanoTime(); // todo remove
+      long time0, time1, time2, time3;
+      long ctime1 = 0;
+      long ctime2 = 0;
+      long ctime3 = 0;
       int z = state.z;
       int x = state.x;
       for (; z < zCount; ++z, x = 0) {
         for (; x < xCount; ++x) {
+          time0 = System.nanoTime();
           for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
             if (selection.getVoxel(x, y, z)) {
               int wx = x + wxOrigin;
@@ -523,10 +530,11 @@ public class WorldFragment
               setLightValue(x, y, z, (byte) lightValue);
             }
           } // for y
-
+          time1 = System.nanoTime(); // todo remove
           StructureBoundingBox yColumnSBB = new StructureBoundingBox(x + wxOrigin, yClipMin + wyOrigin, z + wzOrigin,
                                                                      x + wxOrigin, yClipMaxPlusOne - 1 + wyOrigin, z + wzOrigin);
-          List<NextTickListEntry> blockTickInfo = worldServerReader.getTickingBlocks(yColumnSBB);
+          List<NextTickListEntry> blockTickInfo = worldServerReader.getTickingBlocks(yColumnSBB); THIS IS VERY SLOW, MOVE IT TO ITS OWN STAGE AND GO THROUGH IN SINGLE PASS
+          time2 = System.nanoTime(); // todo remove
           if (blockTickInfo != null) {
             for (NextTickListEntry nextTickListEntry : blockTickInfo) {
               int y = nextTickListEntry.position.getY() - wyOrigin;
@@ -535,11 +543,18 @@ public class WorldFragment
               }
             }
           }
+          time3 = System.nanoTime();  //todo remove
+          ctime1 += time1 - time0;
+          ctime2 += time2 - time1;
+          ctime3 += time3 - time2;
 
           if (state.isTimeToInterrupt()) {
             state.z = z;
             state.x = x + 1;
-            state.setStageFractionComplete((z * xCount + x) / (double)(zCount * xCount));
+            state.setStageFractionComplete((z * xCount + x) / (double) (zCount * xCount));
+            long endTime = System.nanoTime();  // todo remove
+            System.out.println("start:" + startTime + ", end:" + endTime + ", delta(ms) = " + (endTime - startTime) / 1000000); //todo remove
+            System.out.println("   time1,2,3 = " + ctime1 + ", " + ctime2 + ", " + ctime3);
             return;
           }
         }

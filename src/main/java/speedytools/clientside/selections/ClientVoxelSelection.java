@@ -607,7 +607,7 @@ public class ClientVoxelSelection
   public class IncomingSelectionLinkage implements MultipartOneAtATimeReceiver.PacketLinkage
   {
     public IncomingSelectionLinkage(SelectionPacket linkedPacket) {
-//      System.out.println("VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID());
+      System.out.println("ClientVoxelSelection::VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID());  //todo remove
       myLinkedPacket = linkedPacket;
       incomingSelectionUniqueID = linkedPacket.getUniqueID();
       incomingSelectionFractionComplete = 0;
@@ -619,7 +619,7 @@ public class ClientVoxelSelection
     }
     @Override
     public void packetCompleted() {
-//      System.out.println("VoxelPacketLinkage - completed packet ID " + myLinkedPacket.getUniqueID());
+      System.out.println("ClientVoxelSelection::VoxelPacketLinkage - completed packet ID " + myLinkedPacket.getUniqueID()); // todo remove
       if (myLinkedPacket == null) return;
       serverVoxelSelection = myLinkedPacket.retrieveVoxelSelection();
     }
