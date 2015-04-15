@@ -142,7 +142,7 @@ public class ServerVoxelSelections
           SelectionPacket selectionPacket = SelectionPacket.createSenderPacket(blockVoxelMultiSelector, Side.SERVER);
           SenderLinkage newLinkage = new SenderLinkage(entityPlayerMP, selectionPacket.getUniqueID());
           playerSenderLinkages.put(entityPlayerMP, newLinkage);
-          System.out.println("send new Multipart Selection from server to client, ID = " + selectionPacket.getUniqueID()); // todo remove
+//          System.out.println("send new Multipart Selection from server to client, ID = " + selectionPacket.getUniqueID()); // todo remove
           sender.sendMultipartPacket(newLinkage, selectionPacket);
         }
         assert (commandQueue.peekFirst() == currentCommand);
@@ -430,7 +430,7 @@ public class PacketHandlerServerSelectionGeneration implements Packet250ServerSe
   public class VoxelPacketLinkage implements MultipartOneAtATimeReceiver.PacketLinkage
   {
     public VoxelPacketLinkage(EntityPlayerMP player, SelectionPacket linkedPacket) {
-      System.out.println("ServerVoxelSelection::VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID()); // todo remove
+//      System.out.println("ServerVoxelSelection::VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID()); // todo remove
       myLinkedPacket = linkedPacket;
       myPlayer = new WeakReference<EntityPlayerMP>(player);
     }

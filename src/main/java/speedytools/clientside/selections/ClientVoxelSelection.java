@@ -221,7 +221,7 @@ public class ClientVoxelSelection
   {
     clientVoxelMultiSelector = null;
     if (voxelSelectionRenderer != null) {
-      voxelSelectionRenderer.release();
+      voxelSelectionRenderer.releaseFinal();
       voxelSelectionRenderer = null;
       selectionBeingDisplayed = null;
     }
@@ -244,7 +244,9 @@ public class ClientVoxelSelection
     if (clientSelectionState == ClientSelectionState.GENERATING || clientSelectionState == ClientSelectionState.CREATING_RENDERLISTS) {
       reset();
     } else {
-      if (serverSelectionState != ServerSelectionState.IDLE && serverSelectionState != ServerSelectionState.COMPLETE) {
+      if (serverSelectionState != ServerSelectionState.IDLE
+          && serverSelectionState != ServerSelectionState.COMPLETE
+          && serverSelectionState != ServerSelectionState.CREATING_RENDERLISTS) {
         Packet250ServerSelectionGeneration abortPacket = Packet250ServerSelectionGeneration.abortSelectionGeneration(currentSelectionUniqueID);
         packetSenderClient.sendPacket(abortPacket);
         serverSelectionState = ServerSelectionState.IDLE;
@@ -607,7 +609,7 @@ public class ClientVoxelSelection
   public class IncomingSelectionLinkage implements MultipartOneAtATimeReceiver.PacketLinkage
   {
     public IncomingSelectionLinkage(SelectionPacket linkedPacket) {
-      System.out.println("ClientVoxelSelection::VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID());  //todo remove
+//      System.out.println("ClientVoxelSelection::VoxelPacketLinkage constructed for Selection Packet ID " + linkedPacket.getUniqueID());  //todo remove
       myLinkedPacket = linkedPacket;
       incomingSelectionUniqueID = linkedPacket.getUniqueID();
       incomingSelectionFractionComplete = 0;
@@ -619,7 +621,7 @@ public class ClientVoxelSelection
     }
     @Override
     public void packetCompleted() {
-      System.out.println("ClientVoxelSelection::VoxelPacketLinkage - completed packet ID " + myLinkedPacket.getUniqueID()); // todo remove
+//      System.out.println("ClientVoxelSelection::VoxelPacketLinkage - completed packet ID " + myLinkedPacket.getUniqueID()); // todo remove
       if (myLinkedPacket == null) return;
       serverVoxelSelection = myLinkedPacket.retrieveVoxelSelection();
     }

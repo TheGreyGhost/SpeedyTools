@@ -44,7 +44,7 @@ public class SpeedyToolComplexOrb extends SpeedyToolComplex
 
   @Override
   protected Colour getSelectionRenderColour() {
-    return Colour.WHITE_100;
+    return Colour.ORANGE_100;
   }
 
   @Override

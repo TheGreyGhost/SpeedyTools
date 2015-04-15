@@ -64,6 +64,17 @@ public class BlockVoxelMultiSelectorRenderer
   }
 
   /**
+   * Releases all GL11 resources for good
+   * this must not be used after calling releaseFinal().
+   */
+  public void releaseFinal()
+  {
+    release();
+    selectionBlockTextures.release();
+    selectionBlockTextures = null;
+  }
+
+  /**
    * gets the origin for the renderer in world coordinates
    *
    * @return the origin for the selection in world coordinates

@@ -3,6 +3,8 @@ package speedytools.clientside.rendering;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.util.ResourceLocation;
@@ -525,8 +527,7 @@ public class RenderCursorStatus implements RendererElement
 
     mc.getTextureManager().bindTexture(Gui.icons);
     GL11.glEnable(GL11.GL_BLEND);
-    GL11.glBlendFunc(GL11.GL_ONE_MINUS_DST_COLOR, GL11.GL_ONE_MINUS_SRC_COLOR);
-
+    OpenGlHelper.glBlendFunc(GL11.GL_ONE_MINUS_DST_COLOR, GL11.GL_ONE_MINUS_SRC_COLOR, 1, 0);
     GL11.glPushMatrix();
     GL11.glTranslatef(width / 2, height / 2, Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
     GL11.glRotated(rotationAngle, 0.0, 0.0, 1.0);
@@ -541,8 +542,10 @@ public class RenderCursorStatus implements RendererElement
     GL11.glDisable(GL11.GL_TEXTURE_2D);
     drawArc(12.0, 0.0, progressAngle, (double) Z_LEVEL_FROM_GUI_IN_GAME_FORGE);
     GL11.glPopMatrix();
+    OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);  // from GuiIngameForge.renderCrosshairs()
+    GL11.glDisable(GL11.GL_BLEND);
 
-      GL11.glPopAttrib();
+    GL11.glPopAttrib();
     return;
   }
 

@@ -496,16 +496,16 @@ public class WorldFragment
       int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
       int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
 
-      long startTime = System.nanoTime(); // todo remove
-      long time0, time1, time2, time3;
-      long ctime1 = 0;
-      long ctime2 = 0;
-      long ctime3 = 0;
+//      long startTime = System.nanoTime(); // todo remove
+//      long time0, time1, time2, time3;
+//      long ctime1 = 0;
+//      long ctime2 = 0;
+//      long ctime3 = 0;
       int z = state.z;
       int x = state.x;
       for (; z < zCount; ++z, x = 0) {
         for (; x < xCount; ++x) {
-          time0 = System.nanoTime();
+//          time0 = System.nanoTime();
           for (int y = yClipMin; y < yClipMaxPlusOne; ++y) {
             if (selection.getVoxel(x, y, z)) {
               int wx = x + wxOrigin;
@@ -530,31 +530,16 @@ public class WorldFragment
               setLightValue(x, y, z, (byte) lightValue);
             }
           } // for y
-          time1 = System.nanoTime(); // todo remove
-          StructureBoundingBox yColumnSBB = new StructureBoundingBox(x + wxOrigin, yClipMin + wyOrigin, z + wzOrigin,
-                                                                     x + wxOrigin, yClipMaxPlusOne - 1 + wyOrigin, z + wzOrigin);
-          List<NextTickListEntry> blockTickInfo = worldServerReader.getTickingBlocks(yColumnSBB); THIS IS VERY SLOW, MOVE IT TO ITS OWN STAGE AND GO THROUGH IN SINGLE PASS
-          time2 = System.nanoTime(); // todo remove
-          if (blockTickInfo != null) {
-            for (NextTickListEntry nextTickListEntry : blockTickInfo) {
-              int y = nextTickListEntry.position.getY() - wyOrigin;
-              if (selection.getVoxel(x, y, z)) {
-                setTickInfo(x, y, z, nextTickListEntry);
-              }
-            }
-          }
-          time3 = System.nanoTime();  //todo remove
-          ctime1 += time1 - time0;
-          ctime2 += time2 - time1;
-          ctime3 += time3 - time2;
+//          time3 = System.nanoTime();  //todo remove
+//          ctime3 += time3 - time0;
 
           if (state.isTimeToInterrupt()) {
             state.z = z;
             state.x = x + 1;
             state.setStageFractionComplete((z * xCount + x) / (double) (zCount * xCount));
             long endTime = System.nanoTime();  // todo remove
-            System.out.println("start:" + startTime + ", end:" + endTime + ", delta(ms) = " + (endTime - startTime) / 1000000); //todo remove
-            System.out.println("   time1,2,3 = " + ctime1 + ", " + ctime2 + ", " + ctime3);
+//            System.out.println("start:" + startTime + ", end:" + endTime + ", delta(ms) = " + (endTime - startTime) / 1000000); //todo remove
+//            System.out.println("   time1,2,3 = " + ctime1 + ", " + ctime2 + ", " + ctime3);
             return;
           }
         }
@@ -568,7 +553,8 @@ public class WorldFragment
               wxOrigin + xCount, wyOrigin + yCount, wzOrigin + zCount)
               .expand(EXPAND, EXPAND, EXPAND);
 
-      List<EntityHanging> allHangingEntities = worldServerReader.getEntitiesWithinAABB(EntityHanging.class, axisAlignedBB);
+      List<EntityHanging> allHangingEntities = worldServerReader.getEntitiesWithinAABB(EntityHanging.class,
+                                                                                       axisAlignedBB);
 
       for (EntityHanging entity : allHangingEntities) {
         int x = entity.func_174857_n().getX() - wxOrigin;
@@ -581,15 +567,43 @@ public class WorldFragment
           addEntity(x, y, z, tag);
         }
       }
+      state.setStage(AsynchronousReadStages.TICKINGBLOCKS);
+    }
+
+    if (state.getStage() == AsynchronousReadStages.TICKINGBLOCKS) {
+      int yClipMin = Math.max(Y_MIN_VALID, 0 + wyOrigin) - wyOrigin;
+      int yClipMaxPlusOne = Math.min(Y_MAX_VALID_PLUS_ONE, yCount + wyOrigin) - wyOrigin;
+
+//      long startTime = System.nanoTime(); // todo remove
+
+      StructureBoundingBox yColumnSBB = new StructureBoundingBox(wxOrigin, yClipMin + wyOrigin, wzOrigin,
+                                                                 wxOrigin + xCount, yClipMaxPlusOne - 1 + wyOrigin, wzOrigin + zCount);
+      List<NextTickListEntry> blockTickInfo = worldServerReader.getTickingBlocks(yColumnSBB);
+//      long time2 = System.nanoTime(); // todo remove
+      if (blockTickInfo != null) {
+        for (NextTickListEntry nextTickListEntry : blockTickInfo) {
+          int x = nextTickListEntry.position.getX() - wxOrigin;
+          int y = nextTickListEntry.position.getY() - wyOrigin;
+          int z = nextTickListEntry.position.getZ() - wzOrigin;
+          if (selection.getVoxel(x, y, z)) {
+            setTickInfo(x, y, z, nextTickListEntry);
+          }
+        }
+      }
+      long endTime = System.nanoTime(); // todo remove
+//      System.out.println("start:" + startTime + ", end:" + endTime + ", delta(ms) = " + (endTime - startTime) / 1000000); //todo remove
+//      System.out.println("   time1,2 = " + (time2 - startTime) + ", " + (endTime - time2));
+
       state.setStage(AsynchronousReadStages.COMPLETE);
     }
+
 
     return;
   }
 
   public enum AsynchronousReadStages
   {
-    SETUP(0.1), TILEDATA(0.7), ENTITYDATA(0.2), COMPLETE(0.0);
+    SETUP(0.1), TILEDATA(0.6), ENTITYDATA(0.2), TICKINGBLOCKS(0.1), COMPLETE(0.0);
 
     AsynchronousReadStages(double i_durationWeight) {durationWeight = i_durationWeight;}
     public double durationWeight;   // roughly how long each stage will take - total of all stages should be 1.0
