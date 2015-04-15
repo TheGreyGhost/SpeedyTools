@@ -1,6 +1,5 @@
 package speedytools.serverside;
 
-import com.sun.xml.internal.bind.v2.runtime.reflect.Lister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.BlockPos;
