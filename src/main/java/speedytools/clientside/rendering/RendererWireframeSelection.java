@@ -79,16 +79,20 @@ public class RendererWireframeSelection implements RendererElement
       GlStateManager.translate(0.0F, player.getEyeHeight(), 0.0F);  // put [0,0,0] at eye height
 
       for (BlockPos block : renderInfo.currentlySelectedBlocks) {
-        AxisAlignedBB boundingBox = new AxisAlignedBB(block, block.add(1, 1, 1));
-        boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).offset(-playerOrigin.xCoord, -playerOrigin.yCoord, -playerOrigin.zCoord);
-        switch (SELECTION_BOX_STYLE) {
-          case 0: {
-            SelectionBoxRenderer.drawCube(boundingBox);
-            break;
-          }
-          case 1: {
-            SelectionBoxRenderer.drawFilledCube(boundingBox);
-            break;
+        if (block != null) {
+          AxisAlignedBB boundingBox = new AxisAlignedBB(block, block.add(1, 1, 1));
+          boundingBox = boundingBox.expand(expandDistance, expandDistance, expandDistance).offset(-playerOrigin.xCoord,
+                                                                                                  -playerOrigin.yCoord,
+                                                                                                  -playerOrigin.zCoord);
+          switch (SELECTION_BOX_STYLE) {
+            case 0: {
+              SelectionBoxRenderer.drawCube(boundingBox);
+              break;
+            }
+            case 1: {
+              SelectionBoxRenderer.drawFilledCube(boundingBox);
+              break;
+            }
           }
         }
       }
