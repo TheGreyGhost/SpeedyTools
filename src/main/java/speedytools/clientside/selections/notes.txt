@@ -1,6 +1,6 @@
 From https://open.gl/framebuffers
 
-
+ 
 Framebuffers
 
 In the previous chapters we've looked at the different types of buffers OpenGL offers: the color, depth and stencil buffers. These buffers occupy video memory like any other OpenGL object, but so far we've had little control over them besides specifying the pixel formats when you created the OpenGL context. This combination of buffers is known as the default framebuffer and as you've seen, a framebuffer is an area in memory that can be rendered to. What if you want to take a rendered result and do some additional operations on it, such as post-processing as seen in many modern games?
